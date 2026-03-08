@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fyi-request-system"
+version = "0.14.0"
+description = "Local-first FYI.org.nz assisted workflow system"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{name = "OpenAI Assistant"}]
+dependencies = [
+  "feedparser>=6.0.11",
+  "requests>=2.32.0",
+  "jinja2>=3.1.4",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0.0",
+  "pytest-cov>=5.0.0",
+  "ruff>=0.6.0",
+  "mypy>=1.11.0",
+]
+
+[project.scripts]
+fyi-system = "fyi_system.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]

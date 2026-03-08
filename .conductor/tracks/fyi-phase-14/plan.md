@@ -1,0 +1,5 @@
+- [x] Add privacy/security helper module
+- [x] Add privacy audit and settings CLI commands
+- [x] Sanitize bundle exports by default
+- [x] Add security headers to the local web UI
+- [x] Add tests and docs
