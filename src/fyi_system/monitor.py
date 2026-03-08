@@ -1,7 +1,7 @@
 from __future__ import annotations
 import json
 from pathlib import Path
-import feedparser
+import feedparser  # type: ignore[import-untyped]
 from .db import connect
 from .fyi import extract_request_id
 

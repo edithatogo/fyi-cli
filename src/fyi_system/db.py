@@ -90,7 +90,8 @@ def insert_tracked_request(db_path: str | Path, authority_slug: str, title: str,
             (authority_slug, title, body, tags, status, fyi_request_id, fyi_url),
         )
         conn.commit()
-        return int(cur.lastrowid)
+        rowid = cur.lastrowid
+        return int(rowid) if rowid is not None else -1
     finally:
         conn.close()
 

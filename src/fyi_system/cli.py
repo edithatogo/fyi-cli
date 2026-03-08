@@ -28,7 +28,7 @@ from .reporting import (
 from .dashboard import write_dashboard
 from .scheduler import run_scheduler, run_cycle
 from .webapp import serve
-from .security import load_settings, privacy_audit, sanitize_payload, secure_write_text
+from .security import load_settings, privacy_audit, secure_write_text
 
 
 def _write_json_or_print(payload, output=None):
@@ -219,39 +219,237 @@ def cmd_privacy_audit(args):
 def build_parser():
     p = argparse.ArgumentParser(prog='fyi-system')
     sub = p.add_subparsers(dest='cmd', required=True)
-    sp = sub.add_parser('init-db'); sp.add_argument('--db', default='fyi_system.db'); sp.set_defaults(func=cmd_init_db)
-    sp = sub.add_parser('import-authorities'); sp.add_argument('csv_path'); sp.add_argument('--db', default='fyi_system.db'); sp.set_defaults(func=cmd_import_authorities)
-    sp = sub.add_parser('list-authorities'); sp.add_argument('--db', default='fyi_system.db'); sp.set_defaults(func=cmd_list_authorities)
-    sp = sub.add_parser('register-request'); sp.add_argument('authority_slug'); sp.add_argument('title'); sp.add_argument('body'); sp.add_argument('--tags'); sp.add_argument('--status', default='draft'); sp.add_argument('--fyi-request-id', type=int); sp.add_argument('--db', default='fyi_system.db'); sp.set_defaults(func=cmd_register_request)
-    sp = sub.add_parser('list-requests'); sp.add_argument('--db', default='fyi_system.db'); sp.set_defaults(func=cmd_list_requests)
-    sp = sub.add_parser('set-status'); sp.add_argument('request_id', type=int); sp.add_argument('status'); sp.add_argument('--db', default='fyi_system.db'); sp.set_defaults(func=cmd_set_status)
-    sp = sub.add_parser('request-timeline'); sp.add_argument('request_id', type=int); sp.add_argument('--db', default='fyi_system.db'); sp.set_defaults(func=cmd_request_timeline)
-    sp = sub.add_parser('export-requests'); sp.add_argument('--output', default='outputs/requests.json'); sp.add_argument('--db', default='fyi_system.db'); sp.set_defaults(func=cmd_export_requests)
-    sp = sub.add_parser('import-requests'); sp.add_argument('input'); sp.add_argument('--replace', action='store_true'); sp.add_argument('--db', default='fyi_system.db'); sp.set_defaults(func=cmd_import_requests)
-    sp = sub.add_parser('build-prefilled-url'); sp.add_argument('authority_slug'); sp.add_argument('title'); sp.add_argument('body'); sp.add_argument('--tags'); sp.add_argument('--base-url', default='https://fyi.org.nz'); sp.set_defaults(func=cmd_build_prefilled_url)
-    sp = sub.add_parser('ingest-feed'); sp.add_argument('feed_url'); sp.add_argument('--db', default='fyi_system.db'); sp.set_defaults(func=cmd_ingest_feed)
-    sp = sub.add_parser('reconcile-events'); sp.add_argument('--db', default='fyi_system.db'); sp.set_defaults(func=cmd_reconcile)
-    sp = sub.add_parser('fetch-request-page'); sp.add_argument('request_id', type=int); sp.add_argument('--base-url', default='https://fyi.org.nz'); sp.add_argument('--db', default='fyi_system.db'); sp.set_defaults(func=cmd_fetch_request_page)
-    sp = sub.add_parser('attention-report'); sp.add_argument('--output', default='outputs/attention-report.json'); sp.add_argument('--db', default='fyi_system.db'); sp.set_defaults(func=cmd_attention_report)
-    sp = sub.add_parser('handover'); sp.add_argument('--output', default='outputs/handover.md'); sp.add_argument('--db', default='fyi_system.db'); sp.set_defaults(func=cmd_handover)
-    sp = sub.add_parser('dashboard'); sp.add_argument('--output', default='outputs/dashboard.html'); sp.add_argument('--json-output'); sp.add_argument('--db', default='fyi_system.db'); sp.set_defaults(func=cmd_dashboard)
-    sp = sub.add_parser('run-cycle'); sp.add_argument('feed_url'); sp.add_argument('--outputs-dir', default='outputs'); sp.add_argument('--db', default='fyi_system.db'); sp.set_defaults(func=cmd_run_cycle)
-    sp = sub.add_parser('scheduler'); sp.add_argument('feed_url'); sp.add_argument('--interval-seconds', type=int, default=3600); sp.add_argument('--outputs-dir', default='outputs'); sp.add_argument('--db', default='fyi_system.db'); sp.add_argument('--once', action='store_true'); sp.set_defaults(func=cmd_scheduler)
-    sp = sub.add_parser('serve'); sp.add_argument('--host'); sp.add_argument('--port', type=int, default=8000); sp.add_argument('--settings'); sp.add_argument('--db', default='fyi_system.db'); sp.set_defaults(func=cmd_serve)
-    sp = sub.add_parser('request-detail'); sp.add_argument('request_id', type=int); sp.add_argument('--db', default='fyi_system.db'); sp.set_defaults(func=cmd_request_detail)
-    sp = sub.add_parser('export-request'); sp.add_argument('request_id', type=int); sp.add_argument('--output'); sp.add_argument('--db', default='fyi_system.db'); sp.set_defaults(func=cmd_export_request)
-    sp = sub.add_parser('follow-up-draft'); sp.add_argument('request_id', type=int); sp.add_argument('--output'); sp.add_argument('--db', default='fyi_system.db'); sp.set_defaults(func=cmd_follow_up_draft)
-    sp = sub.add_parser('attachment-manifest'); sp.add_argument('request_id', type=int); sp.add_argument('--output', default='outputs/attachment-manifest.json'); sp.add_argument('--db', default='fyi_system.db'); sp.set_defaults(func=cmd_attachment_manifest)
-    sp = sub.add_parser('attachment-manifest-csv'); sp.add_argument('request_id', type=int); sp.add_argument('--output', default='outputs/attachment-manifest.csv'); sp.add_argument('--db', default='fyi_system.db'); sp.set_defaults(func=cmd_attachment_manifest_csv)
-    sp = sub.add_parser('follow-up-variants'); sp.add_argument('request_id', type=int); sp.add_argument('--output'); sp.add_argument('--db', default='fyi_system.db'); sp.set_defaults(func=cmd_follow_up_variants)
-    sp = sub.add_parser('follow-up-pack'); sp.add_argument('request_id', type=int); sp.add_argument('--output'); sp.add_argument('--db', default='fyi_system.db'); sp.set_defaults(func=cmd_follow_up_pack)
-    sp = sub.add_parser('triage-report'); sp.add_argument('--output'); sp.add_argument('--db', default='fyi_system.db'); sp.set_defaults(func=cmd_triage_report)
-    sp = sub.add_parser('response-analysis'); sp.add_argument('request_id', type=int); sp.add_argument('--output'); sp.add_argument('--db', default='fyi_system.db'); sp.set_defaults(func=cmd_response_analysis)
-    sp = sub.add_parser('next-best-action'); sp.add_argument('request_id', type=int); sp.add_argument('--tone', default='neutral'); sp.add_argument('--output'); sp.add_argument('--db', default='fyi_system.db'); sp.set_defaults(func=cmd_next_best_action)
-    sp = sub.add_parser('correspondence-pack'); sp.add_argument('request_id', type=int); sp.add_argument('--format', choices=['json','markdown'], default='json'); sp.add_argument('--output'); sp.add_argument('--db', default='fyi_system.db'); sp.set_defaults(func=cmd_correspondence_pack)
-    sp = sub.add_parser('export-bundle'); sp.add_argument('request_id', type=int); sp.add_argument('--output-dir'); sp.add_argument('--profile', choices=['standard','strict'], default='strict'); sp.add_argument('--no-sanitize', action='store_true'); sp.add_argument('--db', default='fyi_system.db'); sp.set_defaults(func=cmd_export_bundle)
-    sp = sub.add_parser('show-settings'); sp.add_argument('--settings'); sp.add_argument('--output'); sp.set_defaults(func=cmd_show_settings)
-    sp = sub.add_parser('privacy-audit'); sp.add_argument('--db', default='fyi_system.db'); sp.add_argument('--host'); sp.add_argument('--outputs-dir', default='outputs'); sp.add_argument('--profile', choices=['standard','strict']); sp.add_argument('--settings'); sp.add_argument('--output'); sp.set_defaults(func=cmd_privacy_audit)
+    
+    # Command: init-db
+    sp = sub.add_parser('init-db')
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.set_defaults(func=cmd_init_db)
+    
+    # Command: import-authorities
+    sp = sub.add_parser('import-authorities')
+    sp.add_argument('csv_path')
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.set_defaults(func=cmd_import_authorities)
+    
+    # Command: list-authorities
+    sp = sub.add_parser('list-authorities')
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.set_defaults(func=cmd_list_authorities)
+    
+    # Command: register-request
+    sp = sub.add_parser('register-request')
+    sp.add_argument('authority_slug')
+    sp.add_argument('title')
+    sp.add_argument('body')
+    sp.add_argument('--tags')
+    sp.add_argument('--status', default='draft')
+    sp.add_argument('--fyi-request-id', type=int)
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.set_defaults(func=cmd_register_request)
+    
+    # Command: list-requests
+    sp = sub.add_parser('list-requests')
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.set_defaults(func=cmd_list_requests)
+    
+    # Command: set-status
+    sp = sub.add_parser('set-status')
+    sp.add_argument('request_id', type=int)
+    sp.add_argument('status')
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.set_defaults(func=cmd_set_status)
+    
+    # Command: request-timeline
+    sp = sub.add_parser('request-timeline')
+    sp.add_argument('request_id', type=int)
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.set_defaults(func=cmd_request_timeline)
+    
+    # Command: export-requests
+    sp = sub.add_parser('export-requests')
+    sp.add_argument('--output', default='outputs/requests.json')
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.set_defaults(func=cmd_export_requests)
+    
+    # Command: import-requests
+    sp = sub.add_parser('import-requests')
+    sp.add_argument('input')
+    sp.add_argument('--replace', action='store_true')
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.set_defaults(func=cmd_import_requests)
+    
+    # Command: build-prefilled-url
+    sp = sub.add_parser('build-prefilled-url')
+    sp.add_argument('authority_slug')
+    sp.add_argument('title')
+    sp.add_argument('body')
+    sp.add_argument('--tags')
+    sp.add_argument('--base-url', default='https://fyi.org.nz')
+    sp.set_defaults(func=cmd_build_prefilled_url)
+    
+    # Command: ingest-feed
+    sp = sub.add_parser('ingest-feed')
+    sp.add_argument('feed_url')
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.set_defaults(func=cmd_ingest_feed)
+    
+    # Command: reconcile-events
+    sp = sub.add_parser('reconcile-events')
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.set_defaults(func=cmd_reconcile)
+    
+    # Command: fetch-request-page
+    sp = sub.add_parser('fetch-request-page')
+    sp.add_argument('request_id', type=int)
+    sp.add_argument('--base-url', default='https://fyi.org.nz')
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.set_defaults(func=cmd_fetch_request_page)
+    
+    # Command: attention-report
+    sp = sub.add_parser('attention-report')
+    sp.add_argument('--output', default='outputs/attention-report.json')
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.set_defaults(func=cmd_attention_report)
+    
+    # Command: handover
+    sp = sub.add_parser('handover')
+    sp.add_argument('--output', default='outputs/handover.md')
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.set_defaults(func=cmd_handover)
+    
+    # Command: dashboard
+    sp = sub.add_parser('dashboard')
+    sp.add_argument('--output', default='outputs/dashboard.html')
+    sp.add_argument('--json-output')
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.set_defaults(func=cmd_dashboard)
+    
+    # Command: run-cycle
+    sp = sub.add_parser('run-cycle')
+    sp.add_argument('feed_url')
+    sp.add_argument('--outputs-dir', default='outputs')
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.set_defaults(func=cmd_run_cycle)
+    
+    # Command: scheduler
+    sp = sub.add_parser('scheduler')
+    sp.add_argument('feed_url')
+    sp.add_argument('--interval-seconds', type=int, default=3600)
+    sp.add_argument('--outputs-dir', default='outputs')
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.add_argument('--once', action='store_true')
+    sp.set_defaults(func=cmd_scheduler)
+    
+    # Command: serve
+    sp = sub.add_parser('serve')
+    sp.add_argument('--host')
+    sp.add_argument('--port', type=int, default=8000)
+    sp.add_argument('--settings')
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.set_defaults(func=cmd_serve)
+    
+    # Command: request-detail
+    sp = sub.add_parser('request-detail')
+    sp.add_argument('request_id', type=int)
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.set_defaults(func=cmd_request_detail)
+    
+    # Command: export-request
+    sp = sub.add_parser('export-request')
+    sp.add_argument('request_id', type=int)
+    sp.add_argument('--output')
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.set_defaults(func=cmd_export_request)
+    
+    # Command: follow-up-draft
+    sp = sub.add_parser('follow-up-draft')
+    sp.add_argument('request_id', type=int)
+    sp.add_argument('--output')
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.set_defaults(func=cmd_follow_up_draft)
+    
+    # Command: attachment-manifest
+    sp = sub.add_parser('attachment-manifest')
+    sp.add_argument('request_id', type=int)
+    sp.add_argument('--output', default='outputs/attachment-manifest.json')
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.set_defaults(func=cmd_attachment_manifest)
+    
+    # Command: attachment-manifest-csv
+    sp = sub.add_parser('attachment-manifest-csv')
+    sp.add_argument('request_id', type=int)
+    sp.add_argument('--output', default='outputs/attachment-manifest.csv')
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.set_defaults(func=cmd_attachment_manifest_csv)
+    
+    # Command: follow-up-variants
+    sp = sub.add_parser('follow-up-variants')
+    sp.add_argument('request_id', type=int)
+    sp.add_argument('--output')
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.set_defaults(func=cmd_follow_up_variants)
+    
+    # Command: follow-up-pack
+    sp = sub.add_parser('follow-up-pack')
+    sp.add_argument('request_id', type=int)
+    sp.add_argument('--output')
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.set_defaults(func=cmd_follow_up_pack)
+    
+    # Command: triage-report
+    sp = sub.add_parser('triage-report')
+    sp.add_argument('--output')
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.set_defaults(func=cmd_triage_report)
+    
+    # Command: response-analysis
+    sp = sub.add_parser('response-analysis')
+    sp.add_argument('request_id', type=int)
+    sp.add_argument('--output')
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.set_defaults(func=cmd_response_analysis)
+    
+    # Command: next-best-action
+    sp = sub.add_parser('next-best-action')
+    sp.add_argument('request_id', type=int)
+    sp.add_argument('--tone', default='neutral')
+    sp.add_argument('--output')
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.set_defaults(func=cmd_next_best_action)
+    
+    # Command: correspondence-pack
+    sp = sub.add_parser('correspondence-pack')
+    sp.add_argument('request_id', type=int)
+    sp.add_argument('--format', choices=['json', 'markdown'], default='json')
+    sp.add_argument('--output')
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.set_defaults(func=cmd_correspondence_pack)
+    
+    # Command: export-bundle
+    sp = sub.add_parser('export-bundle')
+    sp.add_argument('request_id', type=int)
+    sp.add_argument('--output-dir')
+    sp.add_argument('--profile', choices=['standard', 'strict'], default='strict')
+    sp.add_argument('--no-sanitize', action='store_true')
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.set_defaults(func=cmd_export_bundle)
+    
+    # Command: show-settings
+    sp = sub.add_parser('show-settings')
+    sp.add_argument('--settings')
+    sp.add_argument('--output')
+    sp.set_defaults(func=cmd_show_settings)
+    
+    # Command: privacy-audit
+    sp = sub.add_parser('privacy-audit')
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.add_argument('--host')
+    sp.add_argument('--outputs-dir', default='outputs')
+    sp.add_argument('--profile', choices=['standard', 'strict'])
+    sp.add_argument('--settings')
+    sp.add_argument('--output')
+    sp.set_defaults(func=cmd_privacy_audit)
+    
     return p
 
 
