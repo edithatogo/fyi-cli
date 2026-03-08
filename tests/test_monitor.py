@@ -76,3 +76,33 @@ class TestReconcileEvents:
         init_db(str(db_path))
         result = reconcile_events(db_path)
         assert isinstance(result, int)
+    
+    def test_reconcile_events_with_feed_events(self, tmp_path):
+        """Test reconcile_events matches feed events to requests."""
+        from fyi_system.db import init_db, insert_tracked_request
+        db_path = tmp_path / "test.db"
+        init_db(str(db_path))
+        
+        # Create a tracked request with fyi_request_id
+        request_id = insert_tracked_request(
+            db_path=str(db_path),
+            authority_slug='test',
+            title='Test',
+            body='Test',
+            fyi_request_id=12345
+        )
+        
+        # Insert a feed event that should match
+        from fyi_system.db import connect
+        conn = connect(str(db_path))
+        conn.execute(
+            '''INSERT INTO feed_events(feed_url, event_id, title, link, request_id_guess)
+               VALUES (?, ?, ?, ?, ?)''',
+            ('https://example.com/feed', 'event1', 'Test Event', 'https://fyi.org.nz/request/12345', 12345)
+        )
+        conn.commit()
+        conn.close()
+        
+        # Reconcile should match them
+        result = reconcile_events(str(db_path))
+        assert result >= 1

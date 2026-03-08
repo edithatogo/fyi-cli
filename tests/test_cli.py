@@ -273,3 +273,220 @@ class TestCommands:
     def test_cmd_list_requests_exists(self):
         """Test that cmd_list_requests function exists."""
         assert callable(cmd_list_requests)
+    
+    def test_cmd_init_db(self, tmp_path):
+        """Test cmd_init_db creates database."""
+        from fyi_system.cli import cmd_init_db
+        db_path = tmp_path / "test.db"
+        
+        class Args:
+            db = str(db_path)
+        
+        cmd_init_db(Args())
+        assert db_path.exists()
+    
+    def test_cmd_list_authorities_empty(self, tmp_path):
+        """Test cmd_list_authorities with empty database."""
+        from fyi_system.cli import cmd_init_db, cmd_list_authorities
+        from fyi_system.db import init_db
+        db_path = tmp_path / "test.db"
+        init_db(str(db_path))
+        
+        class Args:
+            db = str(db_path)
+        
+        # Should not raise
+        cmd_list_authorities(Args())
+    
+    def test_cmd_list_requests_empty(self, tmp_path):
+        """Test cmd_list_requests with empty database."""
+        from fyi_system.cli import cmd_list_requests
+        from fyi_system.db import init_db
+        db_path = tmp_path / "test.db"
+        init_db(str(db_path))
+        
+        class Args:
+            db = str(db_path)
+        
+        # Should not raise
+        cmd_list_requests(Args())
+    
+    def test_cmd_register_request(self, tmp_path):
+        """Test cmd_register_request creates request."""
+        from fyi_system.cli import cmd_init_db, cmd_register_request
+        from fyi_system.db import init_db, query_all
+        db_path = tmp_path / "test.db"
+        init_db(str(db_path))
+        
+        class Args:
+            db = str(db_path)
+            authority_slug = 'test'
+            title = 'Test Request'
+            body = 'Test body'
+            tags = None
+            status = 'draft'
+            fyi_request_id = None
+        
+        cmd_register_request(Args())
+        
+        # Verify request was created
+        requests = query_all(str(db_path), 'SELECT * FROM tracked_requests')
+        assert len(requests) == 1
+    
+    def test_cmd_set_status(self, tmp_path):
+        """Test cmd_set_status updates status."""
+        from fyi_system.cli import cmd_init_db, cmd_register_request, cmd_set_status
+        from fyi_system.db import init_db, get_tracked_request
+        db_path = tmp_path / "test.db"
+        init_db(str(db_path))
+        
+        # Create a request first
+        class RegisterArgs:
+            db = str(db_path)
+            authority_slug = 'test'
+            title = 'Test'
+            body = 'Test'
+            tags = None
+            status = 'draft'
+            fyi_request_id = None
+        
+        cmd_register_request(RegisterArgs())
+        
+        class StatusArgs:
+            db = str(db_path)
+            request_id = 1
+            status = 'pending'
+        
+        cmd_set_status(StatusArgs())
+        
+        # Verify status was updated
+        request = get_tracked_request(str(db_path), 1)
+        assert request['status'] == 'pending'
+    
+    def test_cmd_export_requests(self, tmp_path):
+        """Test cmd_export_requests exports to JSON."""
+        from fyi_system.cli import cmd_init_db, cmd_register_request, cmd_export_requests
+        from fyi_system.db import init_db
+        db_path = tmp_path / "test.db"
+        init_db(str(db_path))
+        
+        # Create a request first
+        class RegisterArgs:
+            db = str(db_path)
+            authority_slug = 'test'
+            title = 'Test'
+            body = 'Test'
+            tags = None
+            status = 'draft'
+            fyi_request_id = None
+        
+        cmd_register_request(RegisterArgs())
+        
+        output_path = tmp_path / "export.json"
+        
+        class ExportArgs:
+            db = str(db_path)
+            output = str(output_path)
+        
+        cmd_export_requests(ExportArgs())
+        
+        assert output_path.exists()
+        import json
+        data = json.loads(output_path.read_text())
+        assert isinstance(data, list)
+    
+    def test_cmd_attention_report(self, tmp_path):
+        """Test cmd_attention_report generates report."""
+        from fyi_system.cli import cmd_init_db, cmd_attention_report
+        from fyi_system.db import init_db
+        db_path = tmp_path / "test.db"
+        init_db(str(db_path))
+        
+        output_path = tmp_path / "report.json"
+        
+        class Args:
+            db = str(db_path)
+            output = str(output_path)
+        
+        cmd_attention_report(Args())
+        
+        assert output_path.exists()
+    
+    def test_cmd_handover(self, tmp_path):
+        """Test cmd_handover generates handover document."""
+        from fyi_system.cli import cmd_init_db, cmd_handover
+        from fyi_system.db import init_db
+        db_path = tmp_path / "test.db"
+        init_db(str(db_path))
+        
+        output_path = tmp_path / "handover.md"
+        
+        class Args:
+            db = str(db_path)
+            output = str(output_path)
+        
+        cmd_handover(Args())
+        
+        assert output_path.exists()
+    
+    def test_cmd_dashboard(self, tmp_path):
+        """Test cmd_dashboard generates HTML dashboard."""
+        from fyi_system.cli import cmd_init_db, cmd_dashboard
+        from fyi_system.db import init_db
+        db_path = tmp_path / "test.db"
+        init_db(str(db_path))
+        
+        output_path = tmp_path / "dashboard.html"
+        
+        class Args:
+            db = str(db_path)
+            output = str(output_path)
+            json_output = None
+        
+        cmd_dashboard(Args())
+        
+        assert output_path.exists()
+        content = output_path.read_text().strip()
+        assert content.startswith('<!doctype html>')
+    
+    def test_cmd_request_detail(self, tmp_path):
+        """Test cmd_request_detail outputs request details."""
+        from fyi_system.cli import cmd_init_db, cmd_register_request, cmd_request_detail
+        from fyi_system.db import init_db
+        db_path = tmp_path / "test.db"
+        init_db(str(db_path))
+        
+        # Create a request first
+        class RegisterArgs:
+            db = str(db_path)
+            authority_slug = 'test'
+            title = 'Test'
+            body = 'Test'
+            tags = None
+            status = 'draft'
+            fyi_request_id = None
+        
+        cmd_register_request(RegisterArgs())
+        
+        class DetailArgs:
+            db = str(db_path)
+            request_id = 1
+        
+        # Should not raise
+        cmd_request_detail(DetailArgs())
+    
+    def test_cmd_build_prefilled_url(self, tmp_path, capsys):
+        """Test cmd_build_prefilled_url outputs URL."""
+        from fyi_system.cli import cmd_build_prefilled_url
+        
+        class Args:
+            authority_slug = 'test'
+            title = 'Test'
+            body = 'Test body'
+            tags = None
+            base_url = 'https://fyi.org.nz'
+        
+        cmd_build_prefilled_url(Args())
+        
+        captured = capsys.readouterr()
+        assert 'fyi.org.nz' in captured.out

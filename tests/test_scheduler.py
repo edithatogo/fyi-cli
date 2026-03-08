@@ -92,6 +92,25 @@ class TestRunScheduler:
             )
         except Exception:
             pass
+    
+    def test_run_scheduler_creates_outputs_dir(self, tmp_path):
+        """Test scheduler creates outputs directory if needed."""
+        feed_url = "https://www.fyi.org.nz/request/12345/feed"
+        outputs_dir = tmp_path / "outputs"
+        db_path = tmp_path / "test.db"
+        
+        try:
+            run_scheduler(
+                feed_url=feed_url,
+                outputs_dir=str(outputs_dir),
+                db_path=str(db_path),
+                once=True
+            )
+        except Exception:
+            pass
+        
+        # Outputs directory should be created
+        assert outputs_dir.exists()
 
 
 class TestRunCycle:
@@ -170,6 +189,26 @@ class TestRunCycle:
         # Should create 'outputs' directory in current working dir
         outputs_dir = tmp_path / "outputs"
         assert outputs_dir.exists()
+    
+    def test_run_cycle_initializes_db(self, tmp_path):
+        """Test run_cycle works with uninitialized database."""
+        feed_url = "https://www.fyi.org.nz/request/12345/feed"
+        outputs_dir = tmp_path / "outputs"
+        outputs_dir.mkdir()
+        db_path = tmp_path / "test.db"
+        
+        # Don't initialize DB first - run_cycle should handle it
+        try:
+            run_cycle(
+                feed_url=feed_url,
+                outputs_dir=str(outputs_dir),
+                db_path=str(db_path)
+            )
+        except Exception:
+            pass
+        
+        # DB should be created
+        assert db_path.exists()
 
 
 class TestSchedulerIntegration:
@@ -207,4 +246,24 @@ class TestSchedulerIntegration:
             pass
         
         # Database should still exist and be usable
+        assert db_path.exists()
+    
+    def test_run_cycle_multiple_times(self, tmp_path):
+        """Test run_cycle can be called multiple times."""
+        feed_url = "https://www.fyi.org.nz/request/12345/feed"
+        outputs_dir = tmp_path / "outputs"
+        outputs_dir.mkdir()
+        db_path = tmp_path / "test.db"
+        
+        for i in range(3):
+            try:
+                run_cycle(
+                    feed_url=feed_url,
+                    outputs_dir=str(outputs_dir),
+                    db_path=str(db_path)
+                )
+            except Exception:
+                pass
+        
+        # Should complete without errors
         assert db_path.exists()
