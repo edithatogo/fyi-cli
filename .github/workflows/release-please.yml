@@ -1,0 +1,47 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: .release-please-manifest.json
+          manifest-file: .release-please-manifest.json
+      
+      - name: Checkout
+        uses: actions/checkout@v4
+        if: ${{ steps.release.outputs.releases_created }}
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        if: ${{ steps.release.outputs.releases_created }}
+        with:
+          python-version: '3.12'
+      
+      - name: Build package
+        if: ${{ steps.release.outputs.releases_created }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install build
+          python -m build
+      
+      - name: Upload release artifacts
+        uses: softprops/action-gh-release@v2
+        if: ${{ steps.release.outputs.releases_created }}
+        with:
+          files: dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

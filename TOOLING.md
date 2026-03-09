@@ -7,7 +7,158 @@
 
 ## Overview
 
-FYI CLI uses modern, optimized Python development tools for linting, type checking, security scanning, and profiling.
+FYI CLI uses modern, optimized Python development tools for building, linting, type checking, security scanning, and profiling.
+
+---
+
+## Core Libraries
+
+### CLI Framework: Typer
+
+[**Typer**](https://typer.tiangolo.com/) - Build great CLIs. Fast to code. One less thing to worry about.
+
+**Why Typer:**
+- Type hints = CLI arguments (automatic validation)
+- Auto-completion support (bash, zsh, fish, PowerShell)
+- Beautiful help messages
+- Based on Starlette/FastAPI patterns
+
+**Usage:**
+```python
+import typer
+
+app = typer.Typer()
+
+@app.command()
+def main(name: str = typer.Argument(..., help="Your name")):
+    typer.echo(f"Hello {name}")
+```
+
+---
+
+### Terminal Output: Rich
+
+[**Rich**](https://rich.readthedocs.io/) - Write rich text and beautiful formatting in the terminal.
+
+**Why Rich:**
+- Tables, syntax highlighting, markdown
+- Progress bars, spinners, status
+- Tracebacks with syntax highlighting
+- Emoji support 🎉
+
+**Usage:**
+```python
+from rich.console import Console
+from rich.table import Table
+
+console = Console()
+console.print("[bold green]Success![/bold green]")
+
+table = Table(title="Requests")
+table.add_column("ID", style="cyan")
+table.add_column("Title", style="magenta")
+console.print(table)
+```
+
+---
+
+### HTTP Client: HTTPX
+
+[**HTTPX**](https://www.python-httpx.org/) - A fully featured HTTP client for Python 3.
+
+**Why HTTPX (over requests):**
+- ✅ Async support
+- ✅ HTTP/2 support
+- ✅ Type hints
+- ✅ Better error handling
+- ✅ Modern API
+
+**Usage:**
+```python
+import httpx
+
+# Sync
+with httpx.Client() as client:
+    response = client.get('https://fyi.org.nz')
+
+# Async
+async with httpx.AsyncClient() as client:
+    response = await client.get('https://fyi.org.nz')
+```
+
+---
+
+### Data Validation: Pydantic
+
+[**Pydantic**](https://docs.pydantic.dev/) - Data validation using Python type hints.
+
+**Why Pydantic:**
+- Fast (written in Rust)
+- Type-safe
+- JSON schema generation
+- Settings management
+
+**Usage:**
+```python
+from pydantic import BaseModel, HttpUrl
+
+class Request(BaseModel):
+    id: int
+    title: str
+    url: HttpUrl
+
+request = Request(id=1, title="Test", url="https://fyi.org.nz")
+print(request.model_dump())
+```
+
+---
+
+### MCP Server: FastMCP
+
+[**FastMCP**](https://github.com/jlowin/fastmcp) - Build MCP (Model Context Protocol) servers quickly.
+
+**Why FastMCP:**
+- Simple API
+- Type-safe tools
+- Resource management
+- AI assistant integration
+
+**Usage:**
+```python
+from fastmcp import FastMCP
+
+mcp = FastMCP("FYI CLI")
+
+@mcp.tool()
+def search_requests(query: str) -> list:
+    """Search FYI requests."""
+    return [...]
+```
+
+---
+
+### Package Manager: uv
+
+[**uv**](https://github.com/astral-sh/uv) - An extremely fast Python package installer and resolver.
+
+**Why uv:**
+- ⚡ 10-100x faster than pip
+- ✅ pip-compatible
+- ✅ Virtualenv management
+- ✅ Dependency resolution
+- ✅ Written in Rust
+
+**Usage:**
+```bash
+# Install dependencies
+uv pip install -e ".[dev]"
+
+# Create virtual environment
+uv venv
+
+# Run tool
+uv run pytest
+```
 
 ---
 
@@ -15,19 +166,19 @@ FYI CLI uses modern, optimized Python development tools for linting, type checki
 
 ### What is Ruff?
 
-[Ruff](https://docs.astral.sh/ruff/) is an extremely fast Python linter written in Rust. It's a drop-in replacement for multiple tools:
+[Ruff](https://docs.astral.sh/ruff/) is an extremely fast Python linter written in Rust.
 
-- **flake8** (and all plugins)
-- **pylint** (many rules)
-- **isort** (import sorting)
-- **pyupgrade** (syntax upgrades)
-- **bandit** (security rules) ✅ **Yes, ruff includes bandit!**
-- **perflint** (performance rules)
-- **tryceratops** (exception handling)
-- And many more...
+**Replaces:**
+- ✅ flake8 (and all plugins)
+- ✅ pylint (many rules)
+- ✅ isort (import sorting)
+- ✅ pyupgrade (syntax upgrades)
+- ✅ **bandit** (security rules) ✅ **Yes, ruff includes bandit!**
+- ✅ perflint (performance rules)
+- ✅ tryceratops (exception handling)
+- ✅ And 30+ more...
 
-### Why Ruff?
-
+**Why Ruff:**
 - **Speed:** 10-100x faster than traditional linters
 - **All-in-one:** Replaces 30+ linting tools
 - **Security:** Includes all bandit security rules (rule code `S`)
@@ -47,7 +198,7 @@ select = [
   "I",      # isort
   "S",      # flake8-bandit (security) ← Bandit is included!
   "B",      # flake8-bugbear
-  # ... 60+ more rule sets
+  # ... 80+ more rule sets
 ]
 ```
 
@@ -63,8 +214,8 @@ ruff format src/ tests/
 # Show statistics
 ruff check src/ --statistics
 
-# Show violations by rule
-ruff check src/ --output-format=concise
+# Security checks only
+ruff check src/ --select=S
 ```
 
 ### Security Rules (Bandit Replacement)
@@ -79,19 +230,14 @@ Common security checks:
 - `S101`: Assert used (remove in production)
 - `S105`: Hardcoded password
 - `S106`: Hardcoded API key
-- `S107`: Hardcoded TLS password
-- `S110`: Try-except-pass (silent failure)
-- `S112`: Try-except-continue (silent failure)
 - `S113`: Request without timeout
 - `S301`: Pickle usage (insecure)
 - `S311`: Random usage (insecure for crypto)
 - `S324`: Weak hash (MD5/SHA1)
 - `S404`: Subprocess usage
 - `S501`: Request with verify=False
-- `S601`: Paramiko shell injection
 - `S603`: Subprocess without shell=True
 - `S605`: Shell injection (shell=True)
-- `S607`: Partial executable path
 - `S701`: Jinja2 templates (XSS)
 
 **Run security checks:**
@@ -101,53 +247,56 @@ ruff check src/ --select=S
 
 ---
 
-## Type Checking: Pyright (Strict Mode)
+## Type Checking: BasedPyright (Strict Mode)
 
-### What is Pyright?
+### What is BasedPyright?
 
-[Pyright](https://github.com/microsoft/pyright) is a fast type checker from Microsoft. It's the engine behind VS Code's Pylance extension.
+[**BasedPyright**](https://github.com/DetachHead/basedpyright) is a stricter fork of Pyright with additional checks.
 
-### Why Pyright over MyPy?
+**Why BasedPyright over Pyright/Mypy:**
 
-| Feature | Pyright | MyPy |
-|---------|---------|------|
-| **Speed** | ⚡ Very fast (2-5x faster) | Slower |
-| **VS Code Integration** | ✅ Native (Pylance) | Requires extension |
-| **Strict Mode** | ✅ Excellent | Good |
-| **Error Messages** | ✅ Clear, actionable | Sometimes cryptic |
-| **Incremental** | ✅ Yes | Limited |
-| **Configuration** | ✅ pyproject.toml | Separate config |
+| Feature | BasedPyright | Pyright | MyPy |
+|---------|--------------|---------|------|
+| **Speed** | ⚡ Very fast | Fast | Slower |
+| **Strictness** | ✅✅ Maximum | ✅ Strict | ✅ Strict |
+| **VS Code Integration** | ✅ Native (Pylance) | ✅ Native | Extension |
+| **Extra Checks** | ✅ Many | Standard | Standard |
+| **Unreachable Code** | ✅ Detects | ❌ | ❌ |
+| **Implicit Concat** | ✅ Catches | ❌ | ❌ |
 
 ### Configuration
 
-Pyright is configured in `pyproject.toml` with **strict mode**:
+BasedPyright is configured in `pyproject.toml` with **strict mode**:
 
 ```toml
-[tool.pyright]
+[tool.basedpyright]
 pythonVersion = "3.10"
 typeCheckingMode = "strict"
-include = ["src"]
-reportMissingTypeStubs = false
-reportUnknownVariableType = false
-# ... (relaxed strict rules for practicality)
+# ... (all pyright options)
+
+# BasedPyright specific (stricter checks)
+reportImplicitStringConcatenation = true
+reportInconsistentConstructor = true
+reportMissingSuperCall = true
+reportUnreachable = true
 ```
 
-### Running Pyright
+### Running BasedPyright
 
 ```bash
 # Type check
-pyright --project pyproject.toml
+basedpyright --project pyproject.toml
 
 # Show type coverage
-pyright --project pyproject.toml --verifytypes fyi_system
+basedpyright --project pyproject.toml --verifytypes fyi_system
 
 # Watch mode
-pyright --project pyproject.toml --watch
+basedpyright --project pyproject.toml --watch
 ```
 
 ### Strict Mode Rules
 
-Pyright strict mode checks:
+BasedPyright strict mode checks:
 - ✅ All function parameters must be typed
 - ✅ All variables must be typed
 - ✅ No `Any` types allowed (with exceptions)
@@ -155,6 +304,10 @@ Pyright strict mode checks:
 - ✅ Type narrowing must be correct
 - ✅ Optional handling must be explicit
 - ✅ Union types must be handled
+- ✅ Unreachable code detection
+- ✅ Implicit string concatenation
+- ✅ Missing super() calls
+- ✅ Inconsistent constructors
 
 ---
 
@@ -164,9 +317,8 @@ Pyright strict mode checks:
 
 [Scalene](https://github.com/plasma-umass/scalene) is a high-performance CPU, GPU, and memory profiler for Python.
 
-### Why Scalene?
-
-- **Fast:** Low overhead profiling
+**Why Scalene:**
+- **Fast:** Low overhead profiling (<5%)
 - **Detailed:** Line-by-line profiling
 - **Multi-metric:** CPU + GPU + Memory
 - **AI-powered:** Suggests optimizations
@@ -176,6 +328,8 @@ Pyright strict mode checks:
 
 ```bash
 pip install scalene
+# or
+uv pip install scalene
 ```
 
 ### Running Scalene
@@ -215,17 +369,109 @@ Scalene runs on every PR via `.github/workflows/profiling.yml`:
     scalene --profile-all --output-profile profile.json tests/
 ```
 
-### Alternatives Considered
+---
 
-| Tool | Why Not Chosen |
-|------|----------------|
-| **cProfile** | Too slow, no memory profiling |
-| **line_profiler** | CPU only, slow |
-| **memory_profiler** | Memory only, slow |
-| **py-spy** | Requires sudo, sampling only |
-| **austin** | Good but less features than Scalene |
+## Dependency Management: Renovate
 
-**Scalene wins** for being fast, comprehensive, and CI-friendly.
+### What is Renovate?
+
+[Renovate](https://docs.renovatebot.com/) - Automated dependency updates.
+
+**Why Renovate:**
+- ✅ Automated PRs for updates
+- ✅ Security vulnerability alerts
+- ✅ Grouped updates (linters, pytest, etc.)
+- ✅ Schedule updates (weekly)
+- ✅ Semantic commits
+- ✅ Auto-merge for minor/patch
+
+### Configuration
+
+Configured in `renovate.json`:
+
+```json
+{
+  "extends": [
+    "config:recommended",
+    ":automergeMinor",
+    ":enableVulnerabilityAlerts"
+  ],
+  "packageRules": [
+    {
+      "matchPackageNames": ["ruff", "basedpyright"],
+      "groupName": "linters"
+    },
+    {
+      "matchPackageNames": ["pytest", "pytest-*"],
+      "groupName": "pytest"
+    }
+  ],
+  "schedule": ["before 6am on Monday"],
+  "timezone": "Pacific/Auckland"
+}
+```
+
+### How It Works
+
+1. **Scans** dependencies daily
+2. **Creates PRs** for updates
+3. **Groups** related updates
+4. **Auto-merges** minor/patch updates
+5. **Alerts** on security vulnerabilities
+
+---
+
+## Release Automation: Release Please
+
+### What is Release Please?
+
+[Release Please](https://github.com/googleapis/release-please) - Automated releases based on conventional commits.
+
+**Why Release Please:**
+- ✅ Semantic versioning
+- ✅ Automatic changelog generation
+- ✅ PR-based releases
+- ✅ Multi-language support
+- ✅ GitHub-native
+
+### Configuration
+
+Configured in `.release-please-manifest.json`:
+
+```json
+{
+  "packages": {
+    ".": {
+      "release-type": "python",
+      "bump-minor-pre-major": true,
+      "changelog-sections": [
+        {"type": "feat", "section": "Features"},
+        {"type": "fix", "section": "Bug Fixes"},
+        {"type": "perf", "section": "Performance"}
+      ]
+    }
+  }
+}
+```
+
+### How It Works
+
+1. **Monitors** commits on main branch
+2. **Parses** conventional commits
+3. **Creates** release PR with changelog
+4. **On merge:** Creates GitHub release + tag
+5. **Triggers** deployment workflow
+
+### Commit Convention
+
+```
+feat: Add new feature
+fix: Fix bug
+perf: Improve performance
+docs: Update documentation
+refactor: Code refactoring
+chore: Maintenance tasks
+```
 
 ---
 
@@ -291,35 +537,58 @@ safety check --full-report
 
 | Task | Tool | Mode |
 |------|------|------|
+| **CLI Framework** | Typer | Type-safe CLI |
+| **Terminal Output** | Rich | Beautiful formatting |
+| **HTTP Client** | HTTPX | Async + HTTP/2 |
+| **Data Validation** | Pydantic | Type-safe validation |
+| **MCP Server** | FastMCP | AI integration |
+| **Package Manager** | uv | 10-100x faster than pip |
 | **Linting** | Ruff | Strict (80+ rule sets) |
 | **Security** | Ruff (`S` rules) | All bandit rules included |
-| **Type Checking** | Pyright | Strict mode |
+| **Type Checking** | BasedPyright | Strict mode (stricter than pyright) |
 | **Profiling** | Scalene | CPU + GPU + Memory |
 | **Testing** | pytest | With coverage |
-| **Dependencies** | pip-audit + safety | Dual scanning |
+| **Dependencies** | Renovate | Automated updates |
+| **Releases** | Release Please | Automated versioning |
 
 ---
 
 ## Quick Reference
 
 ```bash
+# Install with uv
+uv pip install -e ".[dev]"
+
 # Full development workflow
 ruff check src/ tests/ --fix      # Lint and fix
 ruff format src/ tests/           # Format code
-pyright --project pyproject.toml  # Type check
+basedpyright --project pyproject.toml  # Type check
 pytest --cov=fyi_system           # Test with coverage
 scalene tests/                    # Profile performance
 pip-audit -r pyproject.toml       # Check dependencies
+
+# Build package
+python -m build
+
+# Run with uv
+uv run fyi --help
 ```
 
 ---
 
 ## Resources
 
+- [Typer Documentation](https://typer.tiangolo.com/)
+- [Rich Documentation](https://rich.readthedocs.io/)
+- [HTTPX Documentation](https://www.python-httpx.org/)
+- [Pydantic Documentation](https://docs.pydantic.dev/)
+- [FastMCP Documentation](https://github.com/jlowin/fastmcp)
+- [uv Documentation](https://github.com/astral-sh/uv)
 - [Ruff Documentation](https://docs.astral.sh/ruff/)
-- [Pyright Documentation](https://github.com/microsoft/pyright)
+- [BasedPyright Documentation](https://github.com/DetachHead/basedpyright)
 - [Scalene Documentation](https://github.com/plasma-umass/scalene)
-- [Ruff Bandit Rules](https://docs.astral.sh/ruff/rules/#flake8-bandit-s)
+- [Renovate Documentation](https://docs.renovatebot.com/)
+- [Release Please Documentation](https://github.com/googleapis/release-please)
 
 ---
 

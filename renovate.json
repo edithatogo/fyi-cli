@@ -1,0 +1,75 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    ":semanticPrefixFixDepsChoreOthers",
+    ":automergeMinor",
+    ":prHourlyLimitNone",
+    ":prConcurrentLimitNone",
+    ":enableVulnerabilityAlerts",
+    ":dependencyDashboard",
+    ":maintainLockFilesWeekly"
+  ],
+  "labels": ["dependencies"],
+  "reviewers": ["repo-owner"],
+  "assignees": ["repo-owner"],
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["minor", "patch"],
+      "matchCurrentVersion": "!/^0/",
+      "automerge": true
+    },
+    {
+      "matchDepTypes": ["devDependencies"],
+      "automerge": true
+    },
+    {
+      "matchPackageNames": ["ruff", "basedpyright"],
+      "groupName": "linters",
+      "groupSlug": "linters"
+    },
+    {
+      "matchPackageNames": ["pytest", "pytest-*"],
+      "groupName": "pytest",
+      "groupSlug": "pytest"
+    },
+    {
+      "matchPackageNames": ["typer", "rich", "httpx", "pydantic", "fastmcp"],
+      "groupName": "core-dependencies",
+      "groupSlug": "core-dependencies"
+    },
+    {
+      "matchPackageNames": ["cryptography", "keyring"],
+      "groupName": "security-dependencies",
+      "groupSlug": "security-dependencies"
+    },
+    {
+      "matchPackagePatterns": ["*"],
+      "matchUpdateTypes": ["major"],
+      "labels": ["breaking-change"]
+    }
+  ],
+  "schedule": ["before 6am on Monday"],
+  "timezone": "Pacific/Auckland",
+  "prConcurrentLimit": 10,
+  "prHourlyLimit": 2,
+  "rangeStrategy": "widen",
+  "separateMajorMinor": true,
+  "separateMultipleMajor": true,
+  "separateMinorPatch": true,
+  "stabilityDays": 3,
+  "internalChecksFilter": "strict",
+  "vulnerabilityAlerts": {
+    "labels": ["security"],
+    "assignees": ["repo-owner"],
+    "reviewers": ["repo-owner"]
+  },
+  "osvVulnerabilityAlerts": true,
+  "pip_requirements": {
+    "fileMatch": ["requirements\\.txt$", "requirements-.*\\.txt$"]
+  },
+  "pip_setup": {
+    "fileMatch": ["setup\\.py$"]
+  }
+}
