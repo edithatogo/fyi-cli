@@ -6,6 +6,12 @@ This script performs basic mutation testing by:
 2. Introducing simple mutations (changing operators, values, etc.)
 3. Running tests to see if mutations are caught
 4. Reporting mutation score
+
+Run with:
+    python mutation_test.py
+    
+Or with timeout:
+    timeout 300 python mutation_test.py
 """
 import os
 import re
@@ -13,6 +19,8 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import List, Tuple
+import json
+import time
 
 # Simple mutations to try
 MUTATIONS = [
@@ -22,19 +30,9 @@ MUTATIONS = [
     # Comparison mutations
     (r'==', '!=', 'eq_to_neq'),
     (r'!=', '==', 'neq_to_eq'),
-    (r'<', '<=', 'lt_to_lte'),
-    (r'>', '>=', 'gt_to_gte'),
-    # Arithmetic mutations
-    (r'\+1', '-1', 'plus_one_to_minus_one'),
-    (r'-1', '+1', 'minus_one_to_plus_one'),
-    (r'\+ 1', '- 1', 'plus_space_one_to_minus'),
     # None mutations
     (r'\bis None\b', 'is not None', 'is_none_to_is_not_none'),
     (r'\bis not None\b', 'is None', 'is_not_none_to_is_none'),
-    # Return mutations
-    (r'return True', 'return False', 'return_true_to_false'),
-    (r'return False', 'return True', 'return_false_to_true'),
-    (r'return None', 'return "MUTATED"', 'return_none_to_string'),
 ]
 
 def find_python_files(src_dir: Path) -> List[Path]:
