@@ -163,7 +163,7 @@ class AlaveteliClient:
     def get_request(self, request_id: int) -> AlaveteliRequest:
         """Get full information about a request.
         
-        Endpoint: GET /api/v2/request/<id>.json
+        Endpoint: GET /api/v2/request/<=id>.json
         
         Args:
             request_id: Request ID

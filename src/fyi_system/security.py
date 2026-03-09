@@ -18,7 +18,8 @@ SENSITIVE_FIELD_KEYS = {
     'body', 'raw_json', 'summary', 'detail', 'email', 'authorization', 'token', 'api_key'
 }
 URL_RE = re.compile(r"https?://[^\s\]\)\>\"']+")
-EMAIL_RE = re.compile(r'([A-Za-z0-9._%+-]+)@([A-Za-z0-9.-]+\.[A-Za-z]{2,})')
+# Fixed email regex to handle edge cases with any non-whitespace, non-@ local part
+EMAIL_RE = re.compile(r'''[^@\s]+@[^@\s]+\.[A-Za-z]{2,}''')
 BEARER_RE = re.compile(r'(?i)(authorization\s*:\s*bearer\s+)[^\s]+')
 SECRET_RE = re.compile(r'(?i)(?<![?&])((?:api[_-]?key|token|signature|sig|auth)\s*[=:]\s*)([^\s,;]+)')
 
