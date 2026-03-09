@@ -16,10 +16,10 @@
 **Solution:**
 ```bash
 # Verify installation
-pip show fyi-request-system
+pip show fyi-cli
 
 # If not installed
-pip install fyi-request-system
+pip install fyi-cli
 
 # If installed but not found, add to PATH
 # Windows: Add C:\Users\<user>\AppData\Roaming\Python\Python311\Scripts to PATH
@@ -106,11 +106,11 @@ chmod 600 ~/.fyi-system/fyi_system.db
 python -m pip install --upgrade pip
 
 # Try again
-pip install fyi-request-system
+pip install fyi-cli
 
 # Or install from source
-git clone https://github.com/yourusername/fyi-request-system.git
-cd fyi-request-system
+git clone https://github.com/yourusername/fyi-cli.git
+cd fyi-cli
 pip install -e .
 ```
 
@@ -142,7 +142,7 @@ python -m venv venv
 source venv/bin/activate  # or venv\Scripts\activate on Windows
 
 # Install in clean environment
-pip install fyi-request-system
+pip install fyi-cli
 ```
 
 ---
@@ -565,12 +565,12 @@ tail -f ~/.fyi-system/logs/fyi-system.log
    - Log file (last 50 lines)
 
 2. **Create GitHub issue:**
-   - Go to https://github.com/yourusername/fyi-request-system/issues
+   - Go to https://github.com/yourusername/fyi-cli/issues
    - Click "New Issue"
    - Fill in template
 
 3. **Or email support:**
-   - support@fyi-request-system.example.com
+   - support@fyi-cli.example.com
 
 ---
 

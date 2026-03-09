@@ -25,7 +25,7 @@ This directory contains the canonical Conductor project context and management f
 - [Tracks Directory](./tracks/) - Individual track specifications and plans
 
 ### Active Tracks
-- **integrate-fyi-request-system-history** (COMPLETED) - Migration from 14 versioned archives
+- **integrate-fyi-cli-history** (COMPLETED) - Migration from 14 versioned archives
 
 ### Completed Tracks (from v14 integration)
 - **fyi-phase-1** through **fyi-phase-14** - Original project implementation phases
@@ -47,7 +47,7 @@ This directory contains the canonical Conductor project context and management f
 │   └── rust.md
 └── tracks/                # Individual tracks
     ├── fyi-phase-1/ through fyi-phase-14/
-    └── integrate-fyi-request-system-history/
+    └── integrate-fyi-cli-history/
 
 archive/                    # Archived source materials
 └── upstream-zips/         # Original 14 zip files

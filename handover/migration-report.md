@@ -1,8 +1,8 @@
 # Migration Report: FYI Request System Integration
 
 **Date**: 2026-03-08  
-**Track**: integrate-fyi-request-system-history  
-**Canonical Version**: fyi-request-system-v14
+**Track**: integrate-fyi-cli-history  
+**Canonical Version**: fyi-cli-v14
 
 ---
 
@@ -16,20 +16,20 @@ The following zip files were processed:
 
 | Version | File | Status |
 |---------|------|--------|
-| Base | fyi-request-system.zip | Archived |
-| v2 | fyi-request-system-v2.zip | Archived |
-| v3 | fyi-request-system-v3.zip | Archived |
-| v4 | fyi-request-system-v4.zip | Archived |
-| v5 | fyi-request-system-v5.zip | Archived |
-| v6 | fyi-request-system-v6.zip | Archived |
-| v7 | fyi-request-system-v7.zip | Archived |
-| v8 | fyi-request-system-v8.zip | Archived |
-| v9 | fyi-request-system-v9.zip | Archived |
-| v10 | fyi-request-system-v10.zip | Archived |
-| v11 | fyi-request-system-v11.zip | Archived |
-| v12 | fyi-request-system-v12.zip | Archived |
-| v13 | fyi-request-system-v13.zip | Archived |
-| v14 | fyi-request-system-v14.zip | **Canonical** |
+| Base | fyi-cli.zip | Archived |
+| v2 | fyi-cli-v2.zip | Archived |
+| v3 | fyi-cli-v3.zip | Archived |
+| v4 | fyi-cli-v4.zip | Archived |
+| v5 | fyi-cli-v5.zip | Archived |
+| v6 | fyi-cli-v6.zip | Archived |
+| v7 | fyi-cli-v7.zip | Archived |
+| v8 | fyi-cli-v8.zip | Archived |
+| v9 | fyi-cli-v9.zip | Archived |
+| v10 | fyi-cli-v10.zip | Archived |
+| v11 | fyi-cli-v11.zip | Archived |
+| v12 | fyi-cli-v12.zip | Archived |
+| v13 | fyi-cli-v13.zip | Archived |
+| v14 | fyi-cli-v14.zip | **Canonical** |
 
 All 14 zip files are preserved in: `archive/upstream-zips/`
 
@@ -89,7 +89,7 @@ Project Root/
 │   ├── tracks.md            # Registry (created during integration)
 │   └── tracks/
 │       ├── fyi-phase-1/ through fyi-phase-14/
-│       └── integrate-fyi-request-system-history/  # This integration track
+│       └── integrate-fyi-cli-history/  # This integration track
 ├── conductor/               # From initial setup (new methodology)
 │   ├── product.md
 │   ├── product-guidelines.md
@@ -186,27 +186,27 @@ pytest --cov=fyi_system --cov-report=html
 ## Provenance
 
 This integration preserves the complete history of the FYI request system development:
-- **Original Project**: fyi-request-system (base version)
+- **Original Project**: fyi-cli (base version)
 - **Evolution**: 14 versions documenting iterative development
 - **Integration Date**: 2026-03-08
-- **Integration Track**: integrate-fyi-request-system-history
-- **Canonical Version**: fyi-request-system-v14
+- **Integration Track**: integrate-fyi-cli-history
+- **Canonical Version**: fyi-cli-v14
 
 ## Archive Location
 
 All original zip files are preserved in:
 ```
 archive/upstream-zips/
-├── fyi-request-system.zip
-├── fyi-request-system-v2.zip
+├── fyi-cli.zip
+├── fyi-cli-v2.zip
 ├── ...
-└── fyi-request-system-v14.zip
+└── fyi-cli-v14.zip
 ```
 
 ## Contact
 
 For questions about this integration, refer to:
-- Integration track: `.conductor/tracks/integrate-fyi-request-system-history/`
+- Integration track: `.conductor/tracks/integrate-fyi-cli-history/`
 - Migration report: `handover/migration-report.md` (this file)
 - Project handover: `handover/README.md`
 

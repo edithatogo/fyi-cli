@@ -12,7 +12,7 @@ This guide covers installation on Windows, macOS, and Linux.
 ### Windows
 ```powershell
 # Using pip (recommended)
-pip install fyi-request-system
+pip install fyi-cli
 
 # Or download executable
 # See "Windows Executable" section below
@@ -21,19 +21,19 @@ pip install fyi-request-system
 ### macOS
 ```bash
 # Using pip (recommended)
-pip install fyi-request-system
+pip install fyi-cli
 
 # Or using Homebrew (coming soon)
-# brew install fyi-request-system
+# brew install fyi-cli
 ```
 
 ### Linux
 ```bash
 # Using pip (recommended)
-pip install fyi-request-system
+pip install fyi-cli
 
 # Or using apt (Ubuntu/Debian, coming soon)
-# sudo apt install fyi-request-system
+# sudo apt install fyi-cli
 ```
 
 ---
@@ -84,7 +84,7 @@ sudo dnf install python3-pip      # Fedora/RHEL
 
 **Step 1: Install the package**
 ```bash
-pip install fyi-request-system
+pip install fyi-cli
 ```
 
 **Step 2: Verify installation**
@@ -104,8 +104,8 @@ fyi-system setup
 
 **Step 1: Clone the repository**
 ```bash
-git clone https://github.com/yourusername/fyi-request-system.git
-cd fyi-request-system
+git clone https://github.com/yourusername/fyi-cli.git
+cd fyi-cli
 ```
 
 **Step 2: Create virtual environment**
@@ -136,7 +136,7 @@ fyi-system --version
 #### Windows Executable
 
 **Download:**
-1. Go to [Releases](https://github.com/yourusername/fyi-request-system/releases)
+1. Go to [Releases](https://github.com/yourusername/fyi-cli/releases)
 2. Download `fyi-system-win.exe`
 3. Save to `C:\Program Files\FYI-System\` or preferred location
 
@@ -163,7 +163,7 @@ fyi-system --version
 #### macOS Executable
 
 **Download:**
-1. Go to [Releases](https://github.com/yourusername/fyi-request-system/releases)
+1. Go to [Releases](https://github.com/yourusername/fyi-cli/releases)
 2. Download `fyi-system-macos`
 3. Move to `/usr/local/bin/`
 
@@ -184,7 +184,7 @@ fyi-system --version
 #### Linux Executable
 
 **Download:**
-1. Go to [Releases](https://github.com/yourusername/fyi-request-system/releases)
+1. Go to [Releases](https://github.com/yourusername/fyi-cli/releases)
 2. Download `fyi-system-linux`
 3. Move to `/usr/local/bin/`
 
@@ -251,7 +251,7 @@ fyi-system config show
 
 ```bash
 # Upgrade via pip
-pip install --upgrade fyi-request-system
+pip install --upgrade fyi-cli
 
 # Verify upgrade
 fyi-system --version
@@ -276,7 +276,7 @@ fyi-system export-all --output backup-before-upgrade.json
 ### pip Installation
 
 ```bash
-pip uninstall fyi-request-system
+pip uninstall fyi-cli
 ```
 
 ### Windows Executable
@@ -309,25 +309,25 @@ rm -rf ~/.fyi-system
 **Windows:**
 ```powershell
 # Run as Administrator
-pip install fyi-request-system
+pip install fyi-cli
 ```
 
 **macOS/Linux:**
 ```bash
 # Use --user flag
-pip install --user fyi-request-system
+pip install --user fyi-cli
 
 # Or use sudo (not recommended)
-sudo pip install fyi-request-system
+sudo pip install fyi-cli
 ```
 
 ### "Module not found" error
 
 **Solution:** Reinstall the package
 ```bash
-pip uninstall fyi-request-system
+pip uninstall fyi-cli
 pip install --upgrade pip
-pip install fyi-request-system
+pip install fyi-cli
 ```
 
 ### Database errors on first run
@@ -381,10 +381,10 @@ After installation:
 
 ## Getting Help
 
-- **Documentation:** https://fyi-request-system.readthedocs.io/
-- **Issues:** https://github.com/yourusername/fyi-request-system/issues
-- **Discussions:** https://github.com/yourusername/fyi-request-system/discussions
-- **Email:** support@fyi-request-system.example.com
+- **Documentation:** https://fyi-cli.readthedocs.io/
+- **Issues:** https://github.com/yourusername/fyi-cli/issues
+- **Discussions:** https://github.com/yourusername/fyi-cli/discussions
+- **Email:** support@fyi-cli.example.com
 
 ---
 

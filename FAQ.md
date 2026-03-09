@@ -40,7 +40,7 @@ No. The system includes both a command-line interface (CLI) for advanced users a
 See [INSTALL.md](INSTALL.md) for detailed instructions. Quick install:
 
 ```bash
-pip install fyi-request-system
+pip install fyi-cli
 ```
 
 ### Do I need Python installed?
@@ -309,7 +309,7 @@ Yes! See [CONTRIBUTING.md](CONTRIBUTING.md) for how to contribute.
 
 ### Where is the source code?
 
-https://github.com/yourusername/fyi-request-system
+https://github.com/yourusername/fyi-cli
 
 ### What license is it under?
 
@@ -317,11 +317,11 @@ MIT License - free to use, modify, and distribute.
 
 ### How do I report a bug?
 
-1. Go to https://github.com/yourusername/fyi-request-system/issues
+1. Go to https://github.com/yourusername/fyi-cli/issues
 2. Click "New Issue"
 3. Fill in the template
 
-Or email: support@fyi-request-system.example.com
+Or email: support@fyi-cli.example.com
 
 ### Can I request a feature?
 
@@ -354,13 +354,13 @@ Yes! Use GitHub Issues or the discussion forum.
 1. **Documentation:** Start with [USER_GUIDE.md](USER_GUIDE.md)
 2. **Troubleshooting:** See [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
 3. **FAQ:** You're reading it!
-4. **GitHub Issues:** https://github.com/yourusername/fyi-request-system/issues
-5. **Email:** support@fyi-request-system.example.com
+4. **GitHub Issues:** https://github.com/yourusername/fyi-cli/issues
+5. **Email:** support@fyi-cli.example.com
 
 ### Is there a user community?
 
 Yes! Join the discussion forum:
-https://github.com/yourusername/fyi-request-system/discussions
+https://github.com/yourusername/fyi-cli/discussions
 
 ### Do you offer training?
 
@@ -377,7 +377,7 @@ See [SECURITY.md](SECURITY.md) for responsible disclosure process.
 ### How do I update to a new version?
 
 ```bash
-pip install --upgrade fyi-request-system
+pip install --upgrade fyi-cli
 ```
 
 ### Will my data be preserved during updates?

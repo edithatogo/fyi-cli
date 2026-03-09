@@ -17,7 +17,7 @@ from .encryption import (
 )
 
 # Keyring service names
-CREDENTIAL_KEYRING_SERVICE = "fyi-request-system-credentials"
+CREDENTIAL_KEYRING_SERVICE = "fyi-cli-credentials"
 MASTER_CREDENTIAL_KEY = "master-credential-list"
 
 

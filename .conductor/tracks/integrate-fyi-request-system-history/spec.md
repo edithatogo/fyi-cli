@@ -7,8 +7,8 @@ This track handles the migration and integration of accumulated FYI request syst
 
 ### Source Archives
 The following zip files contain the historical work:
-- `fyi-request-system.zip` (base version)
-- `fyi-request-system-v2.zip` through `fyi-request-system-v14.zip`
+- `fyi-cli.zip` (base version)
+- `fyi-cli-v2.zip` through `fyi-cli-v14.zip`
 
 ### Integration Principles
 

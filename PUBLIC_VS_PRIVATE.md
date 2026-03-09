@@ -30,26 +30,26 @@ Project Root/
 
 ### Option 1: GitHub Public Repo
 
-1. Create new public repository on GitHub: `fyi-request-system`
+1. Create new public repository on GitHub: `fyi-cli`
 2. Clone to a separate directory:
    ```bash
-   git clone git@github.com:yourusername/fyi-request-system.git
+   git clone git@github.com:yourusername/fyi-cli.git
    ```
 3. Copy only public files:
    ```bash
    # From project root
    rsync -av --exclude='*.db' --exclude='data/' --exclude='outputs/' \
          --exclude='.env' --exclude='settings.json' --exclude='.bundle/' \
-         ./ fyi-request-system/
+         ./ fyi-cli/
    ```
 4. Add public README:
    ```bash
-   cp PUBLIC_README.md fyi-request-system/README.md
-   cp .gitignore.public fyi-request-system/.gitignore
+   cp PUBLIC_README.md fyi-cli/README.md
+   cp .gitignore.public fyi-cli/.gitignore
    ```
 5. Commit and push:
    ```bash
-   cd fyi-request-system
+   cd fyi-cli
    git add .
    git commit -m "Initial public release of FYI Request System"
    git push -u origin main
@@ -60,7 +60,7 @@ Project Root/
 Keep public tool as a submodule in your private repo:
 ```bash
 # In your private repo
-git submodule add https://github.com/yourusername/fyi-request-system.git tool
+git submodule add https://github.com/yourusername/fyi-cli.git tool
 ```
 
 ## Personal Configuration
@@ -119,7 +119,7 @@ FYI_API_TOKEN=your_token_here
 
 ### Public Tool Development
 ```bash
-cd fyi-request-system  # Public repo
+cd fyi-cli  # Public repo
 pytest --cov=fyi_system
 ruff check .
 git commit -m "feat: Add new feature"

@@ -16,10 +16,10 @@ We take the security of FYI Request System seriously. If you believe you have fo
 
 **Please do NOT report security vulnerabilities through public GitHub issues.**
 
-Instead, please report them via email to: **security@fyi-request-system.example.com**
+Instead, please report them via email to: **security@fyi-cli.example.com**
 
 Or use GitHub's private vulnerability reporting feature:
-https://github.com/yourusername/fyi-request-system/security/advisories/new
+https://github.com/yourusername/fyi-cli/security/advisories/new
 
 ### What to Include
 
@@ -86,12 +86,12 @@ To keep your installation secure:
 ### Past Security Advisories
 
 For a list of past security advisories, see:
-https://github.com/yourusername/fyi-request-system/security/advisories
+https://github.com/yourusername/fyi-cli/security/advisories
 
 ### Contact
 
-- **Email:** security@fyi-request-system.example.com
-- **GitHub Advisories:** https://github.com/yourusername/fyi-request-system/security/advisories/new
+- **Email:** security@fyi-cli.example.com
+- **GitHub Advisories:** https://github.com/yourusername/fyi-cli/security/advisories/new
 
 ---
 

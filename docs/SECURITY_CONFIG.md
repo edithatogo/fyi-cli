@@ -17,7 +17,7 @@ from fyi_system.encryption import setup_encryption
 # IMPORTANT: Store this password securely - it cannot be recovered!
 setup_encryption(
     password="your-secure-master-password",
-    app_name="fyi-request-system"
+    app_name="fyi-cli"
 )
 ```
 

@@ -10,7 +10,7 @@ echo "=============================================="
 
 # Define directories
 PROJECT_ROOT="$(pwd)"
-PUBLIC_REPO="${PROJECT_ROOT}/../fyi-request-system-public"
+PUBLIC_REPO="${PROJECT_ROOT}/../fyi-cli-public"
 
 # Create public repo directory
 echo "Creating public repo directory: ${PUBLIC_REPO}"
@@ -63,7 +63,7 @@ echo "1. cd ${PUBLIC_REPO}"
 echo "2. git init"
 echo "3. git add ."
 echo "4. git commit -m 'Initial release: FYI Request System'"
-echo "5. git remote add origin git@github.com:YOUR_USERNAME/fyi-request-system.git"
+echo "5. git remote add origin git@github.com:YOUR_USERNAME/fyi-cli.git"
 echo "6. git push -u origin main"
 echo ""
 echo "=============================================="

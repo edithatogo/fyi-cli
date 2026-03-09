@@ -208,7 +208,7 @@ fyi-system <command> --help
 
 - **Troubleshooting:** See [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
 - **FAQ:** See [FAQ.md](FAQ.md)
-- **Issues:** https://github.com/yourusername/fyi-request-system/issues
+- **Issues:** https://github.com/yourusername/fyi-cli/issues
 
 ---
 

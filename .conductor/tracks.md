@@ -6,8 +6,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## Completed Tracks
 
-- [x] **Track: integrate-fyi-request-system-history** (COMPLETED 2026-03-08)
-  *Link: [./integrate-fyi-request-system-history/](./integrate-fyi-request-system-history/)*
+- [x] **Track: integrate-fyi-cli-history** (COMPLETED 2026-03-08)
+  *Link: [./integrate-fyi-cli-history/](./integrate-fyi-cli-history/)*
   *Description: Migrate and integrate accumulated FYI request system work from versioned zip archives (v1-v14) into this repository, preserving provenance and using v14 as canonical source.*
   *Test Results: 30/30 passed*
   *Commit: 578ee4e*
@@ -45,7 +45,7 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## Imported Tracks (from v14)
 
-The following tracks were imported from fyi-request-system-v14 and represent completed phases of the original Python implementation:
+The following tracks were imported from fyi-cli-v14 and represent completed phases of the original Python implementation:
 
 - [x] **Track: fyi-phase-1** - Initial project scaffolding
 - [x] **Track: fyi-phase-2** - Core data models

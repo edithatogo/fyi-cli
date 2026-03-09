@@ -214,7 +214,7 @@ export-public-repo.sh       # Export script
 ./export-public-repo.sh
 
 # Or manually (Windows PowerShell)
-$PUBLIC_REPO = "..\fyi-request-system-public"
+$PUBLIC_REPO = "..\fyi-cli-public"
 mkdir $PUBLIC_REPO
 
 # Copy files excluding personal data
@@ -230,11 +230,11 @@ del $PUBLIC_REPO\.gitignore.public
 
 ### Push to GitHub
 ```bash
-cd ../fyi-request-system-public
+cd ../fyi-cli-public
 git init
 git add .
 git commit -m "Initial release: FYI Request System"
-git remote add origin git@github.com:YOUR_USERNAME/fyi-request-system.git
+git remote add origin git@github.com:YOUR_USERNAME/fyi-cli.git
 git push -u origin main
 ```
 
@@ -346,7 +346,7 @@ See `PUBLIC_VS_PRIVATE.md` for:
 3. **Export public repo**
    ```bash
    ./export-public-repo.sh
-   cd ../fyi-request-system-public
+   cd ../fyi-cli-public
    git push -u origin main
    ```
 

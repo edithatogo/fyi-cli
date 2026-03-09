@@ -17,7 +17,7 @@ from cryptography.hazmat.backends import default_backend
 import keyring
 
 # Constants
-KEYRING_SERVICE_NAME = "fyi-request-system"
+KEYRING_SERVICE_NAME = "fyi-cli"
 KEYRING_USERNAME = "encryption-key"
 KEYRING_PASSWORD_VERIFIER = "password-verifier"
 SALT_LENGTH = 16  # 128 bits

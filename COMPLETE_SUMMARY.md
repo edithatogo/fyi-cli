@@ -123,7 +123,7 @@ safety check  # 0 vulnerabilities
 ## 📁 Public Repository
 
 ### Location
-`../fyi-request-system-public/`
+`../fyi-cli-public/`
 
 ### Contents
 - ✅ All source code (`src/fyi_system/`)
@@ -141,11 +141,11 @@ safety check  # 0 vulnerabilities
 
 ### Push to GitHub
 ```bash
-cd ../fyi-request-system-public
+cd ../fyi-cli-public
 git init
 git add .
 git commit -m "Initial release: FYI Request System"
-git remote add origin git@github.com:YOUR_USERNAME/fyi-request-system.git
+git remote add origin git@github.com:YOUR_USERNAME/fyi-cli.git
 git push -u origin main
 ```
 
@@ -240,12 +240,12 @@ python mutation_test.py
 
 The public repository is ready at:
 ```
-../fyi-request-system-public/
+../fyi-cli-public/
 ```
 
 **To publish:**
 ```bash
-cd ../fyi-request-system-public
+cd ../fyi-cli-public
 git init
 git add .
 git commit -m "Initial release: FYI Request System
@@ -260,7 +260,7 @@ Features:
 - Comprehensive testing (150+ tests)
 - Security tested (0 vulnerabilities)
 "
-git remote add origin git@github.com:YOUR_USERNAME/fyi-request-system.git
+git remote add origin git@github.com:YOUR_USERNAME/fyi-cli.git
 git push -u origin main
 ```
 

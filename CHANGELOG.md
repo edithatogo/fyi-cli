@@ -258,4 +258,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 **For detailed commit history:**
-https://github.com/yourusername/fyi-request-system/commits/main
+https://github.com/yourusername/fyi-cli/commits/main

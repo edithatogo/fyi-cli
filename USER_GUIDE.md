@@ -72,7 +72,7 @@ See [INSTALL.md](INSTALL.md) for detailed installation instructions.
 
 **Quick install:**
 ```bash
-pip install fyi-request-system
+pip install fyi-cli
 ```
 
 ### Initial Setup
@@ -549,7 +549,7 @@ See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for common issues.
 - **Quick Start:** [QUICKSTART.md](QUICKSTART.md)
 - **Installation:** [INSTALL.md](INSTALL.md)
 - **FAQ:** [FAQ.md](FAQ.md)
-- **Issues:** https://github.com/yourusername/fyi-request-system/issues
+- **Issues:** https://github.com/yourusername/fyi-cli/issues
 
 ---
 

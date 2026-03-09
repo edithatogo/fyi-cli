@@ -46,7 +46,7 @@ Examples of unacceptable behavior:
 
 ### Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by contacting the project team at conduct@fyi-request-system.example.com.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by contacting the project team at conduct@fyi-cli.example.com.
 
 ---
 
@@ -54,7 +54,7 @@ Instances of abusive, harassing, or otherwise unacceptable behavior may be repor
 
 ### Where to Start
 
-1. **Check existing issues:** https://github.com/yourusername/fyi-request-system/issues
+1. **Check existing issues:** https://github.com/yourusername/fyi-cli/issues
 2. **Look for labels:**
    - `good first issue` - Good for newcomers
    - `help wanted` - Extra attention needed
@@ -67,8 +67,8 @@ Instances of abusive, harassing, or otherwise unacceptable behavior may be repor
 
 ### Questions?
 
-- **General questions:** Use [GitHub Discussions](https://github.com/yourusername/fyi-request-system/discussions)
-- **Bug reports:** Use [GitHub Issues](https://github.com/yourusername/fyi-request-system/issues)
+- **General questions:** Use [GitHub Discussions](https://github.com/yourusername/fyi-cli/discussions)
+- **Bug reports:** Use [GitHub Issues](https://github.com/yourusername/fyi-cli/issues)
 - **Security issues:** See [SECURITY.md](SECURITY.md)
 
 ---
@@ -142,8 +142,8 @@ Instances of abusive, harassing, or otherwise unacceptable behavior may be repor
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/fyi-request-system.git
-cd fyi-request-system
+git clone https://github.com/yourusername/fyi-cli.git
+cd fyi-cli
 ```
 
 ### Create Virtual Environment
@@ -551,9 +551,9 @@ We use [Semantic Versioning](https://semver.org/):
 ## Getting Help
 
 - **Documentation:** See docs/ directory
-- **Issues:** https://github.com/yourusername/fyi-request-system/issues
-- **Discussions:** https://github.com/yourusername/fyi-request-system/discussions
-- **Email:** contribute@fyi-request-system.example.com
+- **Issues:** https://github.com/yourusername/fyi-cli/issues
+- **Discussions:** https://github.com/yourusername/fyi-cli/discussions
+- **Email:** contribute@fyi-cli.example.com
 
 ---
 

@@ -1,11 +1,11 @@
 {
-  "track_id": "integrate-fyi-request-system-history_20260308",
+  "track_id": "integrate-fyi-cli-history_20260308",
   "type": "integration",
   "status": "completed",
   "created_at": "2026-03-08T00:00:00Z",
   "updated_at": "2026-03-08T00:00:00Z",
   "completed_at": "2026-03-08T00:00:00Z",
-  "description": "Integrate accumulated FYI request system work from versioned zip archives (fyi-request-system.zip through fyi-request-system-v14.zip) into this repository. Preserve provenance by archiving original zips, use v14 as canonical source, and reconcile with new Conductor setup.",
+  "description": "Integrate accumulated FYI request system work from versioned zip archives (fyi-cli.zip through fyi-cli-v14.zip) into this repository. Preserve provenance by archiving original zips, use v14 as canonical source, and reconcile with new Conductor setup.",
   "test_results": {
     "total": 30,
     "passed": 30,
