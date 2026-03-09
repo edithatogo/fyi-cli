@@ -10,6 +10,10 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   profile:
     runs-on: ubuntu-latest
