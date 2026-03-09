@@ -1,0 +1,4 @@
+# file: C:\Users\60217257\OneDrive - Flinders\Project - 2026.03 - FYI NZ\src\fyi_system\security_middleware.py
+# hypothesis_version: 6.151.9
+
+[b'{"error": "CSRF token missing or invalid"}', 100, 254, 255, 400, 403, 500, 2048, 100000, '\x00', '"', '&', '&#x27;', '&#x2F;', '&amp;', '&gt;', '&lt;', '&quot;', "'", '*', '..', '/', '1; mode=block', ':', '<', '>', '?', 'Cache-Control', 'Content-Type', 'DENY', 'Pragma', 'Referrer-Policy', 'X-CSRF-Token', 'X-Frame-Options', 'X-XSS-Protection', '\\', '^https?://[^\\s]+$', 'application/json', 'csrf_token', 'no-cache', 'nosniff', 'post_data', '|']

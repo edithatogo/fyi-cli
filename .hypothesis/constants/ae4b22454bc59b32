@@ -1,0 +1,4 @@
+# file: C:\Users\60217257\OneDrive - Flinders\Project - 2026.03 - FYI NZ\src\fyi_system\audit.py
+# hypothesis_version: 6.151.9
+
+[100, 86400, 100000, ' AND event_type = ?', ' AND timestamp <= ?', ' AND timestamp >= ?', ' AND user_id = ?', 'Audit log is empty', 'AuditEvent', 'Invalid credentials', 'User login failed', 'User logout', 'action', 'auth.login.failure', 'auth.login.success', 'auth.logout', 'auth.session.timeout', 'broken_chain', 'broken_chains', 'by_result', 'by_type', 'data.create', 'data.delete', 'data.export', 'data.update', 'data.view', 'denied', 'details', 'event_id', 'event_type', 'events', 'expected', 'exported_at', 'failure', 'found', 'fyi_system.db', 'hash_mismatch', 'integrity', 'issue', 'last_24_hours', 'message', 'previous_hash', 'reason', 'result', 'success', 'system.backup', 'system.restore', 'system.shutdown', 'system.startup', 'timestamp', 'total_events', 'user_id', 'utf-8', 'valid', 'view']

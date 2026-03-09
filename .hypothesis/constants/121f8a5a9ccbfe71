@@ -1,0 +1,4 @@
+# file: C:\Users\60217257\OneDrive - Flinders\Project - 2026.03 - FYI NZ\src\fyi_system\retention.py
+# hypothesis_version: 6.151.9
+
+[100, 180, 365, 1095, 2555, 86400, 'RetentionPolicy', 'audit_log', 'audit_logs', 'authorities', 'body', 'by_method', 'by_type', 'columns', 'data', 'delete_method', 'deleted_at', 'deletion_id', 'enabled', 'errors', 'export_before_delete', 'export_path', 'exported_at', 'exports_created', 'feed_events', 'fyi_system.db', 'fyi_url', 'ip_address', 'name', 'performed_by', 'policies_checked', 'policy_name', 'raw_json', 'reason', 'request_snapshots', 'resource_id', 'resource_type', 'resources_deleted', 'resources_scanned', 'retention_days', 'run_log', 'secure', 'sessions', 'simple', 'summary', 'table', 'tags', 'title', 'total_deletions', 'tracked_requests', 'url', 'user_agent', 'user_id', 'with_exports']

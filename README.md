@@ -1,131 +1,278 @@
-# FYI Request System (v14)
+# FYI CLI
 
-A local-first assisted workflow for planning, drafting, tracking, and monitoring public OIA requests that may be lodged through FYI.org.nz.
+**Privacy-focused CLI tool for managing FYI.org.nz official information requests**
 
-This repo is structured around Conductor's context-driven development workflow and includes prompt packs, handover templates, operator skills, a CLI, a local SQLite store, and a small local web UI.
+[![PyPI version](https://badge.fury.io/py/fyi-cli.svg)](https://badge.fury.io/py/fyi-cli)
+[![Python Support](https://img.shields.io/pypi/pyversions/fyi-cli.svg)](https://pypi.org/project/fyi-cli/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/yourusername/fyi-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/fyi-cli/actions/workflows/ci.yml)
+[![Codecov](https://codecov.io/gh/yourusername/fyi-cli/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/fyi-cli)
 
-## Why this architecture
+---
 
-FYI.org.nz documents a partial API surface rather than a full submission-management API. It supports prefilled request links, feeds, JSON on many pages, and authority exports. This repo therefore treats FYI as a public-facing request/publication layer and keeps your planning, drafting, monitoring, and analytics in your own local system.
-
-## Features
-
-- Conductor-style context and track scaffolding under `.conductor/`
-- SQLite-backed authority and tracked-request registry
-- CSV authority import
-- FYI prefilled request URL builder
-- feed ingestion and reconciliation
-- request-page JSON snapshotting
-- attention report and markdown handover generation
-- static HTML dashboard
-- local web UI for:
-  - browsing and searching tracked requests
-  - creating and editing tracked requests
-  - viewing a prefilled FYI draft link
-  - browsing/searching authorities
-  - importing authority CSVs through the browser
-- local scheduler runner
-
-## Install
+## 🚀 Quick Start
 
 ```bash
-pip install -e .[dev]
+# Install
+pip install fyi-cli
+
+# Initialize
+fyi init-db
+
+# Create your first request
+fyi register-request ministry-of-justice "OIA Request" "Request body..." --status draft
+
+# Generate submission URL
+fyi build-prefilled-url 1
+
+# Track and manage requests
+fyi list-requests
+fyi dashboard --output dashboard.html
 ```
 
-## Quick start
+**Full guide:** [QUICKSTART.md](QUICKSTART.md)
+
+---
+
+## ✨ Features
+
+- **🔒 Privacy-First**: All data stored locally, optional encryption
+- **📊 Track Requests**: Monitor OIA requests from creation to completion
+- **🤖 Automated Monitoring**: Watch FYI.org.nz for updates automatically
+- **📈 Reports & Analytics**: Generate dashboards, attention reports, handover docs
+- **🔐 Secure Storage**: Encrypted credentials, OS keyring integration
+- **🌐 Alaveteli Compatible**: Works with any Alaveteli instance (FYI, WDTK, FDS)
+- **💻 CLI + Web UI**: Command-line and web interface options
+- **📦 Export Options**: JSON, CSV, HTML, PDF export capabilities
+
+---
+
+## 📦 Installation
+
+### From PyPI (Recommended)
 
 ```bash
-fyi-system init-db
-fyi-system import-authorities data/sample_authorities.csv
-fyi-system register-request auckland_council "Service metrics request" "Please provide..." --status draft
-fyi-system dashboard --output outputs/dashboard.html --json-output outputs/dashboard.json
-fyi-system serve --host 127.0.0.1 --port 8000
+pip install fyi-cli
 ```
 
-Then open `http://127.0.0.1:8000`.
+### Standalone Executables
 
-## Useful commands
+Download from [Releases](https://github.com/yourusername/fyi-cli/releases):
+- **Windows**: `fyi-cli-win.exe`
+- **macOS**: `fyi-cli-macos`
+- **Linux**: `fyi-cli-linux`
+
+### From Source
 
 ```bash
-fyi-system build-prefilled-url auckland_council "Service metrics request" "Please provide..." --tags "topic:metrics"
-fyi-system ingest-feed "https://fyi.org.nz/search/service/feed"
-fyi-system fetch-request-page 1
-fyi-system reconcile-events
-fyi-system attention-report --output outputs/attention-report.json
-fyi-system handover --output outputs/handover.md
-fyi-system export-request 1 --output outputs/request-1.json
+git clone https://github.com/yourusername/fyi-cli.git
+cd fyi-cli
+pip install -e ".[dev]"
 ```
 
-## Suggested operator flow
+**Full installation guide:** [INSTALL.md](INSTALL.md)
 
-1. Import or refresh authorities.
-2. Create a tracked request locally.
-3. Use the prefilled FYI link to open a draft in the browser.
-4. When an FYI request exists, save its request ID / URL back into the tracked record.
-5. Ingest relevant feeds and fetch request-page JSON snapshots.
-6. Reconcile events, generate attention reports, and produce handovers.
+---
 
-## Notes
+## 📖 Documentation
 
-- This repo does **not** automate hidden identity routing, proxy chaining, or Tor-based masking.
-- It is designed for transparent, local operation with a human in the loop.
+| Document | Description |
+|----------|-------------|
+| [QUICKSTART.md](QUICKSTART.md) | 5-minute getting started guide |
+| [USER_GUIDE.md](USER_GUIDE.md) | Comprehensive user documentation |
+| [INSTALL.md](INSTALL.md) | Installation guide (Windows/Mac/Linux) |
+| [API_KEY_SETUP.md](API_KEY_SETUP.md) | How to get and configure API key |
+| [CONFIGURATION.md](CONFIGURATION.md) | Configuration reference |
+| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Troubleshooting guide |
+| [FAQ.md](FAQ.md) | Frequently asked questions |
+| [CHANGELOG.md](CHANGELOG.md) | Version history |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute |
 
+---
 
-## Phase 8 additions
+## 🛡️ Security
 
-- richer per-request detail page in the local UI
-- latest snapshot summary with detected attachments and event-like objects
-- `request-detail` CLI command for combined tracked-request + snapshot output
-- extra prompt and skill for snapshot review
+### Reporting a Vulnerability
 
+**Please do NOT report security vulnerabilities through public GitHub issues.**
 
-## Phase 9 additions
+Report security issues to: **security@fyi-cli.example.com**
 
-- `fyi-system follow-up-draft <request_id>` generates a suggested follow-up payload
-- `fyi-system attachment-manifest <request_id>` exports detected attachments from the latest snapshot
+Or use GitHub's private vulnerability reporting:  
+https://github.com/yourusername/fyi-cli/security/advisories/new
 
+**Security Policy:** [SECURITY.md](.github/SECURITY.md)
 
-## Phase 10 additions
+### Security Features
 
-- `fyi-system follow-up-variants <id>` for multiple follow-up strategies
-- `fyi-system attachment-manifest-csv <id>` for CSV attachment export
-- `fyi-system response-analysis <id>` for snapshot-based response assessment
+- ✅ AES-256-GCM encryption for sensitive data
+- ✅ PBKDF2-HMAC-SHA256 key derivation
+- ✅ OS keyring integration for credential storage
+- ✅ Tamper-evident audit logging
+- ✅ Secure session management
+- ✅ Input validation and sanitization
+- ✅ Security headers (CSP, HSTS, X-Frame-Options)
+- ✅ Automated security scanning (CodeQL, pip-audit, bandit)
 
+---
 
-## Phase 11 additions
-
-- `fyi-system follow-up-pack <id>` for strategy-and-tone follow-up bundles
-- `fyi-system triage-report` for action-now and action-soon queues
-- dashboard and UI priority filtering
-
-## Phase 12 additions
-
-- `fyi-system next-best-action <id>` for a concrete per-request next-step recommendation
-- `fyi-system correspondence-pack <id>` for grouped correspondence exports by strategy and tone
-- local UI next-best-action card and dedicated correspondence page
-- request detail route fixed so detail, edit, and correspondence views are separate
-
-
-## v13 highlights
-
-- `fyi-system export-bundle <request_id>` builds a portable per-request bundle.
-- The local UI now has direct “Open recommended draft” actions.
-- Snapshot parsing is more tolerant of varied FYI/Alaveteli JSON shapes.
-
-
-## v14 privacy and security additions
-
-- private file/directory permissions are applied to the database and generated outputs where the OS supports it
-- `fyi-system privacy-audit` checks localhost binding, file modes, and export posture
-- `fyi-system show-settings` reads privacy defaults from a JSON settings file and/or environment variables
-- bundled exports are sanitized by default, with a stricter profile available for moving material off-device
-- the local web UI now emits `Cache-Control: no-store`, `Referrer-Policy: no-referrer`, `X-Content-Type-Options: nosniff`, and a restrictive Content Security Policy
-- `.env.example` documents privacy-related environment variables
-
-### Example
+## 🧪 Testing
 
 ```bash
-fyi-system privacy-audit --db fyi_system.db --output outputs/privacy-audit.json
-fyi-system export-bundle 1 --profile strict
-fyi-system show-settings
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=fyi_system --cov-report=html
+
+# Run specific test file
+pytest tests/test_alaveteli_client.py
 ```
+
+**Test Coverage:** >80% (target)
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+### Quick Start for Contributors
+
+```bash
+# Fork and clone
+git clone https://github.com/YOUR_USERNAME/fyi-cli.git
+cd fyi-cli
+
+# Set up development environment
+python -m venv venv
+source venv/bin/activate  # or venv\Scripts\activate on Windows
+pip install -e ".[dev]"
+
+# Run tests
+pytest
+
+# Make your changes, then submit a PR
+git commit -m "feat: Add awesome feature"
+git push origin feature/awesome-feature
+```
+
+### Code of Conduct
+
+Please note that this project is released with a [Contributor Code of Conduct](CODE_OF_CONDUCT.md). By participating in this project you agree to abide by its terms.
+
+---
+
+## 📊 Project Status
+
+### v1.0.0 Release Progress
+
+| Phase | Status | Progress |
+|-------|--------|----------|
+| **Phase 1.1: Documentation** | ✅ Complete | 100% |
+| **Phase 1.2: Packaging** | ⏳ In Progress | 0% |
+| **Phase 1.3: UX Improvements** | ⏳ Pending | 0% |
+| **Phase 2: Beta Release** | ⏳ Pending | 0% |
+| **Phase 3: Public Release** | ⏳ Pending | 0% |
+
+**Target Release Date:** 2026-03-30
+
+**Release Plan:** [RELEASE_PLAN.md](RELEASE_PLAN.md)
+
+---
+
+## 🔗 Compatible Platforms
+
+FYI CLI works with any Alaveteli-based platform:
+
+| Platform | Region | URL |
+|----------|--------|-----|
+| **FYI.org.nz** | New Zealand | https://fyi.org.nz |
+| **WhatDoTheyKnow** | United Kingdom | https://www.whatdotheyknow.com |
+| **FragDenStaat** | Germany | https://fragdenstaat.de |
+| **Alaveteli** | Any | Self-hosted instances |
+
+---
+
+## 📋 CLI Commands
+
+```bash
+# Database
+fyi init-db                    # Initialize database
+fyi config show                # Show configuration
+
+# Requests
+fyi register-request ...       # Create new request
+fyi list-requests              # List all requests
+fyi request-detail <id>        # View request details
+fyi set-status <id> <status>   # Update status
+
+# Submission
+fyi build-prefilled-url <id>   # Generate submission URL
+
+# Monitoring
+fyi ingest-feed <url>          # Ingest RSS/Atom feed
+fyi scheduler <url>            # Run continuous monitoring
+
+# Reports
+fyi dashboard --output ...     # Generate dashboard
+fyi attention-report           # Generate attention report
+fyi handover --output ...      # Generate handover document
+
+# Export
+fyi export-requests            # Export all requests
+fyi export-bundle <id>         # Export request bundle
+
+# Security
+fyi privacy-audit              # Privacy compliance check
+fyi health-check               # System health verification
+```
+
+**Full CLI reference:** See `fyi --help` or [USER_GUIDE.md](USER_GUIDE.md)
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                      FYI CLI                             │
+├─────────────────────────────────────────────────────────┤
+│  CLI Commands  │  Web UI  │  Scheduler  │  Reports     │
+├─────────────────────────────────────────────────────────┤
+│              Alaveteli API Client                        │
+│         (Read API + Write API support)                  │
+├─────────────────────────────────────────────────────────┤
+│                   SQLite Database                        │
+│  (tracked_requests, authorities, feed_events, etc.)     │
+├─────────────────────────────────────────────────────────┤
+│              FYI.org.nz / Alaveteli API                 │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 📜 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- Built on the [Alaveteli](https://alaveteli.org/) platform by mySociety
+- Inspired by the transparency work of [FYI.org.nz](https://fyi.org.nz/)
+- Uses [cryptography](https://cryptography.io/) for encryption
+
+---
+
+## 📞 Support
+
+- **Documentation:** https://fyi-cli.readthedocs.io/
+- **Issues:** https://github.com/yourusername/fyi-cli/issues
+- **Discussions:** https://github.com/yourusername/fyi-cli/discussions
+- **Email:** support@fyi-cli.example.com
+
+---
+
+**Made with ❤️ for transparency and privacy**

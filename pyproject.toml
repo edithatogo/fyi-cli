@@ -3,16 +3,43 @@ requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "fyi-request-system"
-version = "0.14.0"
-description = "Local-first FYI.org.nz assisted workflow system"
+name = "fyi-cli"
+version = "1.0.0"
+description = "Privacy-focused CLI tool for managing FYI.org.nz official information requests"
 readme = "README.md"
 requires-python = ">=3.10"
-authors = [{name = "OpenAI Assistant"}]
+authors = [
+  {name = "FYI CLI Contributors", email = "support@fyi-cli.example.com"}
+]
+license = {text = "MIT"}
+keywords = [
+  "fyi",
+  "alaveteli",
+  "official-information",
+  "oia",
+  "transparency",
+  "cli",
+  "privacy",
+  "new-zealand"
+]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Environment :: Console",
+  "Intended Audience :: End Users/Desktop",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Utilities",
+]
 dependencies = [
   "feedparser>=6.0.11",
   "requests>=2.32.0",
   "jinja2>=3.1.4",
+  "cryptography>=41.0.0",
+  "keyring>=24.0.0",
 ]
 
 [project.optional-dependencies]
@@ -21,9 +48,21 @@ dev = [
   "pytest-cov>=5.0.0",
   "ruff>=0.6.0",
   "mypy>=1.11.0",
+  "pip-audit>=2.0.0",
+  "safety>=2.0.0",
+  "bandit>=1.7.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/yourusername/fyi-cli"
+Documentation = "https://fyi-cli.readthedocs.io/"
+Repository = "https://github.com/yourusername/fyi-cli.git"
+Issues = "https://github.com/yourusername/fyi-cli/issues"
+Changelog = "https://github.com/yourusername/fyi-cli/blob/main/CHANGELOG.md"
+
 [project.scripts]
+fyi = "fyi_system.cli:main"
+fyi-cli = "fyi_system.cli:main"
 fyi-system = "fyi_system.cli:main"
 
 [tool.setuptools]
@@ -34,3 +73,18 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true

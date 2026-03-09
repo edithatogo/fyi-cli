@@ -1,0 +1,96 @@
+name: Bug Report
+description: File a bug report
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+        
+        **Before reporting:**
+        - Check if the bug has already been reported: https://github.com/yourusername/fyi-cli/issues
+        - Try the latest version: https://github.com/yourusername/fyi-cli/releases
+        - Review the troubleshooting guide: https://github.com/yourusername/fyi-cli/blob/main/TROUBLESHOOTING.md
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: What version are you using?
+      placeholder: "e.g., 1.0.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: What operating system are you using?
+      options:
+        - Windows 11
+        - Windows 10
+        - macOS 13+ (Ventura or later)
+        - macOS 12 (Monterey)
+        - macOS 11 (Big Sur)
+        - Ubuntu 22.04+
+        - Other Linux (specify below)
+    validations:
+      required: true
+  - type: input
+    id: python-version
+    attributes:
+      label: Python Version
+      description: What Python version are you using? (run `python --version`)
+      placeholder: "e.g., 3.11.5"
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: "The bug is..."
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior.
+      placeholder: |
+        1. Run command '...'
+        2. With options '...'
+        3. See error '...'
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: "I expected..."
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened?
+      placeholder: "Instead, ..."
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error Logs
+      description: Please copy and paste any relevant error output or logs.
+      render: shell
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context about the problem here.
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/yourusername/fyi-cli/blob/main/CODE_OF_CONDUCT.md)
+      options:
+        - label: I agree to follow the Code of Conduct
+          required: true

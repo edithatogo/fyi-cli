@@ -1,0 +1,4 @@
+# file: C:\Users\60217257\OneDrive - Flinders\Project - 2026.03 - FYI NZ\src\fyi_system\encryption.py
+# hypothesis_version: 6.151.9
+
+[b'fyi-password-verifier-salt', 100000, 'enc:', 'encrypted_key', 'encryption-key', 'fyi-request-system', 'password-verifier', 'sha256', 'utf-8', 'version']
