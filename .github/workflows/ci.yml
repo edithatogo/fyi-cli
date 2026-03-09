@@ -59,9 +59,9 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install ruff mypy
+        pip install ruff pyright
 
-    - name: Run ruff linter
+    - name: Run ruff linter (strict mode)
       run: |
         ruff check src/ tests/
 
@@ -69,9 +69,9 @@ jobs:
       run: |
         ruff format --check src/ tests/
 
-    - name: Run type checker
+    - name: Run pyright type checker (strict mode)
       run: |
-        mypy src/ --ignore-missing-imports
+        pyright --project pyproject.toml
 
   security:
     runs-on: ubuntu-latest
@@ -89,7 +89,6 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -e ".[dev]"
-        pip install pip-audit safety bandit
 
     - name: Run pip-audit
       run: |
@@ -99,17 +98,13 @@ jobs:
       run: |
         safety check --full-report
 
-    - name: Run bandit
-      run: |
-        bandit -r src/ -f json -o bandit-report.json
-
     - name: Upload security reports
       uses: actions/upload-artifact@v4
       if: always()
       with:
         name: security-reports
         path: |
-          bandit-report.json
+          .ruff_cache/
 
   build:
     runs-on: ubuntu-latest

@@ -1,0 +1,49 @@
+name: Profiling
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  profile:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+
+    - name: Run Scalene profiler
+      run: |
+        scalene --profile-all --output-profile profile.json tests/
+
+    - name: Upload profiling results
+      uses: actions/upload-artifact@v4
+      with:
+        name: scalene-profile
+        path: profile.json
+
+    - name: Run performance tests
+      run: |
+        pytest tests/ --benchmark-only --benchmark-json=benchmark.json
+
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-results
+        path: benchmark.json
