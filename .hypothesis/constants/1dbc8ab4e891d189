@@ -1,0 +1,4 @@
+# file: C:\Users\60217257\OneDrive - Flinders\Project - 2026.03 - FYI NZ\src\fyi_system\security.py
+# hypothesis_version: 6.151.9
+
+[240, 384, 448, '1', '127.0.0.1', '::1', 'FYI_SYSTEM_BIND_HOST', '[redacted-email]', '[redacted-tags]', '[redacted]', '\\1[redacted-secret]', '\\1[redacted-token]', 'access_token', 'api_key', 'apikey', 'auth', 'authorization', 'bind_host', 'bind_host_local_only', 'body', 'checks', 'database_permissions', 'detail', 'directory', 'email', 'file', 'key', 'localhost', 'name', 'ok', 'on', 'outputs', 'profile', 'raw_json', 'raw_snapshot_storage', 'recommendation', 'recommendations', 'redact_logs', 'score', 'sig', 'signature', 'standard', 'strict', 'summary', 'tags', 'token', 'total_checks', 'true', 'utf-8', 'yes']
