@@ -1,0 +1,21 @@
+# See https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#preprocessing-selectors
+
+# Build configuration
+compiler:
+  - python
+
+# Test configuration
+test:
+  # Require pytest for testing
+  requires:
+    - pytest >=8.0.0
+    - pytest-cov >=5.0.0
+
+# Output configuration
+outputs:
+  - name: fyi-cli
+    build:
+      entry_points:
+        - fyi = fyi_system.cli:main
+        - fyi-cli = fyi_system.cli:main
+        - fyi-system = fyi_system.cli:main

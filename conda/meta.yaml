@@ -1,0 +1,68 @@
+{% set name = "fyi-cli" %}
+{% set version = "1.0.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/fyi-cli-{{ version }}.tar.gz
+  sha256: PLACEHOLDER_SHA256_HASH
+
+build:
+  number: 0
+  script: {{ PYTHON }} -m pip install . -vv
+  noarch: python
+  entry_points:
+    - fyi = fyi_system.cli:main
+    - fyi-cli = fyi_system.cli:main
+    - fyi-system = fyi_system.cli:main
+
+requirements:
+  host:
+    - python >=3.10
+    - pip
+    - hatchling
+    - hatch-vcs
+  run:
+    - python >=3.10
+    - typer >=0.12.0
+    - rich >=13.7.0
+    - httpx >=0.27.0
+    - pydantic >=2.7.0
+    - fastmcp >=0.1.0
+    - feedparser >=6.0.11
+    - jinja2 >=3.1.4
+    - cryptography >=41.0.0
+    - keyring >=24.0.0
+
+test:
+  imports:
+    - fyi_system
+  commands:
+    - fyi --help
+    - fyi-cli --help
+    - fyi-system --help
+  requires:
+    - pytest >=8.0.0
+  source_files:
+    - tests/
+  commands:
+    - pytest tests/ -v
+
+about:
+  home: https://github.com/yourusername/fyi-cli
+  summary: Privacy-focused CLI tool for managing FYI.org.nz official information requests
+  description: |
+    FYI CLI is a privacy-focused information retrieval and request management system
+    that leverages the FYI.org.nz API for official information requests, with
+    comprehensive privacy features including proxy/TOR support, multi-account
+    management, and public information aggregation.
+  license: MIT
+  license_file: LICENSE
+  doc_url: https://fyi-cli.readthedocs.io/
+  dev_url: https://github.com/yourusername/fyi-cli
+
+extra:
+  recipe-maintainers:
+    - yourusername
