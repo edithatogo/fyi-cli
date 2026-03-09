@@ -4,6 +4,16 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      publish_to:
+        description: 'Publish to (testpypi or pypi)'
+        required: true
+        default: 'testpypi'
+        type: choice
+        options:
+          - testpypi
+          - pypi
 
 permissions:
   contents: write
@@ -30,7 +40,21 @@ jobs:
       run: |
         python -m build
 
+    - name: Check package with twine
+      run: |
+        twine check dist/*
+
+    - name: Publish to TestPyPI
+      if: github.event_name == 'workflow_dispatch' && github.event.inputs.publish_to == 'testpypi' || startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-')
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.TESTPYPI_API_TOKEN }}
+        TWINE_REPOSITORY_URL: https://test.pypi.org/legacy/
+      run: |
+        twine upload dist/*
+
     - name: Publish to PyPI
+      if: github.event_name == 'workflow_dispatch' && github.event.inputs.publish_to == 'pypi' || (startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, 'rc') && !contains(github.ref, 'beta') && !contains(github.ref, 'alpha'))
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
@@ -43,5 +67,6 @@ jobs:
         generate_release_notes: true
         files: |
           dist/*
+        draft: ${{ startsWith(github.ref, 'refs/tags/v') && contains(github.ref, 'rc') }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
