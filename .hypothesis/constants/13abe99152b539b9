@@ -1,0 +1,4 @@
+# file: C:\Users\60217257\OneDrive - Flinders\Project - 2026.03 - FYI NZ\src\fyi_system\fetch.py
+# hypothesis_version: 6.151.9
+
+['.', '.info_request', '.request', 'attachment_url', 'attachments', 'attachments_count', 'body', 'byte_size', 'comment', 'content-type', 'content_length', 'content_type', 'correspondence', 'counts', 'created_at', 'described_state', 'detail', 'details', 'display_name', 'documents', 'download_url', 'event', 'event_type', 'events', 'events_count', 'excerpt', 'fetched_at', 'file_name', 'file_url', 'filename', 'files', 'filesize', 'fyi_system.db', 'history', 'https://fyi.org.nz', 'id', 'incoming_message', 'incoming_messages', 'info_request', 'message', 'messages', 'mime_type', 'name', 'occurred_at', 'outgoing_message', 'outgoing_messages', 'path', 'public_body_url', 'raw_json', 'request', 'request_node', 'root', 'sent_at', 'size', 'source_url', 'state', 'title', 'updated_at', 'url', 'url_title']

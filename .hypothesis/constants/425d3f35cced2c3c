@@ -1,0 +1,4 @@
+# file: C:\Users\60217257\OneDrive - Flinders\Project - 2026.03 - FYI NZ\src\fyi_system\scheduler.py
+# hypothesis_version: 6.151.9
+
+[3600, 'fyi_system.db', 'handover.md', 'ingested', 'matched', 'ok', 'outputs', 'outputs_dir', 'run_cycle']

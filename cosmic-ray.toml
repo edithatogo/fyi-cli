@@ -1,0 +1,10 @@
+[cosmic-ray]
+module-path = "src"
+timeout = 30.0
+excluded-modules = ["tests", "*.pyc"]
+
+[cosmic-ray.mutators]
+# Enable all mutators by default
+
+[cosmic-ray.execution]
+test-command = "pytest tests/ -x -q"

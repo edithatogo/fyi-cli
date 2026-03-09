@@ -1,0 +1,4 @@
+# file: C:\Users\60217257\OneDrive - Flinders\Project - 2026.03 - FYI NZ\src\fyi_system\db.py
+# hypothesis_version: 6.151.9
+
+['Feed event', 'Request snapshot', 'authority_slug', 'body', 'created_at', 'described_state', 'detail', 'draft', 'feed_event', 'fetched_at', 'fyi_request_id', 'fyi_system.db', 'fyi_url', 'info_request', 'kind', 'last_event_title', 'last_seen_at', 'link', 'published', 'raw_json', 'request_snapshot', 'seen_at', 'status', 'summary', 'tags', 'title', 'tracked_request', 'ts', 'updated_at', 'utf-8']

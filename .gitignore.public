@@ -1,0 +1,42 @@
+# Public Repo .gitignore
+# This excludes personal data, keeping only the tool code
+
+# Personal data
+*.db
+*.sqlite
+data/*.csv
+!data/sample_*.csv
+outputs/
+.bundle/
+
+# Personal configuration
+.env
+settings.json
+*.local.*
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary
+tmp/
+temp/
+*.tmp
