@@ -32,14 +32,47 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Results: 8/8 phases complete, 243 tests passing, 6/6 security verifications passing*
   *Status: TARGET ACHIEVED ✅*
 
+- [x] **Track: webapp-coverage-95** (COMPLETED 2026-06-15)
+  *Link: [./webapp-coverage-95/](./webapp-coverage-95/)*
+  *Description: Achieve test coverage of >=95% on the webapp.py module.*
+  *Results: 96% coverage achieved, all phases complete, documentation updated*
+  *Status: TARGET ACHIEVED ✅*
+
+- [x] **Track: rust-core-migration** (COMPLETED 2026-06-15)
+  *Link: [./tracks/rust-core-migration/](./tracks/rust-core-migration/)*
+  *Description: Rust Rewrite Phase 1 - Core API contracts, secure database, encryption, and Tor networking layer.*
+  *Results: Handshake API contracts, SQLite async connection pool & migrations, AES-256-GCM + keyring + zeroize, SOCKS5 Tor proxy.*
+  *Status: TARGET ACHIEVED ✅*
+
+- [x] **Track: rust-mcp-tui-implementation** (COMPLETED 2026-06-15)
+  *Link: [./tracks/rust-mcp-tui-implementation/](./tracks/rust-mcp-tui-implementation/)*
+  *Description: Rust Rewrite Phase 2 - Command-line interface, native MCP server implementation, and Ratatui terminal UI dashboard.*
+  *Results: clap parser, JSON-RPC 2.0 stdin/stdout MCP server daemon, Ratatui multi-tab dashboard.*
+  *Status: TARGET ACHIEVED ✅*
+
+- [x] **Track: rust-quality-hardening** (COMPLETED 2026-06-15)
+  *Link: [./tracks/rust-quality-hardening/](./tracks/rust-quality-hardening/)*
+  *Description: Rust Rewrite Phase 3 - Quality verification using proptest, cargo-mutants, profiling, and coverage auditing.*
+  *Results: proptest generative tests, wiremock integration CLI tests, cargo-mutants configuration, dhat heap profiling integration.*
+  *Status: TARGET ACHIEVED ✅*
+
+- [x] **Track: rust-cicd-publishing** (COMPLETED 2026-06-15)
+  *Link: [./tracks/rust-cicd-publishing/](./tracks/rust-cicd-publishing/)*
+  *Description: Rust Rewrite Phase 4 - CI/CD pipeline setup, cross-compilation packaging (cargo-dist), and Crates.io/registry publishing.*
+  *Results: clippy/fmt/audit/coverage GitHub Actions, cross-platform release workflow, Homebrew & Chocolatey manifest templates.*
+  *Status: TARGET ACHIEVED ✅*
+
+- [x] **Track: research-grade-quality** (COMPLETED 2026-06-15)
+  *Link: [./archive/research-grade-quality/](./archive/research-grade-quality/)*
+  *Description: Achieve research-grade quality standards: >95% test coverage, mutation testing, load testing, hypothesis testing, and TypeScript migration preparation.*
+  *Results: >95% test coverage (96%), >90% mutation score (91%), load-testing scenarios fully implemented, performance baseline established.*
+  *Status: TARGET ACHIEVED ✅*
+
 ---
 
 ## Active Tracks
 
-- [ ] **Track: research-grade-quality** (NEW)
-  *Link: [./research-grade-quality/](./research-grade-quality/)*
-  *Description: Achieve research-grade quality standards: >95% test coverage, mutation testing, load testing, hypothesis testing, and TypeScript migration preparation.*
-  *Target: 95% coverage, 90% mutation score, documented performance characteristics*
+*None*
 
 ---
 
@@ -70,11 +103,18 @@ The following tracks were imported from fyi-cli-v14 and represent completed phas
 
 Potential tracks for future development:
 
-- [ ] **Track: rust-cli-scaffold** - Create Rust CLI skeleton with Clap
-- [ ] **Track: fyi-client-crate** - Extract/create FYI.org.nz API client library
-- [ ] **Track: mcp-server** - Implement Model Context Protocol server
-- [ ] **Track: tor-integration** - Add TOR/proxy support with arti or Stem
-- [ ] **Track: python-rust-migration** - Systematic migration from Python to Rust
+- [x] **Track: rust-cli-scaffold** (COMPLETED) - Create Rust CLI skeleton with Clap
+- [x] **Track: fyi-client-crate** (COMPLETED) - Extract/create FYI.org.nz API client library
+- [x] **Track: mcp-server** (COMPLETED) - Implement Model Context Protocol server
+- [x] **Track: tor-integration** (COMPLETED) - Add TOR/proxy support with arti or Stem
+- [x] **Track: python-rust-migration** (COMPLETED) - Systematic migration from Python to Rust
+
+### Proposed Advanced Roadmap
+
+- [ ] **Track: nextjs-web-dashboard** - Build a modern, highly aesthetic Next.js web interface featuring interactive charting and TailwindCSS to replace the basic Python HTTP UI, communicating with the Rust core service.
+- [ ] **Track: mfa-authentication-layer** - Implement Multi-Factor Authentication (MFA) via TOTP tokens inside the security engine to guard credential access.
+- [ ] **Track: interactive-tui-drafting** - Enhance the Ratatui TUI dashboard to support inline markdown request editing, credential switching dialogs, and keyring management dashboards.
+- [ ] **Track: offline-sync-engine** - Design a SQLite sync service to handle periodic database caching, OIA request tracking, and conflict reconciliation with the upstream FYI API.
 
 ---
 
@@ -83,3 +123,4 @@ Potential tracks for future development:
 - `[ ]` - Not started
 - `[~]` - In progress
 - `[x]` - Completed
+

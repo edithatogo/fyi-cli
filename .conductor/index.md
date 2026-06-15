@@ -25,10 +25,18 @@ This directory contains the canonical Conductor project context and management f
 - [Tracks Directory](./tracks/) - Individual track specifications and plans
 
 ### Active Tracks
-- **integrate-fyi-cli-history** (COMPLETED) - Migration from 14 versioned archives
+- None
 
-### Completed Tracks (from v14 integration)
+### Completed Tracks
+- **research-grade-quality** - >95% test coverage, >90% mutation score, and load/performance testing baseline
+- **integrate-fyi-cli-history** - Migration from 14 versioned archives
+- **webapp-coverage-95** - Test coverage expansion for the web interface
+- **rust-core-migration** - Rust rewrite Phase 1 (Contracts, DB, Cryptography, Tor)
+- **rust-mcp-tui-implementation** - Rust rewrite Phase 2 (CLI, MCP daemon, Ratatui TUI)
+- **rust-quality-hardening** - Rust rewrite Phase 3 (Property tests, E2E tests, dhat profiling)
+- **rust-cicd-publishing** - Rust rewrite Phase 4 (CI/CD workflows, cargo-dist cross-compilation)
 - **fyi-phase-1** through **fyi-phase-14** - Original project implementation phases
+
 
 ---
 

@@ -1,0 +1,281 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+  activeSlug?: string;
+}
+
+const { title, description, activeSlug } = Astro.props;
+
+const navigation = [
+  {
+    label: 'Getting Started',
+    items: [
+      { label: 'Introduction', slug: '' },
+      { label: 'Rust Core Migration', slug: 'guides/rust-migration' },
+    ],
+  },
+  {
+    label: 'Guides',
+    items: [
+      { label: 'Security Configuration', slug: 'guides/security' },
+      { label: 'Alaveteli API Client', slug: 'api/alaveteli' },
+    ],
+  },
+];
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title} | FYI CLI Docs</title>
+    {description && <meta name="description" content={description} />}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <style is:global>
+      :root {
+        --bg-color: #0b0f19;
+        --sidebar-bg: #111827;
+        --border-color: #1f2937;
+        --text-primary: #f3f4f6;
+        --text-secondary: #9ca3af;
+        --accent-grad: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+        --accent-color: #10b981;
+        --accent-hover: #059669;
+        --code-bg: #1e293b;
+      }
+
+      body {
+        margin: 0;
+        font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      code {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.9em;
+        background-color: var(--code-bg);
+        padding: 0.2rem 0.4rem;
+        border-radius: 4px;
+        color: #e2e8f0;
+      }
+
+      pre {
+        background-color: #0f172a !important;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 1.2rem;
+        overflow-x: auto;
+      }
+
+      pre code {
+        background-color: transparent;
+        padding: 0;
+        border-radius: 0;
+        font-size: 0.85em;
+        color: inherit;
+      }
+
+      /* Layout grid */
+      .layout-container {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        min-height: 100vh;
+      }
+
+      /* Sidebar */
+      .sidebar {
+        background-color: var(--sidebar-bg);
+        border-right: 1px solid var(--border-color);
+        padding: 2.5rem 1.5rem;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+      }
+
+      .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-weight: 700;
+        font-size: 1.25rem;
+        letter-spacing: -0.025em;
+      }
+
+      .logo-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: var(--accent-grad);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 0.9rem;
+      }
+
+      .nav-group-title {
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--text-secondary);
+        letter-spacing: 0.05em;
+        margin-bottom: 0.75rem;
+      }
+
+      .nav-links {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+      }
+
+      .nav-link {
+        display: block;
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        color: var(--text-secondary);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .nav-link:hover {
+        color: var(--text-primary);
+        background-color: rgba(255, 255, 255, 0.03);
+        transform: translateX(3px);
+      }
+
+      .nav-link.active {
+        color: #ffffff;
+        background: var(--accent-grad);
+        font-weight: 500;
+      }
+
+      /* Content Area */
+      .main-content {
+        padding: 3rem 4rem;
+        max-width: 860px;
+        margin: 0 auto;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .article-header {
+        margin-bottom: 2.5rem;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 2rem;
+      }
+
+      h1 {
+        font-size: 2.75rem;
+        font-weight: 700;
+        margin: 0 0 0.5rem 0;
+        letter-spacing: -0.03em;
+        background: linear-gradient(135deg, #ffffff 0%, #a5f3fc 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .description {
+        font-size: 1.15rem;
+        color: var(--text-secondary);
+        margin: 0;
+      }
+
+      h2 {
+        font-size: 1.75rem;
+        font-weight: 600;
+        margin: 2.5rem 0 1rem 0;
+        letter-spacing: -0.02em;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 0.5rem;
+      }
+
+      h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 2rem 0 0.75rem 0;
+        letter-spacing: -0.01em;
+      }
+
+      p {
+        margin: 0 0 1.25rem 0;
+        color: #d1d5db;
+        line-height: 1.7;
+      }
+
+      ul {
+        margin: 0 0 1.25rem 0;
+        padding-left: 1.5rem;
+        color: #d1d5db;
+      }
+
+      li {
+        margin-bottom: 0.5rem;
+      }
+
+      @media (max-width: 900px) {
+        .layout-container {
+          grid-template-columns: 1fr;
+        }
+        .sidebar {
+          display: none;
+        }
+        .main-content {
+          padding: 2rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout-container">
+      <aside class="sidebar">
+        <a href="/" class="logo-container">
+          <div class="logo-icon">OIA</div>
+          <span>FYI CLI Docs</span>
+        </a>
+        <nav style="display: flex; flex-direction: column; gap: 1.5rem;">
+          {
+            navigation.map((group) => (
+              <div>
+                <div class="nav-group-title">{group.label}</div>
+                <ul class="nav-links">
+                  {group.items.map((item) => (
+                    <li>
+                      <a
+                        href={item.slug === '' ? '/' : `/${item.slug}/`}
+                        class={`nav-link ${activeSlug === item.slug ? 'active' : ''}`}
+                      >
+                        {item.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))
+          }
+        </nav>
+      </aside>
+      <main class="main-content">
+        <slot />
+      </main>
+    </div>
+  </body>
+</html>

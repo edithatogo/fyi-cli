@@ -1,0 +1,155 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Home" description="Privacy-focused official information request and management tool." activeSlug="">
+  <div class="hero-section">
+    <div class="badge">Bleeding Edge API Tooling</div>
+    <h1>FYI Request System</h1>
+    <p class="hero-tagline">
+      A privacy-first command-line tool, Model Context Protocol daemon, and Ratatui TUI dashboard for managing official information requests under the New Zealand OIA.
+    </p>
+    <div class="hero-actions">
+      <a href="/guides/rust-migration/" class="btn-primary">Explore Rust Migration</a>
+      <a href="/guides/security/" class="btn-secondary">Security Configuration</a>
+    </div>
+  </div>
+
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">🔒</div>
+      <h3>Hardened Security</h3>
+      <p>AES-256-GCM symmetric database encryption, OS keyring integration, and strict memory scrubbing utilizing <code>zeroize</code>.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🧅</div>
+      <h3>Tor Proxy Integration</h3>
+      <p>Natively routes client API traffic through a local unbootstrapped SOCKS5 Tor network server pool leveraging <code>arti</code>.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🤖</div>
+      <h3>Model Context Protocol</h3>
+      <p>A native MCP JSON-RPC server daemon enabling direct integration with LLMs and IDE coding agents over stdin/stdout channels.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🖥️</div>
+      <h3>Ratatui TUI</h3>
+      <p>A modern terminal user interface displaying request summaries, status badges, details views, and scrolled log panels.</p>
+    </div>
+  </div>
+
+  <style>
+    .hero-section {
+      text-align: center;
+      padding: 4rem 0 3rem 0;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.35rem 0.85rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #10b981;
+      background-color: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      border-radius: 100px;
+      margin-bottom: 1.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .hero-tagline {
+      font-size: 1.25rem;
+      color: var(--text-secondary);
+      margin-bottom: 2.5rem;
+      line-height: 1.6;
+    }
+
+    .hero-actions {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+    }
+
+    .btn-primary {
+      padding: 0.8rem 1.6rem;
+      border-radius: 8px;
+      background: var(--accent-grad);
+      color: white;
+      font-weight: 600;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+      transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-secondary {
+      padding: 0.8rem 1.6rem;
+      border-radius: 8px;
+      background-color: transparent;
+      color: var(--text-primary);
+      font-weight: 600;
+      border: 1px solid var(--border-color);
+      transition: all 0.2s;
+    }
+
+    .btn-secondary:hover {
+      background-color: rgba(255, 255, 255, 0.03);
+      border-color: #4b5563;
+      transform: translateY(-2px);
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+      margin-top: 4rem;
+    }
+
+    .feature-card {
+      background-color: var(--sidebar-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 2rem;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .feature-card:hover {
+      border-color: var(--accent-color);
+      transform: translateY(-4px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .feature-icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    .feature-card h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0 0 0.5rem 0;
+    }
+
+    .feature-card p {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    @media (max-width: 650px) {
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+      .hero-actions {
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+    }
+  </style>
+</Layout>

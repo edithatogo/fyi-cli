@@ -3,14 +3,14 @@
 ## Overview
 
 This project supports two technology stacks:
-1. **Python Stack (Active)**: The current, production-ready implementation
-2. **Rust Stack (Future)**: A planned reimplementation for enhanced performance and privacy
+1. **Rust Stack (Active)**: The current primary implementation under active development/migration
+2. **Python Stack (Legacy)**: The initial, production-ready implementation being replaced
 
 ---
 
-## Python Stack (Active)
+## Rust Stack (Active)
 
-The current implementation uses Python for rapid development and deployment.
+The active stack uses Rust for enhanced performance, memory safety, and single-binary deployment.
 
 ### Core Language
 **Python 3.10+**
@@ -49,9 +49,9 @@ fyi-system = "fyi_system.cli:main"
 
 ---
 
-## Rust Stack (Future Direction)
+## Python Stack (Legacy)
 
-A planned reimplementation using Rust for enhanced performance, memory safety, and single-binary deployment.
+The legacy implementation uses Python for rapid development and deployment.
 
 ### Core Language
 **Rust (Latest Stable)**

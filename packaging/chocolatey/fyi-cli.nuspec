@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>fyi-cli</id>
+    <version>0.1.0</version>
+    <title>fyi-cli (Install)</title>
+    <authors>yourusername</authors>
+    <projectUrl>https://github.com/yourusername/fyi-cli</projectUrl>
+    <licenseUrl>https://github.com/yourusername/fyi-cli/blob/main/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <projectSourceUrl>https://github.com/yourusername/fyi-cli</projectSourceUrl>
+    <bugTrackerUrl>https://github.com/yourusername/fyi-cli/issues</bugTrackerUrl>
+    <tags>fyi-cli rust privacy cli request-management</tags>
+    <summary>Privacy-focused CLI tool for managing FYI.org.nz official information requests</summary>
+    <description>FYI CLI is a privacy-focused information retrieval and request management system that leverages the FYI.org.nz API for official information requests, with comprehensive privacy features including proxy/TOR support, multi-account management, and public information aggregation.</description>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>

@@ -1,0 +1,8 @@
+{
+  "track_id": "rust-core-migration",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-06-14T23:50:00Z",
+  "updated_at": "2026-06-14T23:50:00Z",
+  "description": "Rust Rewrite Phase 1 - Core API contracts, secure database, encryption, and Tor networking layer."
+}

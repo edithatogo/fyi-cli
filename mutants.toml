@@ -1,0 +1,15 @@
+# mutants.toml
+# cargo-mutants configuration file for the fyi-cli workspace
+# See: https://uxin.org/cargo-mutants/html/config.html
+
+[timeout]
+# Sets the timeout multiplier. Mutation tests that run longer than
+# this multiplier times the baseline test duration will be treated as timed out.
+multiplier = 3.0
+
+[filter]
+# Regular expressions matching files or functions to exclude from mutation testing.
+# For example, excluding external bindings, mock servers or purely visual TUI components.
+exclude_re = [
+    "src/tui.rs",
+]
