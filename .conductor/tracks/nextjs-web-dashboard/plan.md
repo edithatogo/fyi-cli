@@ -3,7 +3,7 @@
 ## Phase 1: Next.js Scaffold & TailwindCSS Foundation
 
 ### Task 1.1: Initialize Next.js project
-- [ ] Create Next.js 14+ project with TypeScript, App Router in `dashboard/`
+- [~] Create Next.js 14+ project with TypeScript, App Router in `dashboard/`
 - [ ] Configure TailwindCSS with custom design tokens
 - [ ] Add base layout (sidebar, header, content area)
 - [ ] Add dark/light mode with system preference detection
