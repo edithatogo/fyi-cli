@@ -1,0 +1,6 @@
+Track structure created for 4 new tracks. Each track has:
+  - metadata.json: track metadata with status and timestamps
+  - spec.md: detailed functional requirements, non-functional requirements, acceptance criteria
+  - plan.md: phased implementation with granular tasks
+
+Track 1 (nextjs-web-dashboard) is active [~]; others are pending [].
