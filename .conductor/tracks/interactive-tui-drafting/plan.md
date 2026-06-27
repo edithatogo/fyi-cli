@@ -1,0 +1,72 @@
+# Plan: interactive-tui-drafting
+
+## Phase 1: Inline Markdown Editing
+
+### Task 1.1: Request editor view
+- [ ] Add new `Tab::Editor` variant and navigation
+- [ ] Build request editor view with title/body/tags fields
+- [ ] Add text input widget for inline editing in ratatui
+- [ ] Wire editor to fyi-core DB for save/load
+- [ ] Commit: `feat(tui): add request editor view with inline editing`
+
+### Task 1.2: Markdown preview and auto-save
+- [ ] Add markdown preview split-pane (edit left, preview right)
+- [ ] Implement debounced auto-save to SQLite
+- [ ] Add draft management (list, open, save, discard)
+- [ ] Commit: `feat(tui): add markdown preview and auto-save for request editing`
+
+### Task 1.3: Keyboard shortcuts for editor
+- [ ] Define consistent keybindings (Ctrl+S save, Ctrl+Q quit, Tab switch)
+- [ ] Update `handle_key_event()` for editor mode
+- [ ] Show keybinding hints in status bar
+- [ ] Commit: `feat(tui): add keyboard shortcuts and status bar hints`
+
+## Phase 2: Credential Switching Dialogs
+
+### Task 2.1: Credential manager dialog
+- [ ] Build modal dialog for credential management
+- [ ] List saved credentials from keyring
+- [ ] Add credential switching (activate different account)
+- [ ] Commit: `feat(tui): add credential manager dialog`
+
+### Task 2.2: Credential testing and session status
+- [ ] Add "Test Credential" button that verifies against FYI API
+- [ ] Display current active account and session status in header
+- [ ] Commit: `feat(tui): add credential testing and session status display`
+
+## Phase 3: Keyring Management Dashboard
+
+### Task 3.1: Keyring browser
+- [ ] Build keyring browser view (list stored credentials)
+- [ ] Show key metadata (service, username, created, last used)
+- [ ] Commit: `feat(tui): add keyring browser dashboard`
+
+### Task 3.2: Keyring management actions
+- [ ] Add/Edit/Delete keyring entries from TUI
+- [ ] Add encryption key management view
+- [ ] Show security indicators (key strength, age, rotation status)
+- [ ] Commit: `feat(tui): add keyring management actions and security indicators`
+
+## Phase 4: Enhanced Navigation & UX
+
+### Task 4.1: Fuzzy search
+- [ ] Add `/` command to open fuzzy search
+- [ ] Search across requests, authorities, and logs
+- [ ] Show search results with navigation
+- [ ] Commit: `feat(tui): add fuzzy search across all entities`
+
+### Task 4.2: Bulk operations and help system
+- [ ] Add multi-select mode for requests
+- [ ] Add bulk status update action
+- [ ] Add export trigger actions from TUI
+- [ ] Add help overlay (Ctrl+H/F1 shows keybindings)
+- [ ] Commit: `feat(tui): add bulk operations, export triggers, and help system`
+
+### Task 4.3: Conductor review
+- [ ] Run conductor-review for interactive-tui-drafting track
+- [ ] Apply any fix recommendations
+- [ ] Push to GitHub
+- [ ] Commit: `conductor(track): complete interactive-tui-drafting after review`
+
+## Archive
+- [ ] Archive track: move to archive/ directory

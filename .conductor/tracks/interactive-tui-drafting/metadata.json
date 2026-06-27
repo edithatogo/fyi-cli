@@ -1,0 +1,8 @@
+{
+  "track_id": "interactive-tui-drafting",
+  "type": "feature",
+  "status": "pending",
+  "created_at": "2026-06-27T16:13:00Z",
+  "updated_at": "2026-06-27T16:13:00Z",
+  "description": "Enhance the Ratatui TUI dashboard to support inline markdown request editing, credential switching dialogs, and keyring management dashboards."
+}

@@ -1,0 +1,8 @@
+{
+  "track_id": "offline-sync-engine",
+  "type": "feature",
+  "status": "pending",
+  "created_at": "2026-06-27T16:13:00Z",
+  "updated_at": "2026-06-27T16:13:00Z",
+  "description": "Design a SQLite sync service to handle periodic database caching, OIA request tracking, and conflict reconciliation with the upstream FYI API."
+}
