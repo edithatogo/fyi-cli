@@ -1,0 +1,17 @@
+Task: 2.2 Multi-key and rotation support
+
+Summary:
+- Added versioned TOTP secret storage APIs on KeyringStore.
+- Added active-version tracking while preserving the legacy single-secret key for existing callers.
+- Added rotation support that provisions the next version and makes it active.
+- Expanded keyring MFA integration coverage for version listing, version retrieval, active secret behavior, rotation, and cleanup.
+
+Modified files:
+- crates/fyi-core/src/security.rs
+- crates/fyi-core/tests/security_tests.rs
+
+Verification:
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-core --test security_tests
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-core --test property_tests
+- cargo +stable-x86_64-pc-windows-gnu check -p fyi-core
+- rustfmt +stable-x86_64-pc-windows-gnu --check crates\fyi-core\src\security.rs crates\fyi-core\tests\security_tests.rs crates\fyi-core\tests\property_tests.rs
