@@ -7,10 +7,21 @@ static ALLOC: dhat::Alloc = dhat::Alloc;
 #[derive(Parser, Debug, Clone)]
 #[command(name = "fyi-cli", version, about = "FYI Request System CLI (Rust rewriting)", long_about = None)]
 pub struct Cli {
-    #[arg(long, short, global = true, help = "Path to the configuration settings file")]
+    #[arg(
+        long,
+        short,
+        global = true,
+        help = "Path to the configuration settings file"
+    )]
     pub config: Option<String>,
 
-    #[arg(long, short, global = true, default_value = "fyi_system.db", help = "Path to the SQLite database")]
+    #[arg(
+        long,
+        short,
+        global = true,
+        default_value = "fyi_system.db",
+        help = "Path to the SQLite database"
+    )]
     pub db: String,
 
     #[arg(long, short, global = true, value_enum, default_value_t = OutputFormat::Text, help = "Output format")]
@@ -329,14 +340,31 @@ fn main() {
         Commands::ListAuthorities { db } => {
             println!("Listing authorities in {}", db);
         }
-        Commands::RegisterRequest { authority_slug, title, body, status, db, .. } => {
-            println!("Registering request: '{}' (Authority: {}, Status: {}) in {}", title, authority_slug, status, db);
+        Commands::RegisterRequest {
+            authority_slug,
+            title,
+            body,
+            status,
+            db,
+            ..
+        } => {
+            println!(
+                "Registering request: '{}' (Authority: {}, Status: {}) in {}",
+                title, authority_slug, status, db
+            );
         }
         Commands::ListRequests { db } => {
             println!("Listing requests from {}", db);
         }
-        Commands::SetStatus { request_id, status, db } => {
-            println!("Updating request {} status to {} in {}", request_id, status, db);
+        Commands::SetStatus {
+            request_id,
+            status,
+            db,
+        } => {
+            println!(
+                "Updating request {} status to {} in {}",
+                request_id, status, db
+            );
         }
         Commands::RequestTimeline { request_id, db } => {
             println!("Fetching request timeline for {} in {}", request_id, db);
@@ -345,10 +373,21 @@ fn main() {
             println!("Exporting requests from {} to {}", db, output);
         }
         Commands::ImportRequests { input, replace, db } => {
-            println!("Importing requests from {} to {} (Replace: {})", input, db, replace);
+            println!(
+                "Importing requests from {} to {} (Replace: {})",
+                input, db, replace
+            );
         }
-        Commands::BuildPrefilledUrl { authority_slug, title, base_url, .. } => {
-            println!("Prefilled URL for '{}' on {}/{} built.", title, base_url, authority_slug);
+        Commands::BuildPrefilledUrl {
+            authority_slug,
+            title,
+            base_url,
+            ..
+        } => {
+            println!(
+                "Prefilled URL for '{}' on {}/{} built.",
+                title, base_url, authority_slug
+            );
         }
         Commands::IngestFeed { feed_url, db } => {
             println!("Ingesting feed from {} into {}", feed_url, db);
@@ -356,8 +395,15 @@ fn main() {
         Commands::ReconcileEvents { db } => {
             println!("Reconciling feed events in {}", db);
         }
-        Commands::FetchRequestPage { request_id, base_url, db } => {
-            println!("Fetching request page {} from {} in {}", request_id, base_url, db);
+        Commands::FetchRequestPage {
+            request_id,
+            base_url,
+            db,
+        } => {
+            println!(
+                "Fetching request page {} from {} in {}",
+                request_id, base_url, db
+            );
         }
         Commands::AttentionReport { output, db } => {
             println!("Attention report generated at {} from {}", output, db);
@@ -365,58 +411,170 @@ fn main() {
         Commands::Handover { output, db } => {
             println!("Handover generated at {} from {}", output, db);
         }
-        Commands::Dashboard { output, json_output, db } => {
-            println!("Dashboard written to {} (JSON: {:?}) using {}", output, json_output, db);
+        Commands::Dashboard {
+            output,
+            json_output,
+            db,
+        } => {
+            println!(
+                "Dashboard written to {} (JSON: {:?}) using {}",
+                output, json_output, db
+            );
         }
-        Commands::RunCycle { feed_url, outputs_dir, db } => {
-            println!("Running cycle for {} in {} (Outputs: {})", feed_url, db, outputs_dir);
+        Commands::RunCycle {
+            feed_url,
+            outputs_dir,
+            db,
+        } => {
+            println!(
+                "Running cycle for {} in {} (Outputs: {})",
+                feed_url, db, outputs_dir
+            );
         }
-        Commands::Scheduler { feed_url, interval_seconds, outputs_dir, db, once } => {
-            println!("Running scheduler on {} every {}s (Once: {}) in {} (Outputs: {})", feed_url, interval_seconds, once, db, outputs_dir);
+        Commands::Scheduler {
+            feed_url,
+            interval_seconds,
+            outputs_dir,
+            db,
+            once,
+        } => {
+            println!(
+                "Running scheduler on {} every {}s (Once: {}) in {} (Outputs: {})",
+                feed_url, interval_seconds, once, db, outputs_dir
+            );
         }
-        Commands::Serve { host, port, settings, db } => {
-            println!("Serving Webapp/API on {:?}:{} (Settings: {:?}) using {}", host, port, settings, db);
+        Commands::Serve {
+            host,
+            port,
+            settings,
+            db,
+        } => {
+            println!(
+                "Serving Webapp/API on {:?}:{} (Settings: {:?}) using {}",
+                host, port, settings, db
+            );
         }
         Commands::RequestDetail { request_id, db } => {
             println!("Request details for {} from {}", request_id, db);
         }
-        Commands::ExportRequest { request_id, output, db } => {
-            println!("Exporting request {} to {:?} using {}", request_id, output, db);
+        Commands::ExportRequest {
+            request_id,
+            output,
+            db,
+        } => {
+            println!(
+                "Exporting request {} to {:?} using {}",
+                request_id, output, db
+            );
         }
-        Commands::FollowUpDraft { request_id, output, db } => {
-            println!("Drafting follow-up for {} to {:?} using {}", request_id, output, db);
+        Commands::FollowUpDraft {
+            request_id,
+            output,
+            db,
+        } => {
+            println!(
+                "Drafting follow-up for {} to {:?} using {}",
+                request_id, output, db
+            );
         }
-        Commands::AttachmentManifest { request_id, output, db } => {
-            println!("Attachment manifest JSON for {} written to {} using {}", request_id, output, db);
+        Commands::AttachmentManifest {
+            request_id,
+            output,
+            db,
+        } => {
+            println!(
+                "Attachment manifest JSON for {} written to {} using {}",
+                request_id, output, db
+            );
         }
-        Commands::AttachmentManifestCsv { request_id, output, db } => {
-            println!("Attachment manifest CSV for {} written to {} using {}", request_id, output, db);
+        Commands::AttachmentManifestCsv {
+            request_id,
+            output,
+            db,
+        } => {
+            println!(
+                "Attachment manifest CSV for {} written to {} using {}",
+                request_id, output, db
+            );
         }
-        Commands::FollowUpVariants { request_id, output, db } => {
-            println!("Generating follow-up variants for {} to {:?} using {}", request_id, output, db);
+        Commands::FollowUpVariants {
+            request_id,
+            output,
+            db,
+        } => {
+            println!(
+                "Generating follow-up variants for {} to {:?} using {}",
+                request_id, output, db
+            );
         }
-        Commands::FollowUpPack { request_id, output, db } => {
-            println!("Generating follow-up pack for {} to {:?} using {}", request_id, output, db);
+        Commands::FollowUpPack {
+            request_id,
+            output,
+            db,
+        } => {
+            println!(
+                "Generating follow-up pack for {} to {:?} using {}",
+                request_id, output, db
+            );
         }
         Commands::TriageReport { output, db } => {
             println!("Generating triage report to {:?} using {}", output, db);
         }
-        Commands::ResponseAnalysis { request_id, output, db } => {
-            println!("Analyzing response for {} to {:?} using {}", request_id, output, db);
+        Commands::ResponseAnalysis {
+            request_id,
+            output,
+            db,
+        } => {
+            println!(
+                "Analyzing response for {} to {:?} using {}",
+                request_id, output, db
+            );
         }
-        Commands::NextBestAction { request_id, tone, output, db } => {
-            println!("Determining next best action (tone: {}) for {} to {:?} using {}", tone, request_id, output, db);
+        Commands::NextBestAction {
+            request_id,
+            tone,
+            output,
+            db,
+        } => {
+            println!(
+                "Determining next best action (tone: {}) for {} to {:?} using {}",
+                tone, request_id, output, db
+            );
         }
-        Commands::CorrespondencePack { request_id, format, output, db } => {
-            println!("Generating correspondence pack ({:?}) for {} to {:?} using {}", format, request_id, output, db);
+        Commands::CorrespondencePack {
+            request_id,
+            format,
+            output,
+            db,
+        } => {
+            println!(
+                "Generating correspondence pack ({:?}) for {} to {:?} using {}",
+                format, request_id, output, db
+            );
         }
-        Commands::ExportBundle { request_id, output_dir, profile, no_sanitize, db } => {
-            println!("Exporting bundle for {} to {:?} (Profile: {:?}, No Sanitize: {}) using {}", request_id, output_dir, profile, no_sanitize, db);
+        Commands::ExportBundle {
+            request_id,
+            output_dir,
+            profile,
+            no_sanitize,
+            db,
+        } => {
+            println!(
+                "Exporting bundle for {} to {:?} (Profile: {:?}, No Sanitize: {}) using {}",
+                request_id, output_dir, profile, no_sanitize, db
+            );
         }
         Commands::ShowSettings { settings, output } => {
             println!("Showing settings from {:?} to {:?}", settings, output);
         }
-        Commands::PrivacyAudit { db, host, outputs_dir, profile, settings, output } => {
+        Commands::PrivacyAudit {
+            db,
+            host,
+            outputs_dir,
+            profile,
+            settings,
+            output,
+        } => {
             println!("Privacy audit on {} (Host: {:?}, Outputs: {}, Profile: {:?}, Settings: {:?}) to {:?}", db, host, outputs_dir, profile, settings, output);
         }
         Commands::McpServer => {
@@ -434,7 +592,7 @@ mod tests {
 
     #[test]
     fn test_parse_init_db() {
-        let args = Cli::try_parse_from(&["fyi-cli", "init-db", "--db", "test.db"]).unwrap();
+        let args = Cli::try_parse_from(["fyi-cli", "init-db", "--db", "test.db"]).unwrap();
         assert_eq!(args.db, "fyi_system.db"); // Global default remains
         match args.command {
             Commands::InitDb { db } => {
@@ -446,7 +604,7 @@ mod tests {
 
     #[test]
     fn test_parse_register_request() {
-        let args = Cli::try_parse_from(&[
+        let args = Cli::try_parse_from([
             "fyi-cli",
             "register-request",
             "slug-name",
@@ -484,15 +642,9 @@ mod tests {
 
     #[test]
     fn test_parse_serve() {
-        let args = Cli::try_parse_from(&[
-            "fyi-cli",
-            "serve",
-            "--host",
-            "127.0.0.1",
-            "--port",
-            "9000",
-        ])
-        .unwrap();
+        let args =
+            Cli::try_parse_from(["fyi-cli", "serve", "--host", "127.0.0.1", "--port", "9000"])
+                .unwrap();
 
         match args.command {
             Commands::Serve { host, port, .. } => {
@@ -505,10 +657,10 @@ mod tests {
 
     #[test]
     fn test_parse_mcp_server_and_tui() {
-        let args = Cli::try_parse_from(&["fyi-cli", "mcp-server"]).unwrap();
+        let args = Cli::try_parse_from(["fyi-cli", "mcp-server"]).unwrap();
         assert_eq!(args.command, Commands::McpServer);
 
-        let args = Cli::try_parse_from(&["fyi-cli", "tui"]).unwrap();
+        let args = Cli::try_parse_from(["fyi-cli", "tui"]).unwrap();
         assert_eq!(args.command, Commands::Tui);
     }
 }

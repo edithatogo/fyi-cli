@@ -9,9 +9,7 @@ async fn test_db_pool_and_migrations() {
         .expect("Failed to initialize in-memory DB");
 
     // 2. Run migrations
-    db.run_migrations()
-        .await
-        .expect("Failed to run migrations");
+    db.run_migrations().await.expect("Failed to run migrations");
 
     // 3. Insert and verify AlaveteliRequest
     let request = AlaveteliRequest {

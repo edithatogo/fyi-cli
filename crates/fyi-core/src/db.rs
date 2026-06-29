@@ -95,7 +95,7 @@ impl DbPool {
             "SELECT id, title, body, user_name, status, created_at, updated_at, url, tags
              FROM requests
              ORDER BY COALESCE(updated_at, created_at, '') DESC, id DESC
-             LIMIT ?"
+             LIMIT ?",
         )
         .bind(limit.clamp(1, 500))
         .fetch_all(&self.pool)
@@ -131,7 +131,7 @@ impl DbPool {
         let result = sqlx::query(
             "UPDATE requests
              SET title = ?, body = ?, user_name = ?, status = ?, updated_at = ?, url = ?, tags = ?
-             WHERE id = ?"
+             WHERE id = ?",
         )
         .bind(&request.title)
         .bind(&request.body)
@@ -174,7 +174,7 @@ impl DbPool {
 
         sqlx::query(
             "INSERT INTO correspondence (request_id, direction, body, sent_at, state, attachments)
-             VALUES (?, ?, ?, ?, ?, ?)"
+             VALUES (?, ?, ?, ?, ?, ?)",
         )
         .bind(request_id)
         .bind(direction_str)
