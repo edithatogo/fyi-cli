@@ -41,11 +41,11 @@
 ### Task 3.1: Summary dashboard with KPIs
 - [x] Build summary dashboard page with KPI cards [f7f7a8c]
 - [x] Fetch dashboard data from MCP server [c37ac4d]
-- [~] Add auto-refresh polling (configurable interval)
-- [ ] Commit: `feat(dashboard): add summary dashboard with KPI cards`
+- [x] Add auto-refresh polling (configurable interval) [5742b77]
+- [x] Commit: `feat(dashboard): add summary dashboard with KPI cards`
 
 ### Task 3.2: Interactive charts
-- [ ] Add charting library (Chart.js or Recharts)
+- [~] Add charting library (Chart.js or Recharts)
 - [ ] Build status distribution pie/donut chart
 - [ ] Build request timeline bar/line chart
 - [ ] Build attention heatmap or trends chart
