@@ -1,0 +1,9 @@
+{
+  "track_id": "faithful-archive-capture",
+  "type": "feature",
+  "status": "in_progress",
+  "created_at": "2026-06-27T16:31:00Z",
+  "updated_at": "2026-06-29T02:10:00Z",
+  "description": "Faithful per-request capture of fyi.org.nz: JSON payload + rendered HTML page + all attachment binaries, written as WARC 1.1 records and packaged into WACZ, with content-addressed attachment dedup. The archival source of truth consumed by fyi-archive.",
+  "consumer": "fyi-archive track historical_seed_orchestration_20260627"
+}

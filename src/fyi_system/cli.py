@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from .archive_capture import CaptureCaps, capture_request
 from .archive_health import build_archive_health, write_archive_health
 from .db import init_db, query_all, connect, get_tracked_request, export_tracked_requests, import_tracked_requests, request_timeline, update_request_status
 from .discovery import backfill_ids, discover_feed, write_jsonl
@@ -133,6 +134,21 @@ def cmd_archive_health(args):
         print(args.output)
     else:
         print(json.dumps(report, indent=2, sort_keys=True))
+
+
+def cmd_capture(args):
+    summary = capture_request(
+        request_ref=str(args.request_ref),
+        base_url=args.base_url,
+        data_dir=Path(args.data_dir),
+        dist_dir=Path(args.dist_dir),
+        caps=CaptureCaps(
+            max_bytes=args.max_bytes,
+            max_runtime_minutes=args.max_runtime_minutes,
+            max_disk_gb=args.max_disk_gb,
+        ),
+    )
+    print(json.dumps(summary, indent=2, sort_keys=True))
 
 
 def cmd_attention_report(args):
@@ -373,6 +389,17 @@ def build_parser():
     sp.add_argument('--wacz-dir', default='dist/site_snapshots')
     sp.add_argument('--output')
     sp.set_defaults(func=cmd_archive_health)
+
+    # Command: capture
+    sp = sub.add_parser('capture')
+    sp.add_argument('request_ref')
+    sp.add_argument('--base-url', default='https://fyi.org.nz')
+    sp.add_argument('--data-dir', default='data')
+    sp.add_argument('--dist-dir', default='dist')
+    sp.add_argument('--max-bytes', type=int)
+    sp.add_argument('--max-runtime-minutes', type=float)
+    sp.add_argument('--max-disk-gb', type=float)
+    sp.set_defaults(func=cmd_capture)
     
     # Command: attention-report
     sp = sub.add_parser('attention-report')

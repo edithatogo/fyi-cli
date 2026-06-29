@@ -77,7 +77,7 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Description: Full-corpus discovery of fyi.org.nz via advanced-search Atom/JSON feeds (date-windowed, paginated) + optional sequential-ID gap backfill. Enables the fyi-archive historical seed.*
   *Consumer: fyi-archive `historical_seed_orchestration_20260627`.*
 
-- [ ] **Track: faithful-archive-capture** (PENDING — fyi-archive capability)
+- [~] **Track: faithful-archive-capture** (IN PROGRESS — fyi-archive capability)
   *Link: [./tracks/faithful-archive-capture/](./tracks/faithful-archive-capture/)*
   *Description: Faithful per-request capture (JSON + rendered HTML + attachment binaries) written as WARC 1.1 records packaged into WACZ, with content-addressed attachment dedup. The archival source of truth.*
   *Consumer: fyi-archive `historical_seed_orchestration_20260627`.*
