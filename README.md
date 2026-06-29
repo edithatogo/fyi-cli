@@ -196,6 +196,41 @@ FYI CLI works with any Alaveteli-based platform:
 
 ## 📋 CLI Commands
 
+### Archive Discovery
+
+The archive commands are read-only and do not require an API key.
+
+```bash
+# Import the official FYI authority list into the local SQLite database
+fyi import-authorities
+
+# Walk the public search feed for a date window and save discovered requests
+fyi discover --date-from 2024-01-01 --date-to 2024-02-01 \
+  --checkpoint data/_state/discovery-2024-01.json \
+  --output data/_state/discovered-2024-01.jsonl
+
+# Probe a numeric request ID range for gaps
+fyi discover --backfill-ids --id-from 1 --id-to 5000 \
+  --output data/_state/backfill-1-5000.jsonl
+
+# Compare feed discovery against the ID backfill
+fyi discover-reconcile \
+  --feed data/_state/discovered-2024-01.jsonl \
+  --backfill data/_state/backfill-1-5000.jsonl \
+  --output data/_state/discovery-reconciliation.json
+```
+
+Discovery uses a contactable User-Agent, checks `robots.txt`, and backs off on
+transient `429`/`5xx` responses. Keep live runs polite: use small date windows,
+resume with checkpoints, and coordinate archive work with the ethics guidance in
+the sibling `fyi-archive` repo at `docs/ethics-and-compliance.md`.
+
+Opt-in live smoke test:
+
+```bash
+FYI_LIVE_SMOKE=1 pytest -m smoke tests/test_discovery_smoke.py
+```
+
 ```bash
 # Database
 fyi init-db                    # Initialize database
@@ -213,6 +248,8 @@ fyi build-prefilled-url <id>   # Generate submission URL
 # Monitoring
 fyi ingest-feed <url>          # Ingest RSS/Atom feed
 fyi scheduler <url>            # Run continuous monitoring
+fyi discover                   # Discover public FYI requests
+fyi discover-reconcile         # Compare discovery JSONL outputs
 
 # Reports
 fyi dashboard --output ...     # Generate dashboard

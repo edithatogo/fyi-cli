@@ -82,6 +82,9 @@ where = ["src"]
 pythonpath = ["src"]
 testpaths = ["tests"]
 addopts = "-v --tb=short"
+markers = [
+  "smoke: opt-in live smoke tests that contact FYI.org.nz",
+]
 
 [tool.ruff]
 target-version = "py310"

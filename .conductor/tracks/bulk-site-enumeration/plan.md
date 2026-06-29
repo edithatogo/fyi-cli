@@ -33,6 +33,6 @@
 ## Phase 5: CLI surface + docs
 
 - [x] 5.1 `fyi discover` + flags wired to the argparse parser (`cli.py`).
-- [ ] 5.2 README/API_KEY_SETUP docs updated; ethics note pointing to fyi-archive's
+- [x] 5.2 README/API_KEY_SETUP docs updated; ethics note pointing to fyi-archive's
       `docs/ethics-and-compliance.md`.
-- [ ] 5.3 Opt-in `@smoke` live test (gated, single small window).
+- [x] 5.3 Opt-in `@smoke` live test (gated, single small window).

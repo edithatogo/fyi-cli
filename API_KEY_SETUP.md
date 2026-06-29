@@ -31,11 +31,28 @@ An API key allows the FYI Request System to interact with FYI.org.nz programmati
 | Manual request submission | ❌ No |
 | Track requests locally | ❌ No |
 | Generate reports | ❌ No |
+| Import public authorities | ❌ No |
+| Discover public archive requests | ❌ No |
 | **Automatic request creation** | ✅ **Yes** |
 | **Add correspondence via API** | ✅ **Yes** |
 | **Bulk operations** | ✅ **Yes** |
 
 **Recommendation:** Start without an API key, then get one if you need automation.
+
+### Public Archive Discovery
+
+The archive discovery workflow uses public FYI.org.nz endpoints and does not
+need an API key:
+
+```bash
+fyi import-authorities
+fyi discover --date-from 2024-01-01 --date-to 2024-02-01 --output discovered.jsonl
+fyi discover --backfill-ids --id-from 1 --id-to 5000 --output backfill.jsonl
+fyi discover-reconcile --feed discovered.jsonl --backfill backfill.jsonl
+```
+
+Use small windows, keep rate limits conservative, and run live smoke tests only
+when explicitly opted in with `FYI_LIVE_SMOKE=1`.
 
 ---
 
