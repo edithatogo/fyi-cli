@@ -13,15 +13,15 @@
 - [x] Build reusable UI components (Button, Card, Badge, Input, Select, Table)
 - [x] Build navigation sidebar with icons (done as part of 1.1)
 - [x] Build KPI stat card component (done as part of 1.1)
-- [ ] Commit: `feat(dashboard): add design system components and layout`
+- [x] Commit: `feat(dashboard): add design system components and layout` [105bf3a]
 
 ## Phase 2: MCP Client Layer & API Integration
 
 ### Task 2.1: MCP client library
-- [ ] Create TypeScript MCP client class that spawns `fyi-mcp` process
-- [ ] Implement JSON-RPC 2.0 transport over stdin/stdout
-- [ ] Add request/response types matching Rust API contracts
-- [ ] Write unit tests for MCP client
+- [x] Create TypeScript MCP client class that spawns `fyi-mcp` process
+- [x] Implement JSON-RPC 2.0 transport over stdin/stdout
+- [x] Add request/response types matching Rust API contracts
+- [x] Write unit tests for MCP client
 - [ ] Commit: `feat(dashboard): create MCP client for Rust backend communication`
 
 ### Task 2.2: Request CRUD pages
