@@ -16,15 +16,15 @@
 - [x] Commit: `feat(tui): add markdown preview and auto-save for request editing` [f54eba9]
 
 ### Task 1.3: Keyboard shortcuts for editor
-- [~] Define consistent keybindings (Ctrl+S save, Ctrl+Q quit, Tab switch)
-- [ ] Update `handle_key_event()` for editor mode
-- [ ] Show keybinding hints in status bar
-- [ ] Commit: `feat(tui): add keyboard shortcuts and status bar hints`
+- [x] Define consistent keybindings (Ctrl+S save, Ctrl+Q quit, Tab switch)
+- [x] Update `handle_key_event()` for editor mode
+- [x] Show keybinding hints in status bar
+- [x] Commit: `feat(tui): add keyboard shortcuts and status bar hints` [52c038c]
 
 ## Phase 2: Credential Switching Dialogs
 
 ### Task 2.1: Credential manager dialog
-- [ ] Build modal dialog for credential management
+- [~] Build modal dialog for credential management
 - [ ] List saved credentials from keyring
 - [ ] Add credential switching (activate different account)
 - [ ] Commit: `feat(tui): add credential manager dialog`
