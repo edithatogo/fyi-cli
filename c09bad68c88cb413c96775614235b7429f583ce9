@@ -1,0 +1,18 @@
+Task: 3.1 MFA guard
+
+Summary:
+- Added MfaGuard with expiring per-user verified sessions.
+- Added SecurityError::MfaRequired for protected credential access.
+- Integrated KeyringStore::get_credential with MFA enforcement for accounts that have TOTP configured.
+- Added KeyringStore::verify_mfa_code to validate TOTP codes and open a verified session.
+- Added tests for session expiry and MFA-gated credential access.
+
+Modified files:
+- crates/fyi-core/src/security.rs
+- crates/fyi-core/tests/security_tests.rs
+
+Verification:
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-core --test security_tests
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-core --test property_tests
+- cargo +stable-x86_64-pc-windows-gnu check -p fyi-core
+- rustfmt +stable-x86_64-pc-windows-gnu --check crates\fyi-core\src\security.rs crates\fyi-core\tests\security_tests.rs crates\fyi-core\tests\property_tests.rs
