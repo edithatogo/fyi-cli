@@ -32,8 +32,8 @@
 - [x] Commit: `feat(dashboard): implement request CRUD operations via MCP`
 
 ### Task 2.3: Authority management
-- [~] Build authorities browse page
-- [ ] Build authority import page (CSV upload)
+- [x] Build authorities browse page
+- [~] Build authority import page (CSV upload)
 - [ ] Commit: `feat(dashboard): add authority management pages`
 
 ## Phase 3: Interactive Dashboard & Charting
