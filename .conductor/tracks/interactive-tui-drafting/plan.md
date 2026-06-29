@@ -50,13 +50,13 @@
 ## Phase 4: Enhanced Navigation & UX
 
 ### Task 4.1: Fuzzy search
-- [~] Add `/` command to open fuzzy search
-- [ ] Search across requests, authorities, and logs
-- [ ] Show search results with navigation
-- [ ] Commit: `feat(tui): add fuzzy search across all entities`
+- [x] Add `/` command to open fuzzy search
+- [x] Search across requests, authorities, and logs
+- [x] Show search results with navigation
+- [x] Commit: `feat(tui): add fuzzy search across all entities` [c8d389b]
 
 ### Task 4.2: Bulk operations and help system
-- [ ] Add multi-select mode for requests
+- [~] Add multi-select mode for requests
 - [ ] Add bulk status update action
 - [ ] Add export trigger actions from TUI
 - [ ] Add help overlay (Ctrl+H/F1 shows keybindings)
