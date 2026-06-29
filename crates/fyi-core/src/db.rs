@@ -37,6 +37,7 @@ impl SyncStatus {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RequestSyncMetadata {
     pub request_id: i64,
+    pub remote_request_id: Option<i64>,
     pub last_synced_at: Option<String>,
     pub remote_updated_at: Option<String>,
     pub local_updated_at: String,
@@ -63,6 +64,19 @@ pub struct GlobalSyncStatus {
     pub dirty: i64,
     pub pending: i64,
     pub conflict: i64,
+}
+
+/// Durable queued submission waiting to be pushed upstream.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OutgoingQueueItem {
+    pub id: i64,
+    pub request_id: i64,
+    pub operation: String,
+    pub payload: String,
+    pub status: String,
+    pub remote_request_id: Option<i64>,
+    pub attempts: i64,
+    pub last_error: Option<String>,
 }
 
 /// Database wrapper managing the connection pool and CRUD operations.
@@ -318,7 +332,7 @@ impl DbPool {
         request_id: i64,
     ) -> Result<Option<RequestSyncMetadata>, sqlx::Error> {
         let row = sqlx::query(
-            "SELECT request_id, last_synced_at, remote_updated_at, local_updated_at, sync_status, conflict_version
+            "SELECT request_id, remote_request_id, last_synced_at, remote_updated_at, local_updated_at, sync_status, conflict_version
              FROM sync_metadata
              WHERE request_id = ?",
         )
@@ -327,6 +341,110 @@ impl DbPool {
         .await?;
 
         row.map(metadata_from_row).transpose()
+    }
+
+    /// Returns dirty local requests ready to be pushed upstream.
+    pub async fn list_dirty_requests(
+        &self,
+        limit: i64,
+    ) -> Result<Vec<AlaveteliRequest>, sqlx::Error> {
+        let rows = sqlx::query(
+            "SELECT r.id, r.title, r.body, r.user_name, r.status, r.created_at, r.updated_at, r.url, r.tags
+             FROM requests r
+             INNER JOIN sync_metadata sm ON sm.request_id = r.id
+             WHERE sm.sync_status = 'dirty'
+             ORDER BY sm.local_updated_at ASC, r.id ASC
+             LIMIT ?",
+        )
+        .bind(limit.clamp(1, 500))
+        .fetch_all(&self.pool)
+        .await?;
+
+        rows.into_iter().map(request_from_row).collect()
+    }
+
+    /// Enqueues a local request submission for durable push processing.
+    pub async fn enqueue_request_submission(
+        &self,
+        request: &AlaveteliRequest,
+    ) -> Result<i64, sqlx::Error> {
+        let payload = serde_json::to_string(request).unwrap_or_default();
+        let now = now_timestamp();
+        let result = sqlx::query(
+            "INSERT INTO sync_outgoing_queue (
+                request_id, operation, payload, status, updated_at
+             )
+             VALUES (?, 'upsert_request', ?, 'pending', ?)",
+        )
+        .bind(request.id)
+        .bind(payload)
+        .bind(&now)
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query(
+            "UPDATE sync_metadata
+             SET sync_status = 'pending', local_updated_at = ?
+             WHERE request_id = ? AND sync_status != 'conflict'",
+        )
+        .bind(&now)
+        .bind(request.id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(result.last_insert_rowid())
+    }
+
+    /// Returns pending outgoing queue items.
+    pub async fn list_pending_outgoing_queue(
+        &self,
+        limit: i64,
+    ) -> Result<Vec<OutgoingQueueItem>, sqlx::Error> {
+        let rows = sqlx::query(
+            "SELECT id, request_id, operation, payload, status, remote_request_id, attempts, last_error
+             FROM sync_outgoing_queue
+             WHERE status = 'pending'
+             ORDER BY created_at ASC, id ASC
+             LIMIT ?",
+        )
+        .bind(limit.clamp(1, 500))
+        .fetch_all(&self.pool)
+        .await?;
+
+        rows.into_iter().map(outgoing_queue_item_from_row).collect()
+    }
+
+    /// Marks an outgoing queue item as submitted and stores the FYI-issued request ID.
+    pub async fn mark_submission_confirmed(
+        &self,
+        queue_id: i64,
+        request_id: i64,
+        remote_request_id: i64,
+        remote_updated_at: Option<&str>,
+    ) -> Result<(), sqlx::Error> {
+        let now = now_timestamp();
+        sqlx::query(
+            "UPDATE sync_outgoing_queue
+             SET status = 'submitted', remote_request_id = ?, updated_at = ?
+             WHERE id = ?",
+        )
+        .bind(remote_request_id)
+        .bind(&now)
+        .bind(queue_id)
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query(
+            "UPDATE sync_metadata
+             SET remote_request_id = ?
+             WHERE request_id = ?",
+        )
+        .bind(remote_request_id)
+        .bind(request_id)
+        .execute(&self.pool)
+        .await?;
+
+        self.mark_request_clean(request_id, remote_updated_at).await
     }
 
     /// Returns aggregate sync counts across all tracked requests.
@@ -469,11 +587,43 @@ fn metadata_from_row(row: sqlx::sqlite::SqliteRow) -> Result<RequestSyncMetadata
     let sync_status: String = row.try_get("sync_status")?;
     Ok(RequestSyncMetadata {
         request_id: row.try_get("request_id")?,
+        remote_request_id: row.try_get("remote_request_id")?,
         last_synced_at: row.try_get("last_synced_at")?,
         remote_updated_at: row.try_get("remote_updated_at")?,
         local_updated_at: row.try_get("local_updated_at")?,
         sync_status: SyncStatus::from_str(&sync_status),
         conflict_version: row.try_get("conflict_version")?,
+    })
+}
+
+fn request_from_row(row: sqlx::sqlite::SqliteRow) -> Result<AlaveteliRequest, sqlx::Error> {
+    let tags_str: Option<String> = row.try_get("tags")?;
+    let tags = tags_str.and_then(|s| serde_json::from_str(&s).ok());
+    Ok(AlaveteliRequest {
+        id: row.try_get("id")?,
+        title: row.try_get("title")?,
+        body: row.try_get("body")?,
+        user_name: row.try_get("user_name")?,
+        status: row.try_get("status")?,
+        created_at: row.try_get("created_at")?,
+        updated_at: row.try_get("updated_at")?,
+        url: row.try_get("url")?,
+        tags,
+    })
+}
+
+fn outgoing_queue_item_from_row(
+    row: sqlx::sqlite::SqliteRow,
+) -> Result<OutgoingQueueItem, sqlx::Error> {
+    Ok(OutgoingQueueItem {
+        id: row.try_get("id")?,
+        request_id: row.try_get("request_id")?,
+        operation: row.try_get("operation")?,
+        payload: row.try_get("payload")?,
+        status: row.try_get("status")?,
+        remote_request_id: row.try_get("remote_request_id")?,
+        attempts: row.try_get("attempts")?,
+        last_error: row.try_get("last_error")?,
     })
 }
 

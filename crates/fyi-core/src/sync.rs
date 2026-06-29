@@ -1,4 +1,4 @@
-use crate::api::AlaveteliRequest;
+use crate::api::{AlaveteliRequest, CreateRequestResponse};
 use crate::db::DbPool;
 use anyhow::{anyhow, Context, Result};
 use reqwest::{Client, Url};
@@ -13,6 +13,12 @@ pub struct PullReport {
     pub fetched: usize,
     pub applied: usize,
     pub source: String,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct PushReport {
+    pub queued: usize,
+    pub submitted: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -123,6 +129,48 @@ impl SyncClient {
             .json::<AlaveteliRequest>()
             .await
             .context("failed to parse request JSON")
+    }
+
+    pub async fn push_dirty(&self, db: &DbPool) -> Result<PushReport> {
+        let dirty_requests = db.list_dirty_requests(500).await?;
+        let mut submitted = 0;
+
+        for request in &dirty_requests {
+            let queue_id = db.enqueue_request_submission(request).await?;
+            let response = self.submit_request(request).await?;
+            db.mark_submission_confirmed(
+                queue_id,
+                request.id,
+                response.id,
+                request.updated_at.as_deref(),
+            )
+            .await?;
+            submitted += 1;
+        }
+
+        Ok(PushReport {
+            queued: dirty_requests.len(),
+            submitted,
+        })
+    }
+
+    async fn submit_request(&self, request: &AlaveteliRequest) -> Result<CreateRequestResponse> {
+        let url = self
+            .base_url
+            .join("api/v2/request")
+            .context("failed to build request submission URL")?;
+
+        self.http
+            .post(url)
+            .json(request)
+            .send()
+            .await
+            .context("failed to submit request")?
+            .error_for_status()
+            .context("request submission endpoint returned an error")?
+            .json::<CreateRequestResponse>()
+            .await
+            .context("failed to parse request submission response")
     }
 }
 
@@ -319,5 +367,36 @@ mod tests {
 
         assert!(!reports.is_empty());
         assert_eq!(saved.title, "Scheduled request");
+    }
+
+    #[tokio::test]
+    async fn push_dirty_enqueues_submits_and_records_remote_id() {
+        let server = MockServer::start().await;
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+        let local = request(-1, "Local draft", "2026-06-30T04:00:00Z");
+        db.insert_request(&local).await.unwrap();
+
+        Mock::given(method("POST"))
+            .and(path("/api/v2/request"))
+            .respond_with(
+                ResponseTemplate::new(201).set_body_json(CreateRequestResponse {
+                    id: 4100,
+                    url: "https://fyi.org.nz/request/4100".to_string(),
+                }),
+            )
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new(&server.uri()).unwrap();
+        let report = client.push_dirty(&db).await.unwrap();
+        let metadata = db.get_request_sync_metadata(-1).await.unwrap().unwrap();
+        let pending = db.list_pending_outgoing_queue(10).await.unwrap();
+
+        assert_eq!(report.queued, 1);
+        assert_eq!(report.submitted, 1);
+        assert_eq!(metadata.remote_request_id, Some(4100));
+        assert_eq!(metadata.sync_status.as_str(), "clean");
+        assert!(pending.is_empty());
     }
 }

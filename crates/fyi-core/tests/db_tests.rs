@@ -230,7 +230,62 @@ async fn test_mark_request_clean_updates_global_sync_status() {
         .expect("Failed to list field changes");
 
     assert_eq!(metadata.sync_status, SyncStatus::Clean);
+    assert_eq!(metadata.remote_request_id, None);
     assert_eq!(global.total, 1);
     assert_eq!(global.clean, 1);
     assert!(changes.is_empty());
+}
+
+#[tokio::test]
+async fn test_outgoing_queue_records_pending_and_confirmed_submissions() {
+    let db = DbPool::new_in_memory()
+        .await
+        .expect("Failed to initialize in-memory DB");
+    db.run_migrations().await.expect("Failed to run migrations");
+
+    let request = AlaveteliRequest {
+        id: 13,
+        title: "Queued request".to_string(),
+        body: "Body".to_string(),
+        user_name: None,
+        status: Some("draft".to_string()),
+        created_at: None,
+        updated_at: Some("2026-06-30T00:00:00Z".to_string()),
+        url: None,
+        tags: None,
+    };
+
+    db.insert_request(&request)
+        .await
+        .expect("Failed to insert request");
+    let queue_id = db
+        .enqueue_request_submission(&request)
+        .await
+        .expect("Failed to enqueue request");
+    let pending = db
+        .list_pending_outgoing_queue(10)
+        .await
+        .expect("Failed to list pending queue");
+
+    assert_eq!(pending.len(), 1);
+    assert_eq!(pending[0].id, queue_id);
+    assert_eq!(pending[0].request_id, 13);
+
+    db.mark_submission_confirmed(queue_id, 13, 1300, request.updated_at.as_deref())
+        .await
+        .expect("Failed to confirm submission");
+
+    let metadata = db
+        .get_request_sync_metadata(13)
+        .await
+        .expect("Failed to read sync metadata")
+        .expect("metadata should be present");
+    let pending = db
+        .list_pending_outgoing_queue(10)
+        .await
+        .expect("Failed to list pending queue");
+
+    assert_eq!(metadata.remote_request_id, Some(1300));
+    assert_eq!(metadata.sync_status, SyncStatus::Clean);
+    assert!(pending.is_empty());
 }
