@@ -355,6 +355,17 @@ impl DbPool {
         Ok(status)
     }
 
+    /// Returns the latest successful sync timestamp across tracked requests.
+    pub async fn get_latest_sync_timestamp(&self) -> Result<Option<String>, sqlx::Error> {
+        sqlx::query_scalar(
+            "SELECT MAX(last_synced_at)
+             FROM sync_metadata
+             WHERE last_synced_at IS NOT NULL",
+        )
+        .fetch_one(&self.pool)
+        .await
+    }
+
     /// Returns unsynced field-level changes for a request.
     pub async fn list_unsynced_field_changes(
         &self,

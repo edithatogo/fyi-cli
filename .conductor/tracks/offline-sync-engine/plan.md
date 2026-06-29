@@ -18,10 +18,10 @@
 ## Phase 2: Pull Synchronization
 
 ### Task 2.1: Incremental pull from FYI API
-- [ ] Implement pull function that fetches updates since last_synced_at
-- [ ] Add RSS/Atom feed integration for watched requests
-- [ ] Apply remote updates to local database
-- [ ] Commit: `feat(sync): implement incremental pull synchronization from FYI API`
+- [x] Implement pull function that fetches updates since last_synced_at
+- [x] Add RSS/Atom feed integration for watched requests
+- [x] Apply remote updates to local database
+- [x] Commit: `feat(sync): implement incremental pull synchronization from FYI API`
 
 ### Task 2.2: Pull scheduler and configuration
 - [ ] Add configurable pull interval (default 5 minutes)
