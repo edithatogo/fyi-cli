@@ -78,8 +78,8 @@
 - [x] Commit: `feat(dashboard): add search and filtering capabilities` [650ad63]
 
 ### Task 5.2: Bulk actions and responsive design
-- [~] Implement bulk status update (multi-select)
-- [ ] Implement bulk export
+- [x] Implement bulk status update (multi-select) [c5936b6]
+- [~] Implement bulk export
 - [ ] Make all views mobile-responsive
 - [ ] Add accessibility labels and keyboard navigation
 - [ ] Commit: `feat(dashboard): add bulk actions, responsive design, and accessibility`
