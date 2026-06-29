@@ -89,6 +89,38 @@ impl DbPool {
         }
     }
 
+    /// Lists requests from newest to oldest, bounded by the supplied limit.
+    pub async fn list_requests(&self, limit: i64) -> Result<Vec<AlaveteliRequest>, sqlx::Error> {
+        let rows = sqlx::query(
+            "SELECT id, title, body, user_name, status, created_at, updated_at, url, tags
+             FROM requests
+             ORDER BY COALESCE(updated_at, created_at, '') DESC, id DESC
+             LIMIT ?"
+        )
+        .bind(limit.clamp(1, 500))
+        .fetch_all(&self.pool)
+        .await?;
+
+        let mut requests = Vec::with_capacity(rows.len());
+        for row in rows {
+            let tags_str: Option<String> = row.try_get("tags")?;
+            let tags = tags_str.and_then(|s| serde_json::from_str(&s).ok());
+            requests.push(AlaveteliRequest {
+                id: row.try_get("id")?,
+                title: row.try_get("title")?,
+                body: row.try_get("body")?,
+                user_name: row.try_get("user_name")?,
+                status: row.try_get("status")?,
+                created_at: row.try_get("created_at")?,
+                updated_at: row.try_get("updated_at")?,
+                url: row.try_get("url")?,
+                tags,
+            });
+        }
+
+        Ok(requests)
+    }
+
     /// Inserts a new `AlaveteliCorrespondence` associated with a request ID.
     pub async fn insert_correspondence(
         &self,

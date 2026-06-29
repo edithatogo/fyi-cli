@@ -22,10 +22,10 @@
 - [x] Implement JSON-RPC 2.0 transport over stdin/stdout
 - [x] Add request/response types matching Rust API contracts
 - [x] Write unit tests for MCP client
-- [ ] Commit: `feat(dashboard): create MCP client for Rust backend communication`
+- [x] Commit: `feat(dashboard): create MCP client for Rust backend communication` [b1c629b]
 
 ### Task 2.2: Request CRUD pages
-- [ ] Build requests list page with server-side data fetching via MCP
+- [x] Build requests list page with server-side data fetching via MCP
 - [ ] Build request creation form with authority selector
 - [ ] Build request detail page with inline editing
 - [ ] Build request deletion with confirmation

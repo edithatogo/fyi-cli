@@ -110,6 +110,19 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
             let tools = json!({
                 "tools": [
                     {
+                        "name": "list_requests",
+                        "description": "List tracked Alaveteli requests from the database",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "limit": {
+                                    "type": "integer",
+                                    "description": "Maximum number of requests to return"
+                                }
+                            }
+                        }
+                    },
+                    {
                         "name": "retrieve_request",
                         "description": "Retrieve an Alaveteli request (and its correspondence) by ID from the database",
                         "inputSchema": {
@@ -177,6 +190,35 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
             let arguments = params.get("arguments").cloned().unwrap_or(json!({}));
 
             match name {
+                "list_requests" => {
+                    let limit = arguments.get("limit").and_then(|i| i.as_i64()).unwrap_or(100);
+
+                    match db.list_requests(limit).await {
+                        Ok(requests) => Some(JsonRpcResponse::success(
+                            req.id,
+                            json!({
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": serde_json::to_string_pretty(&requests).unwrap()
+                                    }
+                                ]
+                            })
+                        )),
+                        Err(e) => Some(JsonRpcResponse::success(
+                            req.id,
+                            json!({
+                                "isError": true,
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": format!("Failed to fetch requests: {}", e)
+                                    }
+                                ]
+                            })
+                        )),
+                    }
+                }
                 "retrieve_request" => {
                     let id = match arguments.get("id").and_then(|i| i.as_i64()) {
                         Some(i) => i,
@@ -468,6 +510,7 @@ mod tests {
         let result = resp.result.unwrap();
         let tools = result.get("tools").unwrap().as_array().unwrap();
         assert!(tools.iter().any(|t| t.get("name").unwrap().as_str().unwrap() == "retrieve_request"));
+        assert!(tools.iter().any(|t| t.get("name").unwrap().as_str().unwrap() == "list_requests"));
         assert!(tools.iter().any(|t| t.get("name").unwrap().as_str().unwrap() == "create_request"));
         assert!(tools.iter().any(|t| t.get("name").unwrap().as_str().unwrap() == "list_authorities"));
         assert!(tools.iter().any(|t| t.get("name").unwrap().as_str().unwrap() == "check_status"));
@@ -527,6 +570,51 @@ mod tests {
         
         let parsed_retrieve: Value = serde_json::from_str(retrieve_text).unwrap();
         assert_eq!(parsed_retrieve.get("request").unwrap().get("title").unwrap().as_str().unwrap(), "My OIA Test");
+    }
+
+    #[tokio::test]
+    async fn test_list_requests() {
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+
+        for id in 1..=2 {
+            db.insert_request(&AlaveteliRequest {
+                id,
+                title: format!("Request {}", id),
+                body: "Body".to_string(),
+                user_name: None,
+                status: Some("draft".to_string()),
+                created_at: Some(format!("2026-06-1{}T00:00:00Z", id)),
+                updated_at: None,
+                url: None,
+                tags: None,
+            })
+            .await
+            .unwrap();
+        }
+
+        let req = JsonRpcRequest {
+            jsonrpc: "2.0".to_string(),
+            id: Some(json!(6)),
+            method: "tools/call".to_string(),
+            params: Some(json!({
+                "name": "list_requests",
+                "arguments": {
+                    "limit": 10
+                }
+            })),
+        };
+
+        let resp = handle_jsonrpc_request(&db, req).await.unwrap();
+        assert_eq!(resp.id, Some(json!(6)));
+        let result = resp.result.unwrap();
+        let content = result.get("content").unwrap().as_array().unwrap();
+        let text = content[0].get("text").unwrap().as_str().unwrap();
+        let requests: Vec<AlaveteliRequest> = serde_json::from_str(text).unwrap();
+
+        assert_eq!(requests.len(), 2);
+        assert_eq!(requests[0].title, "Request 2");
+        assert_eq!(requests[1].title, "Request 1");
     }
 
     #[tokio::test]

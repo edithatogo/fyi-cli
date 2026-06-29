@@ -206,6 +206,10 @@ export class FyiMcpClient {
     return this.callTool<FyiRequestWithCorrespondence>("retrieve_request", { id });
   }
 
+  async listRequests(limit = 100): Promise<FyiRequest[]> {
+    return this.callTool<FyiRequest[]>("list_requests", { limit });
+  }
+
   async createRequest(input: CreateRequestInput): Promise<FyiRequest> {
     return this.callTool<FyiRequest>("create_request", input as unknown as JsonValue);
   }

@@ -108,4 +108,39 @@ describe("FyiMcpClient", () => {
     );
     await client.close();
   });
+
+  it("lists requests through the MCP list_requests tool", async () => {
+    const client = createClient((request) => {
+      expect(request.params).toEqual({
+        name: "list_requests",
+        arguments: { limit: 25 },
+      });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify([
+              {
+                id: 1,
+                title: "Rates request",
+                body: "Body",
+                status: "submitted",
+              },
+            ]),
+          },
+        ],
+      };
+    });
+
+    await expect(client.listRequests(25)).resolves.toEqual([
+      {
+        id: 1,
+        title: "Rates request",
+        body: "Body",
+        status: "submitted",
+      },
+    ]);
+    await client.close();
+  });
 });
