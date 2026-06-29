@@ -21,9 +21,7 @@ async fn test_e2e_cli_and_api_flow() {
 
     // 1. Invoke Binary to initialize database
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_fyi-cli"));
-    cmd.args([
-        "--db", db_path, "init-db", "--db", db_path,
-    ]);
+    cmd.args(["--db", db_path, "init-db", "--db", db_path]);
 
     let output = cmd.output().expect("Failed to execute fyi-cli init-db");
     assert!(output.status.success());
