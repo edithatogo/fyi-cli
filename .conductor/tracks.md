@@ -82,7 +82,7 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Description: Faithful per-request capture (JSON + rendered HTML + attachment binaries) written as WARC 1.1 records packaged into WACZ, with content-addressed attachment dedup. The archival source of truth.*
   *Consumer: fyi-archive `historical_seed_orchestration_20260627`.*
 
-- [ ] **Track: archival-content-diff** (PENDING — fyi-archive capability)
+- [x] **Track: archival-content-diff** (COMPLETED — fyi-archive capability)
   *Link: [./tracks/archival-content-diff/](./tracks/archival-content-diff/)*
   *Description: Content-addressed change detection (added/updated/removed by SHA-256 of the captured JSON) → latest_changes.json. Powers the fyi-archive prospective daily sync. Read-only; distinct from the tracker-focused offline-sync-engine.*
   *Consumer: fyi-archive `prospective_sync_orchestration_20260627`.*

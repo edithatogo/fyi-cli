@@ -1,0 +1,9 @@
+{
+  "track_id": "archival-content-diff",
+  "type": "feature",
+  "status": "complete",
+  "created_at": "2026-06-27T16:32:00Z",
+  "updated_at": "2026-06-29T02:25:00Z",
+  "description": "Content-addressed change detection for the fyi.org.nz archive: compute added/updated/removed request sets between syncs by SHA-256 of the captured JSON payload, emitting latest_changes.json. Powers the fyi-archive prospective daily sync. Distinct from the tracker-focused offline-sync-engine.",
+  "consumer": "fyi-archive track prospective_sync_orchestration_20260627"
+}

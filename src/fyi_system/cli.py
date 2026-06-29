@@ -4,6 +4,7 @@ import argparse
 import json
 from pathlib import Path
 from .archive_capture import CaptureCaps, capture_request
+from .archive_diff import run_diff
 from .archive_health import build_archive_health, write_archive_health
 from .db import init_db, query_all, connect, get_tracked_request, export_tracked_requests, import_tracked_requests, request_timeline, update_request_status
 from .discovery import backfill_ids, discover_feed, write_jsonl
@@ -149,6 +150,18 @@ def cmd_capture(args):
         ),
     )
     print(json.dumps(summary, indent=2, sort_keys=True))
+
+
+def cmd_diff(args):
+    changes = run_diff(
+        derived_dir=Path(args.derived_dir),
+        previous_manifest=Path(args.previous_manifest),
+        output_path=Path(args.output),
+        cursor_path=Path(args.cursor) if args.cursor else None,
+        advance_cursor=args.advance_cursor,
+        since=args.since,
+    )
+    print(json.dumps(changes, indent=2, sort_keys=True))
 
 
 def cmd_attention_report(args):
@@ -400,6 +413,16 @@ def build_parser():
     sp.add_argument('--max-runtime-minutes', type=float)
     sp.add_argument('--max-disk-gb', type=float)
     sp.set_defaults(func=cmd_capture)
+
+    # Command: diff
+    sp = sub.add_parser('diff')
+    sp.add_argument('--derived-dir', default='data/raw/requests')
+    sp.add_argument('--previous-manifest', default='manifests/latest_manifest.json')
+    sp.add_argument('--output', default='manifests/latest_changes.json')
+    sp.add_argument('--cursor')
+    sp.add_argument('--since')
+    sp.add_argument('--advance-cursor', action='store_true')
+    sp.set_defaults(func=cmd_diff)
     
     # Command: attention-report
     sp = sub.add_parser('attention-report')
