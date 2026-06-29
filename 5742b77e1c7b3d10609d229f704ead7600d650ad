@@ -1,0 +1,16 @@
+Task: Add auto-refresh polling (configurable interval)
+
+Summary:
+- Added a client DashboardSummaryShell that polls /api/dashboard/summary on a configurable interval.
+- Added a dynamic API route that returns live dashboard summary JSON through FyiMcpClient.
+- Switched the home page to render server-loaded initial data through the polling shell.
+- Added a focused polling test with fake timers and mocked fetch.
+
+Files changed:
+- dashboard/src/app/api/dashboard/summary/route.ts
+- dashboard/src/app/page.tsx
+- dashboard/src/components/DashboardSummaryShell.tsx
+- dashboard/src/components/DashboardSummaryShell.test.tsx
+
+Why:
+- Phase 3.1 requires the summary dashboard to refresh MCP-backed KPI data without full page reloads.
