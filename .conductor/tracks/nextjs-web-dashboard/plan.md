@@ -25,8 +25,8 @@
 - [x] Commit: `feat(dashboard): create MCP client for Rust backend communication` [b1c629b]
 
 ### Task 2.2: Request CRUD pages
-- [x] Build requests list page with server-side data fetching via MCP
-- [ ] Build request creation form with authority selector
+- [x] Build requests list page with server-side data fetching via MCP [d9f7dca]
+- [~] Build request creation form with authority selector
 - [ ] Build request detail page with inline editing
 - [ ] Build request deletion with confirmation
 - [ ] Commit: `feat(dashboard): implement request CRUD operations via MCP`
