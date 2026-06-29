@@ -26,15 +26,15 @@
 - [x] Commit: `feat(security): integrate TOTP secret storage with OS keyring` [df846a9]
 
 ### Task 2.2: Multi-key and rotation support
-- [~] Support multiple MFA secrets per account (versioned)
-- [ ] Implement secret rotation (re-provision with new key)
-- [ ] Write integration tests for keyring MFA operations
-- [ ] Commit: `feat(security): add multi-key support and secret rotation`
+- [x] Support multiple MFA secrets per account (versioned)
+- [x] Implement secret rotation (re-provision with new key)
+- [x] Write integration tests for keyring MFA operations
+- [x] Commit: `feat(security): add multi-key support and secret rotation` [2db6c4d]
 
 ## Phase 3: Security Enforcement
 
 ### Task 3.1: MFA guard
-- [ ] Create `MfaGuard` struct that requires verification before credential access
+- [~] Create `MfaGuard` struct that requires verification before credential access
 - [ ] Integrate with `KeyringStore::get_credential()` to gate access
 - [ ] Add verified session tracking with TOTP-based expiry
 - [ ] Commit: `feat(security): add MFA guard for credential access`
