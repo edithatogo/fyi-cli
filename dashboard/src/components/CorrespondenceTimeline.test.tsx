@@ -72,6 +72,31 @@ describe("CorrespondenceTimeline", () => {
     ]);
   });
 
+  it("renders status-aware timeline indicators", () => {
+    render(
+      <CorrespondenceTimeline
+        request={{
+          id: 7,
+          title: "Procurement records",
+          body: "Please provide the procurement records.",
+          status: "overdue",
+          created_at: "2026-03-30T08:00:00Z",
+        }}
+        correspondence={[
+          {
+            direction: "response",
+            body: "The agency provided a partial release.",
+            sent_at: "2026-04-12T09:30:00Z",
+            state: "partial",
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByLabelText("Timeline indicator: overdue")).toBeDefined();
+    expect(screen.getByLabelText("Timeline indicator: partial")).toBeDefined();
+  });
+
   it("renders an empty state when no correspondence exists", () => {
     render(<CorrespondenceTimeline correspondence={[]} />);
 

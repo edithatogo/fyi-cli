@@ -1,4 +1,5 @@
 import { Clock, Mail, MessageSquare, Paperclip } from "lucide-react";
+import { clsx } from "clsx";
 import { Badge, Card, CardContent, CardHeader } from "@/components/ui";
 import type { FyiCorrespondence, FyiRequest } from "@/lib/mcp-client";
 
@@ -21,6 +22,20 @@ type TimelineEvent =
       correspondence: FyiCorrespondence;
     };
 
+type StatusTone = "default" | "success" | "warning" | "danger" | "info";
+
+const markerStyles: Record<StatusTone, string> = {
+  default:
+    "border-gray-200 bg-white text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300",
+  success:
+    "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300",
+  warning:
+    "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300",
+  danger:
+    "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300",
+  info: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300",
+};
+
 function formatDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
@@ -39,8 +54,35 @@ function correspondenceTitle(direction: string) {
     : "Response received";
 }
 
-function directionBadgeVariant(direction: string) {
-  return direction.toLowerCase() === "request" ? "info" : "success";
+function statusTone(status?: string | null): StatusTone {
+  switch ((status ?? "").toLowerCase()) {
+    case "completed":
+    case "successful":
+    case "closed":
+      return "success";
+    case "overdue":
+    case "rejected":
+      return "danger";
+    case "submitted":
+    case "awaiting_response":
+    case "waiting_response":
+    case "waiting_clarification":
+    case "partial":
+    case "partially_successful":
+      return "warning";
+    case "request":
+    case "sent":
+      return "info";
+    default:
+      return "default";
+  }
+}
+
+function markerClass(status?: string | null) {
+  return clsx(
+    "absolute -left-[35px] flex h-7 w-7 items-center justify-center rounded-full border shadow-sm",
+    markerStyles[statusTone(status)]
+  );
 }
 
 function buildTimelineEvents(
@@ -103,7 +145,10 @@ export function CorrespondenceTimeline({
               if (item.type !== "correspondence") {
                 return (
                   <li key={`${item.timestamp}-${item.type}`} className="relative">
-                    <span className="absolute -left-[35px] flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white text-brand-600 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-brand-300">
+                    <span
+                      aria-label={`Timeline indicator: ${item.badge}`}
+                      className={markerClass(item.badge)}
+                    >
                       <Clock className="h-4 w-4" />
                     </span>
                     <div className="grid gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950/40">
@@ -117,7 +162,7 @@ export function CorrespondenceTimeline({
                           </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          <Badge variant="warning">{item.badge}</Badge>
+                          <Badge variant={statusTone(item.badge)}>{item.badge}</Badge>
                         </div>
                       </div>
                       <p className="text-sm leading-6 text-gray-700 dark:text-gray-300">
@@ -135,7 +180,14 @@ export function CorrespondenceTimeline({
 
               return (
                 <li key={`${item.timestamp}-${index}`} className="relative">
-                  <span className="absolute -left-[35px] flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white text-brand-600 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-brand-300">
+                  <span
+                    aria-label={`Timeline indicator: ${
+                      correspondenceItem.state ?? correspondenceItem.direction
+                    }`}
+                    className={markerClass(
+                      correspondenceItem.state ?? correspondenceItem.direction
+                    )}
+                  >
                     <Icon className="h-4 w-4" />
                   </span>
                   <div className="grid gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950/40">
@@ -149,7 +201,11 @@ export function CorrespondenceTimeline({
                         </p>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <Badge variant={directionBadgeVariant(correspondenceItem.direction)}>
+                        <Badge
+                          variant={statusTone(
+                            correspondenceItem.state ?? correspondenceItem.direction
+                          )}
+                        >
                           {correspondenceItem.state ?? correspondenceItem.direction}
                         </Badge>
                         {attachments.length > 0 && (
