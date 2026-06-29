@@ -77,6 +77,9 @@ const TOTP_SECRET_BYTES: usize = 20;
 const TOTP_TIME_STEP_SECONDS: u64 = 30;
 const TOTP_DIGITS: u32 = 6;
 const TOTP_SECRET_PREFIX: &str = "totp-secret:";
+const TOTP_SECRET_ACTIVE_PREFIX: &str = "totp-secret-active:";
+const TOTP_SECRET_VERSION_PREFIX: &str = "totp-secret-version:";
+const TOTP_SECRET_VERSIONS_PREFIX: &str = "totp-secret-versions:";
 const TOTP_SECRET_INDEX: &str = "totp-secret-index";
 const OTPAUTH_ENCODE_SET: &AsciiSet = &CONTROLS
     .add(b' ')
@@ -376,19 +379,14 @@ impl KeyringStore {
         username: &str,
         secret: &ZeroizedString,
     ) -> Result<(), SecurityError> {
-        decode_totp_secret(secret)?;
-        let entry = Entry::new(&self.service, &totp_secret_key(username))
-            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
-        entry
-            .set_password(secret.as_str())
-            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
-
-        let mut usernames = self.read_totp_secret_index()?;
-        usernames.insert(username.to_string());
-        self.write_totp_secret_index(&usernames)
+        self.store_totp_secret_version(username, 1, secret)
     }
 
     pub fn get_totp_secret(&self, username: &str) -> Result<ZeroizedString, SecurityError> {
+        if let Some(version) = self.read_active_totp_secret_version(username)? {
+            return self.get_totp_secret_version(username, version);
+        }
+
         let entry = Entry::new(&self.service, &totp_secret_key(username))
             .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
         let secret = entry
@@ -398,11 +396,13 @@ impl KeyringStore {
     }
 
     pub fn delete_totp_secret(&self, username: &str) -> Result<(), SecurityError> {
-        let entry = Entry::new(&self.service, &totp_secret_key(username))
-            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
-        entry
-            .delete_password()
-            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
+        let versions = self.read_totp_secret_versions(username)?;
+        for version in versions {
+            self.delete_keyring_password(&totp_secret_version_key(username, version))?;
+        }
+        self.delete_keyring_password(&totp_secret_versions_key(username))?;
+        self.delete_keyring_password(&totp_secret_active_key(username))?;
+        self.delete_keyring_password(&totp_secret_key(username))?;
 
         let mut usernames = self.read_totp_secret_index()?;
         usernames.remove(username);
@@ -411,6 +411,88 @@ impl KeyringStore {
 
     pub fn list_totp_secrets(&self) -> Result<Vec<String>, SecurityError> {
         Ok(self.read_totp_secret_index()?.into_iter().collect())
+    }
+
+    pub fn store_totp_secret_version(
+        &self,
+        username: &str,
+        version: u32,
+        secret: &ZeroizedString,
+    ) -> Result<(), SecurityError> {
+        if version == 0 {
+            return Err(SecurityError::InvalidTotpSecret(
+                "TOTP secret version must be greater than zero".to_string(),
+            ));
+        }
+
+        decode_totp_secret(secret)?;
+        let version_key = totp_secret_version_key(username, version);
+        let entry = Entry::new(&self.service, &version_key)
+            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
+        entry
+            .set_password(secret.as_str())
+            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
+
+        let mut versions = self.read_totp_secret_versions(username)?;
+        versions.insert(version);
+        self.write_totp_secret_versions(username, &versions)?;
+        self.write_active_totp_secret_version(username, version)?;
+        self.write_legacy_totp_secret(username, secret)?;
+
+        let mut usernames = self.read_totp_secret_index()?;
+        usernames.insert(username.to_string());
+        self.write_totp_secret_index(&usernames)
+    }
+
+    pub fn get_totp_secret_version(
+        &self,
+        username: &str,
+        version: u32,
+    ) -> Result<ZeroizedString, SecurityError> {
+        let version_key = totp_secret_version_key(username, version);
+        let entry = Entry::new(&self.service, &version_key)
+            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
+        let secret = entry
+            .get_password()
+            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
+        Ok(ZeroizedString::new(secret))
+    }
+
+    pub fn list_totp_secret_versions(&self, username: &str) -> Result<Vec<u32>, SecurityError> {
+        Ok(self
+            .read_totp_secret_versions(username)?
+            .into_iter()
+            .collect())
+    }
+
+    pub fn rotate_totp_secret(
+        &self,
+        username: &str,
+        new_secret: &ZeroizedString,
+    ) -> Result<u32, SecurityError> {
+        let next_version = self
+            .read_totp_secret_versions(username)?
+            .last()
+            .copied()
+            .unwrap_or(0)
+            .checked_add(1)
+            .ok_or_else(|| {
+                SecurityError::InvalidTotpSecret("TOTP secret version overflow".to_string())
+            })?;
+        self.store_totp_secret_version(username, next_version, new_secret)?;
+        Ok(next_version)
+    }
+
+    fn write_legacy_totp_secret(
+        &self,
+        username: &str,
+        secret: &ZeroizedString,
+    ) -> Result<(), SecurityError> {
+        let entry = Entry::new(&self.service, &totp_secret_key(username))
+            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
+        entry
+            .set_password(secret.as_str())
+            .map_err(|e| SecurityError::KeyringError(e.to_string()))
     }
 
     fn read_totp_secret_index(&self) -> Result<BTreeSet<String>, SecurityError> {
@@ -436,8 +518,91 @@ impl KeyringStore {
             .set_password(&payload)
             .map_err(|e| SecurityError::KeyringError(e.to_string()))
     }
+
+    fn read_totp_secret_versions(&self, username: &str) -> Result<BTreeSet<u32>, SecurityError> {
+        let versions_key = totp_secret_versions_key(username);
+        let entry = Entry::new(&self.service, &versions_key)
+            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
+        let payload = match entry.get_password() {
+            Ok(payload) => payload,
+            Err(KeyringBackendError::NoEntry) => return Ok(BTreeSet::new()),
+            Err(error) => return Err(SecurityError::KeyringError(error.to_string())),
+        };
+
+        serde_json::from_str::<Vec<u32>>(&payload)
+            .map(|versions| versions.into_iter().collect())
+            .map_err(|e| SecurityError::KeyringError(e.to_string()))
+    }
+
+    fn write_totp_secret_versions(
+        &self,
+        username: &str,
+        versions: &BTreeSet<u32>,
+    ) -> Result<(), SecurityError> {
+        let versions_key = totp_secret_versions_key(username);
+        let entry = Entry::new(&self.service, &versions_key)
+            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
+        let payload = serde_json::to_string(&versions.iter().collect::<Vec<_>>())
+            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
+        entry
+            .set_password(&payload)
+            .map_err(|e| SecurityError::KeyringError(e.to_string()))
+    }
+
+    fn read_active_totp_secret_version(
+        &self,
+        username: &str,
+    ) -> Result<Option<u32>, SecurityError> {
+        let active_key = totp_secret_active_key(username);
+        let entry = Entry::new(&self.service, &active_key)
+            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
+        let payload = match entry.get_password() {
+            Ok(payload) => payload,
+            Err(KeyringBackendError::NoEntry) => return Ok(None),
+            Err(error) => return Err(SecurityError::KeyringError(error.to_string())),
+        };
+
+        payload
+            .parse::<u32>()
+            .map(Some)
+            .map_err(|e| SecurityError::KeyringError(e.to_string()))
+    }
+
+    fn write_active_totp_secret_version(
+        &self,
+        username: &str,
+        version: u32,
+    ) -> Result<(), SecurityError> {
+        let active_key = totp_secret_active_key(username);
+        let entry = Entry::new(&self.service, &active_key)
+            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
+        entry
+            .set_password(&version.to_string())
+            .map_err(|e| SecurityError::KeyringError(e.to_string()))
+    }
+
+    fn delete_keyring_password(&self, key: &str) -> Result<(), SecurityError> {
+        let entry = Entry::new(&self.service, key)
+            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
+        match entry.delete_password() {
+            Ok(()) | Err(KeyringBackendError::NoEntry) => Ok(()),
+            Err(error) => Err(SecurityError::KeyringError(error.to_string())),
+        }
+    }
 }
 
 fn totp_secret_key(username: &str) -> String {
     format!("{TOTP_SECRET_PREFIX}{username}")
+}
+
+fn totp_secret_active_key(username: &str) -> String {
+    format!("{TOTP_SECRET_ACTIVE_PREFIX}{username}")
+}
+
+fn totp_secret_version_key(username: &str, version: u32) -> String {
+    format!("{TOTP_SECRET_VERSION_PREFIX}{username}:v{version}")
+}
+
+fn totp_secret_versions_key(username: &str) -> String {
+    format!("{TOTP_SECRET_VERSIONS_PREFIX}{username}")
 }

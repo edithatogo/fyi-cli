@@ -136,6 +136,81 @@ fn test_keyring_totp_secret_storage_graceful() {
 }
 
 #[test]
+fn test_keyring_totp_secret_rotation_graceful() {
+    let store = KeyringStore::new("fyi-cli-test-mfa-rotation-service");
+    let username = "test-user-mfa-rotation";
+    let first = ZeroizedString::new("JBSWY3DPEHPK3PXP".to_string());
+    let second = ZeroizedString::new("JBSWY3DPEHPK3PXQ".to_string());
+    let third = ZeroizedString::new("JBSWY3DPEHPK3PXR".to_string());
+
+    let _ = store.delete_totp_secret(username);
+    match store.store_totp_secret_version(username, 1, &first) {
+        Ok(_) => {
+            store
+                .store_totp_secret_version(username, 2, &second)
+                .expect("Failed to store second TOTP secret version");
+
+            assert_eq!(
+                store
+                    .get_totp_secret_version(username, 1)
+                    .expect("Failed to fetch first TOTP secret version")
+                    .as_str(),
+                first.as_str()
+            );
+            assert_eq!(
+                store
+                    .get_totp_secret_version(username, 2)
+                    .expect("Failed to fetch second TOTP secret version")
+                    .as_str(),
+                second.as_str()
+            );
+            assert_eq!(
+                store
+                    .list_totp_secret_versions(username)
+                    .expect("Failed to list TOTP secret versions"),
+                vec![1, 2]
+            );
+            assert_eq!(
+                store
+                    .get_totp_secret(username)
+                    .expect("Failed to fetch active TOTP secret")
+                    .as_str(),
+                second.as_str()
+            );
+
+            let rotated_version = store
+                .rotate_totp_secret(username, &third)
+                .expect("Failed to rotate TOTP secret");
+            assert_eq!(rotated_version, 3);
+            assert_eq!(
+                store
+                    .list_totp_secret_versions(username)
+                    .expect("Failed to list TOTP secret versions after rotation"),
+                vec![1, 2, 3]
+            );
+            assert_eq!(
+                store
+                    .get_totp_secret(username)
+                    .expect("Failed to fetch rotated active TOTP secret")
+                    .as_str(),
+                third.as_str()
+            );
+
+            store
+                .delete_totp_secret(username)
+                .expect("Failed to delete rotated TOTP secrets");
+            assert!(store
+                .list_totp_secret_versions(username)
+                .expect("Failed to list deleted TOTP secret versions")
+                .is_empty());
+        }
+        Err(e) => {
+            println!("Keyring backend is unavailable or failed: {}", e);
+        }
+    }
+}
+
+#[test]
 fn test_totp_matches_rfc6238_sha1_vectors() {
     let secret = ZeroizedString::new("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ".to_string());
 
