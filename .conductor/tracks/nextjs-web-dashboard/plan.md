@@ -48,11 +48,11 @@
 - [x] Add charting library (Chart.js or Recharts) [94f771e]
 - [x] Build status distribution pie/donut chart [0f105ee]
 - [x] Build request timeline bar/line chart [a22be28]
-- [~] Build attention heatmap or trends chart
-- [ ] Commit: `feat(dashboard): add interactive charts for request analytics`
+- [x] Build attention heatmap or trends chart [f7870ae]
+- [x] Commit: `feat(dashboard): add interactive charts for request analytics`
 
 ### Task 3.3: Export actions
-- [ ] Add JSON export button to dashboard
+- [~] Add JSON export button to dashboard
 - [ ] Add CSV export button to dashboard
 - [ ] Commit: `feat(dashboard): add one-click export actions`
 
