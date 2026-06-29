@@ -1,0 +1,19 @@
+Phase: Phase 3 Security Enforcement
+
+Automated verification:
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-core --test security_tests
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-core --test property_tests
+- cargo +stable-x86_64-pc-windows-gnu check -p fyi-core
+- rustfmt +stable-x86_64-pc-windows-gnu --check crates\fyi-core\src\security.rs crates\fyi-core\tests\security_tests.rs crates\fyi-core\tests\property_tests.rs
+
+Manual verification plan presented:
+1. Review MFA security behavior in crates/fyi-core/src/security.rs.
+2. Confirm MFA-enabled credentials require verify_mfa_code before get_credential.
+3. Confirm five failed MFA attempts within 30 seconds cause SecurityError::MfaRateLimited.
+4. Confirm mfa_audit_events() records failed, rate-limited, and successful verification events.
+
+User confirmation:
+- User replied "Continue" after the verification prompt, treated as confirmation to proceed.
+
+Scope:
+- Phase 3 implemented MFA credential guard, verified sessions, brute force protection, and MFA audit events.
