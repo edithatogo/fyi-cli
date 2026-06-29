@@ -3,11 +3,11 @@
 ## Phase 1: Sync State Tracking
 
 ### Task 1.1: Sync metadata table and dirty flagging
-- [ ] Create SQL migration for `sync_metadata` table (request_id, last_synced_at, remote_updated_at, local_updated_at, sync_status, conflict_version)
-- [ ] Implement dirty flagging wrapper in DbPool
-- [ ] Implement field-level change tracking
-- [ ] Add sync_status query API (per-request and global)
-- [ ] Commit: `feat(sync): add sync metadata tracking and dirty flagging`
+- [x] Create SQL migration for `sync_metadata` table (request_id, last_synced_at, remote_updated_at, local_updated_at, sync_status, conflict_version)
+- [x] Implement dirty flagging wrapper in DbPool
+- [x] Implement field-level change tracking
+- [x] Add sync_status query API (per-request and global)
+- [x] Commit: `feat(sync): add sync metadata tracking and dirty flagging`
 
 ### Task 1.2: Sync state API
 - [ ] Expose sync state via MCP tools

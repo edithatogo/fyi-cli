@@ -1,5 +1,5 @@
 use fyi_core::api::{AlaveteliCorrespondence, AlaveteliRequest, CorrespondenceDirection};
-use fyi_core::db::DbPool;
+use fyi_core::db::{DbPool, SyncStatus};
 
 #[tokio::test]
 async fn test_db_pool_and_migrations() {
@@ -85,4 +85,152 @@ async fn test_request_not_found() {
         .await
         .expect("Query failed");
     assert!(corrs.is_empty());
+}
+
+#[tokio::test]
+async fn test_insert_request_marks_dirty_and_tracks_fields() {
+    let db = DbPool::new_in_memory()
+        .await
+        .expect("Failed to initialize in-memory DB");
+    db.run_migrations().await.expect("Failed to run migrations");
+
+    let request = AlaveteliRequest {
+        id: 10,
+        title: "Initial title".to_string(),
+        body: "Initial body".to_string(),
+        user_name: Some("Jane".to_string()),
+        status: Some("draft".to_string()),
+        created_at: Some("2026-06-30T00:00:00Z".to_string()),
+        updated_at: Some("2026-06-30T00:00:00Z".to_string()),
+        url: Some("https://fyi.org.nz/request/10".to_string()),
+        tags: Some(vec!["oia".to_string()]),
+    };
+
+    db.insert_request(&request)
+        .await
+        .expect("Failed to insert request");
+
+    let metadata = db
+        .get_request_sync_metadata(10)
+        .await
+        .expect("Failed to read sync metadata")
+        .expect("metadata should be present");
+
+    assert_eq!(metadata.sync_status, SyncStatus::Dirty);
+    assert_eq!(metadata.conflict_version, 0);
+
+    let changes = db
+        .list_unsynced_field_changes(10)
+        .await
+        .expect("Failed to list field changes");
+    let fields = changes
+        .iter()
+        .map(|change| change.field_name.as_str())
+        .collect::<Vec<_>>();
+
+    assert!(fields.contains(&"title"));
+    assert!(fields.contains(&"body"));
+    assert!(fields.contains(&"status"));
+}
+
+#[tokio::test]
+async fn test_update_request_tracks_only_changed_fields() {
+    let db = DbPool::new_in_memory()
+        .await
+        .expect("Failed to initialize in-memory DB");
+    db.run_migrations().await.expect("Failed to run migrations");
+
+    let mut request = AlaveteliRequest {
+        id: 11,
+        title: "Original title".to_string(),
+        body: "Original body".to_string(),
+        user_name: None,
+        status: Some("draft".to_string()),
+        created_at: Some("2026-06-30T00:00:00Z".to_string()),
+        updated_at: Some("2026-06-30T00:00:00Z".to_string()),
+        url: None,
+        tags: None,
+    };
+
+    db.upsert_synced_request(&request, request.updated_at.as_deref())
+        .await
+        .expect("Failed to insert clean request");
+
+    request.title = "Updated title".to_string();
+    request.status = Some("waiting_response".to_string());
+    request.updated_at = Some("2026-06-30T01:00:00Z".to_string());
+
+    let changed = db
+        .update_request(&request)
+        .await
+        .expect("Failed to update request");
+    assert!(changed);
+
+    let changes = db
+        .list_unsynced_field_changes(11)
+        .await
+        .expect("Failed to list field changes");
+    let fields = changes
+        .iter()
+        .map(|change| change.field_name.as_str())
+        .collect::<Vec<_>>();
+
+    assert_eq!(changes.len(), 3);
+    assert!(fields.contains(&"title"));
+    assert!(fields.contains(&"status"));
+    assert!(fields.contains(&"updated_at"));
+}
+
+#[tokio::test]
+async fn test_mark_request_clean_updates_global_sync_status() {
+    let db = DbPool::new_in_memory()
+        .await
+        .expect("Failed to initialize in-memory DB");
+    db.run_migrations().await.expect("Failed to run migrations");
+
+    let request = AlaveteliRequest {
+        id: 12,
+        title: "Cleanable request".to_string(),
+        body: "Body".to_string(),
+        user_name: None,
+        status: None,
+        created_at: None,
+        updated_at: Some("2026-06-30T00:00:00Z".to_string()),
+        url: None,
+        tags: None,
+    };
+
+    db.insert_request(&request)
+        .await
+        .expect("Failed to insert request");
+    assert_eq!(
+        db.get_global_sync_status()
+            .await
+            .expect("Failed to get global sync status")
+            .dirty,
+        1
+    );
+
+    db.mark_request_clean(12, request.updated_at.as_deref())
+        .await
+        .expect("Failed to mark request clean");
+
+    let metadata = db
+        .get_request_sync_metadata(12)
+        .await
+        .expect("Failed to read sync metadata")
+        .expect("metadata should be present");
+    let global = db
+        .get_global_sync_status()
+        .await
+        .expect("Failed to get global sync status");
+    let changes = db
+        .list_unsynced_field_changes(12)
+        .await
+        .expect("Failed to list field changes");
+
+    assert_eq!(metadata.sync_status, SyncStatus::Clean);
+    assert_eq!(global.total, 1);
+    assert_eq!(global.clean, 1);
+    assert!(changes.is_empty());
 }

@@ -1,6 +1,69 @@
 use crate::api::{AlaveteliCorrespondence, AlaveteliRequest, CorrespondenceDirection};
+use chrono::Utc;
+use serde::Serialize;
 use sqlx::{sqlite::SqlitePool, sqlite::SqlitePoolOptions, Row};
 use std::time::Duration;
+
+/// Request-level sync status persisted in `sync_metadata`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SyncStatus {
+    Clean,
+    Dirty,
+    Pending,
+    Conflict,
+}
+
+impl SyncStatus {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Clean => "clean",
+            Self::Dirty => "dirty",
+            Self::Pending => "pending",
+            Self::Conflict => "conflict",
+        }
+    }
+
+    fn from_str(value: &str) -> Self {
+        match value {
+            "clean" => Self::Clean,
+            "pending" => Self::Pending,
+            "conflict" => Self::Conflict,
+            _ => Self::Dirty,
+        }
+    }
+}
+
+/// Stored sync metadata for one request.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RequestSyncMetadata {
+    pub request_id: i64,
+    pub last_synced_at: Option<String>,
+    pub remote_updated_at: Option<String>,
+    pub local_updated_at: String,
+    pub sync_status: SyncStatus,
+    pub conflict_version: i64,
+}
+
+/// Pending field-level local changes for conflict-aware sync.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FieldChange {
+    pub request_id: i64,
+    pub field_name: String,
+    pub old_value: Option<String>,
+    pub new_value: Option<String>,
+    pub changed_at: String,
+    pub synced_at: Option<String>,
+}
+
+/// Aggregate sync status for dashboard and API consumers.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct GlobalSyncStatus {
+    pub total: i64,
+    pub clean: i64,
+    pub dirty: i64,
+    pub pending: i64,
+    pub conflict: i64,
+}
 
 /// Database wrapper managing the connection pool and CRUD operations.
 #[derive(Debug, Clone)]
@@ -35,8 +98,30 @@ impl DbPool {
         &self.pool
     }
 
-    /// Inserts or replaces an `AlaveteliRequest` in the database.
+    /// Inserts or replaces a locally edited `AlaveteliRequest` and marks it dirty.
     pub async fn insert_request(&self, request: &AlaveteliRequest) -> Result<(), sqlx::Error> {
+        let previous = self.get_request(request.id).await?;
+        self.upsert_request_row(request).await?;
+        self.record_local_request_change(request.id, previous.as_ref(), request)
+            .await?;
+        Ok(())
+    }
+
+    /// Inserts or replaces a remotely sourced request and marks it clean.
+    pub async fn upsert_synced_request(
+        &self,
+        request: &AlaveteliRequest,
+        remote_updated_at: Option<&str>,
+    ) -> Result<(), sqlx::Error> {
+        self.upsert_request_row(request).await?;
+        self.mark_request_clean(
+            request.id,
+            remote_updated_at.or(request.updated_at.as_deref()),
+        )
+        .await
+    }
+
+    async fn upsert_request_row(&self, request: &AlaveteliRequest) -> Result<(), sqlx::Error> {
         let tags_json = request
             .tags
             .as_ref()
@@ -121,8 +206,9 @@ impl DbPool {
         Ok(requests)
     }
 
-    /// Updates an existing request and returns whether a row was changed.
+    /// Updates a locally edited request, marks it dirty, and returns whether a row was changed.
     pub async fn update_request(&self, request: &AlaveteliRequest) -> Result<bool, sqlx::Error> {
+        let previous = self.get_request(request.id).await?;
         let tags_json = request
             .tags
             .as_ref()
@@ -144,7 +230,13 @@ impl DbPool {
         .execute(&self.pool)
         .await?;
 
-        Ok(result.rows_affected() > 0)
+        let changed = result.rows_affected() > 0;
+        if changed {
+            self.record_local_request_change(request.id, previous.as_ref(), request)
+                .await?;
+        }
+
+        Ok(changed)
     }
 
     /// Deletes a request by ID. Correspondence rows are removed by SQLite cascade.
@@ -219,4 +311,230 @@ impl DbPool {
         }
         Ok(list)
     }
+
+    /// Returns sync metadata for a request, if the request has been tracked.
+    pub async fn get_request_sync_metadata(
+        &self,
+        request_id: i64,
+    ) -> Result<Option<RequestSyncMetadata>, sqlx::Error> {
+        let row = sqlx::query(
+            "SELECT request_id, last_synced_at, remote_updated_at, local_updated_at, sync_status, conflict_version
+             FROM sync_metadata
+             WHERE request_id = ?",
+        )
+        .bind(request_id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        row.map(metadata_from_row).transpose()
+    }
+
+    /// Returns aggregate sync counts across all tracked requests.
+    pub async fn get_global_sync_status(&self) -> Result<GlobalSyncStatus, sqlx::Error> {
+        let rows = sqlx::query(
+            "SELECT sync_status, COUNT(*) AS count
+             FROM sync_metadata
+             GROUP BY sync_status",
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        let mut status = GlobalSyncStatus::default();
+        for row in rows {
+            let sync_status: String = row.try_get("sync_status")?;
+            let count: i64 = row.try_get("count")?;
+            status.total += count;
+            match SyncStatus::from_str(&sync_status) {
+                SyncStatus::Clean => status.clean = count,
+                SyncStatus::Dirty => status.dirty = count,
+                SyncStatus::Pending => status.pending = count,
+                SyncStatus::Conflict => status.conflict = count,
+            }
+        }
+
+        Ok(status)
+    }
+
+    /// Returns unsynced field-level changes for a request.
+    pub async fn list_unsynced_field_changes(
+        &self,
+        request_id: i64,
+    ) -> Result<Vec<FieldChange>, sqlx::Error> {
+        let rows = sqlx::query(
+            "SELECT request_id, field_name, old_value, new_value, changed_at, synced_at
+             FROM sync_field_changes
+             WHERE request_id = ? AND synced_at IS NULL
+             ORDER BY changed_at ASC, id ASC",
+        )
+        .bind(request_id)
+        .fetch_all(&self.pool)
+        .await?;
+
+        rows.into_iter().map(field_change_from_row).collect()
+    }
+
+    /// Marks a request clean after a confirmed remote sync.
+    pub async fn mark_request_clean(
+        &self,
+        request_id: i64,
+        remote_updated_at: Option<&str>,
+    ) -> Result<(), sqlx::Error> {
+        let now = now_timestamp();
+        sqlx::query(
+            "INSERT INTO sync_metadata (
+                request_id, last_synced_at, remote_updated_at, local_updated_at, sync_status, conflict_version
+             )
+             VALUES (?, ?, ?, ?, 'clean', 0)
+             ON CONFLICT(request_id) DO UPDATE SET
+                last_synced_at = excluded.last_synced_at,
+                remote_updated_at = excluded.remote_updated_at,
+                sync_status = 'clean'",
+        )
+        .bind(request_id)
+        .bind(&now)
+        .bind(remote_updated_at)
+        .bind(&now)
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query(
+            "UPDATE sync_field_changes
+             SET synced_at = ?
+             WHERE request_id = ? AND synced_at IS NULL",
+        )
+        .bind(&now)
+        .bind(request_id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    async fn record_local_request_change(
+        &self,
+        request_id: i64,
+        previous: Option<&AlaveteliRequest>,
+        current: &AlaveteliRequest,
+    ) -> Result<(), sqlx::Error> {
+        let now = now_timestamp();
+        sqlx::query(
+            "INSERT INTO sync_metadata (
+                request_id, local_updated_at, sync_status, conflict_version
+             )
+             VALUES (?, ?, 'dirty', 0)
+             ON CONFLICT(request_id) DO UPDATE SET
+                local_updated_at = excluded.local_updated_at,
+                sync_status = CASE
+                    WHEN sync_metadata.sync_status = 'conflict' THEN 'conflict'
+                    ELSE 'dirty'
+                END",
+        )
+        .bind(request_id)
+        .bind(&now)
+        .execute(&self.pool)
+        .await?;
+
+        for (field_name, old_value, new_value) in diff_request_fields(previous, current) {
+            sqlx::query(
+                "INSERT INTO sync_field_changes (
+                    request_id, field_name, old_value, new_value, changed_at
+                 )
+                 VALUES (?, ?, ?, ?, ?)",
+            )
+            .bind(request_id)
+            .bind(field_name)
+            .bind(old_value)
+            .bind(new_value)
+            .bind(&now)
+            .execute(&self.pool)
+            .await?;
+        }
+
+        Ok(())
+    }
+}
+
+fn metadata_from_row(row: sqlx::sqlite::SqliteRow) -> Result<RequestSyncMetadata, sqlx::Error> {
+    let sync_status: String = row.try_get("sync_status")?;
+    Ok(RequestSyncMetadata {
+        request_id: row.try_get("request_id")?,
+        last_synced_at: row.try_get("last_synced_at")?,
+        remote_updated_at: row.try_get("remote_updated_at")?,
+        local_updated_at: row.try_get("local_updated_at")?,
+        sync_status: SyncStatus::from_str(&sync_status),
+        conflict_version: row.try_get("conflict_version")?,
+    })
+}
+
+fn field_change_from_row(row: sqlx::sqlite::SqliteRow) -> Result<FieldChange, sqlx::Error> {
+    Ok(FieldChange {
+        request_id: row.try_get("request_id")?,
+        field_name: row.try_get("field_name")?,
+        old_value: row.try_get("old_value")?,
+        new_value: row.try_get("new_value")?,
+        changed_at: row.try_get("changed_at")?,
+        synced_at: row.try_get("synced_at")?,
+    })
+}
+
+fn diff_request_fields(
+    previous: Option<&AlaveteliRequest>,
+    current: &AlaveteliRequest,
+) -> Vec<(&'static str, Option<String>, Option<String>)> {
+    let old = previous;
+    let fields = [
+        (
+            "title",
+            old.map(|request| json_value(&request.title)),
+            Some(json_value(&current.title)),
+        ),
+        (
+            "body",
+            old.map(|request| json_value(&request.body)),
+            Some(json_value(&current.body)),
+        ),
+        (
+            "user_name",
+            old.and_then(|request| request.user_name.as_ref().map(json_value)),
+            current.user_name.as_ref().map(json_value),
+        ),
+        (
+            "status",
+            old.and_then(|request| request.status.as_ref().map(json_value)),
+            current.status.as_ref().map(json_value),
+        ),
+        (
+            "created_at",
+            old.and_then(|request| request.created_at.as_ref().map(json_value)),
+            current.created_at.as_ref().map(json_value),
+        ),
+        (
+            "updated_at",
+            old.and_then(|request| request.updated_at.as_ref().map(json_value)),
+            current.updated_at.as_ref().map(json_value),
+        ),
+        (
+            "url",
+            old.and_then(|request| request.url.as_ref().map(json_value)),
+            current.url.as_ref().map(json_value),
+        ),
+        (
+            "tags",
+            old.and_then(|request| request.tags.as_ref().map(json_value)),
+            current.tags.as_ref().map(json_value),
+        ),
+    ];
+
+    fields
+        .into_iter()
+        .filter(|(_, old_value, new_value)| old_value != new_value)
+        .collect()
+}
+
+fn json_value<T: Serialize>(value: T) -> String {
+    serde_json::to_string(&value).unwrap_or_else(|_| "null".to_string())
+}
+
+fn now_timestamp() -> String {
+    Utc::now().to_rfc3339()
 }
