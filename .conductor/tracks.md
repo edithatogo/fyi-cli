@@ -103,7 +103,7 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Consumer: fyi-archive `observability_quality_20260627`.*
 
 - [x] **Track: offline-sync-engine** (COMPLETED 2026-06-30)
-  *Link: [./tracks/offline-sync-engine/](./tracks/offline-sync-engine/)*
+  *Link: [./archive/offline-sync-engine/](./archive/offline-sync-engine/)*
   *Description: Design a SQLite sync service to handle periodic database caching, OIA request tracking, and conflict reconciliation with the upstream FYI API.*
   *Status: TARGET ACHIEVED*
 

@@ -78,4 +78,4 @@
 - [x] Commit: `conductor(track): complete offline-sync-engine after review`
 
 ## Archive
-- [ ] Archive track: move to archive/ directory
+- [x] Archive track: move to archive/ directory
