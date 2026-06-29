@@ -8,7 +8,9 @@ use keyring::{Entry, Error as KeyringBackendError};
 use percent_encoding::{utf8_percent_encode, AsciiSet, CONTROLS};
 use qrcode::QrCode;
 use sha1::Sha1;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Mutex;
+use std::time::{SystemTime, UNIX_EPOCH};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 #[derive(thiserror::Error, Debug)]
@@ -27,6 +29,9 @@ pub enum SecurityError {
 
     #[error("Invalid TOTP secret: {0}")]
     InvalidTotpSecret(String),
+
+    #[error("MFA verification required for credential access: {0}")]
+    MfaRequired(String),
 }
 
 /// A wrapper around a String that ensures its contents are zeroed out when dropped.
@@ -81,6 +86,7 @@ const TOTP_SECRET_ACTIVE_PREFIX: &str = "totp-secret-active:";
 const TOTP_SECRET_VERSION_PREFIX: &str = "totp-secret-version:";
 const TOTP_SECRET_VERSIONS_PREFIX: &str = "totp-secret-versions:";
 const TOTP_SECRET_INDEX: &str = "totp-secret-index";
+const MFA_SESSION_TTL_SECONDS: u64 = 300;
 const OTPAUTH_ENCODE_SET: &AsciiSet = &CONTROLS
     .add(b' ')
     .add(b'"')
@@ -334,16 +340,26 @@ pub fn decrypt(
 /// Wrapper around the system keyring.
 pub struct KeyringStore {
     service: String,
+    mfa_guard: MfaGuard,
 }
 
 impl KeyringStore {
     pub fn new(service: impl Into<String>) -> Self {
         Self {
             service: service.into(),
+            mfa_guard: MfaGuard::default(),
         }
     }
 
     pub fn get_credential(&self, username: &str) -> Result<ZeroizedString, SecurityError> {
+        if self.is_mfa_enabled(username)?
+            && !self
+                .mfa_guard
+                .is_verified(username, current_unix_timestamp()?)
+        {
+            return Err(SecurityError::MfaRequired(username.to_string()));
+        }
+
         let entry = Entry::new(&self.service, username)
             .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
         let password = entry
@@ -411,6 +427,22 @@ impl KeyringStore {
 
     pub fn list_totp_secrets(&self) -> Result<Vec<String>, SecurityError> {
         Ok(self.read_totp_secret_index()?.into_iter().collect())
+    }
+
+    pub fn verify_mfa_code(
+        &self,
+        username: &str,
+        code: &str,
+        unix_timestamp: u64,
+        drift_windows: u8,
+    ) -> Result<bool, SecurityError> {
+        let secret = self.get_totp_secret(username)?;
+        let verified = verify_totp_code(&secret, code, unix_timestamp, drift_windows)?;
+        if verified {
+            self.mfa_guard
+                .mark_verified(username, current_unix_timestamp()?);
+        }
+        Ok(verified)
     }
 
     pub fn store_totp_secret_version(
@@ -493,6 +525,10 @@ impl KeyringStore {
         entry
             .set_password(secret.as_str())
             .map_err(|e| SecurityError::KeyringError(e.to_string()))
+    }
+
+    fn is_mfa_enabled(&self, username: &str) -> Result<bool, SecurityError> {
+        Ok(self.read_totp_secret_index()?.contains(username))
     }
 
     fn read_totp_secret_index(&self) -> Result<BTreeSet<String>, SecurityError> {
@@ -591,6 +627,42 @@ impl KeyringStore {
     }
 }
 
+/// Tracks users that have recently passed MFA verification.
+pub struct MfaGuard {
+    session_ttl_seconds: u64,
+    verified_sessions: Mutex<BTreeMap<String, u64>>,
+}
+
+impl MfaGuard {
+    pub fn new(session_ttl_seconds: u64) -> Self {
+        Self {
+            session_ttl_seconds,
+            verified_sessions: Mutex::new(BTreeMap::new()),
+        }
+    }
+
+    pub fn mark_verified(&self, username: &str, unix_timestamp: u64) {
+        let expires_at = unix_timestamp.saturating_add(self.session_ttl_seconds);
+        if let Ok(mut sessions) = self.verified_sessions.lock() {
+            sessions.insert(username.to_string(), expires_at);
+        }
+    }
+
+    pub fn is_verified(&self, username: &str, unix_timestamp: u64) -> bool {
+        self.verified_sessions
+            .lock()
+            .ok()
+            .and_then(|sessions| sessions.get(username).copied())
+            .is_some_and(|expires_at| unix_timestamp <= expires_at)
+    }
+}
+
+impl Default for MfaGuard {
+    fn default() -> Self {
+        Self::new(MFA_SESSION_TTL_SECONDS)
+    }
+}
+
 fn totp_secret_key(username: &str) -> String {
     format!("{TOTP_SECRET_PREFIX}{username}")
 }
@@ -605,4 +677,11 @@ fn totp_secret_version_key(username: &str, version: u32) -> String {
 
 fn totp_secret_versions_key(username: &str) -> String {
     format!("{TOTP_SECRET_VERSIONS_PREFIX}{username}")
+}
+
+fn current_unix_timestamp() -> Result<u64, SecurityError> {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_secs())
+        .map_err(|e| SecurityError::KeyringError(e.to_string()))
 }

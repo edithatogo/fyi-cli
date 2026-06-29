@@ -1,8 +1,9 @@
 use fyi_core::security::{
     build_provisioning_uri, decrypt, encrypt, generate_totp_code, generate_totp_secret,
-    render_provisioning_qr_ascii, verify_totp_code, EncryptionKey, KeyringStore, ZeroizedBytes,
-    ZeroizedString,
+    render_provisioning_qr_ascii, verify_totp_code, EncryptionKey, KeyringStore, MfaGuard,
+    SecurityError, ZeroizedBytes, ZeroizedString,
 };
+use std::time::{SystemTime, UNIX_EPOCH};
 use zeroize::Zeroize;
 
 #[test]
@@ -205,6 +206,60 @@ fn test_keyring_totp_secret_rotation_graceful() {
                 .is_empty());
         }
         Err(e) => {
+            println!("Keyring backend is unavailable or failed: {}", e);
+        }
+    }
+}
+
+#[test]
+fn test_mfa_guard_tracks_expiring_verified_sessions() {
+    let guard = MfaGuard::new(30);
+    let username = "test-user-mfa-guard";
+
+    assert!(!guard.is_verified(username, 1_700_000_000));
+    guard.mark_verified(username, 1_700_000_000);
+    assert!(guard.is_verified(username, 1_700_000_029));
+    assert!(!guard.is_verified(username, 1_700_000_031));
+}
+
+#[test]
+fn test_keyring_credential_access_requires_mfa_when_configured_graceful() {
+    let store = KeyringStore::new("fyi-cli-test-mfa-guard-service");
+    let username = "test-user-mfa-guard-keyring";
+    let credential = ZeroizedString::new("credential-protected-by-mfa".to_string());
+    let totp_secret = ZeroizedString::new("JBSWY3DPEHPK3PXP".to_string());
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("System clock is before Unix epoch")
+        .as_secs();
+    let code = generate_totp_code(&totp_secret, timestamp).expect("Failed to generate TOTP code");
+
+    let _ = store.delete_credential(username);
+    let _ = store.delete_totp_secret(username);
+    match (
+        store.set_credential(username, &credential),
+        store.store_totp_secret(username, &totp_secret),
+    ) {
+        (Ok(_), Ok(_)) => {
+            let blocked = store.get_credential(username);
+            assert!(matches!(blocked, Err(SecurityError::MfaRequired(_))));
+
+            assert!(store
+                .verify_mfa_code(username, &code, timestamp, 1)
+                .expect("Failed to verify MFA code"));
+            let fetched = store
+                .get_credential(username)
+                .expect("Failed to fetch credential after MFA verification");
+            assert_eq!(fetched.as_str(), credential.as_str());
+
+            store
+                .delete_credential(username)
+                .expect("Failed to delete credential");
+            store
+                .delete_totp_secret(username)
+                .expect("Failed to delete TOTP secret");
+        }
+        (Err(e), _) | (_, Err(e)) => {
             println!("Keyring backend is unavailable or failed: {}", e);
         }
     }
