@@ -40,15 +40,15 @@
 - [x] Commit: `feat(security): add MFA guard for credential access` [c09bad6]
 
 ### Task 3.2: Brute force protection and audit logging
-- [~] Implement rate-limiting (max 5 attempts per 30s window)
-- [ ] Add MFA audit events to audit logging system
-- [ ] Write tests for rate-limit enforcement
-- [ ] Commit: `feat(security): add brute force protection and audit logging for MFA`
+- [x] Implement rate-limiting (max 5 attempts per 30s window)
+- [x] Add MFA audit events to audit logging system
+- [x] Write tests for rate-limit enforcement
+- [x] Commit: `feat(security): add brute force protection and audit logging for MFA` [3c7f0ab]
 
 ## Phase 4: CLI & TUI Integration
 
 ### Task 4.1: CLI commands
-- [ ] Add `fyi mfa setup` command (generates secret, shows provisioning URI)
+- [~] Add `fyi mfa setup` command (generates secret, shows provisioning URI)
 - [ ] Add `fyi mfa verify` command (tests code verification)
 - [ ] Add `fyi mfa status` command (lists MFA status per account)
 - [ ] Add `fyi mfa remove` command (deletes MFA from account)
