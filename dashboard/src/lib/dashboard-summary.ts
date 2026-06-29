@@ -7,6 +7,17 @@ export interface DashboardSummaryData {
   authoritiesCount: number;
 }
 
+export interface DashboardChartData {
+  statusDistribution: Array<{
+    status: string;
+    count: number;
+  }>;
+  requestTimeline: Array<{
+    month: string;
+    requests: number;
+  }>;
+}
+
 type DashboardSummaryClient = {
   listRequests: (limit?: number) => Promise<FyiRequest[]>;
   listAuthorities: () => Promise<FyiAuthority[]>;
@@ -36,6 +47,36 @@ export function buildDashboardSummary(
       (request) => (request.status ?? "").toLowerCase() === "overdue"
     ).length,
     authoritiesCount: authorities.length,
+  };
+}
+
+export function buildDashboardCharts(requests: FyiRequest[]): DashboardChartData {
+  const statusCounts = new Map<string, number>();
+  const timelineCounts = new Map<string, number>();
+
+  for (const request of requests) {
+    const status = (request.status ?? "unknown").trim().toLowerCase() || "unknown";
+    statusCounts.set(status, (statusCounts.get(status) ?? 0) + 1);
+
+    const month = request.created_at?.slice(0, 7) || "Unknown";
+    timelineCounts.set(month, (timelineCounts.get(month) ?? 0) + 1);
+  }
+
+  return {
+    statusDistribution: Array.from(statusCounts.entries())
+      .map(([status, count]) => ({ status, count }))
+      .sort((left, right) => left.status.localeCompare(right.status)),
+    requestTimeline: Array.from(timelineCounts.entries())
+      .map(([month, requests]) => ({ month, requests }))
+      .sort((left, right) => {
+        if (left.month === "Unknown") {
+          return 1;
+        }
+        if (right.month === "Unknown") {
+          return -1;
+        }
+        return left.month.localeCompare(right.month);
+      }),
   };
 }
 

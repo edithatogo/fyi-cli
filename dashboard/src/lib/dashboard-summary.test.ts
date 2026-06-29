@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildDashboardSummary, getDashboardSummary } from "./dashboard-summary";
+import {
+  buildDashboardCharts,
+  buildDashboardSummary,
+  getDashboardSummary,
+} from "./dashboard-summary";
 
 describe("dashboard summary data", () => {
   it("counts KPI metrics from requests and authorities", () => {
@@ -39,5 +43,50 @@ describe("dashboard summary data", () => {
       overdue: 0,
       authoritiesCount: 1,
     });
+  });
+
+  it("builds chart-ready status and timeline data", () => {
+    const charts = buildDashboardCharts([
+      {
+        id: 1,
+        title: "A",
+        body: "Body",
+        status: "draft",
+        created_at: "2026-04-10T00:00:00Z",
+      },
+      {
+        id: 2,
+        title: "B",
+        body: "Body",
+        status: "submitted",
+        created_at: "2026-04-22T00:00:00Z",
+      },
+      {
+        id: 3,
+        title: "C",
+        body: "Body",
+        status: "overdue",
+        created_at: "2026-05-01T00:00:00Z",
+      },
+      {
+        id: 4,
+        title: "D",
+        body: "Body",
+        status: null,
+        created_at: null,
+      },
+    ]);
+
+    expect(charts.statusDistribution).toEqual([
+      { status: "draft", count: 1 },
+      { status: "overdue", count: 1 },
+      { status: "submitted", count: 1 },
+      { status: "unknown", count: 1 },
+    ]);
+    expect(charts.requestTimeline).toEqual([
+      { month: "2026-04", requests: 2 },
+      { month: "2026-05", requests: 1 },
+      { month: "Unknown", requests: 1 },
+    ]);
   });
 });
