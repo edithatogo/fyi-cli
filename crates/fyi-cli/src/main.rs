@@ -376,6 +376,19 @@ pub enum SyncCommand {
         #[arg(long, default_value = "fyi_system.db")]
         db: String,
     },
+    #[command(about = "List local sync conflicts")]
+    Conflicts {
+        #[arg(long, default_value = "fyi_system.db")]
+        db: String,
+    },
+    #[command(about = "Resolve a local sync conflict")]
+    ResolveConflict {
+        request_id: i64,
+        #[arg(long)]
+        mark_clean: bool,
+        #[arg(long, default_value = "fyi_system.db")]
+        db: String,
+    },
 }
 
 #[derive(Subcommand, Debug, Clone, PartialEq, Eq)]
@@ -804,6 +817,54 @@ fn handle_sync_command(
 
             Ok(())
         }),
+        SyncCommand::Conflicts { db } => runtime.block_on(async {
+            let pool = DbPool::new(&sqlite_url(db)).await?;
+            pool.run_migrations().await?;
+            let conflicts = pool.list_conflicted_requests(500).await?;
+            match output_format {
+                OutputFormat::Text => {
+                    if conflicts.is_empty() {
+                        println!("No sync conflicts");
+                    } else {
+                        for request in conflicts {
+                            println!(
+                                "{}\t{}\t{}",
+                                request.id,
+                                request.status.as_deref().unwrap_or("unknown"),
+                                request.title
+                            );
+                        }
+                    }
+                }
+                OutputFormat::Json => println!("{}", serde_json::to_string_pretty(&conflicts)?),
+            }
+            Ok(())
+        }),
+        SyncCommand::ResolveConflict {
+            request_id,
+            mark_clean,
+            db,
+        } => runtime.block_on(async {
+            let pool = DbPool::new(&sqlite_url(db)).await?;
+            pool.run_migrations().await?;
+            let resolved = pool
+                .resolve_request_conflict(*request_id, *mark_clean)
+                .await?;
+            match output_format {
+                OutputFormat::Text => {
+                    println!("Conflict {} resolved: {}", request_id, resolved);
+                }
+                OutputFormat::Json => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "request_id": request_id,
+                        "resolved": resolved,
+                        "sync_status": if *mark_clean { "clean" } else { "dirty" }
+                    }))?
+                ),
+            }
+            Ok(())
+        }),
     }
 }
 
@@ -1143,6 +1204,41 @@ mod tests {
                 command: SyncCommand::Push {
                     base_url: "https://example.org".to_string(),
                     max_retries: 2,
+                    db: "test.db".to_string(),
+                }
+            }
+        );
+    }
+
+    #[test]
+    fn test_parse_sync_conflict_commands() {
+        let args =
+            Cli::try_parse_from(["fyi-cli", "sync", "conflicts", "--db", "test.db"]).unwrap();
+        assert_eq!(
+            args.command,
+            Commands::Sync {
+                command: SyncCommand::Conflicts {
+                    db: "test.db".to_string(),
+                }
+            }
+        );
+
+        let args = Cli::try_parse_from([
+            "fyi-cli",
+            "sync",
+            "resolve-conflict",
+            "42",
+            "--mark-clean",
+            "--db",
+            "test.db",
+        ])
+        .unwrap();
+        assert_eq!(
+            args.command,
+            Commands::Sync {
+                command: SyncCommand::ResolveConflict {
+                    request_id: 42,
+                    mark_clean: true,
                     db: "test.db".to_string(),
                 }
             }

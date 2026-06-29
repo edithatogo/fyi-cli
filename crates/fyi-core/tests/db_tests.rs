@@ -334,3 +334,50 @@ async fn test_outgoing_queue_depth_includes_failed_items() {
     assert_eq!(depth.failed, 1);
     assert_eq!(metadata.sync_status, SyncStatus::Dirty);
 }
+
+#[tokio::test]
+async fn test_conflicted_requests_can_be_listed_and_resolved() {
+    let db = DbPool::new_in_memory()
+        .await
+        .expect("Failed to initialize in-memory DB");
+    db.run_migrations().await.expect("Failed to run migrations");
+
+    let request = AlaveteliRequest {
+        id: 15,
+        title: "Conflicted request".to_string(),
+        body: "Body".to_string(),
+        user_name: None,
+        status: Some("draft".to_string()),
+        created_at: None,
+        updated_at: None,
+        url: None,
+        tags: None,
+    };
+
+    db.insert_request(&request)
+        .await
+        .expect("Failed to insert request");
+    db.mark_request_conflict(15)
+        .await
+        .expect("Failed to mark conflict");
+
+    let conflicts = db
+        .list_conflicted_requests(10)
+        .await
+        .expect("Failed to list conflicts");
+    assert_eq!(conflicts.len(), 1);
+    assert_eq!(conflicts[0].title, "Conflicted request");
+
+    let resolved = db
+        .resolve_request_conflict(15, false)
+        .await
+        .expect("Failed to resolve conflict");
+    let metadata = db
+        .get_request_sync_metadata(15)
+        .await
+        .expect("Failed to read sync metadata")
+        .expect("metadata should be present");
+
+    assert!(resolved);
+    assert_eq!(metadata.sync_status, SyncStatus::Dirty);
+}

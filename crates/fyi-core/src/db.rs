@@ -370,6 +370,26 @@ impl DbPool {
         rows.into_iter().map(request_from_row).collect()
     }
 
+    /// Returns requests currently marked as sync conflicts.
+    pub async fn list_conflicted_requests(
+        &self,
+        limit: i64,
+    ) -> Result<Vec<AlaveteliRequest>, sqlx::Error> {
+        let rows = sqlx::query(
+            "SELECT r.id, r.title, r.body, r.user_name, r.status, r.created_at, r.updated_at, r.url, r.tags
+             FROM requests r
+             INNER JOIN sync_metadata sm ON sm.request_id = r.id
+             WHERE sm.sync_status = 'conflict'
+             ORDER BY sm.conflict_version DESC, sm.local_updated_at DESC, r.id ASC
+             LIMIT ?",
+        )
+        .bind(limit.clamp(1, 500))
+        .fetch_all(&self.pool)
+        .await?;
+
+        rows.into_iter().map(request_from_row).collect()
+    }
+
     /// Enqueues a local request submission for durable push processing.
     pub async fn enqueue_request_submission(
         &self,
@@ -529,6 +549,28 @@ impl DbPool {
         .await?;
 
         Ok(())
+    }
+
+    /// Resolves a conflict by moving the request back to clean or dirty sync state.
+    pub async fn resolve_request_conflict(
+        &self,
+        request_id: i64,
+        as_clean: bool,
+    ) -> Result<bool, sqlx::Error> {
+        let now = now_timestamp();
+        let status = if as_clean { "clean" } else { "dirty" };
+        let result = sqlx::query(
+            "UPDATE sync_metadata
+             SET sync_status = ?, local_updated_at = ?
+             WHERE request_id = ? AND sync_status = 'conflict'",
+        )
+        .bind(status)
+        .bind(&now)
+        .bind(request_id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(result.rows_affected() > 0)
     }
 
     /// Returns aggregate sync counts across all tracked requests.

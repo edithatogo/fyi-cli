@@ -226,6 +226,28 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                         }
                     },
                     {
+                        "name": "sync_conflicts",
+                        "description": "List requests currently marked as sync conflicts",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "limit": { "type": "integer" }
+                            }
+                        }
+                    },
+                    {
+                        "name": "sync_resolve_conflict",
+                        "description": "Resolve a sync conflict as clean or dirty",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "request_id": { "type": "integer" },
+                                "mark_clean": { "type": "boolean" }
+                            },
+                            "required": ["request_id"]
+                        }
+                    },
+                    {
                         "name": "sync_status",
                         "description": "Read offline synchronization status globally or for one request",
                         "inputSchema": {
@@ -387,6 +409,82 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                                 }),
                             )),
                         }
+                    }
+                }
+                "sync_conflicts" => {
+                    let limit = arguments
+                        .get("limit")
+                        .and_then(|value| value.as_i64())
+                        .unwrap_or(100);
+                    match db.list_conflicted_requests(limit).await {
+                        Ok(conflicts) => Some(JsonRpcResponse::success(
+                            req.id,
+                            json!({
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": serde_json::to_string_pretty(&conflicts).unwrap()
+                                    }
+                                ]
+                            }),
+                        )),
+                        Err(e) => Some(JsonRpcResponse::success(
+                            req.id,
+                            json!({
+                                "isError": true,
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": format!("Failed to fetch sync conflicts: {}", e)
+                                    }
+                                ]
+                            }),
+                        )),
+                    }
+                }
+                "sync_resolve_conflict" => {
+                    let request_id = match arguments.get("request_id").and_then(|id| id.as_i64()) {
+                        Some(id) => id,
+                        None => {
+                            return Some(JsonRpcResponse::error(
+                                req.id,
+                                -32602,
+                                "Invalid or missing 'request_id' argument".to_string(),
+                            ))
+                        }
+                    };
+                    let mark_clean = arguments
+                        .get("mark_clean")
+                        .and_then(|value| value.as_bool())
+                        .unwrap_or(false);
+                    match db.resolve_request_conflict(request_id, mark_clean).await {
+                        Ok(resolved) => Some(JsonRpcResponse::success(
+                            req.id,
+                            json!({
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": serde_json::to_string_pretty(&json!({
+                                            "request_id": request_id,
+                                            "resolved": resolved,
+                                            "sync_status": if mark_clean { "clean" } else { "dirty" }
+                                        })).unwrap()
+                                    }
+                                ]
+                            }),
+                        )),
+                        Err(e) => Some(JsonRpcResponse::success(
+                            req.id,
+                            json!({
+                                "isError": true,
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": format!("Failed to resolve sync conflict: {}", e)
+                                    }
+                                ]
+                            }),
+                        )),
                     }
                 }
                 "retrieve_request" => {
@@ -1035,6 +1133,12 @@ mod tests {
         assert!(tools
             .iter()
             .any(|t| t.get("name").unwrap().as_str().unwrap() == "sync_status"));
+        assert!(tools
+            .iter()
+            .any(|t| t.get("name").unwrap().as_str().unwrap() == "sync_conflicts"));
+        assert!(tools
+            .iter()
+            .any(|t| t.get("name").unwrap().as_str().unwrap() == "sync_resolve_conflict"));
     }
 
     #[tokio::test]
@@ -1367,5 +1471,61 @@ mod tests {
             status_info.get("sync_status").unwrap().as_str().unwrap(),
             "dirty"
         );
+    }
+
+    #[tokio::test]
+    async fn test_sync_conflict_tools() {
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+        db.insert_request(&AlaveteliRequest {
+            id: 88,
+            title: "Conflicted MCP request".to_string(),
+            body: "Body".to_string(),
+            user_name: None,
+            status: Some("draft".to_string()),
+            created_at: None,
+            updated_at: None,
+            url: None,
+            tags: None,
+        })
+        .await
+        .unwrap();
+        db.mark_request_conflict(88).await.unwrap();
+
+        let list_req = JsonRpcRequest {
+            jsonrpc: "2.0".to_string(),
+            id: Some(json!(12)),
+            method: "tools/call".to_string(),
+            params: Some(json!({
+                "name": "sync_conflicts",
+                "arguments": {}
+            })),
+        };
+        let list_resp = handle_jsonrpc_request(&db, list_req).await.unwrap();
+        let list_result = list_resp.result.unwrap();
+        let list_content = list_result.get("content").unwrap().as_array().unwrap();
+        let list_text = list_content[0].get("text").unwrap().as_str().unwrap();
+        let conflicts: Vec<AlaveteliRequest> = serde_json::from_str(list_text).unwrap();
+        assert_eq!(conflicts.len(), 1);
+
+        let resolve_req = JsonRpcRequest {
+            jsonrpc: "2.0".to_string(),
+            id: Some(json!(13)),
+            method: "tools/call".to_string(),
+            params: Some(json!({
+                "name": "sync_resolve_conflict",
+                "arguments": {
+                    "request_id": 88,
+                    "mark_clean": false
+                }
+            })),
+        };
+        let resolve_resp = handle_jsonrpc_request(&db, resolve_req).await.unwrap();
+        let resolve_result = resolve_resp.result.unwrap();
+        let resolve_content = resolve_result.get("content").unwrap().as_array().unwrap();
+        let resolve_text = resolve_content[0].get("text").unwrap().as_str().unwrap();
+        let resolved: Value = serde_json::from_str(resolve_text).unwrap();
+
+        assert!(resolved.get("resolved").unwrap().as_bool().unwrap());
     }
 }

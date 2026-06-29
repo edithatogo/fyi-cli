@@ -52,10 +52,10 @@
 - [x] Commit: `feat(sync): add conflict resolution (LWW and three-way merge)`
 
 ### Task 4.2: Conflict review and resolution UI
-- [ ] Add `fyi sync conflicts` CLI command to list conflicts
-- [ ] Add conflict resolution view in TUI
-- [ ] Add MCP tools for conflict management
-- [ ] Commit: `feat(sync): add conflict review and resolution interface`
+- [x] Add `fyi sync conflicts` CLI command to list conflicts
+- [x] Add conflict resolution view in TUI
+- [x] Add MCP tools for conflict management
+- [x] Commit: `feat(sync): add conflict review and resolution interface`
 
 ## Phase 5: Scheduler & Monitoring
 

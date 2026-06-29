@@ -49,6 +49,7 @@ pub enum Tab {
     Mfa,
     Editor,
     Keyring,
+    Conflicts,
 }
 
 impl Tab {
@@ -60,6 +61,7 @@ impl Tab {
             Tab::Mfa,
             Tab::Editor,
             Tab::Keyring,
+            Tab::Conflicts,
         ]
     }
 
@@ -71,6 +73,7 @@ impl Tab {
             Tab::Mfa => "MFA Security",
             Tab::Editor => "Request Editor",
             Tab::Keyring => "Keyring Browser",
+            Tab::Conflicts => "Sync Conflicts",
         }
     }
 }
@@ -291,6 +294,8 @@ pub struct AppState {
     pub credential_test_requested: bool,
     pub keyring_entries: Vec<KeyringEntryItem>,
     pub selected_keyring_entry_idx: usize,
+    pub conflict_requests: Vec<RequestItem>,
+    pub selected_conflict_idx: usize,
     pub encryption_key_managed: bool,
     pub encryption_key_strength: Option<String>,
     pub encryption_key_rotation_status: Option<String>,
@@ -417,6 +422,8 @@ impl AppState {
             credential_test_requested: false,
             keyring_entries: Vec::new(),
             selected_keyring_entry_idx: 0,
+            conflict_requests: Vec::new(),
+            selected_conflict_idx: 0,
             encryption_key_managed: false,
             encryption_key_strength: None,
             encryption_key_rotation_status: None,
@@ -466,6 +473,12 @@ impl AppState {
                         (self.selected_keyring_entry_idx + 1) % self.keyring_entries.len();
                 }
             }
+            Tab::Conflicts => {
+                if !self.conflict_requests.is_empty() {
+                    self.selected_conflict_idx =
+                        (self.selected_conflict_idx + 1) % self.conflict_requests.len();
+                }
+            }
             Tab::Summary | Tab::Mfa | Tab::Editor => {}
         }
     }
@@ -490,6 +503,13 @@ impl AppState {
                     self.selected_keyring_entry_idx =
                         (self.selected_keyring_entry_idx + self.keyring_entries.len() - 1)
                             % self.keyring_entries.len();
+                }
+            }
+            Tab::Conflicts => {
+                if !self.conflict_requests.is_empty() {
+                    self.selected_conflict_idx =
+                        (self.selected_conflict_idx + self.conflict_requests.len() - 1)
+                            % self.conflict_requests.len();
                 }
             }
             Tab::Summary | Tab::Mfa | Tab::Editor => {}
@@ -786,6 +806,31 @@ impl AppState {
         self.sync_dirty_count = status.dirty;
         self.sync_pending_count = status.pending;
         self.sync_conflict_count = status.conflict;
+        Ok(())
+    }
+
+    pub async fn refresh_conflicts_from_db(
+        &mut self,
+        db: &fyi_core::db::DbPool,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        self.conflict_requests = db
+            .list_conflicted_requests(500)
+            .await?
+            .into_iter()
+            .map(|request| RequestItem {
+                id: request.id,
+                authority: request.user_name.unwrap_or_else(|| "unknown".to_string()),
+                title: request.title,
+                status: request.status.unwrap_or_else(|| "unknown".to_string()),
+                needs_attention: true,
+                priority: "Conflict".to_string(),
+                updated_at: request.updated_at.unwrap_or_else(|| "unknown".to_string()),
+            })
+            .collect();
+
+        if self.selected_conflict_idx >= self.conflict_requests.len() {
+            self.selected_conflict_idx = self.conflict_requests.len().saturating_sub(1);
+        }
         Ok(())
     }
 
@@ -1137,6 +1182,7 @@ pub fn draw_ui(f: &mut Frame<'_>, state: &AppState) {
         Tab::Mfa => draw_mfa_tab(f, state, chunks[1]),
         Tab::Editor => draw_editor_tab(f, state, chunks[1]),
         Tab::Keyring => draw_keyring_tab(f, state, chunks[1]),
+        Tab::Conflicts => draw_conflicts_tab(f, state, chunks[1]),
     }
 
     // Help Footer Bar
@@ -1151,6 +1197,7 @@ pub fn draw_ui(f: &mut Frame<'_>, state: &AppState) {
             " Tab: Next Tab | Right: Switch Pane | Ctrl+S: Save Draft | Ctrl+Q: Close Editor | Esc: Quit "
         }
         Tab::Keyring => " Tab: Next Tab | Up/Down: Navigate Entries | Q/Esc: Quit ",
+        Tab::Conflicts => " Tab: Next Tab | Up/Down: Navigate Conflicts | Q/Esc: Quit ",
     };
     let help_paragraph = Paragraph::new(help_text)
         .block(Block::default().borders(Borders::ALL).title(" Controls "))
@@ -1513,6 +1560,51 @@ fn draw_keyring_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
     f.render_widget(key_panel, chunks[1]);
 }
 
+fn draw_conflicts_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
+    let rows = state
+        .conflict_requests
+        .iter()
+        .enumerate()
+        .map(|(idx, item)| {
+            let style = if idx == state.selected_conflict_idx {
+                Style::default().bg(Color::DarkGray).fg(Color::Yellow)
+            } else {
+                Style::default().fg(Color::LightRed)
+            };
+            Row::new(vec![
+                Cell::from(item.id.to_string()),
+                Cell::from(item.title.as_str()),
+                Cell::from(item.status.as_str()),
+                Cell::from(item.updated_at.as_str()),
+            ])
+            .style(style)
+        });
+
+    let table = Table::new(rows)
+        .header(
+            Row::new(vec!["ID", "Title", "Status", "Updated"])
+                .style(
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD),
+                )
+                .bottom_margin(1),
+        )
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(" Sync Conflict Review "),
+        )
+        .widths(&[
+            Constraint::Length(8),
+            Constraint::Percentage(55),
+            Constraint::Percentage(20),
+            Constraint::Percentage(25),
+        ]);
+
+    f.render_widget(table, area);
+}
+
 fn draw_credential_dialog(f: &mut Frame<'_>, state: &AppState, area: Rect) {
     f.render_widget(Clear, area);
     let active = state.active_credential_account.as_deref().unwrap_or("None");
@@ -1767,10 +1859,13 @@ mod tests {
         assert_eq!(state.active_tab, Tab::Keyring);
 
         state.next_tab();
+        assert_eq!(state.active_tab, Tab::Conflicts);
+
+        state.next_tab();
         assert_eq!(state.active_tab, Tab::Summary);
 
         state.prev_tab();
-        assert_eq!(state.active_tab, Tab::Keyring);
+        assert_eq!(state.active_tab, Tab::Conflicts);
     }
 
     #[test]
@@ -1837,6 +1932,46 @@ mod tests {
 
         assert_eq!(state.sync_dirty_count, 1);
         assert_eq!(state.sync_clean_count, 0);
+    }
+
+    #[tokio::test]
+    async fn test_tui_refreshes_and_renders_conflicts_from_db() {
+        let db = fyi_core::db::DbPool::new_in_memory()
+            .await
+            .expect("Failed to create in-memory db");
+        db.run_migrations().await.expect("Failed to run migrations");
+        db.insert_request(&fyi_core::api::AlaveteliRequest {
+            id: 902,
+            title: "Conflicted title".to_string(),
+            body: "Body".to_string(),
+            user_name: None,
+            status: Some("draft".to_string()),
+            created_at: None,
+            updated_at: None,
+            url: None,
+            tags: None,
+        })
+        .await
+        .expect("Failed to insert request");
+        db.mark_request_conflict(902)
+            .await
+            .expect("Failed to mark conflict");
+
+        let mut state = AppState::new();
+        state
+            .refresh_conflicts_from_db(&db)
+            .await
+            .expect("Failed to refresh conflicts");
+        state.active_tab = Tab::Conflicts;
+
+        let backend = TestBackend::new(120, 24);
+        let mut terminal = Terminal::new(backend).unwrap();
+        terminal.draw(|f| draw_ui(f, &state)).unwrap();
+        let rendered_text = buffer_to_string(terminal.backend().buffer());
+
+        assert_eq!(state.conflict_requests.len(), 1);
+        assert!(rendered_text.contains("Sync Conflict Review"));
+        assert!(rendered_text.contains("Conflicted title"));
     }
 
     #[test]
