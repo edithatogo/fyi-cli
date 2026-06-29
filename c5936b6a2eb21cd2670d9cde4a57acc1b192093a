@@ -1,0 +1,12 @@
+Conductor task: Task 5.2 bulk status update (multi-select)
+
+Summary:
+- Added selectable request rows and select-all-visible support.
+- Added a bulk status control that PATCHes selected requests and updates the table state.
+- Covered the bulk status flow in RequestsTable tests.
+
+Verification:
+- npm test -- RequestsTable.test.tsx
+- npm test
+- npx tsc --noEmit
+- npm run build
