@@ -59,8 +59,8 @@
 ## Phase 4: Request Detail & Timeline
 
 ### Task 4.1: Timeline visualization
-- [~] Build correspondence timeline component
-- [ ] Fetch and display request lifecycle events
+- [x] Build correspondence timeline component [4d6e304]
+- [~] Fetch and display request lifecycle events
 - [ ] Add visual status indicators on timeline
 - [ ] Commit: `feat(dashboard): add request timeline visualization`
 
