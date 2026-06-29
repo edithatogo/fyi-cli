@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FileText, Search } from "lucide-react";
 import {
   Badge,
+  Button,
   Card,
   CardContent,
   Input,
@@ -54,18 +55,39 @@ function searchableText(request: FyiRequest) {
     .toLowerCase();
 }
 
+const BULK_STATUS_OPTIONS = [
+  { value: "", label: "Choose status" },
+  { value: "draft", label: "draft" },
+  { value: "submitted", label: "submitted" },
+  { value: "awaiting_response", label: "awaiting_response" },
+  { value: "partial", label: "partial" },
+  { value: "completed", label: "completed" },
+  { value: "closed", label: "closed" },
+];
+
 export function RequestsTable({ requests }: RequestsTableProps) {
+  const [tableRequests, setTableRequests] = useState(requests);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [authorityFilter, setAuthorityFilter] = useState("");
   const [updatedFrom, setUpdatedFrom] = useState("");
   const [updatedTo, setUpdatedTo] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkStatus, setBulkStatus] = useState("");
+  const [bulkState, setBulkState] = useState<"idle" | "saving" | "saved" | "error">(
+    "idle"
+  );
+
+  useEffect(() => {
+    setTableRequests(requests);
+    setSelectedIds(new Set());
+  }, [requests]);
 
   const statusOptions = useMemo(
     () => [
       { value: "", label: "All statuses" },
       ...Array.from(
-        new Set(requests.map((request) => request.status).filter(Boolean))
+        new Set(tableRequests.map((request) => request.status).filter(Boolean))
       )
         .sort()
         .map((status) => ({
@@ -73,7 +95,7 @@ export function RequestsTable({ requests }: RequestsTableProps) {
           label: status ?? "",
         })),
     ],
-    [requests]
+    [tableRequests]
   );
 
   const authorityOptions = useMemo(
@@ -81,7 +103,7 @@ export function RequestsTable({ requests }: RequestsTableProps) {
       { value: "", label: "All authorities" },
       ...Array.from(
         new Map(
-          requests
+          tableRequests
             .map((request) => {
               const value = request.authority_slug ?? request.authority_name;
               const label = request.authority_name ?? request.authority_slug;
@@ -93,12 +115,12 @@ export function RequestsTable({ requests }: RequestsTableProps) {
         .sort((left, right) => left[1].localeCompare(right[1]))
         .map(([value, label]) => ({ value, label })),
     ],
-    [requests]
+    [tableRequests]
   );
 
   const filteredRequests = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    return requests.filter((request) => {
+    return tableRequests.filter((request) => {
       const authorityValue = request.authority_slug ?? request.authority_name ?? "";
       const updatedDate = (request.updated_at ?? request.created_at ?? "").slice(0, 10);
       return (
@@ -109,7 +131,83 @@ export function RequestsTable({ requests }: RequestsTableProps) {
         (!updatedTo || updatedDate <= updatedTo)
       );
     });
-  }, [authorityFilter, query, requests, statusFilter, updatedFrom, updatedTo]);
+  }, [authorityFilter, query, statusFilter, tableRequests, updatedFrom, updatedTo]);
+
+  const allVisibleSelected =
+    filteredRequests.length > 0 &&
+    filteredRequests.every((request) => selectedIds.has(request.id));
+
+  function toggleRequestSelection(requestId: number) {
+    setBulkState("idle");
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(requestId)) {
+        next.delete(requestId);
+      } else {
+        next.add(requestId);
+      }
+      return next;
+    });
+  }
+
+  function toggleVisibleSelection() {
+    setBulkState("idle");
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (allVisibleSelected) {
+        filteredRequests.forEach((request) => next.delete(request.id));
+      } else {
+        filteredRequests.forEach((request) => next.add(request.id));
+      }
+      return next;
+    });
+  }
+
+  async function applyBulkStatus() {
+    if (!bulkStatus || selectedIds.size === 0 || bulkState === "saving") {
+      return;
+    }
+
+    const selectedRequests = tableRequests.filter((request) =>
+      selectedIds.has(request.id)
+    );
+
+    setBulkState("saving");
+    try {
+      await Promise.all(
+        selectedRequests.map(async (request) => {
+          const response = await fetch(`/api/requests/${request.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: request.title,
+              body: request.body,
+              status: bulkStatus,
+              user_name: request.user_name,
+              url: request.url,
+              tags: request.tags ?? [],
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`Failed to update request ${request.id}`);
+          }
+
+          return response.json();
+        })
+      );
+
+      setTableRequests((current) =>
+        current.map((request) =>
+          selectedIds.has(request.id) ? { ...request, status: bulkStatus } : request
+        )
+      );
+      setSelectedIds(new Set());
+      setBulkState("saved");
+    } catch {
+      setBulkState("error");
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -179,12 +277,57 @@ export function RequestsTable({ requests }: RequestsTableProps) {
         </label>
       </div>
 
+      <div className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <label className="grid gap-2 sm:w-56">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Bulk status
+            </span>
+            <Select
+              aria-label="Bulk status"
+              options={BULK_STATUS_OPTIONS}
+              value={bulkStatus}
+              onChange={(event) => {
+                setBulkStatus(event.target.value);
+                setBulkState("idle");
+              }}
+              disabled={selectedIds.size === 0 || bulkState === "saving"}
+            />
+          </label>
+          <Button
+            type="button"
+            onClick={applyBulkStatus}
+            disabled={!bulkStatus || selectedIds.size === 0 || bulkState === "saving"}
+          >
+            Apply status
+          </Button>
+        </div>
+        <div className="text-sm text-gray-600 dark:text-gray-400" aria-live="polite">
+          {bulkState === "saving"
+            ? "Updating selected requests..."
+            : bulkState === "saved"
+              ? "Selected requests updated."
+              : bulkState === "error"
+                ? "Unable to update selected requests."
+                : `${selectedIds.size} selected`}
+        </div>
+      </div>
+
       <Card>
         <CardContent className="p-0">
           {filteredRequests.length > 0 ? (
             <Table>
               <Thead>
                 <Tr>
+                  <Th>
+                    <input
+                      type="checkbox"
+                      aria-label="Select all visible requests"
+                      checked={allVisibleSelected}
+                      onChange={toggleVisibleSelection}
+                      className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                    />
+                  </Th>
                   <Th>Title</Th>
                   <Th>Status</Th>
                   <Th>Requester</Th>
@@ -194,6 +337,15 @@ export function RequestsTable({ requests }: RequestsTableProps) {
               <Tbody>
                 {filteredRequests.map((request) => (
                   <Tr key={request.id}>
+                    <Td>
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${request.title}`}
+                        checked={selectedIds.has(request.id)}
+                        onChange={() => toggleRequestSelection(request.id)}
+                        className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                      />
+                    </Td>
                     <Td>
                       <a
                         href={`/requests/${request.id}`}

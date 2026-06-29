@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { RequestsTable } from "./RequestsTable";
 
 describe("RequestsTable", () => {
@@ -99,5 +99,50 @@ describe("RequestsTable", () => {
 
     expect(screen.getByText("April request")).toBeDefined();
     expect(screen.queryByText("March request")).toBeNull();
+  });
+
+  it("bulk updates selected request statuses", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: 1, status: "completed" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<RequestsTable requests={requests} />);
+
+    fireEvent.click(screen.getByLabelText("Select Procurement records"));
+    fireEvent.click(screen.getByLabelText("Select Meeting minutes"));
+    fireEvent.change(screen.getByLabelText("Bulk status"), {
+      target: { value: "completed" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Apply status" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/requests/1",
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({
+          title: "Procurement records",
+          body: "Contracts and invoices",
+          status: "completed",
+          user_name: "Alex",
+          tags: ["finance"],
+        }),
+      })
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/requests/2",
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({
+          title: "Meeting minutes",
+          body: "Board papers",
+          status: "completed",
+          user_name: "Sam",
+          tags: ["governance"],
+        }),
+      })
+    );
   });
 });
