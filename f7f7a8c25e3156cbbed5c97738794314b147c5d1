@@ -1,0 +1,14 @@
+Task: Build summary dashboard page with KPI cards
+
+Summary:
+- Replaced placeholder dashboard metrics with a typed DashboardSummaryData contract.
+- Rendered KPI cards for total requests, attention needed, overdue requests, and authority count.
+- Added zero-value fallback rendering when no summary payload is available.
+- Updated DashboardSummary tests to cover required card labels, provided values, and empty fallback state.
+
+Files changed:
+- dashboard/src/components/DashboardSummary.tsx
+- dashboard/src/components/DashboardSummary.test.tsx
+
+Why:
+- Phase 3 requires the dashboard landing page to expose operational KPI cards before wiring live MCP data and polling.
