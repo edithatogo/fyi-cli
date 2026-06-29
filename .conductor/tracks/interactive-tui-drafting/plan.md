@@ -24,13 +24,13 @@
 ## Phase 2: Credential Switching Dialogs
 
 ### Task 2.1: Credential manager dialog
-- [~] Build modal dialog for credential management
-- [ ] List saved credentials from keyring
-- [ ] Add credential switching (activate different account)
-- [ ] Commit: `feat(tui): add credential manager dialog`
+- [x] Build modal dialog for credential management
+- [x] List saved credentials from keyring
+- [x] Add credential switching (activate different account)
+- [x] Commit: `feat(tui): add credential manager dialog` [42d025f]
 
 ### Task 2.2: Credential testing and session status
-- [ ] Add "Test Credential" button that verifies against FYI API
+- [~] Add "Test Credential" button that verifies against FYI API
 - [ ] Display current active account and session status in header
 - [ ] Commit: `feat(tui): add credential testing and session status display`
 
