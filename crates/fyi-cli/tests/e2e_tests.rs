@@ -20,9 +20,9 @@ async fn test_e2e_cli_and_api_flow() {
     }
 
     // 1. Invoke Binary to initialize database
-    let mut cmd = Command::new("cargo");
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_fyi-cli"));
     cmd.args([
-        "run", "--bin", "fyi-cli", "--", "--db", db_path, "init-db", "--db", db_path,
+        "--db", db_path, "init-db", "--db", db_path,
     ]);
 
     let output = cmd.output().expect("Failed to execute fyi-cli init-db");
@@ -124,12 +124,8 @@ async fn test_e2e_cli_and_api_flow() {
     assert_eq!(retrieved_updated.status, Some("sent".to_string()));
 
     // 5. Invoke another CLI subcommand to verify arguments parse correctly
-    let mut cmd2 = Command::new("cargo");
+    let mut cmd2 = Command::new(env!("CARGO_BIN_EXE_fyi-cli"));
     cmd2.args([
-        "run",
-        "--bin",
-        "fyi-cli",
-        "--",
         "--db",
         db_path,
         "register-request",

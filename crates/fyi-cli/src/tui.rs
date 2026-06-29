@@ -6,6 +6,7 @@ use ratatui::{
     widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table, Tabs},
     Frame,
 };
+use std::collections::BTreeSet;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TextInput {
@@ -293,6 +294,11 @@ pub struct AppState {
     pub search_query: String,
     pub search_results: Vec<SearchResultItem>,
     pub selected_search_result_idx: usize,
+    pub request_multi_select: bool,
+    pub selected_request_ids: BTreeSet<i64>,
+    pub export_actions: Vec<String>,
+    pub last_export_message: Option<String>,
+    pub help_open: bool,
     pub should_quit: bool,
 }
 
@@ -410,6 +416,11 @@ impl AppState {
             search_query: String::new(),
             search_results: Vec::new(),
             selected_search_result_idx: 0,
+            request_multi_select: false,
+            selected_request_ids: BTreeSet::new(),
+            export_actions: Vec::new(),
+            last_export_message: None,
+            help_open: false,
             should_quit: false,
         }
     }
@@ -478,6 +489,18 @@ impl AppState {
     }
 
     pub fn handle_key_event(&mut self, key: KeyEvent) -> TuiCommand {
+        if self.help_open {
+            if matches!(key.code, KeyCode::Esc | KeyCode::F(1))
+                || matches!(
+                    (key.code, key.modifiers),
+                    (KeyCode::Char('h'), KeyModifiers::CONTROL)
+                )
+            {
+                self.help_open = false;
+            }
+            return TuiCommand::None;
+        }
+
         if self.search_open {
             self.handle_search_key_event(key);
             return TuiCommand::None;
@@ -488,10 +511,36 @@ impl AppState {
         }
 
         match (key.code, key.modifiers) {
+            (KeyCode::F(1), KeyModifiers::NONE) | (KeyCode::Char('h'), KeyModifiers::CONTROL) => {
+                self.help_open = true;
+                TuiCommand::None
+            }
             (KeyCode::Char('/'), KeyModifiers::NONE) => {
                 self.search_open = true;
                 self.search_query.clear();
                 self.refresh_search_results();
+                TuiCommand::None
+            }
+            (KeyCode::Char('m'), KeyModifiers::NONE) if self.active_tab == Tab::Requests => {
+                self.toggle_request_multi_select();
+                TuiCommand::None
+            }
+            (KeyCode::Char(' '), KeyModifiers::NONE)
+                if self.active_tab == Tab::Requests && self.request_multi_select =>
+            {
+                self.toggle_selected_request();
+                TuiCommand::None
+            }
+            (KeyCode::Char('j'), KeyModifiers::CONTROL) => {
+                self.trigger_export("json");
+                TuiCommand::None
+            }
+            (KeyCode::Char('e'), KeyModifiers::CONTROL) => {
+                self.trigger_export("csv");
+                TuiCommand::None
+            }
+            (KeyCode::Char('p'), KeyModifiers::CONTROL) => {
+                self.trigger_export("pdf");
                 TuiCommand::None
             }
             (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
@@ -940,6 +989,38 @@ impl AppState {
                     % self.search_results.len();
         }
     }
+
+    pub fn toggle_request_multi_select(&mut self) {
+        self.request_multi_select = !self.request_multi_select;
+        if !self.request_multi_select {
+            self.selected_request_ids.clear();
+        }
+    }
+
+    pub fn toggle_selected_request(&mut self) {
+        let Some(request) = self.tracked_requests.get(self.selected_request_idx) else {
+            return;
+        };
+        if !self.selected_request_ids.insert(request.id) {
+            self.selected_request_ids.remove(&request.id);
+        }
+    }
+
+    pub fn bulk_update_selected_status(&mut self, status: &str) -> usize {
+        let mut updated = 0;
+        for request in &mut self.tracked_requests {
+            if self.selected_request_ids.contains(&request.id) {
+                request.status = status.to_string();
+                updated += 1;
+            }
+        }
+        updated
+    }
+
+    pub fn trigger_export(&mut self, format: &str) {
+        self.export_actions.push(format.to_string());
+        self.last_export_message = Some(format!("Queued {format} export"));
+    }
 }
 
 fn fuzzy_matches(value: &str, query: &str) -> bool {
@@ -1063,6 +1144,10 @@ pub fn draw_ui(f: &mut Frame<'_>, state: &AppState) {
     if state.search_open {
         draw_search_overlay(f, state, centered_rect(76, 60, f.size()));
     }
+
+    if state.help_open {
+        draw_help_overlay(f, centered_rect(72, 62, f.size()));
+    }
 }
 
 fn draw_summary_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
@@ -1170,7 +1255,13 @@ fn draw_requests_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
             } else if item.needs_attention {
                 style = style.fg(Color::LightRed);
             }
+            let selected = if state.selected_request_ids.contains(&item.id) {
+                "*"
+            } else {
+                " "
+            };
             Row::new(vec![
+                Cell::from(selected),
                 Cell::from(item.id.to_string()),
                 Cell::from(item.authority.as_str()),
                 Cell::from(item.title.as_str()),
@@ -1181,7 +1272,7 @@ fn draw_requests_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
 
     let table = Table::new(rows)
         .header(
-            Row::new(vec!["ID", "Authority", "Title", "Status"])
+            Row::new(vec!["Sel", "ID", "Authority", "Title", "Status"])
                 .style(
                     Style::default()
                         .fg(Color::Yellow)
@@ -1195,6 +1286,7 @@ fn draw_requests_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
                 .title(" Tracked Requests "),
         )
         .widths(&[
+            Constraint::Length(4),
             Constraint::Length(6),
             Constraint::Percentage(30),
             Constraint::Percentage(45),
@@ -1457,6 +1549,35 @@ fn draw_search_overlay(f: &mut Frame<'_>, state: &AppState, area: Rect) {
                 .borders(Borders::ALL)
                 .title(" Fuzzy Search "),
         )
+        .style(Style::default().fg(Color::White));
+    f.render_widget(overlay, area);
+}
+
+fn draw_help_overlay(f: &mut Frame<'_>, area: Rect) {
+    f.render_widget(Clear, area);
+    let content = [
+        "Navigation",
+        "Tab / Shift+Tab: Switch tabs",
+        "Up/Down: Move within lists",
+        "/: Fuzzy search",
+        "",
+        "Request Bulk Operations",
+        "M: Toggle multi-select",
+        "Space: Select request",
+        "Bulk status: apply to selected requests",
+        "",
+        "Export",
+        "Ctrl+J: Export JSON",
+        "Ctrl+E: Export CSV",
+        "Ctrl+P: Export PDF",
+        "",
+        "Panels",
+        "Ctrl+C: Credential manager",
+        "F1/Ctrl+H: Help",
+    ]
+    .join("\n");
+    let overlay = Paragraph::new(content)
+        .block(Block::default().borders(Borders::ALL).title(" Help "))
         .style(Style::default().fg(Color::White));
     f.render_widget(overlay, area);
 }
@@ -2273,6 +2394,67 @@ mod tests {
         let initial_idx = state.selected_search_result_idx;
         state.select_next_search_result();
         assert_ne!(state.selected_search_result_idx, initial_idx);
+    }
+
+    #[test]
+    fn test_bulk_request_selection_and_status_update() {
+        let mut state = AppState::new();
+        state.active_tab = Tab::Requests;
+
+        assert!(!state.request_multi_select);
+        state.toggle_request_multi_select();
+        assert!(state.request_multi_select);
+
+        state.toggle_selected_request();
+        state.select_next();
+        state.toggle_selected_request();
+        assert_eq!(state.selected_request_ids.len(), 2);
+
+        assert_eq!(state.bulk_update_selected_status("reviewed"), 2);
+        assert!(state
+            .tracked_requests
+            .iter()
+            .filter(|request| state.selected_request_ids.contains(&request.id))
+            .all(|request| request.status == "reviewed"));
+    }
+
+    #[test]
+    fn test_export_trigger_actions_are_recorded() {
+        let mut state = AppState::new();
+
+        state.trigger_export("json");
+        state.trigger_export("csv");
+        state.trigger_export("pdf");
+
+        assert_eq!(state.export_actions, vec!["json", "csv", "pdf"]);
+        assert_eq!(
+            state.last_export_message.as_deref(),
+            Some("Queued pdf export")
+        );
+    }
+
+    #[test]
+    fn test_help_overlay_renders_keybindings() {
+        use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+
+        let backend = TestBackend::new(140, 30);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let mut state = AppState::new();
+
+        state.handle_key_event(KeyEvent::new(KeyCode::F(1), KeyModifiers::NONE));
+        assert!(state.help_open);
+
+        terminal
+            .draw(|f| {
+                draw_ui(f, &state);
+            })
+            .unwrap();
+
+        let rendered_text = buffer_to_string(terminal.backend().buffer());
+        assert!(rendered_text.contains("Help"));
+        assert!(rendered_text.contains("Space"));
+        assert!(rendered_text.contains("Bulk"));
+        assert!(rendered_text.contains("Export"));
     }
 
     fn buffer_to_string(buffer: &ratatui::buffer::Buffer) -> String {
