@@ -593,7 +593,7 @@ mod tests {
     #[test]
     fn test_parse_init_db() {
         let args = Cli::try_parse_from(["fyi-cli", "init-db", "--db", "test.db"]).unwrap();
-        assert_eq!(args.db, "fyi_system.db"); // Global default remains
+        assert_eq!(args.db, "test.db");
         match args.command {
             Commands::InitDb { db } => {
                 assert_eq!(db, "test.db");
