@@ -53,13 +53,13 @@
 
 ### Task 3.3: Export actions
 - [x] Add JSON export button to dashboard [29e076c]
-- [~] Add CSV export button to dashboard
-- [ ] Commit: `feat(dashboard): add one-click export actions`
+- [x] Add CSV export button to dashboard [af6cd93]
+- [x] Commit: `feat(dashboard): add one-click export actions` [af6cd93]
 
 ## Phase 4: Request Detail & Timeline
 
 ### Task 4.1: Timeline visualization
-- [ ] Build correspondence timeline component
+- [~] Build correspondence timeline component
 - [ ] Fetch and display request lifecycle events
 - [ ] Add visual status indicators on timeline
 - [ ] Commit: `feat(dashboard): add request timeline visualization`
