@@ -1,0 +1,16 @@
+Task: 4.2 TUI and MCP integration
+
+Summary:
+- Added an MFA Security tab to the TUI state and renderer with setup, enabled-account, and credential-guard status.
+- Included the TUI module in the CLI crate so its rendering tests compile and run.
+- Added MCP tool registry names for mfa_setup, mfa_verify, mfa_status, and mfa_remove to the MCP server placeholder output.
+- Updated TUI tests for the new tab and ratatui 0.24 Frame signatures.
+
+Modified files:
+- crates/fyi-cli/src/main.rs
+- crates/fyi-cli/src/tui.rs
+
+Verification:
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-cli
+- cargo +stable-x86_64-pc-windows-gnu check -p fyi-cli
+- rustfmt +stable-x86_64-pc-windows-gnu --check crates\fyi-cli\src\main.rs crates\fyi-cli\src\tui.rs
