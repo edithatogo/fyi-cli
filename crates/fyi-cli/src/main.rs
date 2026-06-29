@@ -6,6 +6,9 @@ use std::fs::OpenOptions;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+#[allow(dead_code)]
+mod tui;
+
 #[cfg(feature = "dhat-on")]
 #[global_allocator]
 static ALLOC: dhat::Alloc = dhat::Alloc;
@@ -632,6 +635,7 @@ fn main() {
         }
         Commands::McpServer => {
             println!("Starting MCP Server...");
+            println!("Available tools: {}", mcp_tool_names().join(", "));
         }
         Commands::Tui => {
             println!("Starting TUI Dashboard...");
@@ -691,6 +695,10 @@ fn handle_mfa_command(command: &MfaCommand) -> Result<(), Box<dyn std::error::Er
     }
 
     Ok(())
+}
+
+fn mcp_tool_names() -> &'static [&'static str] {
+    &["mfa_setup", "mfa_verify", "mfa_status", "mfa_remove"]
 }
 
 fn initialize_database_file(db: &str) -> std::io::Result<()> {
@@ -839,5 +847,15 @@ mod tests {
                 }
             }
         );
+    }
+
+    #[test]
+    fn test_mcp_exposes_mfa_tools() {
+        let tools = mcp_tool_names();
+
+        assert!(tools.contains(&"mfa_setup"));
+        assert!(tools.contains(&"mfa_verify"));
+        assert!(tools.contains(&"mfa_status"));
+        assert!(tools.contains(&"mfa_remove"));
     }
 }

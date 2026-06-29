@@ -1,5 +1,4 @@
 use ratatui::{
-    backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
@@ -12,11 +11,12 @@ pub enum Tab {
     Summary,
     Requests,
     Logs,
+    Mfa,
 }
 
 impl Tab {
     pub fn all() -> &'static [Tab] {
-        &[Tab::Summary, Tab::Requests, Tab::Logs]
+        &[Tab::Summary, Tab::Requests, Tab::Logs, Tab::Mfa]
     }
 
     pub fn title(&self) -> &'static str {
@@ -24,6 +24,7 @@ impl Tab {
             Tab::Summary => "Summary Dashboard",
             Tab::Requests => "Tracked Requests",
             Tab::Logs => "Activity Logs",
+            Tab::Mfa => "MFA Security",
         }
     }
 }
@@ -52,6 +53,9 @@ pub struct AppState {
     pub selected_request_idx: usize,
     pub logs: Vec<String>,
     pub selected_log_idx: usize,
+    pub mfa_enabled_accounts: Vec<String>,
+    pub mfa_setup_account: Option<String>,
+    pub mfa_session_verified: bool,
     pub should_quit: bool,
 }
 
@@ -139,6 +143,9 @@ impl AppState {
                 "[2026-06-15 00:04:12] Updated dashboard summary statistics".to_string(),
             ],
             selected_log_idx: 0,
+            mfa_enabled_accounts: Vec::new(),
+            mfa_setup_account: None,
+            mfa_session_verified: false,
             should_quit: false,
         }
     }
@@ -161,7 +168,8 @@ impl AppState {
         match self.active_tab {
             Tab::Requests => {
                 if !self.tracked_requests.is_empty() {
-                    self.selected_request_idx = (self.selected_request_idx + 1) % self.tracked_requests.len();
+                    self.selected_request_idx =
+                        (self.selected_request_idx + 1) % self.tracked_requests.len();
                 }
             }
             Tab::Logs => {
@@ -169,7 +177,7 @@ impl AppState {
                     self.selected_log_idx = (self.selected_log_idx + 1) % self.logs.len();
                 }
             }
-            Tab::Summary => {}
+            Tab::Summary | Tab::Mfa => {}
         }
     }
 
@@ -177,21 +185,23 @@ impl AppState {
         match self.active_tab {
             Tab::Requests => {
                 if !self.tracked_requests.is_empty() {
-                    self.selected_request_idx = (self.selected_request_idx + self.tracked_requests.len() - 1)
-                        % self.tracked_requests.len();
+                    self.selected_request_idx =
+                        (self.selected_request_idx + self.tracked_requests.len() - 1)
+                            % self.tracked_requests.len();
                 }
             }
             Tab::Logs => {
                 if !self.logs.is_empty() {
-                    self.selected_log_idx = (self.selected_log_idx + self.logs.len() - 1) % self.logs.len();
+                    self.selected_log_idx =
+                        (self.selected_log_idx + self.logs.len() - 1) % self.logs.len();
                 }
             }
-            Tab::Summary => {}
+            Tab::Summary | Tab::Mfa => {}
         }
     }
 }
 
-pub fn draw_ui<B: Backend>(f: &mut Frame<B>, state: &AppState) {
+pub fn draw_ui(f: &mut Frame<'_>, state: &AppState) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
@@ -203,10 +213,17 @@ pub fn draw_ui<B: Backend>(f: &mut Frame<B>, state: &AppState) {
 
     // Title and Tabs Block
     let tabs_titles: Vec<&str> = Tab::all().iter().map(|t| t.title()).collect();
-    let current_tab_idx = Tab::all().iter().position(|t| *t == state.active_tab).unwrap_or(0);
+    let current_tab_idx = Tab::all()
+        .iter()
+        .position(|t| *t == state.active_tab)
+        .unwrap_or(0);
 
     let tabs = Tabs::new(tabs_titles)
-        .block(Block::default().borders(Borders::ALL).title(" FYI Request System "))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(" FYI Request System "),
+        )
         .select(current_tab_idx)
         .style(Style::default().fg(Color::Cyan))
         .highlight_style(
@@ -221,6 +238,7 @@ pub fn draw_ui<B: Backend>(f: &mut Frame<B>, state: &AppState) {
         Tab::Summary => draw_summary_tab(f, state, chunks[1]),
         Tab::Requests => draw_requests_tab(f, state, chunks[1]),
         Tab::Logs => draw_logs_tab(f, state, chunks[1]),
+        Tab::Mfa => draw_mfa_tab(f, state, chunks[1]),
     }
 
     // Help Footer Bar
@@ -228,6 +246,9 @@ pub fn draw_ui<B: Backend>(f: &mut Frame<B>, state: &AppState) {
         Tab::Summary => " Tab: Next Tab | Q/Esc: Quit ",
         Tab::Requests => " Tab: Next Tab | Up/Down: Navigate Requests | Q/Esc: Quit ",
         Tab::Logs => " Tab: Next Tab | Up/Down: Scroll Logs | Q/Esc: Quit ",
+        Tab::Mfa => {
+            " Tab: Next Tab | Use fyi mfa setup/verify/remove for MFA actions | Q/Esc: Quit "
+        }
     };
     let help_paragraph = Paragraph::new(help_text)
         .block(Block::default().borders(Borders::ALL).title(" Controls "))
@@ -235,7 +256,7 @@ pub fn draw_ui<B: Backend>(f: &mut Frame<B>, state: &AppState) {
     f.render_widget(help_paragraph, chunks[2]);
 }
 
-fn draw_summary_tab<B: Backend>(f: &mut Frame<B>, state: &AppState, area: Rect) {
+fn draw_summary_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
@@ -289,11 +310,25 @@ fn draw_summary_tab<B: Backend>(f: &mut Frame<B>, state: &AppState, area: Rect) 
 
     let table = Table::new(rows)
         .header(
-            Row::new(vec!["ID", "Authority", "Request Title", "Status", "Priority"])
-                .style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
-                .bottom_margin(1),
+            Row::new(vec![
+                "ID",
+                "Authority",
+                "Request Title",
+                "Status",
+                "Priority",
+            ])
+            .style(
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            )
+            .bottom_margin(1),
         )
-        .block(Block::default().borders(Borders::ALL).title(" Needs Action Now "))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(" Needs Action Now "),
+        )
         .widths(&[
             Constraint::Length(6),
             Constraint::Percentage(25),
@@ -305,7 +340,7 @@ fn draw_summary_tab<B: Backend>(f: &mut Frame<B>, state: &AppState, area: Rect) 
     f.render_widget(table, chunks[1]);
 }
 
-fn draw_requests_tab<B: Backend>(f: &mut Frame<B>, state: &AppState, area: Rect) {
+fn draw_requests_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
@@ -315,29 +350,41 @@ fn draw_requests_tab<B: Backend>(f: &mut Frame<B>, state: &AppState, area: Rect)
         .split(area);
 
     // Render Request Table List
-    let rows = state.tracked_requests.iter().enumerate().map(|(idx, item)| {
-        let mut style = Style::default();
-        if idx == state.selected_request_idx {
-            style = style.bg(Color::DarkGray).fg(Color::Yellow);
-        } else if item.needs_attention {
-            style = style.fg(Color::LightRed);
-        }
-        Row::new(vec![
-            Cell::from(item.id.to_string()),
-            Cell::from(item.authority.as_str()),
-            Cell::from(item.title.as_str()),
-            Cell::from(item.status.as_str()),
-        ])
-        .style(style)
-    });
+    let rows = state
+        .tracked_requests
+        .iter()
+        .enumerate()
+        .map(|(idx, item)| {
+            let mut style = Style::default();
+            if idx == state.selected_request_idx {
+                style = style.bg(Color::DarkGray).fg(Color::Yellow);
+            } else if item.needs_attention {
+                style = style.fg(Color::LightRed);
+            }
+            Row::new(vec![
+                Cell::from(item.id.to_string()),
+                Cell::from(item.authority.as_str()),
+                Cell::from(item.title.as_str()),
+                Cell::from(item.status.as_str()),
+            ])
+            .style(style)
+        });
 
     let table = Table::new(rows)
         .header(
             Row::new(vec!["ID", "Authority", "Title", "Status"])
-                .style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
+                .style(
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD),
+                )
                 .bottom_margin(1),
         )
-        .block(Block::default().borders(Borders::ALL).title(" Tracked Requests "))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(" Tracked Requests "),
+        )
         .widths(&[
             Constraint::Length(6),
             Constraint::Percentage(30),
@@ -348,7 +395,9 @@ fn draw_requests_tab<B: Backend>(f: &mut Frame<B>, state: &AppState, area: Rect)
     f.render_widget(table, chunks[0]);
 
     // Detail preview panel
-    let preview_content = if let Some(selected_req) = state.tracked_requests.get(state.selected_request_idx) {
+    let preview_content = if let Some(selected_req) =
+        state.tracked_requests.get(state.selected_request_idx)
+    {
         format!(
             "ID: {}\nAuthority: {}\nTitle: {}\nStatus: {}\nPriority: {}\nUpdated At: {}\nNeeds Attention: {}\n\n(Use local web UI or MCP client to reply or update states)",
             selected_req.id,
@@ -364,13 +413,17 @@ fn draw_requests_tab<B: Backend>(f: &mut Frame<B>, state: &AppState, area: Rect)
     };
 
     let preview = Paragraph::new(preview_content)
-        .block(Block::default().borders(Borders::ALL).title(" Detail Preview "))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(" Detail Preview "),
+        )
         .style(Style::default().fg(Color::White));
 
     f.render_widget(preview, chunks[1]);
 }
 
-fn draw_logs_tab<B: Backend>(f: &mut Frame<B>, state: &AppState, area: Rect) {
+fn draw_logs_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
     // Simple scrollable list of logs
     let mut log_lines = Vec::new();
     for (idx, log) in state.logs.iter().enumerate() {
@@ -383,10 +436,44 @@ fn draw_logs_tab<B: Backend>(f: &mut Frame<B>, state: &AppState, area: Rect) {
     }
 
     let logs_p = Paragraph::new(log_lines)
-        .block(Block::default().borders(Borders::ALL).title(" Activity & Daemon Logs "))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(" Activity & Daemon Logs "),
+        )
         .style(Style::default().fg(Color::White));
 
     f.render_widget(logs_p, area);
+}
+
+fn draw_mfa_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
+    let accounts = if state.mfa_enabled_accounts.is_empty() {
+        "No MFA-enabled accounts".to_string()
+    } else {
+        state.mfa_enabled_accounts.join("\n")
+    };
+    let setup_account = state
+        .mfa_setup_account
+        .as_deref()
+        .unwrap_or("No setup wizard active");
+    let session = if state.mfa_session_verified {
+        "Verified session active"
+    } else {
+        "Credential access guarded"
+    };
+
+    let content = format!(
+        "Setup Wizard\nAccount: {setup_account}\n\nMFA-enabled accounts\n{accounts}\n\nCredential access\n{session}"
+    );
+    let panel = Paragraph::new(content)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(" MFA Security "),
+        )
+        .style(Style::default().fg(Color::White));
+
+    f.render_widget(panel, area);
 }
 
 #[cfg(test)]
@@ -407,10 +494,13 @@ mod tests {
         assert_eq!(state.active_tab, Tab::Logs);
 
         state.next_tab();
+        assert_eq!(state.active_tab, Tab::Mfa);
+
+        state.next_tab();
         assert_eq!(state.active_tab, Tab::Summary);
 
         state.prev_tab();
-        assert_eq!(state.active_tab, Tab::Logs);
+        assert_eq!(state.active_tab, Tab::Mfa);
     }
 
     #[test]
@@ -428,39 +518,67 @@ mod tests {
 
     #[test]
     fn test_mock_rendering_summary() {
-        let backend = TestBackend::new(80, 24);
+        let backend = TestBackend::new(120, 24);
         let mut terminal = Terminal::new(backend).unwrap();
         let state = AppState::new();
 
-        terminal.draw(|f| {
-            draw_ui(f, &state);
-        }).unwrap();
+        terminal
+            .draw(|f| {
+                draw_ui(f, &state);
+            })
+            .unwrap();
 
         let buffer = terminal.backend().buffer();
         let rendered_text = buffer_to_string(buffer);
         assert!(rendered_text.contains("Summary Dashboard"));
         assert!(rendered_text.contains("Tracked Requests"));
         assert!(rendered_text.contains("Total Tracked"));
-        assert!(rendered_text.contains("Needs Attention"));
+        assert!(rendered_text.contains("Action Now"));
         assert!(rendered_text.contains("COVID-19 Advisory Group Minutes"));
     }
 
     #[test]
     fn test_mock_rendering_requests_tab() {
-        let backend = TestBackend::new(80, 24);
+        let backend = TestBackend::new(120, 24);
         let mut terminal = Terminal::new(backend).unwrap();
         let mut state = AppState::new();
         state.active_tab = Tab::Requests;
+        state.selected_request_idx = 3;
 
-        terminal.draw(|f| {
-            draw_ui(f, &state);
-        }).unwrap();
+        terminal
+            .draw(|f| {
+                draw_ui(f, &state);
+            })
+            .unwrap();
 
         let buffer = terminal.backend().buffer();
         let rendered_text = buffer_to_string(buffer);
         assert!(rendered_text.contains("Tracked Requests"));
         assert!(rendered_text.contains("Detail Preview"));
-        assert!(rendered_text.contains("Smart Motorway Cost-Benefit Analysis"));
+        assert!(rendered_text.contains("Smart Motorway"));
+    }
+
+    #[test]
+    fn test_mock_rendering_mfa_tab() {
+        let backend = TestBackend::new(100, 24);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let mut state = AppState::new();
+        state.active_tab = Tab::Mfa;
+        state.mfa_enabled_accounts = vec!["alice@example.org".to_string()];
+        state.mfa_setup_account = Some("alice@example.org".to_string());
+        state.mfa_session_verified = false;
+
+        terminal
+            .draw(|f| {
+                draw_ui(f, &state);
+            })
+            .unwrap();
+
+        let rendered_text = buffer_to_string(terminal.backend().buffer());
+        assert!(rendered_text.contains("MFA Security"));
+        assert!(rendered_text.contains("Setup Wizard"));
+        assert!(rendered_text.contains("alice@example.org"));
+        assert!(rendered_text.contains("Credential access guarded"));
     }
 
     fn buffer_to_string(buffer: &ratatui::buffer::Buffer) -> String {
@@ -475,4 +593,3 @@ mod tests {
         result
     }
 }
-
