@@ -4,6 +4,7 @@ import {
   Clock,
   AlertTriangle,
 } from "lucide-react";
+import { AttentionTrendChart } from "@/components/AttentionTrendChart";
 import { RequestTimelineChart } from "@/components/RequestTimelineChart";
 import { StatusDistributionChart } from "@/components/StatusDistributionChart";
 import { Card, CardContent } from "@/components/ui";
@@ -117,6 +118,7 @@ export function DashboardSummary({ summary, charts, error }: DashboardSummaryPro
         <div className="grid gap-6 xl:grid-cols-2">
           <StatusDistributionChart data={charts.statusDistribution} />
           <RequestTimelineChart data={charts.requestTimeline} />
+          <AttentionTrendChart data={charts.attentionTrend} />
         </div>
       )}
 

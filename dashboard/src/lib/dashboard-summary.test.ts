@@ -70,6 +70,7 @@ describe("dashboard summary data", () => {
       charts: {
         statusDistribution: [{ status: "submitted", count: 1 }],
         requestTimeline: [{ month: "2026-04", requests: 1 }],
+        attentionTrend: [{ month: "2026-04", attentionNeeded: 1 }],
       },
     });
   });
@@ -116,6 +117,10 @@ describe("dashboard summary data", () => {
       { month: "2026-04", requests: 2 },
       { month: "2026-05", requests: 1 },
       { month: "Unknown", requests: 1 },
+    ]);
+    expect(charts.attentionTrend).toEqual([
+      { month: "2026-04", attentionNeeded: 1 },
+      { month: "2026-05", attentionNeeded: 1 },
     ]);
   });
 });

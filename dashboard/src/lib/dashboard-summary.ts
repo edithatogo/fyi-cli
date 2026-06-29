@@ -16,6 +16,10 @@ export interface DashboardChartData {
     month: string;
     requests: number;
   }>;
+  attentionTrend: Array<{
+    month: string;
+    attentionNeeded: number;
+  }>;
 }
 
 export interface DashboardData {
@@ -58,6 +62,7 @@ export function buildDashboardSummary(
 export function buildDashboardCharts(requests: FyiRequest[]): DashboardChartData {
   const statusCounts = new Map<string, number>();
   const timelineCounts = new Map<string, number>();
+  const attentionCounts = new Map<string, number>();
 
   for (const request of requests) {
     const status = (request.status ?? "unknown").trim().toLowerCase() || "unknown";
@@ -65,7 +70,20 @@ export function buildDashboardCharts(requests: FyiRequest[]): DashboardChartData
 
     const month = request.created_at?.slice(0, 7) || "Unknown";
     timelineCounts.set(month, (timelineCounts.get(month) ?? 0) + 1);
+    if (ATTENTION_STATUSES.has(status)) {
+      attentionCounts.set(month, (attentionCounts.get(month) ?? 0) + 1);
+    }
   }
+
+  const sortTimeline = <T extends { month: string }>(left: T, right: T) => {
+    if (left.month === "Unknown") {
+      return 1;
+    }
+    if (right.month === "Unknown") {
+      return -1;
+    }
+    return left.month.localeCompare(right.month);
+  };
 
   return {
     statusDistribution: Array.from(statusCounts.entries())
@@ -73,15 +91,10 @@ export function buildDashboardCharts(requests: FyiRequest[]): DashboardChartData
       .sort((left, right) => left.status.localeCompare(right.status)),
     requestTimeline: Array.from(timelineCounts.entries())
       .map(([month, requests]) => ({ month, requests }))
-      .sort((left, right) => {
-        if (left.month === "Unknown") {
-          return 1;
-        }
-        if (right.month === "Unknown") {
-          return -1;
-        }
-        return left.month.localeCompare(right.month);
-      }),
+      .sort(sortTimeline),
+    attentionTrend: Array.from(attentionCounts.entries())
+      .map(([month, attentionNeeded]) => ({ month, attentionNeeded }))
+      .sort(sortTimeline),
   };
 }
 

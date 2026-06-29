@@ -30,6 +30,7 @@ describe("DashboardSummaryShell", () => {
         charts: {
           statusDistribution: [{ status: "submitted", count: 9 }],
           requestTimeline: [],
+          attentionTrend: [],
         },
       }),
     });
@@ -46,6 +47,7 @@ describe("DashboardSummaryShell", () => {
         initialCharts={{
           statusDistribution: [],
           requestTimeline: [],
+          attentionTrend: [],
         }}
         refreshIntervalMs={1000}
       />
