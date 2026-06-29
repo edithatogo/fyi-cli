@@ -1,3 +1,4 @@
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
@@ -70,6 +71,64 @@ impl Tab {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EditorPane {
+    Draft,
+    Preview,
+    Drafts,
+}
+
+impl EditorPane {
+    fn next(self) -> Self {
+        match self {
+            Self::Draft => Self::Preview,
+            Self::Preview => Self::Drafts,
+            Self::Drafts => Self::Draft,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EditorField {
+    Title,
+    Body,
+    Tags,
+}
+
+impl EditorField {
+    pub fn label(&self) -> &'static str {
+        match self {
+            EditorField::Title => "Title",
+            EditorField::Body => "Body",
+            EditorField::Tags => "Tags",
+        }
+    }
+
+    fn next(self) -> Self {
+        match self {
+            EditorField::Title => EditorField::Body,
+            EditorField::Body => EditorField::Tags,
+            EditorField::Tags => EditorField::Title,
+        }
+    }
+
+    fn prev(self) -> Self {
+        match self {
+            EditorField::Title => EditorField::Tags,
+            EditorField::Body => EditorField::Title,
+            EditorField::Tags => EditorField::Body,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TuiCommand {
+    None,
+    SaveDraft,
+    CloseEditor,
+    Quit,
+}
+
 #[derive(Debug, Clone)]
 pub struct RequestItem {
     pub id: i64,
@@ -113,6 +172,9 @@ pub struct AppState {
     pub editor_last_saved_label: Option<String>,
     pub editor_drafts: Vec<DraftItem>,
     pub selected_editor_draft_idx: usize,
+    pub active_editor_pane: EditorPane,
+    pub editor_active_field: EditorField,
+    pub editor_save_requested: bool,
     pub should_quit: bool,
 }
 
@@ -211,6 +273,9 @@ impl AppState {
             editor_last_saved_label: None,
             editor_drafts: Vec::new(),
             selected_editor_draft_idx: 0,
+            active_editor_pane: EditorPane::Draft,
+            editor_active_field: EditorField::Title,
+            editor_save_requested: false,
             should_quit: false,
         }
     }
@@ -262,6 +327,92 @@ impl AppState {
                 }
             }
             Tab::Summary | Tab::Mfa | Tab::Editor => {}
+        }
+    }
+
+    pub fn handle_key_event(&mut self, key: KeyEvent) -> TuiCommand {
+        match (key.code, key.modifiers) {
+            (KeyCode::Char('q'), KeyModifiers::CONTROL) if self.active_tab == Tab::Editor => {
+                self.should_quit = true;
+                TuiCommand::CloseEditor
+            }
+            (KeyCode::Char('s'), KeyModifiers::CONTROL) if self.active_tab == Tab::Editor => {
+                self.editor_save_requested = true;
+                self.editor_last_saved_label = Some("Save requested".to_string());
+                TuiCommand::SaveDraft
+            }
+            (KeyCode::Tab, KeyModifiers::NONE) if self.active_tab == Tab::Editor => {
+                self.next_tab();
+                TuiCommand::None
+            }
+            (KeyCode::Tab, KeyModifiers::NONE) => {
+                self.next_tab();
+                TuiCommand::None
+            }
+            (KeyCode::Right, KeyModifiers::NONE) if self.active_tab == Tab::Editor => {
+                self.active_editor_pane = self.active_editor_pane.next();
+                TuiCommand::None
+            }
+            (KeyCode::BackTab, KeyModifiers::SHIFT) => {
+                self.prev_tab();
+                TuiCommand::None
+            }
+            (KeyCode::Down, KeyModifiers::NONE) if self.active_tab == Tab::Editor => {
+                self.editor_active_field = self.editor_active_field.next();
+                TuiCommand::None
+            }
+            (KeyCode::Up, KeyModifiers::NONE) if self.active_tab == Tab::Editor => {
+                self.editor_active_field = self.editor_active_field.prev();
+                TuiCommand::None
+            }
+            (KeyCode::Backspace, KeyModifiers::NONE) if self.active_tab == Tab::Editor => {
+                self.backspace_editor_field();
+                TuiCommand::None
+            }
+            (KeyCode::Enter, KeyModifiers::NONE)
+                if self.active_tab == Tab::Editor
+                    && self.editor_active_field == EditorField::Body =>
+            {
+                self.push_editor_char('\n');
+                TuiCommand::None
+            }
+            (KeyCode::Char(ch), KeyModifiers::NONE) if self.active_tab == Tab::Editor => {
+                self.push_editor_char(ch);
+                TuiCommand::None
+            }
+            (KeyCode::Down, KeyModifiers::NONE) => {
+                self.select_next();
+                TuiCommand::None
+            }
+            (KeyCode::Up, KeyModifiers::NONE) => {
+                self.select_prev();
+                TuiCommand::None
+            }
+            (KeyCode::Esc, KeyModifiers::NONE) | (KeyCode::Char('q'), KeyModifiers::NONE) => {
+                self.should_quit = true;
+                TuiCommand::Quit
+            }
+            _ => TuiCommand::None,
+        }
+    }
+
+    fn push_editor_char(&mut self, ch: char) {
+        match self.editor_active_field {
+            EditorField::Title => self.editor_title.push(ch),
+            EditorField::Body => self.editor_body.push(ch),
+            EditorField::Tags => self.editor_tags.push(ch),
+        }
+        self.editor_dirty = true;
+    }
+
+    fn backspace_editor_field(&mut self) {
+        let removed = match self.editor_active_field {
+            EditorField::Title => self.editor_title.pop(),
+            EditorField::Body => self.editor_body.pop(),
+            EditorField::Tags => self.editor_tags.pop(),
+        };
+        if removed.is_some() {
+            self.editor_dirty = true;
         }
     }
 
@@ -413,6 +564,14 @@ fn strip_inline_markdown(text: &str) -> String {
         .replace(['`', '*', '_'], "")
 }
 
+fn editor_pane_title(label: &str, pane: EditorPane, active_pane: EditorPane) -> String {
+    if pane == active_pane {
+        format!(" {label} [active] ")
+    } else {
+        format!(" {label} ")
+    }
+}
+
 pub fn draw_ui(f: &mut Frame<'_>, state: &AppState) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -462,7 +621,9 @@ pub fn draw_ui(f: &mut Frame<'_>, state: &AppState) {
         Tab::Mfa => {
             " Tab: Next Tab | Use fyi mfa setup/verify/remove for MFA actions | Q/Esc: Quit "
         }
-        Tab::Editor => " Tab: Next Tab | Ctrl+S: Save Draft | Ctrl+Q: Close Editor ",
+        Tab::Editor => {
+            " Tab: Next Tab | Right: Switch Pane | Ctrl+S: Save Draft | Ctrl+Q: Close Editor | Esc: Quit "
+        }
     };
     let help_paragraph = Paragraph::new(help_text)
         .block(Block::default().borders(Borders::ALL).title(" Controls "))
@@ -714,13 +875,25 @@ fn draw_editor_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .title(" Markdown Draft Body "),
+                .title(editor_pane_title(
+                    "Markdown Draft Body",
+                    EditorPane::Draft,
+                    state.active_editor_pane,
+                )),
         )
         .style(Style::default().fg(Color::White));
     f.render_widget(body, editor_chunks[0]);
 
     let preview = Paragraph::new(markdown_preview(&state.editor_body))
-        .block(Block::default().borders(Borders::ALL).title(" Preview "))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(editor_pane_title(
+                    "Preview",
+                    EditorPane::Preview,
+                    state.active_editor_pane,
+                )),
+        )
         .style(Style::default().fg(Color::White));
     f.render_widget(preview, editor_chunks[1]);
 
@@ -755,13 +928,20 @@ fn draw_editor_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
     };
 
     let tags = Paragraph::new(format!(
-        "Tags: {}\nStatus: {}\n\nDrafts\n{}",
-        state.editor_tags, save_state, drafts
+        "Tags: {}\nStatus: {}\nField: {}\n\nDrafts\n{}",
+        state.editor_tags,
+        save_state,
+        state.editor_active_field.label(),
+        drafts
     ))
     .block(
         Block::default()
             .borders(Borders::ALL)
-            .title(" Tags & Drafts "),
+            .title(editor_pane_title(
+                "Tags & Drafts",
+                EditorPane::Drafts,
+                state.active_editor_pane,
+            )),
     )
     .style(Style::default().fg(Color::White));
     f.render_widget(tags, chunks[2]);
@@ -1080,6 +1260,56 @@ mod tests {
             .editor_drafts
             .iter()
             .any(|draft| draft.title == "Second draft"));
+    }
+
+    #[test]
+    fn test_editor_keybindings_update_fields_and_save_flag() {
+        use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+
+        let mut state = AppState::new();
+        state.active_tab = Tab::Editor;
+
+        assert_eq!(state.editor_active_field, EditorField::Title);
+        state.handle_key_event(KeyEvent::new(KeyCode::Char('A'), KeyModifiers::NONE));
+        assert_eq!(state.editor_title, "New FYI requestA");
+        assert!(state.editor_dirty);
+
+        state.handle_key_event(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        assert_eq!(state.editor_active_field, EditorField::Body);
+        state.handle_key_event(KeyEvent::new(KeyCode::Char('!'), KeyModifiers::NONE));
+        assert!(state.editor_body.ends_with('!'));
+
+        state.handle_key_event(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL));
+        assert!(state.editor_save_requested);
+
+        state.handle_key_event(KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE));
+        assert_eq!(state.active_tab, Tab::Summary);
+
+        state.active_tab = Tab::Editor;
+        state.handle_key_event(KeyEvent::new(KeyCode::Char('q'), KeyModifiers::CONTROL));
+        assert!(state.should_quit);
+    }
+
+    #[test]
+    fn test_editor_status_bar_shows_active_field_and_save_state() {
+        let backend = TestBackend::new(140, 30);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let mut state = AppState::new();
+        state.active_tab = Tab::Editor;
+        state.editor_active_field = EditorField::Tags;
+        state.editor_dirty = true;
+
+        terminal
+            .draw(|f| {
+                draw_ui(f, &state);
+            })
+            .unwrap();
+
+        let rendered_text = buffer_to_string(terminal.backend().buffer());
+        assert!(rendered_text.contains("Field: Tags"));
+        assert!(rendered_text.contains("Unsaved changes"));
+        assert!(rendered_text.contains("Ctrl+S: Save"));
+        assert!(rendered_text.contains("Ctrl+Q: Close"));
     }
 
     fn buffer_to_string(buffer: &ratatui::buffer::Buffer) -> String {
