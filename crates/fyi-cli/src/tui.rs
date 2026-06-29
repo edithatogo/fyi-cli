@@ -259,6 +259,10 @@ pub struct AppState {
     pub action_now_count: usize,
     pub authorities_count: usize,
     pub recent_updates: usize,
+    pub sync_clean_count: i64,
+    pub sync_dirty_count: i64,
+    pub sync_pending_count: i64,
+    pub sync_conflict_count: i64,
     pub action_now_requests: Vec<RequestItem>,
     pub tracked_requests: Vec<RequestItem>,
     pub selected_request_idx: usize,
@@ -311,6 +315,10 @@ impl AppState {
             action_now_count: 3,
             authorities_count: 12,
             recent_updates: 8,
+            sync_clean_count: 0,
+            sync_dirty_count: 0,
+            sync_pending_count: 0,
+            sync_conflict_count: 0,
             action_now_requests: vec![
                 RequestItem {
                     id: 101,
@@ -769,6 +777,18 @@ impl AppState {
         Ok(())
     }
 
+    pub async fn refresh_sync_status_from_db(
+        &mut self,
+        db: &fyi_core::db::DbPool,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let status = db.get_global_sync_status().await?;
+        self.sync_clean_count = status.clean;
+        self.sync_dirty_count = status.dirty;
+        self.sync_pending_count = status.pending;
+        self.sync_conflict_count = status.conflict;
+        Ok(())
+    }
+
     pub async fn open_selected_editor_draft(
         &mut self,
         db: &fyi_core::db::DbPool,
@@ -1155,6 +1175,7 @@ fn draw_summary_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(5), // Metric cards row
+            Constraint::Length(3), // Sync status row
             Constraint::Min(5),    // Action table
         ])
         .split(area);
@@ -1185,6 +1206,28 @@ fn draw_summary_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
             .style(Style::default().fg(color).add_modifier(Modifier::BOLD));
         f.render_widget(card, card_cols[i]);
     }
+
+    let sync_line = format!(
+        "Clean: {} | Dirty: {} | Pending: {} | Conflicts: {}",
+        state.sync_clean_count,
+        state.sync_dirty_count,
+        state.sync_pending_count,
+        state.sync_conflict_count
+    );
+    let sync_panel = Paragraph::new(sync_line)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(" Sync Status "),
+        )
+        .style(Style::default().fg(if state.sync_conflict_count > 0 {
+            Color::Red
+        } else if state.sync_dirty_count > 0 || state.sync_pending_count > 0 {
+            Color::Yellow
+        } else {
+            Color::Green
+        }));
+    f.render_widget(sync_panel, chunks[1]);
 
     // Render Needs Action Table
     let rows = state.action_now_requests.iter().map(|item| {
@@ -1231,7 +1274,7 @@ fn draw_summary_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
             Constraint::Length(10),
         ]);
 
-    f.render_widget(table, chunks[1]);
+    f.render_widget(table, chunks[2]);
 }
 
 fn draw_requests_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
@@ -1761,7 +1804,39 @@ mod tests {
         assert!(rendered_text.contains("Tracked Requests"));
         assert!(rendered_text.contains("Total Tracked"));
         assert!(rendered_text.contains("Action Now"));
+        assert!(rendered_text.contains("Sync Status"));
         assert!(rendered_text.contains("COVID-19 Advisory Group Minutes"));
+    }
+
+    #[tokio::test]
+    async fn test_tui_refreshes_sync_status_from_db() {
+        let db = fyi_core::db::DbPool::new_in_memory()
+            .await
+            .expect("Failed to create in-memory db");
+        db.run_migrations().await.expect("Failed to run migrations");
+
+        db.insert_request(&fyi_core::api::AlaveteliRequest {
+            id: 901,
+            title: "Dirty request".to_string(),
+            body: "Body".to_string(),
+            user_name: None,
+            status: Some("draft".to_string()),
+            created_at: None,
+            updated_at: None,
+            url: None,
+            tags: None,
+        })
+        .await
+        .expect("Failed to insert request");
+
+        let mut state = AppState::new();
+        state
+            .refresh_sync_status_from_db(&db)
+            .await
+            .expect("Failed to refresh sync status");
+
+        assert_eq!(state.sync_dirty_count, 1);
+        assert_eq!(state.sync_clean_count, 0);
     }
 
     #[test]

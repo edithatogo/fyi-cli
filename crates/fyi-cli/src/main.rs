@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand, ValueEnum};
+use fyi_core::db::{DbPool, GlobalSyncStatus};
 use fyi_core::security::{
     build_provisioning_uri, generate_totp_secret, render_provisioning_qr_ascii, KeyringStore,
 };
@@ -334,10 +335,26 @@ pub enum Commands {
         #[command(subcommand)]
         command: MfaCommand,
     },
+    #[command(about = "Inspect and manage offline synchronization")]
+    Sync {
+        #[command(subcommand)]
+        command: SyncCommand,
+    },
     #[command(about = "Run Model Context Protocol (MCP) server")]
     McpServer,
     #[command(about = "Launch Ratatui Dashboard TUI")]
     Tui,
+}
+
+#[derive(Subcommand, Debug, Clone, PartialEq, Eq)]
+pub enum SyncCommand {
+    #[command(about = "Show offline sync status")]
+    Status {
+        #[arg(long)]
+        request_id: Option<i64>,
+        #[arg(long, default_value = "fyi_system.db")]
+        db: String,
+    },
 }
 
 #[derive(Subcommand, Debug, Clone, PartialEq, Eq)]
@@ -633,6 +650,12 @@ fn main() {
                 std::process::exit(1);
             }
         }
+        Commands::Sync { command } => {
+            if let Err(error) = handle_sync_command(command, args.output_format) {
+                eprintln!("Sync command failed: {error}");
+                std::process::exit(1);
+            }
+        }
         Commands::McpServer => {
             println!("Starting MCP Server...");
             println!("Available tools: {}", mcp_tool_names().join(", "));
@@ -697,8 +720,125 @@ fn handle_mfa_command(command: &MfaCommand) -> Result<(), Box<dyn std::error::Er
     Ok(())
 }
 
+fn handle_sync_command(
+    command: &SyncCommand,
+    output_format: OutputFormat,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()?;
+
+    match command {
+        SyncCommand::Status { request_id, db } => runtime.block_on(async {
+            let pool = DbPool::new(&sqlite_url(db)).await?;
+            pool.run_migrations().await?;
+            let global = pool.get_global_sync_status().await?;
+
+            if let Some(request_id) = request_id {
+                let metadata = pool.get_request_sync_metadata(*request_id).await?;
+                print_request_sync_status(*request_id, metadata, output_format)?;
+            } else {
+                print_global_sync_status(&global, output_format)?;
+            }
+
+            Ok(())
+        }),
+    }
+}
+
+fn print_global_sync_status(
+    status: &GlobalSyncStatus,
+    output_format: OutputFormat,
+) -> Result<(), Box<dyn std::error::Error>> {
+    match output_format {
+        OutputFormat::Text => {
+            println!("Sync status");
+            println!("Total tracked: {}", status.total);
+            println!("Clean: {}", status.clean);
+            println!("Dirty: {}", status.dirty);
+            println!("Pending: {}", status.pending);
+            println!("Conflicts: {}", status.conflict);
+        }
+        OutputFormat::Json => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&serde_json::json!({
+                    "total": status.total,
+                    "clean": status.clean,
+                    "dirty": status.dirty,
+                    "pending": status.pending,
+                    "conflict": status.conflict
+                }))?
+            );
+        }
+    }
+    Ok(())
+}
+
+fn print_request_sync_status(
+    request_id: i64,
+    metadata: Option<fyi_core::db::RequestSyncMetadata>,
+    output_format: OutputFormat,
+) -> Result<(), Box<dyn std::error::Error>> {
+    match output_format {
+        OutputFormat::Text => {
+            if let Some(metadata) = metadata {
+                println!("Request {request_id} sync status");
+                println!("Status: {}", metadata.sync_status.as_str());
+                println!(
+                    "Last synced: {}",
+                    metadata.last_synced_at.as_deref().unwrap_or("never")
+                );
+                println!(
+                    "Remote updated: {}",
+                    metadata.remote_updated_at.as_deref().unwrap_or("unknown")
+                );
+                println!("Local updated: {}", metadata.local_updated_at);
+                println!("Conflict version: {}", metadata.conflict_version);
+            } else {
+                println!("Request {request_id} has no sync metadata");
+            }
+        }
+        OutputFormat::Json => {
+            let payload = metadata
+                .map(|metadata| {
+                    serde_json::json!({
+                        "request_id": metadata.request_id,
+                        "sync_status": metadata.sync_status.as_str(),
+                        "last_synced_at": metadata.last_synced_at,
+                        "remote_updated_at": metadata.remote_updated_at,
+                        "local_updated_at": metadata.local_updated_at,
+                        "conflict_version": metadata.conflict_version
+                    })
+                })
+                .unwrap_or_else(|| {
+                    serde_json::json!({
+                        "request_id": request_id,
+                        "sync_status": null
+                    })
+                });
+            println!("{}", serde_json::to_string_pretty(&payload)?);
+        }
+    }
+    Ok(())
+}
+
+fn sqlite_url(db: &str) -> String {
+    if db.starts_with("sqlite:") {
+        db.to_string()
+    } else {
+        format!("sqlite://{}?mode=rwc", db.replace('\\', "/"))
+    }
+}
+
 fn mcp_tool_names() -> &'static [&'static str] {
-    &["mfa_setup", "mfa_verify", "mfa_status", "mfa_remove"]
+    &[
+        "mfa_setup",
+        "mfa_verify",
+        "mfa_status",
+        "mfa_remove",
+        "sync_status",
+    ]
 }
 
 fn initialize_database_file(db: &str) -> std::io::Result<()> {
@@ -792,6 +932,33 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_sync_status() {
+        let args = Cli::try_parse_from([
+            "fyi-cli",
+            "--output-format",
+            "json",
+            "sync",
+            "status",
+            "--request-id",
+            "42",
+            "--db",
+            "test.db",
+        ])
+        .unwrap();
+
+        assert_eq!(args.output_format, OutputFormat::Json);
+        assert_eq!(
+            args.command,
+            Commands::Sync {
+                command: SyncCommand::Status {
+                    request_id: Some(42),
+                    db: "test.db".to_string(),
+                }
+            }
+        );
+    }
+
+    #[test]
     fn test_parse_mfa_commands() {
         let args = Cli::try_parse_from(["fyi-cli", "mfa", "setup", "alice@example.org"]).unwrap();
         assert_eq!(
@@ -857,5 +1024,6 @@ mod tests {
         assert!(tools.contains(&"mfa_verify"));
         assert!(tools.contains(&"mfa_status"));
         assert!(tools.contains(&"mfa_remove"));
+        assert!(tools.contains(&"sync_status"));
     }
 }

@@ -226,6 +226,19 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                         }
                     },
                     {
+                        "name": "sync_status",
+                        "description": "Read offline synchronization status globally or for one request",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "request_id": {
+                                    "type": "integer",
+                                    "description": "Optional request ID for per-request sync metadata"
+                                }
+                            }
+                        }
+                    },
+                    {
                         "name": "check_status",
                         "description": "Check database status and other components",
                         "inputSchema": {
@@ -293,6 +306,87 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                                 ]
                             }),
                         )),
+                    }
+                }
+                "sync_status" => {
+                    if let Some(request_id) = arguments.get("request_id").and_then(|id| id.as_i64())
+                    {
+                        match db.get_request_sync_metadata(request_id).await {
+                            Ok(metadata) => {
+                                let payload = metadata
+                                    .map(|metadata| {
+                                        json!({
+                                            "request_id": metadata.request_id,
+                                            "sync_status": metadata.sync_status.as_str(),
+                                            "last_synced_at": metadata.last_synced_at,
+                                            "remote_updated_at": metadata.remote_updated_at,
+                                            "local_updated_at": metadata.local_updated_at,
+                                            "conflict_version": metadata.conflict_version
+                                        })
+                                    })
+                                    .unwrap_or_else(|| {
+                                        json!({
+                                            "request_id": request_id,
+                                            "sync_status": Value::Null
+                                        })
+                                    });
+                                Some(JsonRpcResponse::success(
+                                    req.id,
+                                    json!({
+                                        "content": [
+                                            {
+                                                "type": "text",
+                                                "text": serde_json::to_string_pretty(&payload).unwrap()
+                                            }
+                                        ]
+                                    }),
+                                ))
+                            }
+                            Err(e) => Some(JsonRpcResponse::success(
+                                req.id,
+                                json!({
+                                    "isError": true,
+                                    "content": [
+                                        {
+                                            "type": "text",
+                                            "text": format!("Failed to fetch sync status: {}", e)
+                                        }
+                                    ]
+                                }),
+                            )),
+                        }
+                    } else {
+                        match db.get_global_sync_status().await {
+                            Ok(status) => Some(JsonRpcResponse::success(
+                                req.id,
+                                json!({
+                                    "content": [
+                                        {
+                                            "type": "text",
+                                            "text": serde_json::to_string_pretty(&json!({
+                                                "total": status.total,
+                                                "clean": status.clean,
+                                                "dirty": status.dirty,
+                                                "pending": status.pending,
+                                                "conflict": status.conflict
+                                            })).unwrap()
+                                        }
+                                    ]
+                                }),
+                            )),
+                            Err(e) => Some(JsonRpcResponse::success(
+                                req.id,
+                                json!({
+                                    "isError": true,
+                                    "content": [
+                                        {
+                                            "type": "text",
+                                            "text": format!("Failed to fetch sync status: {}", e)
+                                        }
+                                    ]
+                                }),
+                            )),
+                        }
                     }
                 }
                 "retrieve_request" => {
@@ -791,7 +885,16 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                         "database": if db_healthy { "connected" } else { "disconnected" },
                         "metrics": {
                             "total_requests": total_requests,
-                            "total_correspondence": total_correspondence
+                            "total_correspondence": total_correspondence,
+                            "sync": db.get_global_sync_status().await.ok().map(|sync| {
+                                json!({
+                                    "total": sync.total,
+                                    "clean": sync.clean,
+                                    "dirty": sync.dirty,
+                                    "pending": sync.pending,
+                                    "conflict": sync.conflict
+                                })
+                            })
                         }
                     });
 
@@ -929,6 +1032,9 @@ mod tests {
         assert!(tools
             .iter()
             .any(|t| t.get("name").unwrap().as_str().unwrap() == "check_status"));
+        assert!(tools
+            .iter()
+            .any(|t| t.get("name").unwrap().as_str().unwrap() == "sync_status"));
     }
 
     #[tokio::test]
@@ -1216,6 +1322,50 @@ mod tests {
         assert_eq!(
             status_info.get("status").unwrap().as_str().unwrap(),
             "healthy"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_sync_status_tool() {
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+        db.insert_request(&AlaveteliRequest {
+            id: 77,
+            title: "Dirty request".to_string(),
+            body: "Body".to_string(),
+            user_name: None,
+            status: Some("draft".to_string()),
+            created_at: None,
+            updated_at: None,
+            url: None,
+            tags: None,
+        })
+        .await
+        .unwrap();
+
+        let req = JsonRpcRequest {
+            jsonrpc: "2.0".to_string(),
+            id: Some(json!(11)),
+            method: "tools/call".to_string(),
+            params: Some(json!({
+                "name": "sync_status",
+                "arguments": {
+                    "request_id": 77
+                }
+            })),
+        };
+
+        let resp = handle_jsonrpc_request(&db, req).await.unwrap();
+        assert_eq!(resp.id, Some(json!(11)));
+        let result = resp.result.unwrap();
+        let content = result.get("content").unwrap().as_array().unwrap();
+        let text = content[0].get("text").unwrap().as_str().unwrap();
+        let status_info: Value = serde_json::from_str(text).unwrap();
+
+        assert_eq!(status_info.get("request_id").unwrap().as_i64().unwrap(), 77);
+        assert_eq!(
+            status_info.get("sync_status").unwrap().as_str().unwrap(),
+            "dirty"
         );
     }
 }

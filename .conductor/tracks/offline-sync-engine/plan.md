@@ -10,10 +10,10 @@
 - [x] Commit: `feat(sync): add sync metadata tracking and dirty flagging`
 
 ### Task 1.2: Sync state API
-- [ ] Expose sync state via MCP tools
-- [ ] Add CLI command `fyi sync status`
-- [ ] Add sync status display in TUI
-- [ ] Commit: `feat(sync): add sync status API, CLI command, and TUI display`
+- [x] Expose sync state via MCP tools
+- [x] Add CLI command `fyi sync status`
+- [x] Add sync status display in TUI
+- [x] Commit: `feat(sync): add sync status API, CLI command, and TUI display`
 
 ## Phase 2: Pull Synchronization
 
