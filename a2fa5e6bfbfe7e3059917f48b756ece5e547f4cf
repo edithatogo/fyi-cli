@@ -1,0 +1,25 @@
+Task: Bulk operations and help system
+
+Summary:
+- Added request multi-select state and selected-row rendering in the Requests tab.
+- Added bulk status update primitives for selected requests.
+- Added export trigger recording for JSON, CSV, and PDF actions.
+- Added a keyboard help overlay with navigation, bulk operation, export, and panel keybindings.
+- Updated e2e tests to invoke the built fyi-cli binary directly instead of nesting cargo run.
+- Added tests for multi-select/bulk update, export triggers, and help overlay rendering.
+
+Modified files:
+- crates/fyi-cli/src/tui.rs
+- crates/fyi-cli/tests/e2e_tests.rs
+
+Verification:
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-cli bulk
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-cli export_trigger
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-cli help_overlay
+- cargo +stable-x86_64-pc-windows-gnu fmt --check
+- cargo +stable-x86_64-pc-windows-gnu clippy --workspace --all-targets --all-features -- -D warnings
+- cargo +stable-x86_64-pc-windows-gnu test --workspace --all-features
+- git diff --check
+
+Why:
+The final UX task needs keyboard-discoverable bulk request operations and export hooks before the track can enter review.
