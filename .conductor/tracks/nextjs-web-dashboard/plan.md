@@ -72,8 +72,8 @@
 ## Phase 5: Advanced Features & Polish
 
 ### Task 5.1: Search and filtering
-- [~] Add full-text search across requests
-- [ ] Add status/authority filters
+- [x] Add full-text search across requests [a41a4f0]
+- [~] Add status/authority filters
 - [ ] Add date range picker for filtering
 - [ ] Commit: `feat(dashboard): add search and filtering capabilities`
 
