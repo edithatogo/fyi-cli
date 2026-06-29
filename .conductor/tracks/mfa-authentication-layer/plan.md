@@ -48,14 +48,14 @@
 ## Phase 4: CLI & TUI Integration
 
 ### Task 4.1: CLI commands
-- [~] Add `fyi mfa setup` command (generates secret, shows provisioning URI)
-- [ ] Add `fyi mfa verify` command (tests code verification)
-- [ ] Add `fyi mfa status` command (lists MFA status per account)
-- [ ] Add `fyi mfa remove` command (deletes MFA from account)
-- [ ] Commit: `feat(cli): add MFA management CLI commands`
+- [x] Add `fyi mfa setup` command (generates secret, shows provisioning URI)
+- [x] Add `fyi mfa verify` command (tests code verification)
+- [x] Add `fyi mfa status` command (lists MFA status per account)
+- [x] Add `fyi mfa remove` command (deletes MFA from account)
+- [x] Commit: `feat(cli): add MFA management CLI commands` [5e70f74]
 
 ### Task 4.2: TUI and MCP integration
-- [ ] Add MFA setup wizard flow in TUI
+- [~] Add MFA setup wizard flow in TUI
 - [ ] Guard credential access in TUI with MFA prompt
 - [ ] Expose MFA tools in MCP server
 - [ ] Commit: `feat(tui): add MFA integration to TUI and MCP server`
