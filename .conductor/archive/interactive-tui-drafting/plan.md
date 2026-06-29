@@ -69,4 +69,4 @@
 - [x] Commit: `conductor(track): complete interactive-tui-drafting after review`
 
 ## Archive
-- [ ] Archive track: move to archive/ directory
+- [x] Archive track: move to archive/ directory
