@@ -156,6 +156,27 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                         }
                     },
                     {
+                        "name": "update_request",
+                        "description": "Update an existing request in the database",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "id": { "type": "integer", "description": "The request ID" },
+                                "title": { "type": "string", "description": "The request title" },
+                                "body": { "type": "string", "description": "The request body" },
+                                "user_name": { "type": "string", "description": "Name of the user" },
+                                "status": { "type": "string", "description": "Status of the request" },
+                                "url": { "type": "string", "description": "The URL on Alaveteli/FYI" },
+                                "tags": {
+                                    "type": "array",
+                                    "items": { "type": "string" },
+                                    "description": "Optional list of tags"
+                                }
+                            },
+                            "required": ["id", "title", "body"]
+                        }
+                    },
+                    {
                         "name": "list_authorities",
                         "description": "List authorities stored in the database",
                         "inputSchema": {
@@ -327,6 +348,107 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                                     {
                                         "type": "text",
                                         "text": format!("Failed to insert request: {}", e)
+                                    }
+                                ]
+                            })
+                        )),
+                    }
+                }
+                "update_request" => {
+                    let id = match arguments.get("id").and_then(|i| i.as_i64()) {
+                        Some(i) => i,
+                        None => return Some(JsonRpcResponse::error(req.id, -32602, "Invalid or missing 'id' argument".to_string())),
+                    };
+                    let title = match arguments.get("title").and_then(|t| t.as_str()) {
+                        Some(t) => t.to_string(),
+                        None => return Some(JsonRpcResponse::error(req.id, -32602, "Missing 'title'".to_string())),
+                    };
+                    let body = match arguments.get("body").and_then(|b| b.as_str()) {
+                        Some(b) => b.to_string(),
+                        None => return Some(JsonRpcResponse::error(req.id, -32602, "Missing 'body'".to_string())),
+                    };
+                    let existing = match db.get_request(id).await {
+                        Ok(Some(request)) => request,
+                        Ok(None) => {
+                            return Some(JsonRpcResponse::success(
+                                req.id,
+                                json!({
+                                    "isError": true,
+                                    "content": [
+                                        {
+                                            "type": "text",
+                                            "text": format!("Request with ID {} not found", id)
+                                        }
+                                    ]
+                                })
+                            ))
+                        }
+                        Err(e) => {
+                            return Some(JsonRpcResponse::success(
+                                req.id,
+                                json!({
+                                    "isError": true,
+                                    "content": [
+                                        {
+                                            "type": "text",
+                                            "text": format!("Database error: {}", e)
+                                        }
+                                    ]
+                                })
+                            ))
+                        }
+                    };
+                    let tags = arguments.get("tags").and_then(|t| {
+                        t.as_array().map(|arr| {
+                            arr.iter()
+                                .filter_map(|val| val.as_str().map(String::from))
+                                .collect::<Vec<String>>()
+                        })
+                    });
+                    let updated = AlaveteliRequest {
+                        id,
+                        title,
+                        body,
+                        user_name: arguments.get("user_name").and_then(|u| u.as_str()).map(String::from),
+                        status: arguments.get("status").and_then(|s| s.as_str()).map(String::from),
+                        created_at: existing.created_at,
+                        updated_at: Some(chrono::Utc::now().to_rfc3339()),
+                        url: arguments.get("url").and_then(|u| u.as_str()).map(String::from),
+                        tags,
+                    };
+
+                    match db.update_request(&updated).await {
+                        Ok(true) => Some(JsonRpcResponse::success(
+                            req.id,
+                            json!({
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": serde_json::to_string_pretty(&updated).unwrap()
+                                    }
+                                ]
+                            })
+                        )),
+                        Ok(false) => Some(JsonRpcResponse::success(
+                            req.id,
+                            json!({
+                                "isError": true,
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": format!("Request with ID {} not found", id)
+                                    }
+                                ]
+                            })
+                        )),
+                        Err(e) => Some(JsonRpcResponse::success(
+                            req.id,
+                            json!({
+                                "isError": true,
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": format!("Failed to update request: {}", e)
                                     }
                                 ]
                             })
@@ -511,6 +633,7 @@ mod tests {
         assert!(tools.iter().any(|t| t.get("name").unwrap().as_str().unwrap() == "retrieve_request"));
         assert!(tools.iter().any(|t| t.get("name").unwrap().as_str().unwrap() == "list_requests"));
         assert!(tools.iter().any(|t| t.get("name").unwrap().as_str().unwrap() == "create_request"));
+        assert!(tools.iter().any(|t| t.get("name").unwrap().as_str().unwrap() == "update_request"));
         assert!(tools.iter().any(|t| t.get("name").unwrap().as_str().unwrap() == "list_authorities"));
         assert!(tools.iter().any(|t| t.get("name").unwrap().as_str().unwrap() == "check_status"));
     }
@@ -614,6 +737,55 @@ mod tests {
         assert_eq!(requests.len(), 2);
         assert_eq!(requests[0].title, "Request 2");
         assert_eq!(requests[1].title, "Request 1");
+    }
+
+    #[tokio::test]
+    async fn test_update_request() {
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+        db.insert_request(&AlaveteliRequest {
+            id: 1,
+            title: "Original".to_string(),
+            body: "Old body".to_string(),
+            user_name: None,
+            status: Some("draft".to_string()),
+            created_at: Some("2026-06-15T00:00:00Z".to_string()),
+            updated_at: None,
+            url: None,
+            tags: None,
+        })
+        .await
+        .unwrap();
+
+        let req = JsonRpcRequest {
+            jsonrpc: "2.0".to_string(),
+            id: Some(json!(7)),
+            method: "tools/call".to_string(),
+            params: Some(json!({
+                "name": "update_request",
+                "arguments": {
+                    "id": 1,
+                    "title": "Updated",
+                    "body": "New body",
+                    "user_name": "Alice",
+                    "status": "submitted",
+                    "tags": ["edited"]
+                }
+            })),
+        };
+
+        let resp = handle_jsonrpc_request(&db, req).await.unwrap();
+        assert_eq!(resp.id, Some(json!(7)));
+        let result = resp.result.unwrap();
+        let content = result.get("content").unwrap().as_array().unwrap();
+        let text = content[0].get("text").unwrap().as_str().unwrap();
+        let request: AlaveteliRequest = serde_json::from_str(text).unwrap();
+
+        assert_eq!(request.title, "Updated");
+        assert_eq!(request.body, "New body");
+        assert_eq!(request.user_name, Some("Alice".to_string()));
+        assert_eq!(request.status, Some("submitted".to_string()));
+        assert_eq!(request.created_at, Some("2026-06-15T00:00:00Z".to_string()));
     }
 
     #[tokio::test]

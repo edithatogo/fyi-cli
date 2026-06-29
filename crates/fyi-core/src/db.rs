@@ -121,6 +121,32 @@ impl DbPool {
         Ok(requests)
     }
 
+    /// Updates an existing request and returns whether a row was changed.
+    pub async fn update_request(&self, request: &AlaveteliRequest) -> Result<bool, sqlx::Error> {
+        let tags_json = request
+            .tags
+            .as_ref()
+            .map(|t| serde_json::to_string(t).unwrap_or_default());
+
+        let result = sqlx::query(
+            "UPDATE requests
+             SET title = ?, body = ?, user_name = ?, status = ?, updated_at = ?, url = ?, tags = ?
+             WHERE id = ?"
+        )
+        .bind(&request.title)
+        .bind(&request.body)
+        .bind(&request.user_name)
+        .bind(&request.status)
+        .bind(&request.updated_at)
+        .bind(&request.url)
+        .bind(tags_json)
+        .bind(request.id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(result.rows_affected() > 0)
+    }
+
     /// Inserts a new `AlaveteliCorrespondence` associated with a request ID.
     pub async fn insert_correspondence(
         &self,

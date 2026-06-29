@@ -55,11 +55,10 @@ export interface FyiRequest {
 }
 
 export interface FyiCorrespondence {
-  id: number;
-  request_id: number;
-  body?: string | null;
-  from_user?: string | null;
-  sent_at?: string | null;
+  direction: "request" | "response" | string;
+  body: string;
+  sent_at: string;
+  state?: string | null;
   attachments?: string[] | null;
 }
 
@@ -90,6 +89,10 @@ export interface CreateRequestInput {
   status?: string;
   url?: string;
   tags?: string[];
+}
+
+export interface UpdateRequestInput extends CreateRequestInput {
+  id: number;
 }
 
 interface PendingRequest {
@@ -212,6 +215,10 @@ export class FyiMcpClient {
 
   async createRequest(input: CreateRequestInput): Promise<FyiRequest> {
     return this.callTool<FyiRequest>("create_request", input as unknown as JsonValue);
+  }
+
+  async updateRequest(input: UpdateRequestInput): Promise<FyiRequest> {
+    return this.callTool<FyiRequest>("update_request", input as unknown as JsonValue);
   }
 
   async listAuthorities(): Promise<FyiAuthority[]> {
