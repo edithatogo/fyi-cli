@@ -82,6 +82,10 @@ export interface DeleteRequestResult {
   id: number;
 }
 
+export interface ImportAuthoritiesResult {
+  imported: number;
+}
+
 export interface FyiRequestWithCorrespondence {
   request: FyiRequest;
   correspondence: FyiCorrespondence[];
@@ -232,6 +236,12 @@ export class FyiMcpClient {
 
   async listAuthorities(): Promise<FyiAuthority[]> {
     return this.callTool<FyiAuthority[]>("list_authorities");
+  }
+
+  async importAuthorities(authorities: FyiAuthority[]): Promise<ImportAuthoritiesResult> {
+    return this.callTool<ImportAuthoritiesResult>("import_authorities", {
+      authorities: authorities as unknown as JsonValue,
+    });
   }
 
   async checkStatus(): Promise<FyiStatus> {

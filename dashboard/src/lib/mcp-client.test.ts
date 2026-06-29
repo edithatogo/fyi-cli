@@ -167,4 +167,39 @@ describe("FyiMcpClient", () => {
     });
     await client.close();
   });
+
+  it("imports authorities through the MCP import_authorities tool", async () => {
+    const authorities = [
+      {
+        slug: "ombudsman",
+        name: "Ombudsman",
+        url: "https://www.ombudsman.parliament.nz",
+      },
+      {
+        slug: "dia",
+        name: "Department of Internal Affairs",
+        url: null,
+      },
+    ];
+    const client = createClient((request) => {
+      expect(request.params).toEqual({
+        name: "import_authorities",
+        arguments: { authorities },
+      });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({ imported: 2 }),
+          },
+        ],
+      };
+    });
+
+    await expect(client.importAuthorities(authorities)).resolves.toEqual({
+      imported: 2,
+    });
+    await client.close();
+  });
 });

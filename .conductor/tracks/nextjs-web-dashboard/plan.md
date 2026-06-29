@@ -33,13 +33,13 @@
 
 ### Task 2.3: Authority management
 - [x] Build authorities browse page
-- [~] Build authority import page (CSV upload)
-- [ ] Commit: `feat(dashboard): add authority management pages`
+- [x] Build authority import page (CSV upload)
+- [x] Commit: `feat(dashboard): add authority management pages`
 
 ## Phase 3: Interactive Dashboard & Charting
 
 ### Task 3.1: Summary dashboard with KPIs
-- [ ] Build summary dashboard page with KPI cards
+- [~] Build summary dashboard page with KPI cards
 - [ ] Fetch dashboard data from MCP server
 - [ ] Add auto-refresh polling (configurable interval)
 - [ ] Commit: `feat(dashboard): add summary dashboard with KPI cards`
