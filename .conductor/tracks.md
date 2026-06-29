@@ -13,20 +13,20 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Commit: 578ee4e*
 
 - [x] **Track: improve-test-coverage** (COMPLETED 2026-03-08)
-  *Link: [./improve-test-coverage/](./improve-test-coverage/)*
+  *Link: [./archive/improve-test-coverage/](./archive/improve-test-coverage/)*
   *Description: Improve test coverage from 62% to 80%, fix all linting and type checking errors.*
   *Results: 80% coverage achieved, 135 linting errors fixed, 3 type errors fixed, 131 tests passing*
   *Status: TARGET ACHIEVED ✅*
 
 - [x] **Track: testing-infrastructure** (COMPLETED 2026-03-09)
-  *Link: [./testing-infrastructure_20260309/](./testing-infrastructure_20260309/)*
+  *Link: [./archive/testing-infrastructure_20260309/](./archive/testing-infrastructure_20260309/)*
   *Description: Comprehensive testing improvements: E2E CLI tests, API contract tests, mutation testing, and integration test fixes.*
   *Target: 280+ tests, >80% mutation score, 90+ maturity score*
   *Results: 280 tests achieved, 36 API contract tests added, 22 E2E tests added, mutation testing infrastructure ready*
   *Status: TARGET ACHIEVED*
 
 - [x] **Track: security-hardening** (COMPLETED 2026-03-09)
-  *Link: [./security-hardening/](./security-hardening/)*
+  *Link: [./archive/security-hardening/](./archive/security-hardening/)*
   *Description: Comprehensive security hardening: encryption, credentials, sessions, audit logging, data retention, input validation, security headers.*
   *Target: 8 security phases, 200+ tests, security documentation*
   *Results: 8/8 phases complete, 243 tests passing, 6/6 security verifications passing*

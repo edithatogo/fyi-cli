@@ -37,21 +37,21 @@
 
 ## Phase 6: Improve Webapp Tests
 
-- [ ] Task: Add tests for uncovered webapp routes
-- [ ] Task: Add tests for form handling
-- [ ] Task: Improve coverage from 53% to 70%+
+- [x] Task: Add tests for uncovered webapp routes (superseded by webapp-coverage-95)
+- [x] Task: Add tests for form handling (superseded by webapp-coverage-95)
+- [x] Task: Improve coverage from 53% to 70%+ (superseded by webapp-coverage-95)
 
 ## Phase 7: Improve Security Tests
 
-- [ ] Task: Add tests for sanitize_payload
-- [ ] Task: Add tests for secure_write_text
-- [ ] Task: Add tests for ensure_private_path
-- [ ] Task: Improve coverage from 74% to 80%+
+- [x] Task: Add tests for sanitize_payload
+- [x] Task: Add tests for secure_write_text
+- [x] Task: Add tests for ensure_private_path
+- [x] Task: Improve coverage from 74% to 80%+
 
 ## Phase 8: Improve Dashboard Tests
 
-- [ ] Task: Add tests for uncovered dashboard functions
-- [ ] Task: Improve coverage from 73% to 80%+
+- [x] Task: Add tests for uncovered dashboard functions
+- [x] Task: Improve coverage from 73% to 80%+
 
 ## Phase 9: Final Verification
 
@@ -60,7 +60,7 @@
 - [x] Task: Verify 75% coverage achieved (up from 62%)
 - [x] Task: Run ruff check (0 errors)
 - [x] Task: Run mypy (0 errors)
-- [ ] Task: Commit all changes
+- [x] Task: Commit all changes
 
 ---
 
@@ -80,3 +80,9 @@ This plan is complete when:
 - [x] dashboard.py coverage >= 80% (achieved 91%) ✅
 
 **OVERALL TARGET ACHIEVED: 80% COVERAGE** ✅
+
+## Closeout Note
+
+This Python-era track is closed for Conductor consistency. Remaining webapp-specific
+coverage work was superseded by the completed `webapp-coverage-95` track, while
+security and dashboard coverage targets are already recorded as achieved above.

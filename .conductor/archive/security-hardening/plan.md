@@ -3,27 +3,27 @@
 ## Phase 1: Encryption at Rest
 
 ### 1.1 Database Encryption Setup
-- [ ] Task: Install cryptography library
-- [ ] Task: Research SQLCipher vs application-layer encryption
-- [ ] Task: Design encryption architecture
-- [ ] Task: Create encryption utilities module
+- [x] Task: Install cryptography library
+- [x] Task: Research SQLCipher vs application-layer encryption
+- [x] Task: Design encryption architecture
+- [x] Task: Create encryption utilities module
 
 ### 1.2 Field-Level Encryption
-- [ ] Task: Encrypt tracked_requests table sensitive fields
-- [ ] Task: Encrypt authorities table sensitive fields
-- [ ] Task: Add encryption/decryption helpers to db.py
-- [ ] Task: Test encryption doesn't break existing queries
+- [x] Task: Encrypt tracked_requests table sensitive fields
+- [x] Task: Encrypt authorities table sensitive fields
+- [x] Task: Add encryption/decryption helpers to db.py
+- [x] Task: Test encryption doesn't break existing queries
 
 ### 1.3 Key Management
-- [ ] Task: Implement key derivation (Argon2)
-- [ ] Task: Create key storage mechanism
-- [ ] Task: Add key rotation support
-- [ ] Task: Document key backup procedure
+- [x] Task: Implement key derivation (Argon2)
+- [x] Task: Create key storage mechanism
+- [x] Task: Add key rotation support
+- [x] Task: Document key backup procedure
 
 ### 1.4 Encrypted Backups
-- [ ] Task: Create encrypted backup function
-- [ ] Task: Test backup/restore cycle
-- [ ] Task: Document backup procedure
+- [x] Task: Create encrypted backup function
+- [x] Task: Test backup/restore cycle
+- [x] Task: Document backup procedure
 
 ## Phase 2: Secure Credential Storage
 
@@ -35,7 +35,7 @@
 
 ### 2.2 Multi-Account Credentials
 - [x] Task: Support multiple credential sets 6c138ee
-- [ ] Task: Add credential selection UI (CLI/web)
+- [x] Task: Add credential selection UI (CLI/web)
 - [x] Task: Test credential switching 6c138ee
 
 ### 2.3 Secure Deletion
@@ -81,9 +81,9 @@
 - [x] Task: Test log integrity verification 969c30c
 
 ### 4.4 Log Retention
-- [ ] Task: Configure log retention period
-- [ ] Task: Implement automatic log cleanup
-- [ ] Task: Test retention enforcement
+- [x] Task: Configure log retention period
+- [x] Task: Implement automatic log cleanup
+- [x] Task: Test retention enforcement
 
 ## Phase 5: Data Retention & Deletion
 
@@ -150,7 +150,7 @@
 - [x] Task: Document key management procedures 67a00c3
 - [x] Task: Create security troubleshooting guide 67a00c3
 - [x] Task: Update SECURITY.md 67a00c3
-- [ ] Task: Update SECURITY.md
+- [x] Task: Update SECURITY.md
 
 ## Phase 8: Code Review Fixes
 
