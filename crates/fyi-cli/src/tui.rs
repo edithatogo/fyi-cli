@@ -81,6 +81,14 @@ pub struct RequestItem {
     pub updated_at: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DraftItem {
+    pub id: i64,
+    pub title: String,
+    pub status: String,
+    pub updated_at: String,
+}
+
 #[derive(Debug, Clone)]
 pub struct AppState {
     pub active_tab: Tab,
@@ -101,6 +109,10 @@ pub struct AppState {
     pub editor_title: String,
     pub editor_body: String,
     pub editor_tags: String,
+    pub editor_dirty: bool,
+    pub editor_last_saved_label: Option<String>,
+    pub editor_drafts: Vec<DraftItem>,
+    pub selected_editor_draft_idx: usize,
     pub should_quit: bool,
 }
 
@@ -195,6 +207,10 @@ impl AppState {
             editor_title: "New FYI request".to_string(),
             editor_body: "Draft request body in markdown.".to_string(),
             editor_tags: String::new(),
+            editor_dirty: false,
+            editor_last_saved_label: None,
+            editor_drafts: Vec::new(),
+            selected_editor_draft_idx: 0,
             should_quit: false,
         }
     }
@@ -262,6 +278,8 @@ impl AppState {
         self.editor_title = request.title;
         self.editor_body = request.body;
         self.editor_tags = request.tags.unwrap_or_default().join(",");
+        self.editor_dirty = false;
+        self.editor_last_saved_label = None;
         Ok(true)
     }
 
@@ -281,6 +299,84 @@ impl AppState {
         request.tags = parse_editor_tags(&self.editor_tags);
         Ok(db.update_request(&request).await?)
     }
+
+    pub fn update_editor_title(&mut self, title: impl Into<String>) {
+        self.editor_title = title.into();
+        self.editor_dirty = true;
+    }
+
+    pub fn update_editor_body(&mut self, body: impl Into<String>) {
+        self.editor_body = body.into();
+        self.editor_dirty = true;
+    }
+
+    pub fn update_editor_tags(&mut self, tags: impl Into<String>) {
+        self.editor_tags = tags.into();
+        self.editor_dirty = true;
+    }
+
+    pub async fn autosave_editor_to_db(
+        &mut self,
+        db: &fyi_core::db::DbPool,
+    ) -> Result<bool, Box<dyn std::error::Error>> {
+        if !self.editor_dirty {
+            return Ok(false);
+        }
+
+        let saved = self.save_editor_to_db(db).await?;
+        if saved {
+            self.editor_dirty = false;
+            self.editor_last_saved_label = Some("Autosaved".to_string());
+        }
+        Ok(saved)
+    }
+
+    pub async fn refresh_editor_drafts(
+        &mut self,
+        db: &fyi_core::db::DbPool,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        self.editor_drafts = db
+            .list_requests(500)
+            .await?
+            .into_iter()
+            .filter(|request| request.status.as_deref() == Some("draft"))
+            .map(|request| DraftItem {
+                id: request.id,
+                title: request.title,
+                status: request.status.unwrap_or_else(|| "draft".to_string()),
+                updated_at: request.updated_at.unwrap_or_else(|| "unknown".to_string()),
+            })
+            .collect();
+
+        if self.selected_editor_draft_idx >= self.editor_drafts.len() {
+            self.selected_editor_draft_idx = self.editor_drafts.len().saturating_sub(1);
+        }
+        Ok(())
+    }
+
+    pub async fn open_selected_editor_draft(
+        &mut self,
+        db: &fyi_core::db::DbPool,
+    ) -> Result<bool, Box<dyn std::error::Error>> {
+        let Some(draft) = self.editor_drafts.get(self.selected_editor_draft_idx) else {
+            return Ok(false);
+        };
+        self.load_editor_from_db(db, draft.id).await
+    }
+
+    pub async fn discard_selected_editor_draft(
+        &mut self,
+        db: &fyi_core::db::DbPool,
+    ) -> Result<bool, Box<dyn std::error::Error>> {
+        let Some(draft) = self.editor_drafts.get(self.selected_editor_draft_idx) else {
+            return Ok(false);
+        };
+        let deleted = db.delete_request(draft.id).await?;
+        if deleted {
+            self.refresh_editor_drafts(db).await?;
+        }
+        Ok(deleted)
+    }
 }
 
 fn parse_editor_tags(tags: &str) -> Option<Vec<String>> {
@@ -292,6 +388,29 @@ fn parse_editor_tags(tags: &str) -> Option<Vec<String>> {
         .collect::<Vec<_>>();
 
     (!parsed.is_empty()).then_some(parsed)
+}
+
+fn markdown_preview(markdown: &str) -> String {
+    markdown
+        .lines()
+        .map(|line| {
+            let trimmed = line.trim();
+            if let Some(heading) = trimmed.strip_prefix("# ") {
+                heading.to_uppercase()
+            } else if let Some(item) = trimmed.strip_prefix("- ") {
+                format!("* {}", strip_inline_markdown(item))
+            } else {
+                strip_inline_markdown(trimmed)
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn strip_inline_markdown(text: &str) -> String {
+    text.replace("**", "")
+        .replace("__", "")
+        .replace(['`', '*', '_'], "")
 }
 
 pub fn draw_ui(f: &mut Frame<'_>, state: &AppState) {
@@ -577,7 +696,7 @@ fn draw_editor_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
         .constraints([
             Constraint::Length(5),
             Constraint::Min(10),
-            Constraint::Length(5),
+            Constraint::Length(7),
         ])
         .split(area);
 
@@ -586,14 +705,65 @@ fn draw_editor_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
         .style(Style::default().fg(Color::White));
     f.render_widget(title, chunks[0]);
 
-    let body = Paragraph::new(state.editor_body.as_str())
-        .block(Block::default().borders(Borders::ALL).title(" Body "))
-        .style(Style::default().fg(Color::White));
-    f.render_widget(body, chunks[1]);
+    let editor_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(55), Constraint::Percentage(45)])
+        .split(chunks[1]);
 
-    let tags = Paragraph::new(state.editor_tags.as_str())
-        .block(Block::default().borders(Borders::ALL).title(" Tags "))
+    let body = Paragraph::new(state.editor_body.as_str())
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(" Markdown Draft Body "),
+        )
         .style(Style::default().fg(Color::White));
+    f.render_widget(body, editor_chunks[0]);
+
+    let preview = Paragraph::new(markdown_preview(&state.editor_body))
+        .block(Block::default().borders(Borders::ALL).title(" Preview "))
+        .style(Style::default().fg(Color::White));
+    f.render_widget(preview, editor_chunks[1]);
+
+    let save_state = if state.editor_dirty {
+        "Unsaved changes".to_string()
+    } else {
+        state
+            .editor_last_saved_label
+            .clone()
+            .unwrap_or_else(|| "Saved".to_string())
+    };
+    let drafts = if state.editor_drafts.is_empty() {
+        "No saved drafts".to_string()
+    } else {
+        state
+            .editor_drafts
+            .iter()
+            .enumerate()
+            .map(|(idx, draft)| {
+                let marker = if idx == state.selected_editor_draft_idx {
+                    ">"
+                } else {
+                    " "
+                };
+                format!(
+                    "{marker} #{} {} ({})",
+                    draft.id, draft.title, draft.updated_at
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+
+    let tags = Paragraph::new(format!(
+        "Tags: {}\nStatus: {}\n\nDrafts\n{}",
+        state.editor_tags, save_state, drafts
+    ))
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(" Tags & Drafts "),
+    )
+    .style(Style::default().fg(Color::White));
     f.render_widget(tags, chunks[2]);
 }
 
@@ -795,6 +965,121 @@ mod tests {
             saved.tags,
             Some(vec!["health".to_string(), "oia".to_string()])
         );
+    }
+
+    #[test]
+    fn test_editor_markdown_preview_split_pane() {
+        let backend = TestBackend::new(140, 30);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let mut state = AppState::new();
+        state.active_tab = Tab::Editor;
+        state.editor_body =
+            "# Request heading\nPlease provide **release notes**\n- Cabinet paper".to_string();
+
+        terminal
+            .draw(|f| {
+                draw_ui(f, &state);
+            })
+            .unwrap();
+
+        let rendered_text = buffer_to_string(terminal.backend().buffer());
+        assert!(rendered_text.contains("Markdown Draft"));
+        assert!(rendered_text.contains("Preview"));
+        assert!(rendered_text.contains("REQUEST HEADING"));
+        assert!(rendered_text.contains("Please provide release notes"));
+        assert!(rendered_text.contains("Cabinet paper"));
+    }
+
+    #[tokio::test]
+    async fn test_editor_autosaves_and_tracks_dirty_state() {
+        let db = fyi_core::db::DbPool::new_in_memory()
+            .await
+            .expect("Failed to create in-memory db");
+        db.run_migrations().await.expect("Failed to run migrations");
+        let request = fyi_core::api::AlaveteliRequest {
+            id: 601,
+            title: "Draft title".to_string(),
+            body: "Draft body".to_string(),
+            user_name: Some("Alice".to_string()),
+            status: Some("draft".to_string()),
+            created_at: Some("2026-06-30T00:00:00Z".to_string()),
+            updated_at: Some("2026-06-30T00:00:00Z".to_string()),
+            url: Some("https://fyi.org.nz/request/601".to_string()),
+            tags: None,
+        };
+        db.insert_request(&request)
+            .await
+            .expect("Failed to insert request");
+
+        let mut state = AppState::new();
+        state
+            .load_editor_from_db(&db, 601)
+            .await
+            .expect("Failed to load editor");
+        assert!(!state.editor_dirty);
+
+        state.update_editor_body("Autosaved body");
+        assert!(state.editor_dirty);
+        assert!(state
+            .autosave_editor_to_db(&db)
+            .await
+            .expect("Failed to autosave editor"));
+        assert!(!state.editor_dirty);
+        assert_eq!(state.editor_last_saved_label.as_deref(), Some("Autosaved"));
+
+        let saved = db
+            .get_request(601)
+            .await
+            .expect("Failed to fetch request")
+            .expect("Request not found");
+        assert_eq!(saved.body, "Autosaved body");
+    }
+
+    #[tokio::test]
+    async fn test_editor_loads_draft_list_from_db() {
+        let db = fyi_core::db::DbPool::new_in_memory()
+            .await
+            .expect("Failed to create in-memory db");
+        db.run_migrations().await.expect("Failed to run migrations");
+        for (id, title, status) in [
+            (701, "First draft", "draft"),
+            (702, "Sent request", "awaiting_response"),
+            (703, "Second draft", "draft"),
+        ] {
+            db.insert_request(&fyi_core::api::AlaveteliRequest {
+                id,
+                title: title.to_string(),
+                body: "Body".to_string(),
+                user_name: Some("Alice".to_string()),
+                status: Some(status.to_string()),
+                created_at: Some("2026-06-30T00:00:00Z".to_string()),
+                updated_at: Some(format!("2026-06-30T00:0{id}:00Z")),
+                url: Some(format!("https://fyi.org.nz/request/{id}")),
+                tags: None,
+            })
+            .await
+            .expect("Failed to insert request");
+        }
+
+        let mut state = AppState::new();
+        state
+            .refresh_editor_drafts(&db)
+            .await
+            .expect("Failed to refresh drafts");
+
+        assert_eq!(state.editor_drafts.len(), 2);
+        assert!(state
+            .editor_drafts
+            .iter()
+            .all(|draft| draft.status == "draft"));
+        assert!(state
+            .editor_drafts
+            .iter()
+            .any(|draft| draft.title == "First draft"));
+        assert!(state
+            .editor_drafts
+            .iter()
+            .any(|draft| draft.title == "Second draft"));
     }
 
     fn buffer_to_string(buffer: &ratatui::buffer::Buffer) -> String {
