@@ -1,4 +1,4 @@
-import { DashboardSummary } from "@/components/DashboardSummary";
+import { DashboardSummaryShell } from "@/components/DashboardSummaryShell";
 import { getDashboardSummary, type DashboardSummaryData } from "@/lib/dashboard-summary";
 import { FyiMcpClient } from "@/lib/mcp-client";
 
@@ -24,5 +24,5 @@ async function loadDashboardSummary(): Promise<{
 export default async function Home() {
   const { summary, error } = await loadDashboardSummary();
 
-  return <DashboardSummary summary={summary} error={error} />;
+  return <DashboardSummaryShell initialSummary={summary} initialError={error} />;
 }
