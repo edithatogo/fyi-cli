@@ -40,8 +40,8 @@
 
 ### Task 3.1: Summary dashboard with KPIs
 - [x] Build summary dashboard page with KPI cards [f7f7a8c]
-- [~] Fetch dashboard data from MCP server
-- [ ] Add auto-refresh polling (configurable interval)
+- [x] Fetch dashboard data from MCP server [c37ac4d]
+- [~] Add auto-refresh polling (configurable interval)
 - [ ] Commit: `feat(dashboard): add summary dashboard with KPI cards`
 
 ### Task 3.2: Interactive charts
