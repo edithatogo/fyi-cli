@@ -45,8 +45,8 @@
 - [x] Commit: `feat(dashboard): add summary dashboard with KPI cards`
 
 ### Task 3.2: Interactive charts
-- [~] Add charting library (Chart.js or Recharts)
-- [ ] Build status distribution pie/donut chart
+- [x] Add charting library (Chart.js or Recharts) [94f771e]
+- [~] Build status distribution pie/donut chart
 - [ ] Build request timeline bar/line chart
 - [ ] Build attention heatmap or trends chart
 - [ ] Commit: `feat(dashboard): add interactive charts for request analytics`
