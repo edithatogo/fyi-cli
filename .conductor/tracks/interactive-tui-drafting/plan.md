@@ -42,15 +42,15 @@
 - [x] Commit: `feat(tui): add keyring browser dashboard` [b16c479]
 
 ### Task 3.2: Keyring management actions
-- [~] Add/Edit/Delete keyring entries from TUI
-- [ ] Add encryption key management view
-- [ ] Show security indicators (key strength, age, rotation status)
-- [ ] Commit: `feat(tui): add keyring management actions and security indicators`
+- [x] Add/Edit/Delete keyring entries from TUI
+- [x] Add encryption key management view
+- [x] Show security indicators (key strength, age, rotation status)
+- [x] Commit: `feat(tui): add keyring management actions and security indicators` [cd50c3b]
 
 ## Phase 4: Enhanced Navigation & UX
 
 ### Task 4.1: Fuzzy search
-- [ ] Add `/` command to open fuzzy search
+- [~] Add `/` command to open fuzzy search
 - [ ] Search across requests, authorities, and logs
 - [ ] Show search results with navigation
 - [ ] Commit: `feat(tui): add fuzzy search across all entities`
