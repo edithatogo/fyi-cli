@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Save, Trash2 } from "lucide-react";
+import { CorrespondenceTimeline } from "@/components/CorrespondenceTimeline";
 import {
   Badge,
   Button,
@@ -8,12 +9,6 @@ import {
   CardHeader,
   Input,
   Select,
-  Table,
-  Tbody,
-  Td,
-  Th,
-  Thead,
-  Tr,
 } from "@/components/ui";
 import { FyiMcpClient, type FyiRequestWithCorrespondence } from "@/lib/mcp-client";
 
@@ -254,41 +249,7 @@ export default async function RequestDetailPage({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-            Correspondence
-          </h3>
-        </CardHeader>
-        <CardContent className="p-0">
-          {correspondence.length > 0 ? (
-            <Table>
-              <Thead>
-                <Tr>
-                  <Th>Direction</Th>
-                  <Th>Sent</Th>
-                  <Th>State</Th>
-                  <Th>Body</Th>
-                </Tr>
-              </Thead>
-              <Tbody>
-                {correspondence.map((item, index) => (
-                  <Tr key={`${item.sent_at}-${index}`}>
-                    <Td>{item.direction}</Td>
-                    <Td>{item.sent_at}</Td>
-                    <Td>{item.state ?? "Not recorded"}</Td>
-                    <Td>{item.body}</Td>
-                  </Tr>
-                ))}
-              </Tbody>
-            </Table>
-          ) : (
-            <div className="px-6 py-10 text-sm text-gray-500 dark:text-gray-400">
-              No correspondence has been captured for this request yet.
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <CorrespondenceTimeline correspondence={correspondence} />
     </div>
   );
 }
