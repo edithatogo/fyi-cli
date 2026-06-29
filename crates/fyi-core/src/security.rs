@@ -9,7 +9,7 @@ use percent_encoding::{utf8_percent_encode, AsciiSet, CONTROLS};
 use qrcode::QrCode;
 use sha1::Sha1;
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
@@ -32,6 +32,9 @@ pub enum SecurityError {
 
     #[error("MFA verification required for credential access: {0}")]
     MfaRequired(String),
+
+    #[error("MFA verification is rate limited for: {0}")]
+    MfaRateLimited(String),
 }
 
 /// A wrapper around a String that ensures its contents are zeroed out when dropped.
@@ -87,6 +90,8 @@ const TOTP_SECRET_VERSION_PREFIX: &str = "totp-secret-version:";
 const TOTP_SECRET_VERSIONS_PREFIX: &str = "totp-secret-versions:";
 const TOTP_SECRET_INDEX: &str = "totp-secret-index";
 const MFA_SESSION_TTL_SECONDS: u64 = 300;
+const MFA_RATE_LIMIT_MAX_ATTEMPTS: usize = 5;
+const MFA_RATE_LIMIT_WINDOW_SECONDS: u64 = 30;
 const OTPAUTH_ENCODE_SET: &AsciiSet = &CONTROLS
     .add(b' ')
     .add(b'"')
@@ -340,6 +345,7 @@ pub fn decrypt(
 /// Wrapper around the system keyring.
 pub struct KeyringStore {
     service: String,
+    backend: CredentialBackend,
     mfa_guard: MfaGuard,
 }
 
@@ -347,6 +353,15 @@ impl KeyringStore {
     pub fn new(service: impl Into<String>) -> Self {
         Self {
             service: service.into(),
+            backend: CredentialBackend::System,
+            mfa_guard: MfaGuard::default(),
+        }
+    }
+
+    pub fn new_in_memory(service: impl Into<String>) -> Self {
+        Self {
+            service: service.into(),
+            backend: CredentialBackend::InMemory(Arc::new(Mutex::new(BTreeMap::new()))),
             mfa_guard: MfaGuard::default(),
         }
     }
@@ -360,11 +375,9 @@ impl KeyringStore {
             return Err(SecurityError::MfaRequired(username.to_string()));
         }
 
-        let entry = Entry::new(&self.service, username)
-            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
-        let password = entry
-            .get_password()
-            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
+        let password = self
+            .get_keyring_password(username)?
+            .ok_or_else(|| no_keyring_entry_error(username))?;
         Ok(ZeroizedString::new(password))
     }
 
@@ -373,21 +386,11 @@ impl KeyringStore {
         username: &str,
         password: &ZeroizedString,
     ) -> Result<(), SecurityError> {
-        let entry = Entry::new(&self.service, username)
-            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
-        entry
-            .set_password(password.as_str())
-            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
-        Ok(())
+        self.set_keyring_password(username, password.as_str())
     }
 
     pub fn delete_credential(&self, username: &str) -> Result<(), SecurityError> {
-        let entry = Entry::new(&self.service, username)
-            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
-        entry
-            .delete_password()
-            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
-        Ok(())
+        self.delete_keyring_password(username)
     }
 
     pub fn store_totp_secret(
@@ -403,11 +406,10 @@ impl KeyringStore {
             return self.get_totp_secret_version(username, version);
         }
 
-        let entry = Entry::new(&self.service, &totp_secret_key(username))
-            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
-        let secret = entry
-            .get_password()
-            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
+        let key = totp_secret_key(username);
+        let secret = self
+            .get_keyring_password(&key)?
+            .ok_or_else(|| no_keyring_entry_error(&key))?;
         Ok(ZeroizedString::new(secret))
     }
 
@@ -436,13 +438,40 @@ impl KeyringStore {
         unix_timestamp: u64,
         drift_windows: u8,
     ) -> Result<bool, SecurityError> {
+        if self.mfa_guard.is_rate_limited(username, unix_timestamp) {
+            self.mfa_guard.record_audit_event(
+                username,
+                MfaAuditEventKind::RateLimited,
+                unix_timestamp,
+            );
+            return Err(SecurityError::MfaRateLimited(username.to_string()));
+        }
+
         let secret = self.get_totp_secret(username)?;
         let verified = verify_totp_code(&secret, code, unix_timestamp, drift_windows)?;
         if verified {
+            self.mfa_guard.clear_failed_attempts(username);
             self.mfa_guard
                 .mark_verified(username, current_unix_timestamp()?);
+            self.mfa_guard.record_audit_event(
+                username,
+                MfaAuditEventKind::VerificationSucceeded,
+                unix_timestamp,
+            );
+        } else {
+            self.mfa_guard
+                .record_failed_attempt(username, unix_timestamp);
+            self.mfa_guard.record_audit_event(
+                username,
+                MfaAuditEventKind::VerificationFailed,
+                unix_timestamp,
+            );
         }
         Ok(verified)
+    }
+
+    pub fn mfa_audit_events(&self) -> Vec<MfaAuditEvent> {
+        self.mfa_guard.audit_events()
     }
 
     pub fn store_totp_secret_version(
@@ -459,11 +488,7 @@ impl KeyringStore {
 
         decode_totp_secret(secret)?;
         let version_key = totp_secret_version_key(username, version);
-        let entry = Entry::new(&self.service, &version_key)
-            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
-        entry
-            .set_password(secret.as_str())
-            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
+        self.set_keyring_password(&version_key, secret.as_str())?;
 
         let mut versions = self.read_totp_secret_versions(username)?;
         versions.insert(version);
@@ -482,11 +507,9 @@ impl KeyringStore {
         version: u32,
     ) -> Result<ZeroizedString, SecurityError> {
         let version_key = totp_secret_version_key(username, version);
-        let entry = Entry::new(&self.service, &version_key)
-            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
-        let secret = entry
-            .get_password()
-            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
+        let secret = self
+            .get_keyring_password(&version_key)?
+            .ok_or_else(|| no_keyring_entry_error(&version_key))?;
         Ok(ZeroizedString::new(secret))
     }
 
@@ -520,11 +543,7 @@ impl KeyringStore {
         username: &str,
         secret: &ZeroizedString,
     ) -> Result<(), SecurityError> {
-        let entry = Entry::new(&self.service, &totp_secret_key(username))
-            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
-        entry
-            .set_password(secret.as_str())
-            .map_err(|e| SecurityError::KeyringError(e.to_string()))
+        self.set_keyring_password(&totp_secret_key(username), secret.as_str())
     }
 
     fn is_mfa_enabled(&self, username: &str) -> Result<bool, SecurityError> {
@@ -532,12 +551,8 @@ impl KeyringStore {
     }
 
     fn read_totp_secret_index(&self) -> Result<BTreeSet<String>, SecurityError> {
-        let entry = Entry::new(&self.service, TOTP_SECRET_INDEX)
-            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
-        let payload = match entry.get_password() {
-            Ok(payload) => payload,
-            Err(KeyringBackendError::NoEntry) => return Ok(BTreeSet::new()),
-            Err(error) => return Err(SecurityError::KeyringError(error.to_string())),
+        let Some(payload) = self.get_keyring_password(TOTP_SECRET_INDEX)? else {
+            return Ok(BTreeSet::new());
         };
 
         serde_json::from_str::<Vec<String>>(&payload)
@@ -546,23 +561,15 @@ impl KeyringStore {
     }
 
     fn write_totp_secret_index(&self, usernames: &BTreeSet<String>) -> Result<(), SecurityError> {
-        let entry = Entry::new(&self.service, TOTP_SECRET_INDEX)
-            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
         let payload = serde_json::to_string(&usernames.iter().collect::<Vec<_>>())
             .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
-        entry
-            .set_password(&payload)
-            .map_err(|e| SecurityError::KeyringError(e.to_string()))
+        self.set_keyring_password(TOTP_SECRET_INDEX, &payload)
     }
 
     fn read_totp_secret_versions(&self, username: &str) -> Result<BTreeSet<u32>, SecurityError> {
         let versions_key = totp_secret_versions_key(username);
-        let entry = Entry::new(&self.service, &versions_key)
-            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
-        let payload = match entry.get_password() {
-            Ok(payload) => payload,
-            Err(KeyringBackendError::NoEntry) => return Ok(BTreeSet::new()),
-            Err(error) => return Err(SecurityError::KeyringError(error.to_string())),
+        let Some(payload) = self.get_keyring_password(&versions_key)? else {
+            return Ok(BTreeSet::new());
         };
 
         serde_json::from_str::<Vec<u32>>(&payload)
@@ -576,13 +583,9 @@ impl KeyringStore {
         versions: &BTreeSet<u32>,
     ) -> Result<(), SecurityError> {
         let versions_key = totp_secret_versions_key(username);
-        let entry = Entry::new(&self.service, &versions_key)
-            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
         let payload = serde_json::to_string(&versions.iter().collect::<Vec<_>>())
             .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
-        entry
-            .set_password(&payload)
-            .map_err(|e| SecurityError::KeyringError(e.to_string()))
+        self.set_keyring_password(&versions_key, &payload)
     }
 
     fn read_active_totp_secret_version(
@@ -590,12 +593,8 @@ impl KeyringStore {
         username: &str,
     ) -> Result<Option<u32>, SecurityError> {
         let active_key = totp_secret_active_key(username);
-        let entry = Entry::new(&self.service, &active_key)
-            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
-        let payload = match entry.get_password() {
-            Ok(payload) => payload,
-            Err(KeyringBackendError::NoEntry) => return Ok(None),
-            Err(error) => return Err(SecurityError::KeyringError(error.to_string())),
+        let Some(payload) = self.get_keyring_password(&active_key)? else {
+            return Ok(None);
         };
 
         payload
@@ -610,27 +609,90 @@ impl KeyringStore {
         version: u32,
     ) -> Result<(), SecurityError> {
         let active_key = totp_secret_active_key(username);
-        let entry = Entry::new(&self.service, &active_key)
-            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
-        entry
-            .set_password(&version.to_string())
-            .map_err(|e| SecurityError::KeyringError(e.to_string()))
+        self.set_keyring_password(&active_key, &version.to_string())
+    }
+
+    fn get_keyring_password(&self, key: &str) -> Result<Option<String>, SecurityError> {
+        match &self.backend {
+            CredentialBackend::System => {
+                let entry = Entry::new(&self.service, key)
+                    .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
+                match entry.get_password() {
+                    Ok(payload) => Ok(Some(payload)),
+                    Err(KeyringBackendError::NoEntry) => Ok(None),
+                    Err(error) => Err(SecurityError::KeyringError(error.to_string())),
+                }
+            }
+            CredentialBackend::InMemory(entries) => entries
+                .lock()
+                .map(|entries| entries.get(key).cloned())
+                .map_err(|e| SecurityError::KeyringError(e.to_string())),
+        }
+    }
+
+    fn set_keyring_password(&self, key: &str, password: &str) -> Result<(), SecurityError> {
+        match &self.backend {
+            CredentialBackend::System => {
+                let entry = Entry::new(&self.service, key)
+                    .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
+                entry
+                    .set_password(password)
+                    .map_err(|e| SecurityError::KeyringError(e.to_string()))
+            }
+            CredentialBackend::InMemory(entries) => entries
+                .lock()
+                .map(|mut entries| {
+                    entries.insert(key.to_string(), password.to_string());
+                })
+                .map_err(|e| SecurityError::KeyringError(e.to_string())),
+        }
     }
 
     fn delete_keyring_password(&self, key: &str) -> Result<(), SecurityError> {
-        let entry = Entry::new(&self.service, key)
-            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
-        match entry.delete_password() {
-            Ok(()) | Err(KeyringBackendError::NoEntry) => Ok(()),
-            Err(error) => Err(SecurityError::KeyringError(error.to_string())),
+        match &self.backend {
+            CredentialBackend::System => {
+                let entry = Entry::new(&self.service, key)
+                    .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
+                match entry.delete_password() {
+                    Ok(()) | Err(KeyringBackendError::NoEntry) => Ok(()),
+                    Err(error) => Err(SecurityError::KeyringError(error.to_string())),
+                }
+            }
+            CredentialBackend::InMemory(entries) => entries
+                .lock()
+                .map(|mut entries| {
+                    entries.remove(key);
+                })
+                .map_err(|e| SecurityError::KeyringError(e.to_string())),
         }
     }
+}
+
+enum CredentialBackend {
+    System,
+    InMemory(Arc<Mutex<BTreeMap<String, String>>>),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum MfaAuditEventKind {
+    VerificationSucceeded,
+    VerificationFailed,
+    RateLimited,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MfaAuditEvent {
+    pub username: String,
+    pub kind: MfaAuditEventKind,
+    pub unix_timestamp: u64,
 }
 
 /// Tracks users that have recently passed MFA verification.
 pub struct MfaGuard {
     session_ttl_seconds: u64,
     verified_sessions: Mutex<BTreeMap<String, u64>>,
+    failed_attempts: Mutex<BTreeMap<String, Vec<u64>>>,
+    audit_events: Mutex<Vec<MfaAuditEvent>>,
 }
 
 impl MfaGuard {
@@ -638,6 +700,8 @@ impl MfaGuard {
         Self {
             session_ttl_seconds,
             verified_sessions: Mutex::new(BTreeMap::new()),
+            failed_attempts: Mutex::new(BTreeMap::new()),
+            audit_events: Mutex::new(Vec::new()),
         }
     }
 
@@ -654,6 +718,50 @@ impl MfaGuard {
             .ok()
             .and_then(|sessions| sessions.get(username).copied())
             .is_some_and(|expires_at| unix_timestamp <= expires_at)
+    }
+
+    pub fn record_failed_attempt(&self, username: &str, unix_timestamp: u64) {
+        if let Ok(mut attempts_by_user) = self.failed_attempts.lock() {
+            let attempts = attempts_by_user.entry(username.to_string()).or_default();
+            prune_mfa_attempts(attempts, unix_timestamp);
+            attempts.push(unix_timestamp);
+        }
+    }
+
+    pub fn clear_failed_attempts(&self, username: &str) {
+        if let Ok(mut attempts_by_user) = self.failed_attempts.lock() {
+            attempts_by_user.remove(username);
+        }
+    }
+
+    pub fn is_rate_limited(&self, username: &str, unix_timestamp: u64) -> bool {
+        self.failed_attempts
+            .lock()
+            .ok()
+            .and_then(|mut attempts_by_user| {
+                attempts_by_user.get_mut(username).map(|attempts| {
+                    prune_mfa_attempts(attempts, unix_timestamp);
+                    attempts.len() >= MFA_RATE_LIMIT_MAX_ATTEMPTS
+                })
+            })
+            .unwrap_or(false)
+    }
+
+    pub fn record_audit_event(&self, username: &str, kind: MfaAuditEventKind, unix_timestamp: u64) {
+        if let Ok(mut audit_events) = self.audit_events.lock() {
+            audit_events.push(MfaAuditEvent {
+                username: username.to_string(),
+                kind,
+                unix_timestamp,
+            });
+        }
+    }
+
+    pub fn audit_events(&self) -> Vec<MfaAuditEvent> {
+        self.audit_events
+            .lock()
+            .map(|audit_events| audit_events.clone())
+            .unwrap_or_default()
     }
 }
 
@@ -684,4 +792,13 @@ fn current_unix_timestamp() -> Result<u64, SecurityError> {
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_secs())
         .map_err(|e| SecurityError::KeyringError(e.to_string()))
+}
+
+fn no_keyring_entry_error(key: &str) -> SecurityError {
+    SecurityError::KeyringError(format!("No keyring entry found for {key}"))
+}
+
+fn prune_mfa_attempts(attempts: &mut Vec<u64>, unix_timestamp: u64) {
+    let cutoff = unix_timestamp.saturating_sub(MFA_RATE_LIMIT_WINDOW_SECONDS);
+    attempts.retain(|attempt| *attempt > cutoff);
 }

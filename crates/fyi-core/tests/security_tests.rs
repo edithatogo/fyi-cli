@@ -1,7 +1,7 @@
 use fyi_core::security::{
     build_provisioning_uri, decrypt, encrypt, generate_totp_code, generate_totp_secret,
-    render_provisioning_qr_ascii, verify_totp_code, EncryptionKey, KeyringStore, MfaGuard,
-    SecurityError, ZeroizedBytes, ZeroizedString,
+    render_provisioning_qr_ascii, verify_totp_code, EncryptionKey, KeyringStore, MfaAuditEventKind,
+    MfaGuard, SecurityError, ZeroizedBytes, ZeroizedString,
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 use zeroize::Zeroize;
@@ -79,7 +79,7 @@ fn test_serialization_deserialization() {
 
 #[test]
 fn test_keyring_wrapper_graceful() {
-    let store = KeyringStore::new("fyi-cli-test-service");
+    let store = KeyringStore::new_in_memory("fyi-cli-test-service");
     let username = "test-user-credentials";
     let secret = ZeroizedString::new("super-secret-keyring-pass".to_string());
 
@@ -105,7 +105,7 @@ fn test_keyring_wrapper_graceful() {
 
 #[test]
 fn test_keyring_totp_secret_storage_graceful() {
-    let store = KeyringStore::new("fyi-cli-test-mfa-service");
+    let store = KeyringStore::new_in_memory("fyi-cli-test-mfa-service");
     let username = "test-user-mfa";
     let secret = ZeroizedString::new("JBSWY3DPEHPK3PXP".to_string());
 
@@ -138,7 +138,7 @@ fn test_keyring_totp_secret_storage_graceful() {
 
 #[test]
 fn test_keyring_totp_secret_rotation_graceful() {
-    let store = KeyringStore::new("fyi-cli-test-mfa-rotation-service");
+    let store = KeyringStore::new_in_memory("fyi-cli-test-mfa-rotation-service");
     let username = "test-user-mfa-rotation";
     let first = ZeroizedString::new("JBSWY3DPEHPK3PXP".to_string());
     let second = ZeroizedString::new("JBSWY3DPEHPK3PXQ".to_string());
@@ -224,7 +224,7 @@ fn test_mfa_guard_tracks_expiring_verified_sessions() {
 
 #[test]
 fn test_keyring_credential_access_requires_mfa_when_configured_graceful() {
-    let store = KeyringStore::new("fyi-cli-test-mfa-guard-service");
+    let store = KeyringStore::new_in_memory("fyi-cli-test-mfa-guard-service");
     let username = "test-user-mfa-guard-keyring";
     let credential = ZeroizedString::new("credential-protected-by-mfa".to_string());
     let totp_secret = ZeroizedString::new("JBSWY3DPEHPK3PXP".to_string());
@@ -263,6 +263,52 @@ fn test_keyring_credential_access_requires_mfa_when_configured_graceful() {
             println!("Keyring backend is unavailable or failed: {}", e);
         }
     }
+}
+
+#[test]
+fn test_keyring_mfa_rate_limits_failed_attempts_and_records_audit_events() {
+    let store = KeyringStore::new_in_memory("fyi-cli-test-mfa-rate-limit-service");
+    let username = "test-user-mfa-rate-limit";
+    let totp_secret = ZeroizedString::new("JBSWY3DPEHPK3PXP".to_string());
+    let timestamp = 1_700_000_000;
+    let valid_code = generate_totp_code(&totp_secret, timestamp).unwrap();
+
+    store
+        .store_totp_secret(username, &totp_secret)
+        .expect("Failed to store TOTP secret");
+
+    for _ in 0..5 {
+        assert!(!store
+            .verify_mfa_code(username, "000000", timestamp, 1)
+            .expect("Failed MFA attempts should return false before rate limit"));
+    }
+
+    assert!(matches!(
+        store.verify_mfa_code(username, &valid_code, timestamp, 1),
+        Err(SecurityError::MfaRateLimited(_))
+    ));
+
+    let audit_events = store.mfa_audit_events();
+    assert_eq!(
+        audit_events
+            .iter()
+            .filter(|event| event.kind == MfaAuditEventKind::VerificationFailed)
+            .count(),
+        5
+    );
+    assert!(audit_events
+        .iter()
+        .any(|event| event.kind == MfaAuditEventKind::RateLimited));
+
+    let later_timestamp = timestamp + 31;
+    let later_code = generate_totp_code(&totp_secret, later_timestamp).unwrap();
+    assert!(store
+        .verify_mfa_code(username, &later_code, later_timestamp, 1)
+        .expect("Valid MFA code should pass after rate-limit window expires"));
+    assert!(store
+        .mfa_audit_events()
+        .iter()
+        .any(|event| event.kind == MfaAuditEventKind::VerificationSucceeded));
 }
 
 #[test]
