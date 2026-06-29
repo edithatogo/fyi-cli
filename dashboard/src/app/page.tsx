@@ -1,17 +1,17 @@
 import { DashboardSummaryShell } from "@/components/DashboardSummaryShell";
-import { getDashboardSummary, type DashboardSummaryData } from "@/lib/dashboard-summary";
+import { getDashboardData, type DashboardData } from "@/lib/dashboard-summary";
 import { FyiMcpClient } from "@/lib/mcp-client";
 
 export const dynamic = "force-dynamic";
 
 async function loadDashboardSummary(): Promise<{
-  summary?: DashboardSummaryData;
+  data?: DashboardData;
   error?: string;
 }> {
   const client = new FyiMcpClient();
 
   try {
-    return { summary: await getDashboardSummary(client) };
+    return { data: await getDashboardData(client) };
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "Unable to load dashboard data",
@@ -22,7 +22,13 @@ async function loadDashboardSummary(): Promise<{
 }
 
 export default async function Home() {
-  const { summary, error } = await loadDashboardSummary();
+  const { data, error } = await loadDashboardSummary();
 
-  return <DashboardSummaryShell initialSummary={summary} initialError={error} />;
+  return (
+    <DashboardSummaryShell
+      initialSummary={data?.summary}
+      initialCharts={data?.charts}
+      initialError={error}
+    />
+  );
 }

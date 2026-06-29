@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildDashboardCharts,
+  getDashboardData,
   buildDashboardSummary,
   getDashboardSummary,
 } from "./dashboard-summary";
@@ -42,6 +43,34 @@ describe("dashboard summary data", () => {
       attentionNeeded: 1,
       overdue: 0,
       authoritiesCount: 1,
+    });
+  });
+
+  it("fetches combined dashboard summary and chart data", async () => {
+    const client = {
+      listRequests: async () => [
+        {
+          id: 1,
+          title: "A",
+          body: "Body",
+          status: "submitted",
+          created_at: "2026-04-01T00:00:00Z",
+        },
+      ],
+      listAuthorities: async () => [{ slug: "ombudsman", name: "Ombudsman" }],
+    };
+
+    await expect(getDashboardData(client)).resolves.toEqual({
+      summary: {
+        totalRequests: 1,
+        attentionNeeded: 1,
+        overdue: 0,
+        authoritiesCount: 1,
+      },
+      charts: {
+        statusDistribution: [{ status: "submitted", count: 1 }],
+        requestTimeline: [{ month: "2026-04", requests: 1 }],
+      },
     });
   });
 

@@ -4,8 +4,12 @@ import {
   Clock,
   AlertTriangle,
 } from "lucide-react";
+import { StatusDistributionChart } from "@/components/StatusDistributionChart";
 import { Card, CardContent } from "@/components/ui";
-import type { DashboardSummaryData } from "@/lib/dashboard-summary";
+import type {
+  DashboardChartData,
+  DashboardSummaryData,
+} from "@/lib/dashboard-summary";
 
 interface KpiCardProps {
   title: string;
@@ -50,10 +54,11 @@ function KpiCard({ title, value, icon, description, tone = "default" }: KpiCardP
 
 interface DashboardSummaryProps {
   summary?: DashboardSummaryData;
+  charts?: DashboardChartData;
   error?: string;
 }
 
-export function DashboardSummary({ summary, error }: DashboardSummaryProps) {
+export function DashboardSummary({ summary, charts, error }: DashboardSummaryProps) {
   const data = summary ?? {
     totalRequests: 0,
     attentionNeeded: 0,
@@ -106,6 +111,12 @@ export function DashboardSummary({ summary, error }: DashboardSummaryProps) {
           <KpiCard key={kpi.title} {...kpi} />
         ))}
       </div>
+
+      {charts && (
+        <div className="grid gap-6 xl:grid-cols-2">
+          <StatusDistributionChart data={charts.statusDistribution} />
+        </div>
+      )}
 
       {error && (
         <Card>

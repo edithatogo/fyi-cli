@@ -18,6 +18,11 @@ export interface DashboardChartData {
   }>;
 }
 
+export interface DashboardData {
+  summary: DashboardSummaryData;
+  charts: DashboardChartData;
+}
+
 type DashboardSummaryClient = {
   listRequests: (limit?: number) => Promise<FyiRequest[]>;
   listAuthorities: () => Promise<FyiAuthority[]>;
@@ -89,4 +94,18 @@ export async function getDashboardSummary(
   ]);
 
   return buildDashboardSummary(requests, authorities);
+}
+
+export async function getDashboardData(
+  client: DashboardSummaryClient
+): Promise<DashboardData> {
+  const [requests, authorities] = await Promise.all([
+    client.listRequests(500),
+    client.listAuthorities(),
+  ]);
+
+  return {
+    summary: buildDashboardSummary(requests, authorities),
+    charts: buildDashboardCharts(requests),
+  };
 }

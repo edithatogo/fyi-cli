@@ -2,20 +2,27 @@
 
 import { useEffect, useState } from "react";
 import { DashboardSummary } from "@/components/DashboardSummary";
-import type { DashboardSummaryData } from "@/lib/dashboard-summary";
+import type {
+  DashboardChartData,
+  DashboardData,
+  DashboardSummaryData,
+} from "@/lib/dashboard-summary";
 
 interface DashboardSummaryShellProps {
   initialSummary?: DashboardSummaryData;
+  initialCharts?: DashboardChartData;
   initialError?: string;
   refreshIntervalMs?: number;
 }
 
 export function DashboardSummaryShell({
   initialSummary,
+  initialCharts,
   initialError,
   refreshIntervalMs = 60_000,
 }: DashboardSummaryShellProps) {
   const [summary, setSummary] = useState(initialSummary);
+  const [charts, setCharts] = useState(initialCharts);
   const [error, setError] = useState(initialError);
 
   useEffect(() => {
@@ -31,9 +38,10 @@ export function DashboardSummaryShell({
           throw new Error(`Dashboard refresh failed with ${response.status}`);
         }
 
-        const nextSummary = (await response.json()) as DashboardSummaryData;
+        const dashboardData = (await response.json()) as DashboardData;
         if (active) {
-          setSummary(nextSummary);
+          setSummary(dashboardData.summary);
+          setCharts(dashboardData.charts);
           setError(undefined);
         }
       } catch (refreshError) {
@@ -54,5 +62,5 @@ export function DashboardSummaryShell({
     };
   }, [refreshIntervalMs]);
 
-  return <DashboardSummary summary={summary} error={error} />;
+  return <DashboardSummary summary={summary} charts={charts} error={error} />;
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDashboardSummary } from "@/lib/dashboard-summary";
+import { getDashboardData } from "@/lib/dashboard-summary";
 import { FyiMcpClient } from "@/lib/mcp-client";
 
 export const dynamic = "force-dynamic";
@@ -8,8 +8,8 @@ export async function GET() {
   const client = new FyiMcpClient();
 
   try {
-    const summary = await getDashboardSummary(client);
-    return NextResponse.json(summary);
+    const dashboardData = await getDashboardData(client);
+    return NextResponse.json(dashboardData);
   } catch (error) {
     return NextResponse.json(
       {

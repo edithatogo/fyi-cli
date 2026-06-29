@@ -4,6 +4,11 @@ import { DashboardSummaryShell } from "./DashboardSummaryShell";
 
 describe("DashboardSummaryShell", () => {
   beforeEach(() => {
+    global.ResizeObserver = class ResizeObserver {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
     vi.useFakeTimers();
   });
 
@@ -16,10 +21,16 @@ describe("DashboardSummaryShell", () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
-        totalRequests: 9,
-        attentionNeeded: 4,
-        overdue: 1,
-        authoritiesCount: 3,
+        summary: {
+          totalRequests: 9,
+          attentionNeeded: 4,
+          overdue: 1,
+          authoritiesCount: 3,
+        },
+        charts: {
+          statusDistribution: [{ status: "submitted", count: 9 }],
+          requestTimeline: [],
+        },
       }),
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -31,6 +42,10 @@ describe("DashboardSummaryShell", () => {
           attentionNeeded: 0,
           overdue: 0,
           authoritiesCount: 1,
+        }}
+        initialCharts={{
+          statusDistribution: [],
+          requestTimeline: [],
         }}
         refreshIntervalMs={1000}
       />
@@ -45,7 +60,7 @@ describe("DashboardSummaryShell", () => {
     expect(fetchMock).toHaveBeenCalledWith("/api/dashboard/summary", {
       cache: "no-store",
     });
-    expect(screen.getByText("9")).toBeDefined();
+    expect(screen.getAllByText("9")).toHaveLength(2);
     expect(screen.getByText("4")).toBeDefined();
     expect(screen.getByText("3")).toBeDefined();
   });
