@@ -5,13 +5,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui";
-
-export interface DashboardSummaryData {
-  totalRequests: number;
-  attentionNeeded: number;
-  overdue: number;
-  authoritiesCount: number;
-}
+import type { DashboardSummaryData } from "@/lib/dashboard-summary";
 
 interface KpiCardProps {
   title: string;
@@ -56,9 +50,10 @@ function KpiCard({ title, value, icon, description, tone = "default" }: KpiCardP
 
 interface DashboardSummaryProps {
   summary?: DashboardSummaryData;
+  error?: string;
 }
 
-export function DashboardSummary({ summary }: DashboardSummaryProps) {
+export function DashboardSummary({ summary, error }: DashboardSummaryProps) {
   const data = summary ?? {
     totalRequests: 0,
     attentionNeeded: 0,
@@ -111,6 +106,19 @@ export function DashboardSummary({ summary }: DashboardSummaryProps) {
           <KpiCard key={kpi.title} {...kpi} />
         ))}
       </div>
+
+      {error && (
+        <Card>
+          <CardContent className="p-6">
+            <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
+              Dashboard data could not be loaded.
+            </p>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {error}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardContent className="p-6">
