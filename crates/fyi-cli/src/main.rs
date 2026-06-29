@@ -1,6 +1,10 @@
 use clap::{Parser, Subcommand, ValueEnum};
+use fyi_core::security::{
+    build_provisioning_uri, generate_totp_secret, render_provisioning_qr_ascii, KeyringStore,
+};
 use std::fs::OpenOptions;
 use std::path::Path;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[cfg(feature = "dhat-on")]
 #[global_allocator]
@@ -322,10 +326,47 @@ pub enum Commands {
         #[arg(long)]
         output: Option<String>,
     },
+    #[command(about = "Manage MFA for stored credentials")]
+    Mfa {
+        #[command(subcommand)]
+        command: MfaCommand,
+    },
     #[command(about = "Run Model Context Protocol (MCP) server")]
     McpServer,
     #[command(about = "Launch Ratatui Dashboard TUI")]
     Tui,
+}
+
+#[derive(Subcommand, Debug, Clone, PartialEq, Eq)]
+pub enum MfaCommand {
+    #[command(about = "Generate and store a TOTP secret for an account")]
+    Setup {
+        account: String,
+        #[arg(long, default_value = "FYI CLI")]
+        issuer: String,
+        #[arg(long, default_value = "fyi-cli")]
+        service: String,
+    },
+    #[command(about = "Verify a TOTP code for an account")]
+    Verify {
+        account: String,
+        code: String,
+        #[arg(long)]
+        timestamp: Option<u64>,
+        #[arg(long, default_value = "fyi-cli")]
+        service: String,
+    },
+    #[command(about = "List accounts with MFA configured")]
+    Status {
+        #[arg(long, default_value = "fyi-cli")]
+        service: String,
+    },
+    #[command(about = "Remove MFA for an account")]
+    Remove {
+        account: String,
+        #[arg(long, default_value = "fyi-cli")]
+        service: String,
+    },
 }
 
 fn main() {
@@ -583,6 +624,12 @@ fn main() {
         } => {
             println!("Privacy audit on {} (Host: {:?}, Outputs: {}, Profile: {:?}, Settings: {:?}) to {:?}", db, host, outputs_dir, profile, settings, output);
         }
+        Commands::Mfa { command } => {
+            if let Err(error) = handle_mfa_command(command) {
+                eprintln!("MFA command failed: {error}");
+                std::process::exit(1);
+            }
+        }
         Commands::McpServer => {
             println!("Starting MCP Server...");
         }
@@ -590,6 +637,60 @@ fn main() {
             println!("Starting TUI Dashboard...");
         }
     }
+}
+
+fn handle_mfa_command(command: &MfaCommand) -> Result<(), Box<dyn std::error::Error>> {
+    match command {
+        MfaCommand::Setup {
+            account,
+            issuer,
+            service,
+        } => {
+            let store = KeyringStore::new(service);
+            let secret = generate_totp_secret()?;
+            store.store_totp_secret(account, &secret)?;
+            let uri = build_provisioning_uri(issuer, account, &secret)?;
+            println!("MFA configured for {account}");
+            println!("{uri}");
+            println!("{}", render_provisioning_qr_ascii(&uri)?);
+        }
+        MfaCommand::Verify {
+            account,
+            code,
+            timestamp,
+            service,
+        } => {
+            let store = KeyringStore::new(service);
+            let timestamp = match timestamp {
+                Some(timestamp) => *timestamp,
+                None => SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs(),
+            };
+            if store.verify_mfa_code(account, code, timestamp, 1)? {
+                println!("MFA verified for {account}");
+            } else {
+                println!("MFA verification failed for {account}");
+                std::process::exit(2);
+            }
+        }
+        MfaCommand::Status { service } => {
+            let store = KeyringStore::new(service);
+            let accounts = store.list_totp_secrets()?;
+            if accounts.is_empty() {
+                println!("No MFA accounts configured");
+            } else {
+                for account in accounts {
+                    println!("{account}");
+                }
+            }
+        }
+        MfaCommand::Remove { account, service } => {
+            let store = KeyringStore::new(service);
+            store.delete_totp_secret(account)?;
+            println!("MFA removed for {account}");
+        }
+    }
+
+    Ok(())
 }
 
 fn initialize_database_file(db: &str) -> std::io::Result<()> {
@@ -680,5 +781,63 @@ mod tests {
 
         let args = Cli::try_parse_from(["fyi-cli", "tui"]).unwrap();
         assert_eq!(args.command, Commands::Tui);
+    }
+
+    #[test]
+    fn test_parse_mfa_commands() {
+        let args = Cli::try_parse_from(["fyi-cli", "mfa", "setup", "alice@example.org"]).unwrap();
+        assert_eq!(
+            args.command,
+            Commands::Mfa {
+                command: MfaCommand::Setup {
+                    account: "alice@example.org".to_string(),
+                    issuer: "FYI CLI".to_string(),
+                    service: "fyi-cli".to_string(),
+                }
+            }
+        );
+
+        let args = Cli::try_parse_from([
+            "fyi-cli",
+            "mfa",
+            "verify",
+            "alice@example.org",
+            "123456",
+            "--timestamp",
+            "1700000000",
+        ])
+        .unwrap();
+        assert_eq!(
+            args.command,
+            Commands::Mfa {
+                command: MfaCommand::Verify {
+                    account: "alice@example.org".to_string(),
+                    code: "123456".to_string(),
+                    timestamp: Some(1_700_000_000),
+                    service: "fyi-cli".to_string(),
+                }
+            }
+        );
+
+        let args = Cli::try_parse_from(["fyi-cli", "mfa", "status"]).unwrap();
+        assert_eq!(
+            args.command,
+            Commands::Mfa {
+                command: MfaCommand::Status {
+                    service: "fyi-cli".to_string(),
+                }
+            }
+        );
+
+        let args = Cli::try_parse_from(["fyi-cli", "mfa", "remove", "alice@example.org"]).unwrap();
+        assert_eq!(
+            args.command,
+            Commands::Mfa {
+                command: MfaCommand::Remove {
+                    account: "alice@example.org".to_string(),
+                    service: "fyi-cli".to_string(),
+                }
+            }
+        );
     }
 }
