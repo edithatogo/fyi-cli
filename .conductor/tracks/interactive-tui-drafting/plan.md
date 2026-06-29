@@ -30,14 +30,14 @@
 - [x] Commit: `feat(tui): add credential manager dialog` [42d025f]
 
 ### Task 2.2: Credential testing and session status
-- [~] Add "Test Credential" button that verifies against FYI API
-- [ ] Display current active account and session status in header
-- [ ] Commit: `feat(tui): add credential testing and session status display`
+- [x] Add "Test Credential" button that verifies against FYI API
+- [x] Display current active account and session status in header
+- [x] Commit: `feat(tui): add credential testing and session status display` [7e48ea1]
 
 ## Phase 3: Keyring Management Dashboard
 
 ### Task 3.1: Keyring browser
-- [ ] Build keyring browser view (list stored credentials)
+- [~] Build keyring browser view (list stored credentials)
 - [ ] Show key metadata (service, username, created, last used)
 - [ ] Commit: `feat(tui): add keyring browser dashboard`
 
