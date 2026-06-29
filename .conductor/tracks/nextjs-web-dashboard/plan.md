@@ -46,8 +46,8 @@
 
 ### Task 3.2: Interactive charts
 - [x] Add charting library (Chart.js or Recharts) [94f771e]
-- [~] Build status distribution pie/donut chart
-- [ ] Build request timeline bar/line chart
+- [x] Build status distribution pie/donut chart [0f105ee]
+- [~] Build request timeline bar/line chart
 - [ ] Build attention heatmap or trends chart
 - [ ] Commit: `feat(dashboard): add interactive charts for request analytics`
 
