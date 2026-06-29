@@ -28,8 +28,8 @@
 - [x] Build requests list page with server-side data fetching via MCP [d9f7dca]
 - [x] Build request creation form with authority selector
 - [x] Build request detail page with inline editing
-- [~] Build request deletion with confirmation
-- [ ] Commit: `feat(dashboard): implement request CRUD operations via MCP`
+- [x] Build request deletion with confirmation
+- [x] Commit: `feat(dashboard): implement request CRUD operations via MCP`
 
 ### Task 2.3: Authority management
 - [ ] Build authorities browse page

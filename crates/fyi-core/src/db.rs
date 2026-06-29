@@ -147,6 +147,16 @@ impl DbPool {
         Ok(result.rows_affected() > 0)
     }
 
+    /// Deletes a request by ID. Correspondence rows are removed by SQLite cascade.
+    pub async fn delete_request(&self, id: i64) -> Result<bool, sqlx::Error> {
+        let result = sqlx::query("DELETE FROM requests WHERE id = ?")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(result.rows_affected() > 0)
+    }
+
     /// Inserts a new `AlaveteliCorrespondence` associated with a request ID.
     pub async fn insert_correspondence(
         &self,

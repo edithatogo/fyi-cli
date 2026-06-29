@@ -143,4 +143,28 @@ describe("FyiMcpClient", () => {
     ]);
     await client.close();
   });
+
+  it("deletes requests through the MCP delete_request tool", async () => {
+    const client = createClient((request) => {
+      expect(request.params).toEqual({
+        name: "delete_request",
+        arguments: { id: 42 },
+      });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({ deleted: true, id: 42 }),
+          },
+        ],
+      };
+    });
+
+    await expect(client.deleteRequest(42)).resolves.toEqual({
+      deleted: true,
+      id: 42,
+    });
+    await client.close();
+  });
 });

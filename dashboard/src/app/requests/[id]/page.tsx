@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, Trash2 } from "lucide-react";
 import {
   Badge,
   Button,
@@ -76,6 +76,26 @@ async function updateRequest(formData: FormData) {
   }
 
   redirect(`/requests/${id}`);
+}
+
+async function deleteRequest(formData: FormData) {
+  "use server";
+
+  const id = Number(formData.get("id"));
+  const confirmed = formData.get("confirm_delete") === "on";
+
+  if (!Number.isFinite(id) || !confirmed) {
+    throw new Error("Confirm deletion before deleting this request.");
+  }
+
+  const client = new FyiMcpClient();
+  try {
+    await client.deleteRequest(id);
+  } finally {
+    await client.close();
+  }
+
+  redirect("/requests");
 }
 
 function badgeVariant(status?: string | null) {
@@ -198,6 +218,36 @@ export default async function RequestDetailPage({
               <Button type="submit">
                 <Save className="h-4 w-4" />
                 Save changes
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card className="border-red-200 dark:border-red-900">
+        <CardHeader>
+          <h3 className="text-base font-semibold text-red-700 dark:text-red-300">
+            Delete request
+          </h3>
+        </CardHeader>
+        <CardContent>
+          <form action={deleteRequest} className="grid gap-4">
+            <input type="hidden" name="id" value={request.id} />
+            <label className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-300">
+              <input
+                name="confirm_delete"
+                type="checkbox"
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                required
+              />
+              <span>
+                I understand this will delete the request and any captured correspondence from the local database.
+              </span>
+            </label>
+            <div className="flex justify-end">
+              <Button type="submit" variant="danger">
+                <Trash2 className="h-4 w-4" />
+                Delete request
               </Button>
             </div>
           </form>

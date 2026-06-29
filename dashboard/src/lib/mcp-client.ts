@@ -77,6 +77,11 @@ export interface FyiStatus {
   };
 }
 
+export interface DeleteRequestResult {
+  deleted: boolean;
+  id: number;
+}
+
 export interface FyiRequestWithCorrespondence {
   request: FyiRequest;
   correspondence: FyiCorrespondence[];
@@ -219,6 +224,10 @@ export class FyiMcpClient {
 
   async updateRequest(input: UpdateRequestInput): Promise<FyiRequest> {
     return this.callTool<FyiRequest>("update_request", input as unknown as JsonValue);
+  }
+
+  async deleteRequest(id: number): Promise<DeleteRequestResult> {
+    return this.callTool<DeleteRequestResult>("delete_request", { id });
   }
 
   async listAuthorities(): Promise<FyiAuthority[]> {

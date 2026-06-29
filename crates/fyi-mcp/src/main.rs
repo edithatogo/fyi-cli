@@ -177,6 +177,20 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                         }
                     },
                     {
+                        "name": "delete_request",
+                        "description": "Delete a request and its correspondence from the database",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "integer",
+                                    "description": "The request ID"
+                                }
+                            },
+                            "required": ["id"]
+                        }
+                    },
+                    {
                         "name": "list_authorities",
                         "description": "List authorities stored in the database",
                         "inputSchema": {
@@ -455,6 +469,53 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                         )),
                     }
                 }
+                "delete_request" => {
+                    let id = match arguments.get("id").and_then(|i| i.as_i64()) {
+                        Some(i) => i,
+                        None => return Some(JsonRpcResponse::error(req.id, -32602, "Invalid or missing 'id' argument".to_string())),
+                    };
+
+                    match db.delete_request(id).await {
+                        Ok(true) => Some(JsonRpcResponse::success(
+                            req.id,
+                            json!({
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": serde_json::to_string_pretty(&json!({
+                                            "deleted": true,
+                                            "id": id
+                                        })).unwrap()
+                                    }
+                                ]
+                            })
+                        )),
+                        Ok(false) => Some(JsonRpcResponse::success(
+                            req.id,
+                            json!({
+                                "isError": true,
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": format!("Request with ID {} not found", id)
+                                    }
+                                ]
+                            })
+                        )),
+                        Err(e) => Some(JsonRpcResponse::success(
+                            req.id,
+                            json!({
+                                "isError": true,
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": format!("Failed to delete request: {}", e)
+                                    }
+                                ]
+                            })
+                        )),
+                    }
+                }
                 "list_authorities" => {
                     if let Err(e) = ensure_authorities_table(db.pool()).await {
                         return Some(JsonRpcResponse::success(
@@ -634,6 +695,7 @@ mod tests {
         assert!(tools.iter().any(|t| t.get("name").unwrap().as_str().unwrap() == "list_requests"));
         assert!(tools.iter().any(|t| t.get("name").unwrap().as_str().unwrap() == "create_request"));
         assert!(tools.iter().any(|t| t.get("name").unwrap().as_str().unwrap() == "update_request"));
+        assert!(tools.iter().any(|t| t.get("name").unwrap().as_str().unwrap() == "delete_request"));
         assert!(tools.iter().any(|t| t.get("name").unwrap().as_str().unwrap() == "list_authorities"));
         assert!(tools.iter().any(|t| t.get("name").unwrap().as_str().unwrap() == "check_status"));
     }
@@ -786,6 +848,41 @@ mod tests {
         assert_eq!(request.user_name, Some("Alice".to_string()));
         assert_eq!(request.status, Some("submitted".to_string()));
         assert_eq!(request.created_at, Some("2026-06-15T00:00:00Z".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_delete_request() {
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+        db.insert_request(&AlaveteliRequest {
+            id: 1,
+            title: "Delete me".to_string(),
+            body: "Body".to_string(),
+            user_name: None,
+            status: Some("draft".to_string()),
+            created_at: Some("2026-06-15T00:00:00Z".to_string()),
+            updated_at: None,
+            url: None,
+            tags: None,
+        })
+        .await
+        .unwrap();
+
+        let req = JsonRpcRequest {
+            jsonrpc: "2.0".to_string(),
+            id: Some(json!(8)),
+            method: "tools/call".to_string(),
+            params: Some(json!({
+                "name": "delete_request",
+                "arguments": {
+                    "id": 1
+                }
+            })),
+        };
+
+        let resp = handle_jsonrpc_request(&db, req).await.unwrap();
+        assert_eq!(resp.id, Some(json!(8)));
+        assert!(db.get_request(1).await.unwrap().is_none());
     }
 
     #[tokio::test]
