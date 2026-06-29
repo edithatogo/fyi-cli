@@ -1,0 +1,14 @@
+Task: Request editor view
+
+Summary:
+- Added a new Request Editor tab to the Ratatui TUI navigation.
+- Rendered title, body, and tags editor panels using existing TUI patterns.
+- Added a lightweight TextInput helper for inline text mutation.
+- Wired editor load/save helpers to fyi-core DbPool for request persistence.
+- Added render, text input, and database round-trip tests.
+
+Modified files:
+- crates/fyi-cli/src/tui.rs
+
+Why:
+This establishes the editable TUI surface and persistence seam required before markdown preview, autosave, and richer editor keybindings can be layered on top.
