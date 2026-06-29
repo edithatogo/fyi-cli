@@ -27,7 +27,7 @@
 ### Task 2.2: Request CRUD pages
 - [x] Build requests list page with server-side data fetching via MCP [d9f7dca]
 - [x] Build request creation form with authority selector
-- [ ] Build request detail page with inline editing
+- [~] Build request detail page with inline editing
 - [ ] Build request deletion with confirmation
 - [ ] Commit: `feat(dashboard): implement request CRUD operations via MCP`
 
