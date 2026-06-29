@@ -79,10 +79,10 @@
 
 ### Task 5.2: Bulk actions and responsive design
 - [x] Implement bulk status update (multi-select) [c5936b6]
-- [~] Implement bulk export
-- [ ] Make all views mobile-responsive
-- [ ] Add accessibility labels and keyboard navigation
-- [ ] Commit: `feat(dashboard): add bulk actions, responsive design, and accessibility`
+- [x] Implement bulk export [0b71841]
+- [x] Make all views mobile-responsive [0b71841]
+- [x] Add accessibility labels and keyboard navigation [0b71841]
+- [x] Commit: `feat(dashboard): add bulk actions, responsive design, and accessibility` [0b71841]
 
 ### Task 5.3: Conductor review
 - [ ] Run conductor-review for nextjs-web-dashboard track
