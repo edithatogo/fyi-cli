@@ -56,14 +56,14 @@
 - [x] Commit: `feat(tui): add fuzzy search across all entities` [c8d389b]
 
 ### Task 4.2: Bulk operations and help system
-- [~] Add multi-select mode for requests
-- [ ] Add bulk status update action
-- [ ] Add export trigger actions from TUI
-- [ ] Add help overlay (Ctrl+H/F1 shows keybindings)
-- [ ] Commit: `feat(tui): add bulk operations, export triggers, and help system`
+- [x] Add multi-select mode for requests
+- [x] Add bulk status update action
+- [x] Add export trigger actions from TUI
+- [x] Add help overlay (Ctrl+H/F1 shows keybindings)
+- [x] Commit: `feat(tui): add bulk operations, export triggers, and help system` [a2fa5e6]
 
 ### Task 4.3: Conductor review
-- [ ] Run conductor-review for interactive-tui-drafting track
+- [~] Run conductor-review for interactive-tui-drafting track
 - [ ] Apply any fix recommendations
 - [ ] Push to GitHub
 - [ ] Commit: `conductor(track): complete interactive-tui-drafting after review`
