@@ -1,5 +1,6 @@
 use fyi_core::security::{
-    decrypt, encrypt, EncryptionKey, KeyringStore, ZeroizedBytes, ZeroizedString,
+    decrypt, encrypt, generate_totp_code, generate_totp_secret, verify_totp_code, EncryptionKey,
+    KeyringStore, ZeroizedBytes, ZeroizedString,
 };
 use zeroize::Zeroize;
 
@@ -15,7 +16,7 @@ fn test_zeroize_scrubbing() {
     let mut secret_bytes = ZeroizedBytes::new(vec![10, 20, 30, 40, 50]);
     assert_eq!(secret_bytes.as_slice(), &[10, 20, 30, 40, 50]);
     secret_bytes.zeroize();
-    assert_eq!(secret_bytes.as_slice(), &[]);
+    assert_eq!(secret_bytes.as_slice(), &[] as &[u8]);
 
     // 3. EncryptionKey
     let mut key = EncryptionKey([0xFF; 32]);
@@ -98,4 +99,55 @@ fn test_keyring_wrapper_graceful() {
             println!("Keyring backend is unavailable or failed: {}", e);
         }
     }
+}
+
+#[test]
+fn test_totp_matches_rfc6238_sha1_vectors() {
+    let secret = ZeroizedString::new("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ".to_string());
+
+    assert_eq!(generate_totp_code(&secret, 59).unwrap(), "287082");
+    assert_eq!(
+        generate_totp_code(&secret, 1_111_111_109).unwrap(),
+        "081804"
+    );
+    assert_eq!(
+        generate_totp_code(&secret, 1_111_111_111).unwrap(),
+        "050471"
+    );
+    assert_eq!(
+        generate_totp_code(&secret, 1_234_567_890).unwrap(),
+        "005924"
+    );
+    assert_eq!(
+        generate_totp_code(&secret, 2_000_000_000).unwrap(),
+        "279037"
+    );
+    assert_eq!(
+        generate_totp_code(&secret, 20_000_000_000).unwrap(),
+        "353130"
+    );
+}
+
+#[test]
+fn test_totp_verification_honors_drift_windows() {
+    let secret = ZeroizedString::new("JBSWY3DPEHPK3PXP".to_string());
+    let generated = generate_totp_code(&secret, 1_700_000_000).unwrap();
+
+    assert!(verify_totp_code(&secret, &generated, 1_700_000_000, 0).unwrap());
+    assert!(verify_totp_code(&secret, &generated, 1_700_000_030, 1).unwrap());
+    assert!(!verify_totp_code(&secret, &generated, 1_700_000_090, 1).unwrap());
+    assert!(!verify_totp_code(&secret, "not-a-code", 1_700_000_000, 1).unwrap());
+}
+
+#[test]
+fn test_totp_secret_generation_returns_distinct_base32_secrets() {
+    let first = generate_totp_secret().unwrap();
+    let second = generate_totp_secret().unwrap();
+
+    assert_eq!(first.as_str().len(), 32);
+    assert!(first
+        .as_str()
+        .chars()
+        .all(|ch| matches!(ch, 'A'..='Z' | '2'..='7')));
+    assert_ne!(first.as_str(), second.as_str());
 }

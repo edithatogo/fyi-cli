@@ -1,8 +1,11 @@
 use aes_gcm::{
     aead::{Aead, AeadCore, KeyInit, OsRng},
-    Aes256Gcm, Nonce, Key
+    Aes256Gcm, Key, Nonce,
 };
+use data_encoding::BASE32_NOPAD;
+use hmac::{Hmac, Mac};
 use keyring::Entry;
+use sha1::Sha1;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 #[derive(thiserror::Error, Debug)]
@@ -18,6 +21,9 @@ pub enum SecurityError {
 
     #[error("Ciphertext too short: must be at least {0} bytes")]
     CiphertextTooShort(usize),
+
+    #[error("Invalid TOTP secret: {0}")]
+    InvalidTotpSecret(String),
 }
 
 /// A wrapper around a String that ensures its contents are zeroed out when dropped.
@@ -62,6 +68,101 @@ impl<'de> serde::Deserialize<'de> for ZeroizedString {
     {
         String::deserialize(deserializer).map(Self)
     }
+}
+
+const TOTP_SECRET_BYTES: usize = 20;
+const TOTP_TIME_STEP_SECONDS: u64 = 30;
+const TOTP_DIGITS: u32 = 6;
+
+type HmacSha1 = Hmac<Sha1>;
+
+/// Generates a cryptographically secure base32 TOTP secret.
+pub fn generate_totp_secret() -> Result<ZeroizedString, SecurityError> {
+    use aes_gcm::aead::rand_core::RngCore;
+
+    let mut secret = [0u8; TOTP_SECRET_BYTES];
+    OsRng.fill_bytes(&mut secret);
+    let encoded = BASE32_NOPAD.encode(&secret);
+    secret.zeroize();
+    Ok(ZeroizedString::new(encoded))
+}
+
+/// Generates an RFC 6238 TOTP code for the provided Unix timestamp.
+pub fn generate_totp_code(
+    secret: &ZeroizedString,
+    unix_timestamp: u64,
+) -> Result<String, SecurityError> {
+    let mut secret_bytes = decode_totp_secret(secret)?;
+    let counter = unix_timestamp / TOTP_TIME_STEP_SECONDS;
+    let code = hotp(&secret_bytes, counter, TOTP_DIGITS)?;
+    secret_bytes.zeroize();
+    Ok(format!("{code:0width$}", width = TOTP_DIGITS as usize))
+}
+
+/// Verifies a TOTP code using the provided drift tolerance in 30-second windows.
+pub fn verify_totp_code(
+    secret: &ZeroizedString,
+    code: &str,
+    unix_timestamp: u64,
+    drift_windows: u8,
+) -> Result<bool, SecurityError> {
+    if !is_valid_totp_code(code) {
+        return Ok(false);
+    }
+
+    let current_step = unix_timestamp / TOTP_TIME_STEP_SECONDS;
+    for offset in -(drift_windows as i64)..=(drift_windows as i64) {
+        let Some(step) = current_step.checked_add_signed(offset) else {
+            continue;
+        };
+        let candidate = generate_totp_code(secret, step * TOTP_TIME_STEP_SECONDS)?;
+        if constant_time_eq(candidate.as_bytes(), code.as_bytes()) {
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
+}
+
+fn decode_totp_secret(secret: &ZeroizedString) -> Result<Vec<u8>, SecurityError> {
+    let normalized = secret
+        .as_str()
+        .chars()
+        .filter(|ch| !ch.is_ascii_whitespace())
+        .collect::<String>()
+        .to_ascii_uppercase();
+
+    BASE32_NOPAD
+        .decode(normalized.as_bytes())
+        .map_err(|e| SecurityError::InvalidTotpSecret(e.to_string()))
+}
+
+fn hotp(secret: &[u8], counter: u64, digits: u32) -> Result<u32, SecurityError> {
+    let mut mac = <HmacSha1 as Mac>::new_from_slice(secret)
+        .map_err(|e| SecurityError::InvalidTotpSecret(e.to_string()))?;
+    mac.update(&counter.to_be_bytes());
+    let result = mac.finalize().into_bytes();
+    let offset = (result[19] & 0x0f) as usize;
+    let binary = ((u32::from(result[offset]) & 0x7f) << 24)
+        | (u32::from(result[offset + 1]) << 16)
+        | (u32::from(result[offset + 2]) << 8)
+        | u32::from(result[offset + 3]);
+    Ok(binary % 10_u32.pow(digits))
+}
+
+fn is_valid_totp_code(code: &str) -> bool {
+    matches!(code.len(), 6 | 8) && code.chars().all(|ch| ch.is_ascii_digit())
+}
+
+fn constant_time_eq(left: &[u8], right: &[u8]) -> bool {
+    if left.len() != right.len() {
+        return false;
+    }
+
+    left.iter()
+        .zip(right.iter())
+        .fold(0u8, |acc, (left, right)| acc | (left ^ right))
+        == 0
 }
 
 /// A wrapper around a byte vector that ensures its contents are zeroed out when dropped.
@@ -128,18 +229,18 @@ pub fn encrypt(
     key: &EncryptionKey,
 ) -> Result<ZeroizedBytes, SecurityError> {
     let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&key.0));
-    
+
     // Generate a random 96-bit nonce
     let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
-    
+
     let ciphertext = cipher
         .encrypt(&nonce, plaintext.as_slice())
         .map_err(|e| SecurityError::EncryptionError(e.to_string()))?;
-        
+
     let mut result = Vec::with_capacity(nonce.len() + ciphertext.len());
     result.extend_from_slice(&nonce);
     result.extend_from_slice(&ciphertext);
-    
+
     Ok(ZeroizedBytes::new(result))
 }
 
@@ -152,15 +253,15 @@ pub fn decrypt(
     if data.len() < 12 {
         return Err(SecurityError::CiphertextTooShort(12));
     }
-    
+
     let (nonce_bytes, ciphertext_bytes) = data.split_at(12);
     let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&key.0));
     let nonce = Nonce::from_slice(nonce_bytes);
-    
+
     let decrypted = cipher
         .decrypt(nonce, ciphertext_bytes)
         .map_err(|e| SecurityError::DecryptionError(e.to_string()))?;
-        
+
     Ok(ZeroizedBytes::new(decrypted))
 }
 
