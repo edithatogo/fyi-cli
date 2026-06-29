@@ -68,6 +68,11 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Results: >95% test coverage (96%), >90% mutation score (91%), load-testing scenarios fully implemented, performance baseline established.*
   *Status: TARGET ACHIEVED*
 
+- [x] **Track: nextjs-web-dashboard** (COMPLETED 2026-06-30)
+  *Link: [./archive/nextjs-web-dashboard/](./archive/nextjs-web-dashboard/)*
+  *Description: Built a modern Next.js web interface with interactive charting, TailwindCSS, MCP-backed request management, search/filtering, bulk actions, responsive layouts, and accessibility improvements.*
+  *Status: TARGET ACHIEVED*
+
 ---
 
 ## Active Tracks
@@ -91,11 +96,6 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Link: [./tracks/archive-health-doctor/](./tracks/archive-health-doctor/)*
   *Description: Archive health reporting (freshness, coverage gaps, raw record counts) consumed by fyi-archive's doctor/parity CI.*
   *Consumer: fyi-archive `observability_quality_20260627`.*
-
-- [~] **Track: nextjs-web-dashboard** (IN PROGRESS)
-  *Link: [./tracks/nextjs-web-dashboard/](./tracks/nextjs-web-dashboard/)*
-  *Description: Build a modern, highly aesthetic Next.js web interface featuring interactive charting and TailwindCSS to replace the basic Python HTTP UI, communicating with the Rust core service.*
-  *Status: Phase 1 in progress*
 
 - [ ] **Track: mfa-authentication-layer** (PENDING)
   *Link: [./tracks/mfa-authentication-layer/](./tracks/mfa-authentication-layer/)*
