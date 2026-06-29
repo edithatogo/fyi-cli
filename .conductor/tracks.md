@@ -73,6 +73,11 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Description: Built a modern Next.js web interface with interactive charting, TailwindCSS, MCP-backed request management, search/filtering, bulk actions, responsive layouts, and accessibility improvements.*
   *Status: TARGET ACHIEVED*
 
+- [x] **Track: mfa-authentication-layer** (COMPLETED 2026-06-30)
+  *Link: [./archive/mfa-authentication-layer/](./archive/mfa-authentication-layer/)*
+  *Description: Implemented Multi-Factor Authentication (MFA) via TOTP tokens inside the security engine to guard credential access, CLI management commands, TUI visibility, and MCP tool exposure.*
+  *Status: TARGET ACHIEVED*
+
 ---
 
 ## Active Tracks
@@ -96,10 +101,6 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Link: [./tracks/archive-health-doctor/](./tracks/archive-health-doctor/)*
   *Description: Archive health reporting (freshness, coverage gaps, raw record counts) consumed by fyi-archive's doctor/parity CI.*
   *Consumer: fyi-archive `observability_quality_20260627`.*
-
-- [x] **Track: mfa-authentication-layer** (COMPLETED 2026-06-30)
-  *Link: [./tracks/mfa-authentication-layer/](./tracks/mfa-authentication-layer/)*
-  *Description: Implemented Multi-Factor Authentication (MFA) via TOTP tokens inside the security engine to guard credential access, CLI management commands, TUI visibility, and MCP tool exposure.*
 
 - [ ] **Track: interactive-tui-drafting** (PENDING)
   *Link: [./tracks/interactive-tui-drafting/](./tracks/interactive-tui-drafting/)*

@@ -67,4 +67,4 @@
 - [x] Commit: `conductor(track): complete mfa-authentication-layer after review` [894c04b]
 
 ## Archive
-- [ ] Archive track: move to archive/ directory
+- [x] Archive track: move to archive/ directory
