@@ -19,17 +19,22 @@ pub struct PullReport {
 pub struct PushReport {
     pub queued: usize,
     pub submitted: usize,
+    pub failed: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SyncConfig {
     pub pull_interval: Duration,
+    pub push_max_retries: u32,
+    pub push_initial_backoff: Duration,
 }
 
 impl Default for SyncConfig {
     fn default() -> Self {
         Self {
             pull_interval: Duration::from_secs(300),
+            push_max_retries: 3,
+            push_initial_backoff: Duration::from_secs(1),
         }
     }
 }
@@ -132,25 +137,45 @@ impl SyncClient {
     }
 
     pub async fn push_dirty(&self, db: &DbPool) -> Result<PushReport> {
+        self.push_dirty_with_config(db, &SyncConfig::default())
+            .await
+    }
+
+    pub async fn push_dirty_with_config(
+        &self,
+        db: &DbPool,
+        config: &SyncConfig,
+    ) -> Result<PushReport> {
         let dirty_requests = db.list_dirty_requests(500).await?;
         let mut submitted = 0;
+        let mut failed = 0;
 
         for request in &dirty_requests {
             let queue_id = db.enqueue_request_submission(request).await?;
-            let response = self.submit_request(request).await?;
-            db.mark_submission_confirmed(
-                queue_id,
-                request.id,
-                response.id,
-                request.updated_at.as_deref(),
-            )
-            .await?;
-            submitted += 1;
+            match self.submit_request_with_retries(request, config).await {
+                Ok(response) => {
+                    db.mark_submission_confirmed(
+                        queue_id,
+                        request.id,
+                        response.id,
+                        request.updated_at.as_deref(),
+                    )
+                    .await?;
+                    submitted += 1;
+                }
+                Err(error) => {
+                    let attempts = i64::from(config.push_max_retries.max(1));
+                    db.mark_submission_failed(queue_id, request.id, attempts, &error.to_string())
+                        .await?;
+                    failed += 1;
+                }
+            }
         }
 
         Ok(PushReport {
             queued: dirty_requests.len(),
             submitted,
+            failed,
         })
     }
 
@@ -171,6 +196,32 @@ impl SyncClient {
             .json::<CreateRequestResponse>()
             .await
             .context("failed to parse request submission response")
+    }
+
+    async fn submit_request_with_retries(
+        &self,
+        request: &AlaveteliRequest,
+        config: &SyncConfig,
+    ) -> Result<CreateRequestResponse> {
+        let max_attempts = config.push_max_retries.max(1);
+        let mut last_error = None;
+
+        for attempt in 1..=max_attempts {
+            match self.submit_request(request).await {
+                Ok(response) => return Ok(response),
+                Err(error) => {
+                    last_error = Some(error);
+                    if attempt < max_attempts {
+                        let delay = config
+                            .push_initial_backoff
+                            .saturating_mul(1 << (attempt - 1));
+                        tokio::time::sleep(delay).await;
+                    }
+                }
+            }
+        }
+
+        Err(last_error.unwrap_or_else(|| anyhow!("request submission failed")))
     }
 }
 
@@ -356,6 +407,7 @@ mod tests {
             client,
             SyncConfig {
                 pull_interval: Duration::from_millis(10),
+                ..SyncConfig::default()
             },
             shutdown_rx,
         );
@@ -395,8 +447,45 @@ mod tests {
 
         assert_eq!(report.queued, 1);
         assert_eq!(report.submitted, 1);
+        assert_eq!(report.failed, 0);
         assert_eq!(metadata.remote_request_id, Some(4100));
         assert_eq!(metadata.sync_status.as_str(), "clean");
         assert!(pending.is_empty());
+    }
+
+    #[tokio::test]
+    async fn push_dirty_retries_and_marks_failed_after_exhaustion() {
+        let server = MockServer::start().await;
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+        let local = request(-2, "Retry draft", "2026-06-30T05:00:00Z");
+        db.insert_request(&local).await.unwrap();
+
+        Mock::given(method("POST"))
+            .and(path("/api/v2/request"))
+            .respond_with(ResponseTemplate::new(503).set_body_string("try later"))
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new(&server.uri()).unwrap();
+        let report = client
+            .push_dirty_with_config(
+                &db,
+                &SyncConfig {
+                    push_max_retries: 2,
+                    push_initial_backoff: Duration::from_millis(1),
+                    ..SyncConfig::default()
+                },
+            )
+            .await
+            .unwrap();
+        let depth = db.get_outgoing_queue_depth().await.unwrap();
+        let metadata = db.get_request_sync_metadata(-2).await.unwrap().unwrap();
+
+        assert_eq!(report.queued, 1);
+        assert_eq!(report.submitted, 0);
+        assert_eq!(report.failed, 1);
+        assert_eq!(depth.failed, 1);
+        assert_eq!(metadata.sync_status.as_str(), "dirty");
     }
 }

@@ -3,7 +3,7 @@ use fyi_core::db::{DbPool, GlobalSyncStatus};
 use fyi_core::security::{
     build_provisioning_uri, generate_totp_secret, render_provisioning_qr_ascii, KeyringStore,
 };
-use fyi_core::sync::{PullReport, SyncClient, SyncConfig};
+use fyi_core::sync::{PullReport, PushReport, SyncClient, SyncConfig};
 use std::fs::OpenOptions;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -364,6 +364,15 @@ pub enum SyncCommand {
         feed_url: Option<String>,
         #[arg(long, default_value_t = 300)]
         interval_seconds: u64,
+        #[arg(long, default_value = "fyi_system.db")]
+        db: String,
+    },
+    #[command(about = "Push dirty local requests to FYI")]
+    Push {
+        #[arg(long, default_value = "https://fyi.org.nz")]
+        base_url: String,
+        #[arg(long, default_value_t = 3)]
+        max_retries: u32,
         #[arg(long, default_value = "fyi_system.db")]
         db: String,
     },
@@ -766,6 +775,7 @@ fn handle_sync_command(
             let client = SyncClient::new(base_url)?;
             let config = SyncConfig {
                 pull_interval: std::time::Duration::from_secs((*interval_seconds).max(1)),
+                ..SyncConfig::default()
             };
 
             let mut reports = vec![client.pull_incremental(&pool).await?];
@@ -773,6 +783,24 @@ fn handle_sync_command(
                 reports.push(client.pull_feed(&pool, feed_url).await?);
             }
             print_pull_reports(&reports, &config, output_format)?;
+
+            Ok(())
+        }),
+        SyncCommand::Push {
+            base_url,
+            max_retries,
+            db,
+        } => runtime.block_on(async {
+            let pool = DbPool::new(&sqlite_url(db)).await?;
+            pool.run_migrations().await?;
+            let client = SyncClient::new(base_url)?;
+            let config = SyncConfig {
+                push_max_retries: (*max_retries).max(1),
+                ..SyncConfig::default()
+            };
+            let report = client.push_dirty_with_config(&pool, &config).await?;
+            let queue_depth = pool.get_outgoing_queue_depth().await?;
+            print_push_report(&report, &queue_depth, output_format)?;
 
             Ok(())
         }),
@@ -887,6 +915,41 @@ fn print_pull_reports(
                 serde_json::to_string_pretty(&serde_json::json!({
                     "pull_interval_seconds": config.pull_interval.as_secs().max(1),
                     "reports": reports
+                }))?
+            );
+        }
+    }
+    Ok(())
+}
+
+fn print_push_report(
+    report: &PushReport,
+    queue_depth: &fyi_core::db::OutgoingQueueDepth,
+    output_format: OutputFormat,
+) -> Result<(), Box<dyn std::error::Error>> {
+    match output_format {
+        OutputFormat::Text => {
+            println!(
+                "Push: queued {}, submitted {}, failed {}",
+                report.queued, report.submitted, report.failed
+            );
+            println!(
+                "Queue depth: pending {}, submitted {}, failed {}",
+                queue_depth.pending, queue_depth.submitted, queue_depth.failed
+            );
+        }
+        OutputFormat::Json => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&serde_json::json!({
+                    "queued": report.queued,
+                    "submitted": report.submitted,
+                    "failed": report.failed,
+                    "queue_depth": {
+                        "pending": queue_depth.pending,
+                        "submitted": queue_depth.submitted,
+                        "failed": queue_depth.failed
+                    }
                 }))?
             );
         }
@@ -1053,6 +1116,33 @@ mod tests {
                     base_url: "https://example.org".to_string(),
                     feed_url: Some("https://example.org/feed.atom".to_string()),
                     interval_seconds: 60,
+                    db: "test.db".to_string(),
+                }
+            }
+        );
+    }
+
+    #[test]
+    fn test_parse_sync_push() {
+        let args = Cli::try_parse_from([
+            "fyi-cli",
+            "sync",
+            "push",
+            "--base-url",
+            "https://example.org",
+            "--max-retries",
+            "2",
+            "--db",
+            "test.db",
+        ])
+        .unwrap();
+
+        assert_eq!(
+            args.command,
+            Commands::Sync {
+                command: SyncCommand::Push {
+                    base_url: "https://example.org".to_string(),
+                    max_retries: 2,
                     db: "test.db".to_string(),
                 }
             }

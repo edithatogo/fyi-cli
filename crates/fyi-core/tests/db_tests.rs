@@ -289,3 +289,48 @@ async fn test_outgoing_queue_records_pending_and_confirmed_submissions() {
     assert_eq!(metadata.sync_status, SyncStatus::Clean);
     assert!(pending.is_empty());
 }
+
+#[tokio::test]
+async fn test_outgoing_queue_depth_includes_failed_items() {
+    let db = DbPool::new_in_memory()
+        .await
+        .expect("Failed to initialize in-memory DB");
+    db.run_migrations().await.expect("Failed to run migrations");
+
+    let request = AlaveteliRequest {
+        id: 14,
+        title: "Failing request".to_string(),
+        body: "Body".to_string(),
+        user_name: None,
+        status: Some("draft".to_string()),
+        created_at: None,
+        updated_at: None,
+        url: None,
+        tags: None,
+    };
+
+    db.insert_request(&request)
+        .await
+        .expect("Failed to insert request");
+    let queue_id = db
+        .enqueue_request_submission(&request)
+        .await
+        .expect("Failed to enqueue request");
+    db.mark_submission_failed(queue_id, 14, 3, "boom")
+        .await
+        .expect("Failed to mark queue item failed");
+
+    let depth = db
+        .get_outgoing_queue_depth()
+        .await
+        .expect("Failed to read queue depth");
+    let metadata = db
+        .get_request_sync_metadata(14)
+        .await
+        .expect("Failed to read sync metadata")
+        .expect("metadata should be present");
+
+    assert_eq!(depth.pending, 0);
+    assert_eq!(depth.failed, 1);
+    assert_eq!(metadata.sync_status, SyncStatus::Dirty);
+}

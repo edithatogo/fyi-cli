@@ -38,10 +38,10 @@
 - [x] Commit: `feat(sync): implement push synchronization for dirty records`
 
 ### Task 3.2: Retry logic and queue management
-- [ ] Add exponential backoff retry (max 3 retries)
-- [ ] Add queue depth monitoring and management
-- [ ] Add `fyi sync push` manual trigger command
-- [ ] Commit: `feat(sync): add retry logic and queue management`
+- [x] Add exponential backoff retry (max 3 retries)
+- [x] Add queue depth monitoring and management
+- [x] Add `fyi sync push` manual trigger command
+- [x] Commit: `feat(sync): add retry logic and queue management`
 
 ## Phase 4: Conflict Resolution
 

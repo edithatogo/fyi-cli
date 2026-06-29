@@ -79,6 +79,13 @@ pub struct OutgoingQueueItem {
     pub last_error: Option<String>,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct OutgoingQueueDepth {
+    pub pending: i64,
+    pub submitted: i64,
+    pub failed: i64,
+}
+
 /// Database wrapper managing the connection pool and CRUD operations.
 #[derive(Debug, Clone)]
 pub struct DbPool {
@@ -414,6 +421,29 @@ impl DbPool {
         rows.into_iter().map(outgoing_queue_item_from_row).collect()
     }
 
+    /// Returns queue depth by status for monitoring.
+    pub async fn get_outgoing_queue_depth(&self) -> Result<OutgoingQueueDepth, sqlx::Error> {
+        let rows = sqlx::query(
+            "SELECT status, COUNT(*) AS count
+             FROM sync_outgoing_queue
+             GROUP BY status",
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        let mut depth = OutgoingQueueDepth::default();
+        for row in rows {
+            let status: String = row.try_get("status")?;
+            let count: i64 = row.try_get("count")?;
+            match status.as_str() {
+                "submitted" => depth.submitted = count,
+                "failed" => depth.failed = count,
+                _ => depth.pending = count,
+            }
+        }
+        Ok(depth)
+    }
+
     /// Marks an outgoing queue item as submitted and stores the FYI-issued request ID.
     pub async fn mark_submission_confirmed(
         &self,
@@ -445,6 +475,40 @@ impl DbPool {
         .await?;
 
         self.mark_request_clean(request_id, remote_updated_at).await
+    }
+
+    /// Marks an outgoing queue item as failed after retries are exhausted.
+    pub async fn mark_submission_failed(
+        &self,
+        queue_id: i64,
+        request_id: i64,
+        attempts: i64,
+        error: &str,
+    ) -> Result<(), sqlx::Error> {
+        let now = now_timestamp();
+        sqlx::query(
+            "UPDATE sync_outgoing_queue
+             SET status = 'failed', attempts = ?, last_error = ?, updated_at = ?
+             WHERE id = ?",
+        )
+        .bind(attempts)
+        .bind(error)
+        .bind(&now)
+        .bind(queue_id)
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query(
+            "UPDATE sync_metadata
+             SET sync_status = 'dirty', local_updated_at = ?
+             WHERE request_id = ? AND sync_status != 'conflict'",
+        )
+        .bind(&now)
+        .bind(request_id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
     }
 
     /// Returns aggregate sync counts across all tracked requests.
