@@ -1,0 +1,9 @@
+{
+  "track_id": "bulk-site-enumeration",
+  "type": "feature",
+  "status": "in_progress",
+  "created_at": "2026-06-27T16:30:00Z",
+  "updated_at": "2026-06-29T01:30:00Z",
+  "description": "Full-corpus discovery of fyi.org.nz: enumerate every request via advanced-search Atom/JSON feeds (date-windowed, paginated), with an optional sequential-ID gap backfill. Required so fyi-cli can seed the fyi-archive historical corpus.",
+  "consumer": "fyi-archive track historical_seed_orchestration_20260627"
+}

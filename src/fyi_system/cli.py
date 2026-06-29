@@ -4,6 +4,7 @@ import argparse
 import json
 from pathlib import Path
 from .db import init_db, query_all, connect, get_tracked_request, export_tracked_requests, import_tracked_requests, request_timeline, update_request_status
+from .discovery import backfill_ids, discover_feed, write_jsonl
 from .fyi import build_prefilled_url
 from .importers import import_authorities_csv
 from .monitor import ingest_feed, reconcile_events
@@ -91,6 +92,30 @@ def cmd_reconcile(args):
 def cmd_fetch_request_page(args):
     data = fetch_request_page(args.request_id, base_url=args.base_url, db_path=args.db)
     print(json.dumps(summarize_request_json(data), indent=2, ensure_ascii=False))
+
+
+def cmd_discover(args):
+    if args.backfill_ids:
+        if args.id_from is None or args.id_to is None:
+            raise SystemExit("--backfill-ids requires --id-from and --id-to")
+        rows = backfill_ids(id_from=args.id_from, id_to=args.id_to, base_url=args.base_url)
+    else:
+        rows = discover_feed(
+            base_url=args.base_url,
+            date_from=args.date_from,
+            date_to=args.date_to,
+            authority=args.authority,
+            status=args.status,
+            checkpoint_path=Path(args.checkpoint) if args.checkpoint else None,
+            max_pages=args.max_pages,
+            delay_seconds=args.delay_seconds,
+        )
+    if args.output:
+        write_jsonl(Path(args.output), rows)
+        print(args.output)
+    else:
+        for row in rows:
+            print(row.to_json())
 
 
 def cmd_attention_report(args):
@@ -304,6 +329,22 @@ def build_parser():
     sp.add_argument('--base-url', default='https://fyi.org.nz')
     sp.add_argument('--db', default='fyi_system.db')
     sp.set_defaults(func=cmd_fetch_request_page)
+
+    # Command: discover
+    sp = sub.add_parser('discover')
+    sp.add_argument('--base-url', default='https://fyi.org.nz')
+    sp.add_argument('--date-from')
+    sp.add_argument('--date-to')
+    sp.add_argument('--authority')
+    sp.add_argument('--status')
+    sp.add_argument('--checkpoint')
+    sp.add_argument('--max-pages', type=int)
+    sp.add_argument('--delay-seconds', type=float, default=1.0)
+    sp.add_argument('--backfill-ids', action='store_true')
+    sp.add_argument('--id-from', type=int)
+    sp.add_argument('--id-to', type=int)
+    sp.add_argument('--output')
+    sp.set_defaults(func=cmd_discover)
     
     # Command: attention-report
     sp = sub.add_parser('attention-report')

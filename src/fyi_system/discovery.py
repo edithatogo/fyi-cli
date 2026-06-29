@@ -1,0 +1,246 @@
+"""Read-only discovery helpers for public FYI/Alaveteli requests."""
+
+from __future__ import annotations
+
+import json
+import re
+import time
+from dataclasses import asdict, dataclass
+from typing import TYPE_CHECKING, Any
+from urllib.parse import urlencode
+
+import httpx
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from pathlib import Path
+
+
+USER_AGENT = "fyi-cli archive-discovery/1.0 (+https://github.com/edithatogo/fyi-cli)"
+REQUEST_RE = re.compile(r"/request/(?P<id>\d+|[a-z0-9_-]+)", re.IGNORECASE)
+
+
+@dataclass(frozen=True)
+class DiscoveredRequest:
+    """Request discovered from a feed or ID probe."""
+
+    request_id: int
+    url_title: str
+    title: str = ""
+    authority: str = ""
+    state: str = ""
+    created_at: str = ""
+
+    def to_json(self) -> str:
+        """Serialize as one JSONL row."""
+        return json.dumps(asdict(self), sort_keys=True, ensure_ascii=False)
+
+
+def build_search_url(
+    *,
+    base_url: str,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    authority: str | None = None,
+    status: str | None = None,
+    page: int = 1,
+) -> str:
+    """Build an Alaveteli search-feed JSON URL."""
+    params = {"output": "json", "page": str(page)}
+    if date_from:
+        params["requested_after"] = date_from
+    if date_to:
+        params["requested_before"] = date_to
+    if authority:
+        params["public_body"] = authority
+    if status:
+        params["latest_status"] = status
+    return f"{base_url.rstrip('/')}/search/all?{urlencode(params)}"
+
+
+def client(base_url: str, *, transport: httpx.BaseTransport | None = None) -> httpx.Client:
+    """Create a polite read-only HTTP client."""
+    return httpx.Client(
+        base_url=base_url.rstrip("/"),
+        follow_redirects=True,
+        headers={"User-Agent": USER_AGENT},
+        timeout=30,
+        transport=transport,
+    )
+
+
+def load_checkpoint(path: Path | None) -> int:
+    """Load the next page number from a checkpoint file."""
+    if path is None or not path.exists():
+        return 1
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return int(data.get("next_page") or 1)
+
+
+def write_checkpoint(path: Path | None, next_page: int) -> None:
+    """Write the next page number to a checkpoint file."""
+    if path is None:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"next_page": next_page}, indent=2) + "\n", encoding="utf-8")
+
+
+def parse_feed_entries(data: dict[str, Any]) -> tuple[list[DiscoveredRequest], bool]:
+    """Parse an Alaveteli-ish JSON search feed page."""
+    raw_entries = first_list(data, "entries", "items", "results", "requests")
+    entries = []
+    for raw in raw_entries:
+        if isinstance(raw, dict):
+            parsed = parse_entry(raw)
+            if parsed is not None:
+                entries.append(parsed)
+    return dedupe(entries), has_next_page(data, page_had_entries=bool(entries))
+
+
+def first_list(data: dict[str, Any], *keys: str) -> list[Any]:
+    """Return the first list value under one of the given keys."""
+    for key in keys:
+        value = data.get(key)
+        if isinstance(value, list):
+            return value
+    return []
+
+
+def has_next_page(data: dict[str, Any], *, page_had_entries: bool) -> bool:
+    """Infer whether a JSON feed has another page."""
+    if data.get("next") or data.get("next_page"):
+        return True
+    links = data.get("links")
+    if isinstance(links, dict) and links.get("next"):
+        return True
+    return bool(data.get("has_more")) or (page_had_entries and data.get("final_page") is False)
+
+
+def parse_entry(raw: dict[str, Any]) -> DiscoveredRequest | None:
+    """Normalize one feed entry into the archive request shape."""
+    request_id = request_id_from_entry(raw)
+    if request_id is None:
+        return None
+    link = str(raw.get("url") or raw.get("link") or raw.get("html_url") or "")
+    return DiscoveredRequest(
+        request_id=request_id,
+        url_title=url_title_from_link(link) or str(raw.get("url_title") or f"request-{request_id}"),
+        title=str(raw.get("title") or raw.get("name") or ""),
+        authority=str(raw.get("authority") or raw.get("public_body") or ""),
+        state=str(raw.get("state") or raw.get("status") or raw.get("latest_status") or ""),
+        created_at=str(
+            raw.get("created_at") or raw.get("requested_at") or raw.get("updated") or "",
+        ),
+    )
+
+
+def request_id_from_entry(raw: dict[str, Any]) -> int | None:
+    """Extract a numeric request ID from an entry."""
+    for key in ("request_id", "id"):
+        value = raw.get(key)
+        if isinstance(value, int):
+            return value
+        if isinstance(value, str) and value.isdigit():
+            return int(value)
+    for key in ("url", "link", "html_url", "id"):
+        match = REQUEST_RE.search(str(raw.get(key) or ""))
+        if match and match.group("id").isdigit():
+            return int(match.group("id"))
+    return None
+
+
+def url_title_from_link(link: str) -> str | None:
+    """Extract a url_title slug from a request URL when present."""
+    match = REQUEST_RE.search(link)
+    if not match:
+        return None
+    value = match.group("id")
+    return None if value.isdigit() else value
+
+
+def dedupe(entries: Iterable[DiscoveredRequest]) -> list[DiscoveredRequest]:
+    """Deduplicate request rows by request_id, preserving order."""
+    seen: set[int] = set()
+    out = []
+    for entry in entries:
+        if entry.request_id in seen:
+            continue
+        seen.add(entry.request_id)
+        out.append(entry)
+    return out
+
+
+def discover_feed(
+    *,
+    base_url: str = "https://fyi.org.nz",
+    date_from: str | None = None,
+    date_to: str | None = None,
+    authority: str | None = None,
+    status: str | None = None,
+    checkpoint_path: Path | None = None,
+    max_pages: int | None = None,
+    delay_seconds: float = 1.0,
+    transport: httpx.BaseTransport | None = None,
+) -> list[DiscoveredRequest]:
+    """Walk paginated search feed pages and return deduplicated requests."""
+    page = load_checkpoint(checkpoint_path)
+    final_page = None if max_pages is None else page + max_pages - 1
+    all_entries: list[DiscoveredRequest] = []
+    with client(base_url, transport=transport) as http:
+        while final_page is None or page <= final_page:
+            url = build_search_url(
+                base_url=base_url,
+                date_from=date_from,
+                date_to=date_to,
+                authority=authority,
+                status=status,
+                page=page,
+            )
+            response = http.get(url)
+            response.raise_for_status()
+            entries, has_next = parse_feed_entries(response.json())
+            all_entries.extend(entries)
+            write_checkpoint(checkpoint_path, page + 1)
+            if not has_next:
+                break
+            page += 1
+            if delay_seconds > 0:
+                time.sleep(delay_seconds)
+    return dedupe(all_entries)
+
+
+def backfill_ids(
+    *,
+    id_from: int,
+    id_to: int,
+    base_url: str = "https://fyi.org.nz",
+    transport: httpx.BaseTransport | None = None,
+) -> list[DiscoveredRequest]:
+    """Probe numeric request IDs, following redirects to url_title slugs."""
+    entries = []
+    with client(base_url, transport=transport) as http:
+        for request_id in range(id_from, id_to + 1):
+            response = http.get(f"/request/{request_id}.json")
+            if response.status_code == 404:
+                continue
+            response.raise_for_status()
+            data = response.json()
+            parsed = parse_entry(
+                {
+                    "request_id": request_id,
+                    "url": str(response.url).removesuffix(".json"),
+                    "title": data.get("title") or data.get("info_request", {}).get("title"),
+                    "authority": data.get("public_body") or data.get("authority"),
+                    "state": data.get("state") or data.get("described_state"),
+                    "created_at": data.get("created_at"),
+                },
+            )
+            if parsed is not None:
+                entries.append(parsed)
+    return dedupe(entries)
+
+
+def write_jsonl(path: Path, rows: Iterable[DiscoveredRequest]) -> None:
+    """Write discovered requests as JSONL."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(row.to_json() for row in rows) + "\n", encoding="utf-8")

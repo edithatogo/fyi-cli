@@ -72,7 +72,7 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## Active Tracks
 
-- [ ] **Track: bulk-site-enumeration** (PENDING — fyi-archive capability)
+- [~] **Track: bulk-site-enumeration** (IN PROGRESS — fyi-archive capability)
   *Link: [./tracks/bulk-site-enumeration/](./tracks/bulk-site-enumeration/)*
   *Description: Full-corpus discovery of fyi.org.nz via advanced-search Atom/JSON feeds (date-windowed, paginated) + optional sequential-ID gap backfill. Enables the fyi-archive historical seed.*
   *Consumer: fyi-archive `historical_seed_orchestration_20260627`.*
