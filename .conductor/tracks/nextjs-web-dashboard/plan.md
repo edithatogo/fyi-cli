@@ -60,8 +60,8 @@
 
 ### Task 4.1: Timeline visualization
 - [x] Build correspondence timeline component [4d6e304]
-- [~] Fetch and display request lifecycle events
-- [ ] Add visual status indicators on timeline
+- [x] Fetch and display request lifecycle events [5a1d4fb]
+- [~] Add visual status indicators on timeline
 - [ ] Commit: `feat(dashboard): add request timeline visualization`
 
 ### Task 4.2: Inline editing & attachments
