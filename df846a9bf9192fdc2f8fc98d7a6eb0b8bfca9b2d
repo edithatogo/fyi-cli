@@ -1,0 +1,12 @@
+Conductor task: mfa-authentication-layer Task 2.1 secure TOTP secret storage
+
+Summary:
+- Added KeyringStore methods to store, retrieve, delete, and list TOTP secrets.
+- Stored MFA secrets under a dedicated TOTP key prefix and maintained a keyring-backed account index for listing.
+- Added graceful keyring integration coverage for TOTP secret lifecycle.
+
+Verification:
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-core --test security_tests
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-core --test property_tests
+- cargo +stable-x86_64-pc-windows-gnu check -p fyi-core
+- rustfmt +stable-x86_64-pc-windows-gnu --check crates/fyi-core/src/security.rs crates/fyi-core/tests/security_tests.rs crates/fyi-core/tests/property_tests.rs
