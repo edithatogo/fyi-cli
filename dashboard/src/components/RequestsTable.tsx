@@ -7,6 +7,7 @@ import {
   Card,
   CardContent,
   Input,
+  Select,
   Table,
   Tbody,
   Td,
@@ -42,6 +43,8 @@ function searchableText(request: FyiRequest) {
     request.title,
     request.body,
     request.status,
+    request.authority_name,
+    request.authority_slug,
     request.user_name,
     request.url,
     ...(request.tags ?? []),
@@ -53,19 +56,59 @@ function searchableText(request: FyiRequest) {
 
 export function RequestsTable({ requests }: RequestsTableProps) {
   const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [authorityFilter, setAuthorityFilter] = useState("");
+
+  const statusOptions = useMemo(
+    () => [
+      { value: "", label: "All statuses" },
+      ...Array.from(
+        new Set(requests.map((request) => request.status).filter(Boolean))
+      )
+        .sort()
+        .map((status) => ({
+          value: status ?? "",
+          label: status ?? "",
+        })),
+    ],
+    [requests]
+  );
+
+  const authorityOptions = useMemo(
+    () => [
+      { value: "", label: "All authorities" },
+      ...Array.from(
+        new Map(
+          requests
+            .map((request) => {
+              const value = request.authority_slug ?? request.authority_name;
+              const label = request.authority_name ?? request.authority_slug;
+              return value && label ? [value, label] : undefined;
+            })
+            .filter((entry): entry is [string, string] => Boolean(entry))
+        )
+      )
+        .sort((left, right) => left[1].localeCompare(right[1]))
+        .map(([value, label]) => ({ value, label })),
+    ],
+    [requests]
+  );
+
   const filteredRequests = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) {
-      return requests;
-    }
-    return requests.filter((request) =>
-      searchableText(request).includes(normalizedQuery)
-    );
-  }, [query, requests]);
+    return requests.filter((request) => {
+      const authorityValue = request.authority_slug ?? request.authority_name ?? "";
+      return (
+        (!normalizedQuery || searchableText(request).includes(normalizedQuery)) &&
+        (!statusFilter || request.status === statusFilter) &&
+        (!authorityFilter || authorityValue === authorityFilter)
+      );
+    });
+  }, [authorityFilter, query, requests, statusFilter]);
 
   return (
     <div className="space-y-4">
-      <div className="max-w-xl">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px_260px]">
         <label className="grid gap-2">
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
             Search requests
@@ -80,6 +123,30 @@ export function RequestsTable({ requests }: RequestsTableProps) {
               placeholder="Search title, body, requester, status, or tags"
             />
           </div>
+        </label>
+
+        <label className="grid gap-2">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Status
+          </span>
+          <Select
+            aria-label="Status filter"
+            options={statusOptions}
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+          />
+        </label>
+
+        <label className="grid gap-2">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Authority
+          </span>
+          <Select
+            aria-label="Authority filter"
+            options={authorityOptions}
+            value={authorityFilter}
+            onChange={(event) => setAuthorityFilter(event.target.value)}
+          />
         </label>
       </div>
 

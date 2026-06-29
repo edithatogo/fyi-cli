@@ -32,4 +32,39 @@ describe("RequestsTable", () => {
     expect(screen.getByText("Procurement records")).toBeDefined();
     expect(screen.queryByText("Meeting minutes")).toBeNull();
   });
+
+  it("filters requests by status and authority", () => {
+    render(
+      <RequestsTable
+        requests={[
+          {
+            id: 1,
+            title: "Procurement records",
+            body: "Contracts and invoices",
+            status: "submitted",
+            authority_slug: "dia",
+            authority_name: "Department of Internal Affairs",
+          },
+          {
+            id: 2,
+            title: "Meeting minutes",
+            body: "Board papers",
+            status: "draft",
+            authority_slug: "ombudsman",
+            authority_name: "Ombudsman",
+          },
+        ]}
+      />
+    );
+
+    fireEvent.change(screen.getByLabelText("Status filter"), {
+      target: { value: "submitted" },
+    });
+    fireEvent.change(screen.getByLabelText("Authority filter"), {
+      target: { value: "dia" },
+    });
+
+    expect(screen.getByText("Procurement records")).toBeDefined();
+    expect(screen.queryByText("Meeting minutes")).toBeNull();
+  });
 });

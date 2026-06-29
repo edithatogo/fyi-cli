@@ -47,6 +47,8 @@ export interface FyiRequest {
   title: string;
   body: string;
   user_name?: string | null;
+  authority_slug?: string | null;
+  authority_name?: string | null;
   status?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
