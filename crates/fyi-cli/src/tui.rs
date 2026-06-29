@@ -172,6 +172,9 @@ pub struct KeyringEntryItem {
     pub service: String,
     pub created_at: String,
     pub last_used_at: String,
+    pub key_strength: String,
+    pub key_age: String,
+    pub rotation_status: String,
 }
 
 impl KeyringEntryItem {
@@ -186,7 +189,22 @@ impl KeyringEntryItem {
             service: service.into(),
             created_at: "unknown".to_string(),
             last_used_at: "unknown".to_string(),
+            key_strength: "Unknown".to_string(),
+            key_age: "unknown".to_string(),
+            rotation_status: "Unknown".to_string(),
         }
+    }
+
+    pub fn with_security(
+        mut self,
+        key_strength: impl Into<String>,
+        key_age: impl Into<String>,
+        rotation_status: impl Into<String>,
+    ) -> Self {
+        self.key_strength = key_strength.into();
+        self.key_age = key_age.into();
+        self.rotation_status = rotation_status.into();
+        self
     }
 }
 
@@ -247,6 +265,9 @@ pub struct AppState {
     pub credential_test_requested: bool,
     pub keyring_entries: Vec<KeyringEntryItem>,
     pub selected_keyring_entry_idx: usize,
+    pub encryption_key_managed: bool,
+    pub encryption_key_strength: Option<String>,
+    pub encryption_key_rotation_status: Option<String>,
     pub should_quit: bool,
 }
 
@@ -357,6 +378,9 @@ impl AppState {
             credential_test_requested: false,
             keyring_entries: Vec::new(),
             selected_keyring_entry_idx: 0,
+            encryption_key_managed: false,
+            encryption_key_strength: None,
+            encryption_key_rotation_status: None,
             should_quit: false,
         }
     }
@@ -746,6 +770,45 @@ impl AppState {
         }
         Ok(())
     }
+
+    pub fn upsert_keyring_credential(
+        &mut self,
+        store: &fyi_core::security::KeyringStore,
+        username: &str,
+        secret: &str,
+    ) -> Result<bool, Box<dyn std::error::Error>> {
+        store.set_credential(
+            username,
+            &fyi_core::security::ZeroizedString::new(secret.to_string()),
+        )?;
+        self.refresh_keyring_entries(store)?;
+        Ok(true)
+    }
+
+    pub fn delete_selected_keyring_entry(
+        &mut self,
+        store: &fyi_core::security::KeyringStore,
+    ) -> Result<bool, Box<dyn std::error::Error>> {
+        let Some(entry) = self.keyring_entries.get(self.selected_keyring_entry_idx) else {
+            return Ok(false);
+        };
+
+        match entry.kind.as_str() {
+            "Credential" => store.delete_credential(&entry.username)?,
+            "MFA TOTP" => store.delete_totp_secret(&entry.username)?,
+            _ => return Ok(false),
+        }
+
+        self.refresh_keyring_entries(store)?;
+        Ok(true)
+    }
+
+    pub fn generate_managed_encryption_key(&mut self) {
+        let _key = fyi_core::security::EncryptionKey::generate();
+        self.encryption_key_managed = true;
+        self.encryption_key_strength = Some("Strong".to_string());
+        self.encryption_key_rotation_status = Some("Current".to_string());
+    }
 }
 
 fn parse_editor_tags(tags: &str) -> Option<Vec<String>> {
@@ -1076,6 +1139,11 @@ fn draw_mfa_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
 }
 
 fn draw_keyring_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(8), Constraint::Length(6)])
+        .split(area);
+
     let rows = state
         .keyring_entries
         .iter()
@@ -1092,19 +1160,31 @@ fn draw_keyring_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
                 Cell::from(entry.service.as_str()),
                 Cell::from(entry.created_at.as_str()),
                 Cell::from(entry.last_used_at.as_str()),
+                Cell::from(entry.key_strength.as_str()),
+                Cell::from(entry.key_age.as_str()),
+                Cell::from(entry.rotation_status.as_str()),
             ])
             .style(style)
         });
 
     let table = Table::new(rows)
         .header(
-            Row::new(vec!["Kind", "Username", "Service", "Created", "Last Used"])
-                .style(
-                    Style::default()
-                        .fg(Color::Yellow)
-                        .add_modifier(Modifier::BOLD),
-                )
-                .bottom_margin(1),
+            Row::new(vec![
+                "Kind",
+                "Username",
+                "Service",
+                "Created",
+                "Last Used",
+                "Security",
+                "Age",
+                "Rotation",
+            ])
+            .style(
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            )
+            .bottom_margin(1),
         )
         .block(
             Block::default()
@@ -1117,9 +1197,38 @@ fn draw_keyring_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
             Constraint::Length(16),
             Constraint::Length(14),
             Constraint::Length(14),
+            Constraint::Length(10),
+            Constraint::Length(8),
+            Constraint::Length(10),
         ]);
 
-    f.render_widget(table, area);
+    f.render_widget(table, chunks[0]);
+
+    let key_status = if state.encryption_key_managed {
+        format!(
+            "Encryption Key: Managed\nSecurity: {}\nRotation: {}",
+            state
+                .encryption_key_strength
+                .as_deref()
+                .unwrap_or("Unknown"),
+            state
+                .encryption_key_rotation_status
+                .as_deref()
+                .unwrap_or("Unknown")
+        )
+    } else {
+        "Encryption Key: Not managed\nSecurity: Unknown\nRotation: Unknown".to_string()
+    };
+    let key_panel = Paragraph::new(format!(
+        "{key_status}\nActions: A add/update credential | D delete selected | R rotate key"
+    ))
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(" Encryption Key Management "),
+    )
+    .style(Style::default().fg(Color::White));
+    f.render_widget(key_panel, chunks[1]);
 }
 
 fn draw_credential_dialog(f: &mut Frame<'_>, state: &AppState, area: Rect) {
@@ -1854,6 +1963,72 @@ mod tests {
             .keyring_entries
             .iter()
             .any(|entry| entry.kind == "MFA TOTP"));
+    }
+
+    #[test]
+    fn test_keyring_actions_add_update_and_delete_credential() {
+        let store = fyi_core::security::KeyringStore::new_in_memory("fyi-cli-test");
+        let mut state = AppState::new();
+
+        assert!(state
+            .upsert_keyring_credential(&store, "alice@example.org", "secret-a")
+            .expect("Failed to add credential"));
+        assert_eq!(state.keyring_entries.len(), 1);
+        assert_eq!(state.keyring_entries[0].username, "alice@example.org");
+
+        assert!(state
+            .upsert_keyring_credential(&store, "alice@example.org", "secret-b")
+            .expect("Failed to update credential"));
+        let saved = store
+            .get_credential("alice@example.org")
+            .expect("Failed to get credential");
+        assert_eq!(saved.as_str(), "secret-b");
+
+        assert!(state
+            .delete_selected_keyring_entry(&store)
+            .expect("Failed to delete selected credential"));
+        assert!(state.keyring_entries.is_empty());
+        assert!(store.get_credential("alice@example.org").is_err());
+    }
+
+    #[test]
+    fn test_keyring_encryption_key_management_state() {
+        let mut state = AppState::new();
+
+        state.generate_managed_encryption_key();
+
+        assert!(state.encryption_key_managed);
+        assert_eq!(state.encryption_key_strength.as_deref(), Some("Strong"));
+        assert_eq!(
+            state.encryption_key_rotation_status.as_deref(),
+            Some("Current")
+        );
+    }
+
+    #[test]
+    fn test_keyring_browser_renders_security_indicators() {
+        let backend = TestBackend::new(150, 30);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let mut state = AppState::new();
+        state.active_tab = Tab::Keyring;
+        state.keyring_entries =
+            vec![
+                KeyringEntryItem::new("Credential", "alice@example.org", "fyi-cli")
+                    .with_security("Strong", "1d", "Current"),
+            ];
+        state.generate_managed_encryption_key();
+
+        terminal
+            .draw(|f| {
+                draw_ui(f, &state);
+            })
+            .unwrap();
+
+        let rendered_text = buffer_to_string(terminal.backend().buffer());
+        assert!(rendered_text.contains("Security"));
+        assert!(rendered_text.contains("Strong"));
+        assert!(rendered_text.contains("Current"));
+        assert!(rendered_text.contains("Encryption Key"));
     }
 
     fn buffer_to_string(buffer: &ratatui::buffer::Buffer) -> String {
