@@ -85,6 +85,15 @@ function markerClass(status?: string | null) {
   );
 }
 
+function attachmentLabel(attachment: string) {
+  try {
+    const url = new URL(attachment);
+    return url.pathname.split("/").filter(Boolean).pop() ?? attachment;
+  } catch {
+    return attachment.split(/[\\/]/).filter(Boolean).pop() ?? attachment;
+  }
+}
+
 function buildTimelineEvents(
   request: FyiRequest | undefined,
   correspondence: FyiCorrespondence[]
@@ -220,6 +229,22 @@ export function CorrespondenceTimeline({
                     <p className="whitespace-pre-wrap text-sm leading-6 text-gray-700 dark:text-gray-300">
                       {correspondenceItem.body}
                     </p>
+                    {attachments.length > 0 && (
+                      <div className="flex flex-wrap gap-2 border-t border-gray-200 pt-3 dark:border-gray-800">
+                        {attachments.map((attachment) => (
+                          <a
+                            key={attachment}
+                            href={attachment}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50 dark:border-gray-700 dark:bg-gray-900 dark:text-brand-300 dark:hover:bg-gray-800"
+                          >
+                            <Paperclip className="h-4 w-4" />
+                            {attachmentLabel(attachment)}
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </li>
               );

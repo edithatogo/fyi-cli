@@ -97,6 +97,32 @@ describe("CorrespondenceTimeline", () => {
     expect(screen.getByLabelText("Timeline indicator: partial")).toBeDefined();
   });
 
+  it("renders attachment link previews", () => {
+    render(
+      <CorrespondenceTimeline
+        correspondence={[
+          {
+            direction: "response",
+            body: "Attached are the released records.",
+            sent_at: "2026-04-12T09:30:00Z",
+            state: "completed",
+            attachments: [
+              "https://example.test/release.pdf",
+              "schedule.csv",
+            ],
+          },
+        ]}
+      />
+    );
+
+    expect(
+      screen.getByRole("link", { name: "release.pdf" }).getAttribute("href")
+    ).toBe("https://example.test/release.pdf");
+    expect(
+      screen.getByRole("link", { name: "schedule.csv" }).getAttribute("href")
+    ).toBe("schedule.csv");
+  });
+
   it("renders an empty state when no correspondence exists", () => {
     render(<CorrespondenceTimeline correspondence={[]} />);
 
