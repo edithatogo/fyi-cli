@@ -102,9 +102,10 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Description: Archive health reporting (freshness, coverage gaps, raw record counts) consumed by fyi-archive's doctor/parity CI.*
   *Consumer: fyi-archive `observability_quality_20260627`.*
 
-- [ ] **Track: offline-sync-engine** (PENDING)
+- [x] **Track: offline-sync-engine** (COMPLETED 2026-06-30)
   *Link: [./tracks/offline-sync-engine/](./tracks/offline-sync-engine/)*
   *Description: Design a SQLite sync service to handle periodic database caching, OIA request tracking, and conflict reconciliation with the upstream FYI API.*
+  *Status: TARGET ACHIEVED*
 
 ---
 
