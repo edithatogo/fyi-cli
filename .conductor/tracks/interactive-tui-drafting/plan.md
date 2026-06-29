@@ -3,11 +3,11 @@
 ## Phase 1: Inline Markdown Editing
 
 ### Task 1.1: Request editor view
-- [ ] Add new `Tab::Editor` variant and navigation
-- [ ] Build request editor view with title/body/tags fields
-- [ ] Add text input widget for inline editing in ratatui
-- [ ] Wire editor to fyi-core DB for save/load
-- [ ] Commit: `feat(tui): add request editor view with inline editing`
+- [x] Add new `Tab::Editor` variant and navigation
+- [x] Build request editor view with title/body/tags fields
+- [x] Add text input widget for inline editing in ratatui
+- [x] Wire editor to fyi-core DB for save/load
+- [x] Commit: `feat(tui): add request editor view with inline editing`
 
 ### Task 1.2: Markdown preview and auto-save
 - [ ] Add markdown preview split-pane (edit left, preview right)

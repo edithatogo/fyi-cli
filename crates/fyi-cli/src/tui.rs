@@ -6,17 +6,57 @@ use ratatui::{
     Frame,
 };
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TextInput {
+    value: String,
+}
+
+impl TextInput {
+    pub fn new(value: impl Into<String>) -> Self {
+        Self {
+            value: value.into(),
+        }
+    }
+
+    pub fn value(&self) -> &str {
+        &self.value
+    }
+
+    pub fn insert_char(&mut self, ch: char) {
+        self.value.push(ch);
+    }
+
+    pub fn insert_str(&mut self, text: &str) {
+        self.value.push_str(text);
+    }
+
+    pub fn backspace(&mut self) {
+        self.value.pop();
+    }
+
+    pub fn replace(&mut self, value: impl Into<String>) {
+        self.value = value.into();
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Tab {
     Summary,
     Requests,
     Logs,
     Mfa,
+    Editor,
 }
 
 impl Tab {
     pub fn all() -> &'static [Tab] {
-        &[Tab::Summary, Tab::Requests, Tab::Logs, Tab::Mfa]
+        &[
+            Tab::Summary,
+            Tab::Requests,
+            Tab::Logs,
+            Tab::Mfa,
+            Tab::Editor,
+        ]
     }
 
     pub fn title(&self) -> &'static str {
@@ -25,6 +65,7 @@ impl Tab {
             Tab::Requests => "Tracked Requests",
             Tab::Logs => "Activity Logs",
             Tab::Mfa => "MFA Security",
+            Tab::Editor => "Request Editor",
         }
     }
 }
@@ -56,6 +97,10 @@ pub struct AppState {
     pub mfa_enabled_accounts: Vec<String>,
     pub mfa_setup_account: Option<String>,
     pub mfa_session_verified: bool,
+    pub editor_request_id: Option<i64>,
+    pub editor_title: String,
+    pub editor_body: String,
+    pub editor_tags: String,
     pub should_quit: bool,
 }
 
@@ -146,6 +191,10 @@ impl AppState {
             mfa_enabled_accounts: Vec::new(),
             mfa_setup_account: None,
             mfa_session_verified: false,
+            editor_request_id: None,
+            editor_title: "New FYI request".to_string(),
+            editor_body: "Draft request body in markdown.".to_string(),
+            editor_tags: String::new(),
             should_quit: false,
         }
     }
@@ -177,7 +226,7 @@ impl AppState {
                     self.selected_log_idx = (self.selected_log_idx + 1) % self.logs.len();
                 }
             }
-            Tab::Summary | Tab::Mfa => {}
+            Tab::Summary | Tab::Mfa | Tab::Editor => {}
         }
     }
 
@@ -196,9 +245,53 @@ impl AppState {
                         (self.selected_log_idx + self.logs.len() - 1) % self.logs.len();
                 }
             }
-            Tab::Summary | Tab::Mfa => {}
+            Tab::Summary | Tab::Mfa | Tab::Editor => {}
         }
     }
+
+    pub async fn load_editor_from_db(
+        &mut self,
+        db: &fyi_core::db::DbPool,
+        request_id: i64,
+    ) -> Result<bool, Box<dyn std::error::Error>> {
+        let Some(request) = db.get_request(request_id).await? else {
+            return Ok(false);
+        };
+
+        self.editor_request_id = Some(request.id);
+        self.editor_title = request.title;
+        self.editor_body = request.body;
+        self.editor_tags = request.tags.unwrap_or_default().join(",");
+        Ok(true)
+    }
+
+    pub async fn save_editor_to_db(
+        &self,
+        db: &fyi_core::db::DbPool,
+    ) -> Result<bool, Box<dyn std::error::Error>> {
+        let Some(request_id) = self.editor_request_id else {
+            return Ok(false);
+        };
+        let Some(mut request) = db.get_request(request_id).await? else {
+            return Ok(false);
+        };
+
+        request.title = self.editor_title.clone();
+        request.body = self.editor_body.clone();
+        request.tags = parse_editor_tags(&self.editor_tags);
+        Ok(db.update_request(&request).await?)
+    }
+}
+
+fn parse_editor_tags(tags: &str) -> Option<Vec<String>> {
+    let parsed = tags
+        .split(',')
+        .map(str::trim)
+        .filter(|tag| !tag.is_empty())
+        .map(ToString::to_string)
+        .collect::<Vec<_>>();
+
+    (!parsed.is_empty()).then_some(parsed)
 }
 
 pub fn draw_ui(f: &mut Frame<'_>, state: &AppState) {
@@ -239,6 +332,7 @@ pub fn draw_ui(f: &mut Frame<'_>, state: &AppState) {
         Tab::Requests => draw_requests_tab(f, state, chunks[1]),
         Tab::Logs => draw_logs_tab(f, state, chunks[1]),
         Tab::Mfa => draw_mfa_tab(f, state, chunks[1]),
+        Tab::Editor => draw_editor_tab(f, state, chunks[1]),
     }
 
     // Help Footer Bar
@@ -249,6 +343,7 @@ pub fn draw_ui(f: &mut Frame<'_>, state: &AppState) {
         Tab::Mfa => {
             " Tab: Next Tab | Use fyi mfa setup/verify/remove for MFA actions | Q/Esc: Quit "
         }
+        Tab::Editor => " Tab: Next Tab | Ctrl+S: Save Draft | Ctrl+Q: Close Editor ",
     };
     let help_paragraph = Paragraph::new(help_text)
         .block(Block::default().borders(Borders::ALL).title(" Controls "))
@@ -476,6 +571,32 @@ fn draw_mfa_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
     f.render_widget(panel, area);
 }
 
+fn draw_editor_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(5),
+            Constraint::Min(10),
+            Constraint::Length(5),
+        ])
+        .split(area);
+
+    let title = Paragraph::new(state.editor_title.as_str())
+        .block(Block::default().borders(Borders::ALL).title(" Title "))
+        .style(Style::default().fg(Color::White));
+    f.render_widget(title, chunks[0]);
+
+    let body = Paragraph::new(state.editor_body.as_str())
+        .block(Block::default().borders(Borders::ALL).title(" Body "))
+        .style(Style::default().fg(Color::White));
+    f.render_widget(body, chunks[1]);
+
+    let tags = Paragraph::new(state.editor_tags.as_str())
+        .block(Block::default().borders(Borders::ALL).title(" Tags "))
+        .style(Style::default().fg(Color::White));
+    f.render_widget(tags, chunks[2]);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -497,10 +618,13 @@ mod tests {
         assert_eq!(state.active_tab, Tab::Mfa);
 
         state.next_tab();
+        assert_eq!(state.active_tab, Tab::Editor);
+
+        state.next_tab();
         assert_eq!(state.active_tab, Tab::Summary);
 
         state.prev_tab();
-        assert_eq!(state.active_tab, Tab::Mfa);
+        assert_eq!(state.active_tab, Tab::Editor);
     }
 
     #[test]
@@ -579,6 +703,98 @@ mod tests {
         assert!(rendered_text.contains("Setup Wizard"));
         assert!(rendered_text.contains("alice@example.org"));
         assert!(rendered_text.contains("Credential access guarded"));
+    }
+
+    #[test]
+    fn test_mock_rendering_editor_tab() {
+        let backend = TestBackend::new(120, 28);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let mut state = AppState::new();
+        state.active_tab = Tab::Editor;
+        state.editor_title = "Request title draft".to_string();
+        state.editor_body = "Please provide the latest briefing notes.".to_string();
+        state.editor_tags = "health,oia".to_string();
+
+        terminal
+            .draw(|f| {
+                draw_ui(f, &state);
+            })
+            .unwrap();
+
+        let rendered_text = buffer_to_string(terminal.backend().buffer());
+        assert!(rendered_text.contains("Request Editor"));
+        assert!(rendered_text.contains("Title"));
+        assert!(rendered_text.contains("Request title draft"));
+        assert!(rendered_text.contains("Body"));
+        assert!(rendered_text.contains("latest briefing notes"));
+        assert!(rendered_text.contains("Tags"));
+        assert!(rendered_text.contains("health,oia"));
+    }
+
+    #[test]
+    fn test_editor_text_input_operations() {
+        let mut input = TextInput::new("Initial");
+
+        input.insert_char('!');
+        assert_eq!(input.value(), "Initial!");
+
+        input.backspace();
+        input.insert_str(" draft");
+        assert_eq!(input.value(), "Initial draft");
+
+        input.replace("Final");
+        assert_eq!(input.value(), "Final");
+    }
+
+    #[tokio::test]
+    async fn test_editor_loads_and_saves_request_via_db() {
+        let db = fyi_core::db::DbPool::new_in_memory()
+            .await
+            .expect("Failed to create in-memory db");
+        db.run_migrations().await.expect("Failed to run migrations");
+        let request = fyi_core::api::AlaveteliRequest {
+            id: 501,
+            title: "Original title".to_string(),
+            body: "Original body".to_string(),
+            user_name: Some("Alice".to_string()),
+            status: Some("draft".to_string()),
+            created_at: Some("2026-06-30T00:00:00Z".to_string()),
+            updated_at: Some("2026-06-30T00:00:00Z".to_string()),
+            url: Some("https://fyi.org.nz/request/501".to_string()),
+            tags: Some(vec!["old".to_string()]),
+        };
+        db.insert_request(&request)
+            .await
+            .expect("Failed to insert request");
+
+        let mut state = AppState::new();
+        state
+            .load_editor_from_db(&db, 501)
+            .await
+            .expect("Failed to load editor");
+        assert_eq!(state.editor_title, "Original title");
+        assert_eq!(state.editor_body, "Original body");
+        assert_eq!(state.editor_tags, "old");
+
+        state.editor_title = "Updated title".to_string();
+        state.editor_body = "Updated body".to_string();
+        state.editor_tags = "health,oia".to_string();
+        assert!(state
+            .save_editor_to_db(&db)
+            .await
+            .expect("Failed to save editor"));
+
+        let saved = db
+            .get_request(501)
+            .await
+            .expect("Failed to fetch request")
+            .expect("Request not found");
+        assert_eq!(saved.title, "Updated title");
+        assert_eq!(saved.body, "Updated body");
+        assert_eq!(
+            saved.tags,
+            Some(vec!["health".to_string(), "oia".to_string()])
+        );
     }
 
     fn buffer_to_string(buffer: &ratatui::buffer::Buffer) -> String {
