@@ -3,7 +3,7 @@
 ## Phase 1: TOTP Core Implementation
 
 ### Task 1.1: TOTP secret generation and code generation
-- [ ] Add TOTP dependencies (totp-rs or manual RFC 6238 implementation)
+- [~] Add TOTP dependencies (totp-rs or manual RFC 6238 implementation)
 - [ ] Implement `generate_totp_secret()` - cryptographically secure random secret
 - [ ] Implement `generate_totp_code(secret, time_step)` - 6-digit code generation
 - [ ] Implement `verify_totp_code(secret, code, drift)` - verification with clock drift

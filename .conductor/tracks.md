@@ -97,7 +97,7 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Description: Archive health reporting (freshness, coverage gaps, raw record counts) consumed by fyi-archive's doctor/parity CI.*
   *Consumer: fyi-archive `observability_quality_20260627`.*
 
-- [ ] **Track: mfa-authentication-layer** (PENDING)
+- [~] **Track: mfa-authentication-layer** (IN PROGRESS)
   *Link: [./tracks/mfa-authentication-layer/](./tracks/mfa-authentication-layer/)*
   *Description: Implement Multi-Factor Authentication (MFA) via TOTP tokens inside the security engine to guard credential access.*
 
