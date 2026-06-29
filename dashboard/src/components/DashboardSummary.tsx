@@ -1,5 +1,6 @@
 import {
   Building2,
+  Download,
   FileText,
   Clock,
   AlertTriangle,
@@ -7,7 +8,7 @@ import {
 import { AttentionTrendChart } from "@/components/AttentionTrendChart";
 import { RequestTimelineChart } from "@/components/RequestTimelineChart";
 import { StatusDistributionChart } from "@/components/StatusDistributionChart";
-import { Card, CardContent } from "@/components/ui";
+import { Button, Card, CardContent } from "@/components/ui";
 import type {
   DashboardChartData,
   DashboardSummaryData,
@@ -58,9 +59,15 @@ interface DashboardSummaryProps {
   summary?: DashboardSummaryData;
   charts?: DashboardChartData;
   error?: string;
+  onExportJson?: () => void;
 }
 
-export function DashboardSummary({ summary, charts, error }: DashboardSummaryProps) {
+export function DashboardSummary({
+  summary,
+  charts,
+  error,
+  onExportJson,
+}: DashboardSummaryProps) {
   const data = summary ?? {
     totalRequests: 0,
     attentionNeeded: 0,
@@ -99,13 +106,21 @@ export function DashboardSummary({ summary, charts, error }: DashboardSummaryPro
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-          Welcome to FYI
-        </h2>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Privacy-focused OIA request management
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            Welcome to FYI
+          </h2>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Privacy-focused OIA request management
+          </p>
+        </div>
+        {onExportJson && (
+          <Button type="button" variant="outline" onClick={onExportJson}>
+            <Download className="h-4 w-4" />
+            Export JSON
+          </Button>
+        )}
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">

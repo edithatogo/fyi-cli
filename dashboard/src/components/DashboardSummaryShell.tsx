@@ -62,5 +62,39 @@ export function DashboardSummaryShell({
     };
   }, [refreshIntervalMs]);
 
-  return <DashboardSummary summary={summary} charts={charts} error={error} />;
+  function exportJson() {
+    const payload: DashboardData = {
+      summary: summary ?? {
+        totalRequests: 0,
+        attentionNeeded: 0,
+        overdue: 0,
+        authoritiesCount: 0,
+      },
+      charts: charts ?? {
+        statusDistribution: [],
+        requestTimeline: [],
+        attentionTrend: [],
+      },
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `fyi-dashboard-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <DashboardSummary
+      summary={summary}
+      charts={charts}
+      error={error}
+      onExportJson={exportJson}
+    />
+  );
 }
