@@ -1,6 +1,7 @@
 use fyi_core::security::{
-    decrypt, encrypt, generate_totp_code, generate_totp_secret, verify_totp_code, EncryptionKey,
-    KeyringStore, ZeroizedBytes, ZeroizedString,
+    build_provisioning_uri, decrypt, encrypt, generate_totp_code, generate_totp_secret,
+    render_provisioning_qr_ascii, verify_totp_code, EncryptionKey, KeyringStore, ZeroizedBytes,
+    ZeroizedString,
 };
 use zeroize::Zeroize;
 
@@ -150,4 +151,25 @@ fn test_totp_secret_generation_returns_distinct_base32_secrets() {
         .chars()
         .all(|ch| matches!(ch, 'A'..='Z' | '2'..='7')));
     assert_ne!(first.as_str(), second.as_str());
+}
+
+#[test]
+fn test_totp_provisioning_uri_encodes_issuer_and_account() {
+    let secret = ZeroizedString::new("JBSWY3DPEHPK3PXP".to_string());
+    let uri = build_provisioning_uri("FYI CLI", "reporter+oia@example.org", &secret).unwrap();
+
+    assert_eq!(
+        uri,
+        "otpauth://totp/FYI%20CLI:reporter%2Boia%40example.org?secret=JBSWY3DPEHPK3PXP&issuer=FYI%20CLI&algorithm=SHA1&digits=6&period=30"
+    );
+}
+
+#[test]
+fn test_totp_qr_ascii_renders_uri_as_terminal_blocks() {
+    let secret = ZeroizedString::new("JBSWY3DPEHPK3PXP".to_string());
+    let uri = build_provisioning_uri("FYI CLI", "reporter@example.org", &secret).unwrap();
+    let qr = render_provisioning_qr_ascii(&uri).unwrap();
+
+    assert!(qr.contains("██"));
+    assert!(qr.lines().count() > 10);
 }

@@ -5,6 +5,8 @@ use aes_gcm::{
 use data_encoding::BASE32_NOPAD;
 use hmac::{Hmac, Mac};
 use keyring::Entry;
+use percent_encoding::{utf8_percent_encode, AsciiSet, CONTROLS};
+use qrcode::QrCode;
 use sha1::Sha1;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
@@ -73,6 +75,27 @@ impl<'de> serde::Deserialize<'de> for ZeroizedString {
 const TOTP_SECRET_BYTES: usize = 20;
 const TOTP_TIME_STEP_SECONDS: u64 = 30;
 const TOTP_DIGITS: u32 = 6;
+const OTPAUTH_ENCODE_SET: &AsciiSet = &CONTROLS
+    .add(b' ')
+    .add(b'"')
+    .add(b'#')
+    .add(b'%')
+    .add(b'&')
+    .add(b'+')
+    .add(b'/')
+    .add(b':')
+    .add(b'<')
+    .add(b'>')
+    .add(b'?')
+    .add(b'@')
+    .add(b'[')
+    .add(b'\\')
+    .add(b']')
+    .add(b'^')
+    .add(b'`')
+    .add(b'{')
+    .add(b'|')
+    .add(b'}');
 
 type HmacSha1 = Hmac<Sha1>;
 
@@ -122,6 +145,43 @@ pub fn verify_totp_code(
     }
 
     Ok(false)
+}
+
+/// Builds an otpauth provisioning URI for authenticator applications.
+pub fn build_provisioning_uri(
+    issuer: &str,
+    account: &str,
+    secret: &ZeroizedString,
+) -> Result<String, SecurityError> {
+    decode_totp_secret(secret)?;
+
+    let encoded_issuer = encode_otpauth_component(issuer);
+    let encoded_account = encode_otpauth_component(account);
+
+    Ok(format!(
+        "otpauth://totp/{encoded_issuer}:{encoded_account}?secret={secret}&issuer={encoded_issuer}&algorithm=SHA1&digits={digits}&period={period}",
+        secret = secret.as_str(),
+        digits = TOTP_DIGITS,
+        period = TOTP_TIME_STEP_SECONDS
+    ))
+}
+
+/// Renders a provisioning URI as terminal-friendly QR code blocks.
+pub fn render_provisioning_qr_ascii(uri: &str) -> Result<String, SecurityError> {
+    let code =
+        QrCode::new(uri.as_bytes()).map_err(|e| SecurityError::InvalidTotpSecret(e.to_string()))?;
+
+    Ok(code
+        .render::<char>()
+        .quiet_zone(true)
+        .module_dimensions(2, 1)
+        .dark_color('█')
+        .light_color(' ')
+        .build())
+}
+
+fn encode_otpauth_component(component: &str) -> String {
+    utf8_percent_encode(component, OTPAUTH_ENCODE_SET).to_string()
 }
 
 fn decode_totp_secret(secret: &ZeroizedString) -> Result<Vec<u8>, SecurityError> {
