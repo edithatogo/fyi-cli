@@ -1,0 +1,18 @@
+Conductor task: mfa-authentication-layer Task 1.1 TOTP secret and code generation
+
+Summary:
+- Added hmac, sha1, and data-encoding dependencies for a local RFC 6238/HOTP implementation.
+- Added base32 TOTP secret generation using OS randomness and zeroization.
+- Added 6-digit TOTP code generation and drift-tolerant verification.
+- Added RFC 6238-derived vector tests, drift verification tests, secret generation tests, and proptest roundtrip coverage.
+- Corrected the AES-GCM property length assertion to account for the 16-byte auth tag.
+
+Verification:
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-core --test security_tests
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-core --test property_tests
+- cargo +stable-x86_64-pc-windows-gnu check -p fyi-core
+- rustfmt +stable-x86_64-pc-windows-gnu --check crates/fyi-core/src/security.rs crates/fyi-core/tests/security_tests.rs crates/fyi-core/tests/property_tests.rs
+
+Notes:
+- cargo test -p fyi-core under the GNU toolchain passed unit, DB, property, and security tests but failed two existing Tor tests because Arti could not open %LOCALAPPDATA%\\torproject\\Arti\\cache\\dir.sqlite3 in this environment.
+- The default MSVC cargo target cannot link on this workstation because Windows SDK import libraries such as kernel32.lib are not available in LIB.
