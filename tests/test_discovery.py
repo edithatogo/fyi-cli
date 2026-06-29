@@ -9,6 +9,7 @@ import httpx
 import pytest
 
 from fyi_system.discovery import (
+    PoliteRateLimiter,
     backfill_ids,
     discover_feed,
     get_with_backoff,
@@ -93,6 +94,7 @@ def test_backfill_ids_follows_redirect_and_skips_404() -> None:
         id_from=1,
         id_to=2,
         base_url="https://fyi.example",
+        delay_seconds=0,
         transport=httpx.MockTransport(handler),
     )
 
@@ -156,6 +158,44 @@ def test_get_with_backoff_recovers_from_429() -> None:
 
     assert response.status_code == 200
     assert attempts["count"] == 2
+
+
+def test_get_with_backoff_enforces_rate_cap() -> None:
+    sleeps: list[float] = []
+    now = {"value": 0.0}
+
+    def sleeper(seconds: float) -> None:
+        sleeps.append(seconds)
+        now["value"] += seconds
+
+    limiter = PoliteRateLimiter(
+        1.0,
+        jitter_seconds=0.5,
+        clock=lambda: now["value"],
+        sleeper=sleeper,
+        randomizer=lambda: 0.5,
+    )
+
+    with httpx.Client(
+        transport=httpx.MockTransport(lambda request: httpx.Response(200, request=request)),
+        base_url="https://fyi.example",
+    ) as http:
+        get_with_backoff(
+            http,
+            "/search/all",
+            disallows=[],
+            rate_limiter=limiter,
+            backoff_seconds=0,
+        )
+        get_with_backoff(
+            http,
+            "/search/all",
+            disallows=[],
+            rate_limiter=limiter,
+            backoff_seconds=0,
+        )
+
+    assert sleeps == [1.25]
 
 
 def test_reconcile_discovery_files_reports_set_gaps(tmp_path: Path) -> None:

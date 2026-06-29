@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import random
 import re
 import time
 from dataclasses import asdict, dataclass
@@ -61,6 +62,37 @@ class DiscoveryReconciliation:
             "missing_from_backfill": self.missing_from_backfill,
             "is_complete": self.is_complete,
         }
+
+
+class PoliteRateLimiter:
+    """Simple per-process rate limiter for polite archive discovery."""
+
+    def __init__(
+        self,
+        interval_seconds: float,
+        *,
+        jitter_seconds: float = 0.25,
+        clock: Any = time.monotonic,
+        sleeper: Any = time.sleep,
+        randomizer: Any = random.random,
+    ) -> None:
+        self.interval_seconds = max(interval_seconds, 0)
+        self.jitter_seconds = max(jitter_seconds, 0)
+        self.clock = clock
+        self.sleeper = sleeper
+        self.randomizer = randomizer
+        self.next_allowed_at: float | None = None
+
+    def wait(self) -> None:
+        """Sleep until the next request is allowed."""
+        now = float(self.clock())
+        if self.next_allowed_at is not None and now < self.next_allowed_at:
+            sleep_for = self.next_allowed_at - now
+            if sleep_for > 0:
+                self.sleeper(sleep_for)
+                now = float(self.clock())
+        jitter = self.jitter_seconds * float(self.randomizer()) if self.interval_seconds > 0 else 0
+        self.next_allowed_at = now + self.interval_seconds + jitter
 
 
 def build_search_url(
@@ -132,8 +164,10 @@ def get_with_backoff(
     url: str,
     *,
     disallows: list[str],
+    rate_limiter: PoliteRateLimiter | None = None,
     retries: int = 3,
     backoff_seconds: float = 1.0,
+    sleeper: Any = time.sleep,
 ) -> httpx.Response:
     """GET with robots enforcement and simple retry backoff on transient statuses."""
     path = httpx.URL(url).path if url.startswith("http") else url
@@ -141,13 +175,15 @@ def get_with_backoff(
         msg = f"robots.txt disallows fetching {path}"
         raise PermissionError(msg)
     for attempt in range(retries + 1):
+        if rate_limiter is not None:
+            rate_limiter.wait()
         response = http.get(url)
         if response.status_code not in {429, 500, 502, 503, 504}:
             return response
         if attempt == retries:
             return response
         if backoff_seconds > 0:
-            time.sleep(backoff_seconds * (attempt + 1))
+            sleeper(backoff_seconds * (attempt + 1))
     return response
 
 
@@ -270,6 +306,7 @@ def discover_feed(
     all_entries: list[DiscoveredRequest] = []
     with client(base_url, transport=transport) as http:
         disallows = load_robots_disallow(http)
+        rate_limiter = PoliteRateLimiter(delay_seconds)
         while final_page is None or page <= final_page:
             url = build_search_url(
                 base_url=base_url,
@@ -283,6 +320,7 @@ def discover_feed(
                 http,
                 url,
                 disallows=disallows,
+                rate_limiter=rate_limiter,
                 backoff_seconds=delay_seconds,
             )
             response.raise_for_status()
@@ -292,8 +330,6 @@ def discover_feed(
             if not has_next:
                 break
             page += 1
-            if delay_seconds > 0:
-                time.sleep(delay_seconds)
     return dedupe(all_entries)
 
 
@@ -302,17 +338,21 @@ def backfill_ids(
     id_from: int,
     id_to: int,
     base_url: str = "https://fyi.org.nz",
+    delay_seconds: float = 1.0,
     transport: httpx.BaseTransport | None = None,
 ) -> list[DiscoveredRequest]:
     """Probe numeric request IDs, following redirects to url_title slugs."""
     entries = []
     with client(base_url, transport=transport) as http:
         disallows = load_robots_disallow(http)
+        rate_limiter = PoliteRateLimiter(delay_seconds)
         for request_id in range(id_from, id_to + 1):
             response = get_with_backoff(
                 http,
                 f"/request/{request_id}.json",
                 disallows=disallows,
+                rate_limiter=rate_limiter,
+                backoff_seconds=delay_seconds,
             )
             if response.status_code == 404:
                 continue

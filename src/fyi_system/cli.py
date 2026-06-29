@@ -104,7 +104,12 @@ def cmd_discover(args):
     if args.backfill_ids:
         if args.id_from is None or args.id_to is None:
             raise SystemExit("--backfill-ids requires --id-from and --id-to")
-        rows = backfill_ids(id_from=args.id_from, id_to=args.id_to, base_url=args.base_url)
+        rows = backfill_ids(
+            id_from=args.id_from,
+            id_to=args.id_to,
+            base_url=args.base_url,
+            delay_seconds=args.delay_seconds,
+        )
     else:
         rows = discover_feed(
             base_url=args.base_url,

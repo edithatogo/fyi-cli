@@ -2,10 +2,10 @@
 
 ## Phase 1: Polite HTTP foundation (shared)
 
-- [~] 1.1 Async `httpx` client with contactable `User-Agent` + `robots.txt` cache.
-- [~] 1.2 `httpx-limiter` token-bucket (~1 req/s + jitter) + `tenacity` backoff on
+- [x] 1.1 `httpx` client with contactable `User-Agent` + per-run `robots.txt` cache.
+- [x] 1.2 Internal rate cap (~1 req/s + jitter) + retry backoff on
       429/5xx.
-- [~] 1.3 Tests: robots disallow honoured; injected 429 backs off; rate cap enforced
+- [x] 1.3 Tests: robots disallow honoured; injected 429 backs off; rate cap enforced
       (timed).
 
 ## Phase 2: Feed-based discovery
