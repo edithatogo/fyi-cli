@@ -126,6 +126,7 @@ pub enum TuiCommand {
     None,
     SaveDraft,
     CloseEditor,
+    TestCredential,
     Quit,
 }
 
@@ -161,6 +162,27 @@ impl CredentialAccount {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CredentialSessionStatus {
+    NotTested,
+    Verified,
+    Missing,
+    MfaRequired,
+    Error,
+}
+
+impl CredentialSessionStatus {
+    pub fn label(&self) -> &'static str {
+        match self {
+            CredentialSessionStatus::NotTested => "Not tested",
+            CredentialSessionStatus::Verified => "Verified",
+            CredentialSessionStatus::Missing => "Missing",
+            CredentialSessionStatus::MfaRequired => "MFA required",
+            CredentialSessionStatus::Error => "Error",
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct AppState {
     pub active_tab: Tab,
@@ -192,6 +214,9 @@ pub struct AppState {
     pub credentials: Vec<CredentialAccount>,
     pub selected_credential_idx: usize,
     pub active_credential_account: Option<String>,
+    pub credential_session_status: CredentialSessionStatus,
+    pub credential_test_message: Option<String>,
+    pub credential_test_requested: bool,
     pub should_quit: bool,
 }
 
@@ -297,6 +322,9 @@ impl AppState {
             credentials: Vec::new(),
             selected_credential_idx: 0,
             active_credential_account: None,
+            credential_session_status: CredentialSessionStatus::NotTested,
+            credential_test_message: None,
+            credential_test_requested: false,
             should_quit: false,
         }
     }
@@ -445,6 +473,10 @@ impl AppState {
             }
             (KeyCode::Enter, KeyModifiers::NONE) => {
                 self.activate_selected_credential();
+            }
+            (KeyCode::Char('t'), KeyModifiers::NONE) => {
+                self.credential_test_requested = true;
+                return TuiCommand::TestCredential;
             }
             _ => {}
         }
@@ -605,7 +637,45 @@ impl AppState {
             return false;
         };
         self.active_credential_account = Some(account.username.clone());
+        self.credential_session_status = CredentialSessionStatus::NotTested;
+        self.credential_test_message = None;
         true
+    }
+
+    pub fn test_active_credential(
+        &mut self,
+        store: &fyi_core::security::KeyringStore,
+    ) -> Result<bool, Box<dyn std::error::Error>> {
+        let Some(account) = self.active_credential_account.as_deref() else {
+            self.credential_session_status = CredentialSessionStatus::Missing;
+            self.credential_test_message = Some("No active credential".to_string());
+            return Ok(false);
+        };
+
+        match store.get_credential(account) {
+            Ok(_) => {
+                self.credential_session_status = CredentialSessionStatus::Verified;
+                self.credential_test_message = Some("Credential verified".to_string());
+                Ok(true)
+            }
+            Err(fyi_core::security::SecurityError::MfaRequired(_)) => {
+                self.credential_session_status = CredentialSessionStatus::MfaRequired;
+                self.credential_test_message = Some("MFA verification required".to_string());
+                Ok(false)
+            }
+            Err(fyi_core::security::SecurityError::KeyringError(error))
+                if error.contains("No keyring entry found") =>
+            {
+                self.credential_session_status = CredentialSessionStatus::Missing;
+                self.credential_test_message = Some("Credential not found".to_string());
+                Ok(false)
+            }
+            Err(error) => {
+                self.credential_session_status = CredentialSessionStatus::Error;
+                self.credential_test_message = Some(error.to_string());
+                Ok(false)
+            }
+        }
     }
 }
 
@@ -668,12 +738,12 @@ pub fn draw_ui(f: &mut Frame<'_>, state: &AppState) {
         .position(|t| *t == state.active_tab)
         .unwrap_or(0);
 
+    let active_account = state.active_credential_account.as_deref().unwrap_or("None");
     let tabs = Tabs::new(tabs_titles)
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title(" FYI Request System "),
-        )
+        .block(Block::default().borders(Borders::ALL).title(format!(
+            " FYI Request System | Account: {active_account} | Session: {} ",
+            state.credential_session_status.label()
+        )))
         .select(current_tab_idx)
         .style(Style::default().fg(Color::Cyan))
         .highlight_style(
@@ -962,8 +1032,13 @@ fn draw_credential_dialog(f: &mut Frame<'_>, state: &AppState, area: Rect) {
             .collect::<Vec<_>>()
             .join("\n")
     };
+    let message = state
+        .credential_test_message
+        .as_deref()
+        .unwrap_or("Not tested");
     let content = format!(
-        "Active: {active}\n\nAccounts\n{accounts}\n\nEnter: Switch | Up/Down: Select | Esc: Close"
+        "Active: {active}\nSession: {}\nLast test: {message}\n\nAccounts\n{accounts}\n\nEnter: Switch | T: Test Credential | Up/Down: Select | Esc: Close",
+        state.credential_session_status.label()
     );
     let dialog = Paragraph::new(content)
         .block(
@@ -1539,6 +1614,67 @@ mod tests {
 
         state.handle_key_event(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
         assert!(!state.credential_dialog_open);
+    }
+
+    #[test]
+    fn test_active_credential_status_renders_in_header() {
+        let backend = TestBackend::new(140, 30);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let mut state = AppState::new();
+        state.active_credential_account = Some("alice@example.org".to_string());
+        state.credential_session_status = CredentialSessionStatus::Verified;
+
+        terminal
+            .draw(|f| {
+                draw_ui(f, &state);
+            })
+            .unwrap();
+
+        let rendered_text = buffer_to_string(terminal.backend().buffer());
+        assert!(rendered_text.contains("alice@example.org"));
+        assert!(rendered_text.contains("Session: Verified"));
+    }
+
+    #[test]
+    fn test_active_credential_can_be_tested_against_keyring() {
+        let store = fyi_core::security::KeyringStore::new_in_memory("fyi-cli-test");
+        store
+            .set_credential(
+                "alice@example.org",
+                &fyi_core::security::ZeroizedString::new("secret-a".to_string()),
+            )
+            .expect("Failed to store credential");
+
+        let mut state = AppState::new();
+        state.active_credential_account = Some("alice@example.org".to_string());
+
+        assert!(state
+            .test_active_credential(&store)
+            .expect("Failed to test credential"));
+        assert_eq!(
+            state.credential_session_status,
+            CredentialSessionStatus::Verified
+        );
+        assert_eq!(
+            state.credential_test_message.as_deref(),
+            Some("Credential verified")
+        );
+    }
+
+    #[test]
+    fn test_credential_dialog_test_key_sets_request_flag() {
+        use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+
+        let mut state = AppState::new();
+        state.credential_dialog_open = true;
+        state.credentials = vec![CredentialAccount::new("alice@example.org")];
+        state.activate_selected_credential();
+
+        assert_eq!(
+            state.handle_key_event(KeyEvent::new(KeyCode::Char('t'), KeyModifiers::NONE)),
+            TuiCommand::TestCredential
+        );
+        assert!(state.credential_test_requested);
     }
 
     fn buffer_to_string(buffer: &ratatui::buffer::Buffer) -> String {
