@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/edithatogo/fyi-cli/schemas/archive-health.schema.json",
+  "title": "fyi-cli archive health",
+  "type": "object",
+  "required": ["schema", "freshness", "coverage", "counts", "warnings"],
+  "properties": {
+    "schema": { "const": "schemas/archive-health.schema.json" },
+    "freshness": {
+      "type": "object",
+      "required": ["last_successful_capture", "last_successful_sync"],
+      "properties": {
+        "last_successful_capture": { "type": ["string", "null"] },
+        "last_successful_sync": { "type": ["string", "null"] }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "required": [
+        "discovered_count",
+        "captured_count",
+        "missing_request_count",
+        "missing_request_ids_sample",
+        "authorities_with_zero_captures"
+      ],
+      "properties": {
+        "discovered_count": { "type": "integer", "minimum": 0 },
+        "captured_count": { "type": "integer", "minimum": 0 },
+        "missing_request_count": { "type": "integer", "minimum": 0 },
+        "missing_request_ids_sample": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1 }
+        },
+        "authorities_with_zero_captures": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "required": [
+        "manifest_record_count",
+        "attachment_count",
+        "attachment_bytes",
+        "wacz_count"
+      ],
+      "properties": {
+        "manifest_record_count": { "type": "integer", "minimum": 0 },
+        "attachment_count": { "type": "integer", "minimum": 0 },
+        "attachment_bytes": { "type": "integer", "minimum": 0 },
+        "wacz_count": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

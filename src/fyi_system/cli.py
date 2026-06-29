@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from .archive_health import build_archive_health, write_archive_health
 from .db import init_db, query_all, connect, get_tracked_request, export_tracked_requests, import_tracked_requests, request_timeline, update_request_status
 from .discovery import backfill_ids, discover_feed, write_jsonl
 from .fyi import build_prefilled_url
@@ -116,6 +117,22 @@ def cmd_discover(args):
     else:
         for row in rows:
             print(row.to_json())
+
+
+def cmd_archive_health(args):
+    report = build_archive_health(
+        discovered_path=Path(args.discovered),
+        ledger_path=Path(args.ledger),
+        manifest_path=Path(args.manifest),
+        sync_state_path=Path(args.sync_state),
+        attachments_dir=Path(args.attachments_dir),
+        wacz_dir=Path(args.wacz_dir),
+    )
+    if args.output:
+        write_archive_health(Path(args.output), report)
+        print(args.output)
+    else:
+        print(json.dumps(report, indent=2, sort_keys=True))
 
 
 def cmd_attention_report(args):
@@ -345,6 +362,17 @@ def build_parser():
     sp.add_argument('--id-to', type=int)
     sp.add_argument('--output')
     sp.set_defaults(func=cmd_discover)
+
+    # Command: archive-health
+    sp = sub.add_parser('archive-health')
+    sp.add_argument('--discovered', default='data/_state/discovered_requests.jsonl')
+    sp.add_argument('--ledger', default='data/_state/ledger.jsonl')
+    sp.add_argument('--manifest', default='manifests/latest_manifest.json')
+    sp.add_argument('--sync-state', default='data/_state/sync_state.json')
+    sp.add_argument('--attachments-dir', default='data/attachments')
+    sp.add_argument('--wacz-dir', default='dist/site_snapshots')
+    sp.add_argument('--output')
+    sp.set_defaults(func=cmd_archive_health)
     
     # Command: attention-report
     sp = sub.add_parser('attention-report')

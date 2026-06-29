@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import httpx
 
 from fyi_system.discovery import backfill_ids, discover_feed, parse_feed_entries, write_jsonl
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_parse_feed_entries_dedupes_requests() -> None:

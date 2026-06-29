@@ -87,7 +87,7 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Description: Content-addressed change detection (added/updated/removed by SHA-256 of the captured JSON) → latest_changes.json. Powers the fyi-archive prospective daily sync. Read-only; distinct from the tracker-focused offline-sync-engine.*
   *Consumer: fyi-archive `prospective_sync_orchestration_20260627`.*
 
-- [ ] **Track: archive-health-doctor** (PENDING — fyi-archive capability)
+- [x] **Track: archive-health-doctor** (COMPLETED — fyi-archive capability)
   *Link: [./tracks/archive-health-doctor/](./tracks/archive-health-doctor/)*
   *Description: Archive health reporting (freshness, coverage gaps, raw record counts) consumed by fyi-archive's doctor/parity CI.*
   *Consumer: fyi-archive `observability_quality_20260627`.*
