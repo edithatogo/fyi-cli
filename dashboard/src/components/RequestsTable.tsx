@@ -58,6 +58,8 @@ export function RequestsTable({ requests }: RequestsTableProps) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [authorityFilter, setAuthorityFilter] = useState("");
+  const [updatedFrom, setUpdatedFrom] = useState("");
+  const [updatedTo, setUpdatedTo] = useState("");
 
   const statusOptions = useMemo(
     () => [
@@ -98,17 +100,20 @@ export function RequestsTable({ requests }: RequestsTableProps) {
     const normalizedQuery = query.trim().toLowerCase();
     return requests.filter((request) => {
       const authorityValue = request.authority_slug ?? request.authority_name ?? "";
+      const updatedDate = (request.updated_at ?? request.created_at ?? "").slice(0, 10);
       return (
         (!normalizedQuery || searchableText(request).includes(normalizedQuery)) &&
         (!statusFilter || request.status === statusFilter) &&
-        (!authorityFilter || authorityValue === authorityFilter)
+        (!authorityFilter || authorityValue === authorityFilter) &&
+        (!updatedFrom || updatedDate >= updatedFrom) &&
+        (!updatedTo || updatedDate <= updatedTo)
       );
     });
-  }, [authorityFilter, query, requests, statusFilter]);
+  }, [authorityFilter, query, requests, statusFilter, updatedFrom, updatedTo]);
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px_260px]">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_180px_220px_160px_160px]">
         <label className="grid gap-2">
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
             Search requests
@@ -146,6 +151,30 @@ export function RequestsTable({ requests }: RequestsTableProps) {
             options={authorityOptions}
             value={authorityFilter}
             onChange={(event) => setAuthorityFilter(event.target.value)}
+          />
+        </label>
+
+        <label className="grid gap-2">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Updated from
+          </span>
+          <Input
+            aria-label="Updated from"
+            type="date"
+            value={updatedFrom}
+            onChange={(event) => setUpdatedFrom(event.target.value)}
+          />
+        </label>
+
+        <label className="grid gap-2">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Updated to
+          </span>
+          <Input
+            aria-label="Updated to"
+            type="date"
+            value={updatedTo}
+            onChange={(event) => setUpdatedTo(event.target.value)}
           />
         </label>
       </div>

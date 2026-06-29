@@ -67,4 +67,37 @@ describe("RequestsTable", () => {
     expect(screen.getByText("Procurement records")).toBeDefined();
     expect(screen.queryByText("Meeting minutes")).toBeNull();
   });
+
+  it("filters requests by updated date range", () => {
+    render(
+      <RequestsTable
+        requests={[
+          {
+            id: 1,
+            title: "April request",
+            body: "Recent request",
+            status: "submitted",
+            updated_at: "2026-04-12T09:30:00Z",
+          },
+          {
+            id: 2,
+            title: "March request",
+            body: "Older request",
+            status: "draft",
+            updated_at: "2026-03-20T09:30:00Z",
+          },
+        ]}
+      />
+    );
+
+    fireEvent.change(screen.getByLabelText("Updated from"), {
+      target: { value: "2026-04-01" },
+    });
+    fireEvent.change(screen.getByLabelText("Updated to"), {
+      target: { value: "2026-04-30" },
+    });
+
+    expect(screen.getByText("April request")).toBeDefined();
+    expect(screen.queryByText("March request")).toBeNull();
+  });
 });
