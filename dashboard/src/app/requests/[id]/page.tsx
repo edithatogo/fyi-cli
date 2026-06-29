@@ -249,7 +249,7 @@ export default async function RequestDetailPage({
         </CardContent>
       </Card>
 
-      <CorrespondenceTimeline correspondence={correspondence} />
+      <CorrespondenceTimeline request={request} correspondence={correspondence} />
     </div>
   );
 }
