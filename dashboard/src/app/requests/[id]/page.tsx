@@ -1,27 +1,17 @@
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import { CorrespondenceTimeline } from "@/components/CorrespondenceTimeline";
+import { RequestInlineEditor } from "@/components/RequestInlineEditor";
 import {
   Badge,
   Button,
   Card,
   CardContent,
   CardHeader,
-  Input,
-  Select,
 } from "@/components/ui";
 import { FyiMcpClient, type FyiRequestWithCorrespondence } from "@/lib/mcp-client";
 
 export const dynamic = "force-dynamic";
-
-const statusOptions = [
-  { value: "draft", label: "Draft" },
-  { value: "submitted", label: "Submitted" },
-  { value: "awaiting_response", label: "Awaiting response" },
-  { value: "partial", label: "Partial response" },
-  { value: "completed", label: "Completed" },
-  { value: "closed", label: "Closed" },
-];
 
 async function getRequest(id: number): Promise<FyiRequestWithCorrespondence> {
   const client = new FyiMcpClient();
@@ -33,44 +23,6 @@ async function getRequest(id: number): Promise<FyiRequestWithCorrespondence> {
   } finally {
     await client.close();
   }
-}
-
-async function updateRequest(formData: FormData) {
-  "use server";
-
-  const id = Number(formData.get("id"));
-  const title = formData.get("title")?.toString().trim();
-  const body = formData.get("body")?.toString().trim();
-  const userName = formData.get("user_name")?.toString().trim();
-  const status = formData.get("status")?.toString().trim();
-  const url = formData.get("url")?.toString().trim();
-  const tags = formData
-    .get("tags")
-    ?.toString()
-    .split(",")
-    .map((tag) => tag.trim())
-    .filter(Boolean) ?? [];
-
-  if (!Number.isFinite(id) || !title || !body) {
-    throw new Error("Request ID, title, and body are required.");
-  }
-
-  const client = new FyiMcpClient();
-  try {
-    await client.updateRequest({
-      id,
-      title,
-      body,
-      user_name: userName || undefined,
-      status: status || undefined,
-      url: url || undefined,
-      tags,
-    });
-  } finally {
-    await client.close();
-  }
-
-  redirect(`/requests/${id}`);
 }
 
 async function deleteRequest(formData: FormData) {
@@ -144,80 +96,7 @@ export default async function RequestDetailPage({
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-            Inline edit
-          </h3>
-        </CardHeader>
-        <CardContent>
-          <form action={updateRequest} className="grid gap-5">
-            <input type="hidden" name="id" value={request.id} />
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Title
-              </span>
-              <Input name="title" required defaultValue={request.title} />
-            </label>
-
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Body
-              </span>
-              <textarea
-                name="body"
-                required
-                rows={10}
-                defaultValue={request.body}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus-visible:border-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 dark:placeholder:text-gray-500"
-              />
-            </label>
-
-            <div className="grid gap-5 md:grid-cols-2">
-              <label className="grid gap-2">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Status
-                </span>
-                <Select
-                  name="status"
-                  options={statusOptions}
-                  defaultValue={request.status ?? "draft"}
-                />
-              </label>
-
-              <label className="grid gap-2">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Requester
-                </span>
-                <Input name="user_name" defaultValue={request.user_name ?? ""} />
-              </label>
-            </div>
-
-            <div className="grid gap-5 md:grid-cols-2">
-              <label className="grid gap-2">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Source URL
-                </span>
-                <Input name="url" defaultValue={request.url ?? ""} />
-              </label>
-
-              <label className="grid gap-2">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Tags
-                </span>
-                <Input name="tags" defaultValue={request.tags?.join(", ") ?? ""} />
-              </label>
-            </div>
-
-            <div className="flex justify-end border-t border-gray-200 pt-5 dark:border-gray-800">
-              <Button type="submit">
-                <Save className="h-4 w-4" />
-                Save changes
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+      <RequestInlineEditor request={request} />
 
       <Card className="border-red-200 dark:border-red-900">
         <CardHeader>
