@@ -61,11 +61,11 @@
 ### Task 4.1: Timeline visualization
 - [x] Build correspondence timeline component [4d6e304]
 - [x] Fetch and display request lifecycle events [5a1d4fb]
-- [~] Add visual status indicators on timeline
-- [ ] Commit: `feat(dashboard): add request timeline visualization`
+- [x] Add visual status indicators on timeline [87180a8]
+- [x] Commit: `feat(dashboard): add request timeline visualization` [87180a8]
 
 ### Task 4.2: Inline editing & attachments
-- [ ] Implement inline field editing with auto-save
+- [~] Implement inline field editing with auto-save
 - [ ] Add attachment link previews
 - [ ] Commit: `feat(dashboard): add inline editing and attachment previews`
 
