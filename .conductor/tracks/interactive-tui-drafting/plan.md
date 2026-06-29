@@ -7,7 +7,7 @@
 - [x] Build request editor view with title/body/tags fields
 - [x] Add text input widget for inline editing in ratatui
 - [x] Wire editor to fyi-core DB for save/load
-- [x] Commit: `feat(tui): add request editor view with inline editing`
+- [x] Commit: `feat(tui): add request editor view with inline editing` [18f3d8f]
 
 ### Task 1.2: Markdown preview and auto-save
 - [ ] Add markdown preview split-pane (edit left, preview right)
