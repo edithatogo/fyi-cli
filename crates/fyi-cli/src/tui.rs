@@ -208,6 +208,27 @@ impl KeyringEntryItem {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SearchResultItem {
+    pub kind: String,
+    pub title: String,
+    pub detail: String,
+}
+
+impl SearchResultItem {
+    pub fn new(
+        kind: impl Into<String>,
+        title: impl Into<String>,
+        detail: impl Into<String>,
+    ) -> Self {
+        Self {
+            kind: kind.into(),
+            title: title.into(),
+            detail: detail.into(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CredentialSessionStatus {
     NotTested,
@@ -268,6 +289,10 @@ pub struct AppState {
     pub encryption_key_managed: bool,
     pub encryption_key_strength: Option<String>,
     pub encryption_key_rotation_status: Option<String>,
+    pub search_open: bool,
+    pub search_query: String,
+    pub search_results: Vec<SearchResultItem>,
+    pub selected_search_result_idx: usize,
     pub should_quit: bool,
 }
 
@@ -381,6 +406,10 @@ impl AppState {
             encryption_key_managed: false,
             encryption_key_strength: None,
             encryption_key_rotation_status: None,
+            search_open: false,
+            search_query: String::new(),
+            search_results: Vec::new(),
+            selected_search_result_idx: 0,
             should_quit: false,
         }
     }
@@ -449,11 +478,22 @@ impl AppState {
     }
 
     pub fn handle_key_event(&mut self, key: KeyEvent) -> TuiCommand {
+        if self.search_open {
+            self.handle_search_key_event(key);
+            return TuiCommand::None;
+        }
+
         if self.credential_dialog_open {
             return self.handle_credential_dialog_key_event(key);
         }
 
         match (key.code, key.modifiers) {
+            (KeyCode::Char('/'), KeyModifiers::NONE) => {
+                self.search_open = true;
+                self.search_query.clear();
+                self.refresh_search_results();
+                TuiCommand::None
+            }
             (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
                 self.credential_dialog_open = true;
                 TuiCommand::None
@@ -550,6 +590,25 @@ impl AppState {
             _ => {}
         }
         TuiCommand::None
+    }
+
+    fn handle_search_key_event(&mut self, key: KeyEvent) {
+        match (key.code, key.modifiers) {
+            (KeyCode::Esc, KeyModifiers::NONE) => {
+                self.search_open = false;
+            }
+            (KeyCode::Backspace, KeyModifiers::NONE) => {
+                self.search_query.pop();
+                self.refresh_search_results();
+            }
+            (KeyCode::Down, KeyModifiers::NONE) => self.select_next_search_result(),
+            (KeyCode::Up, KeyModifiers::NONE) => self.select_prev_search_result(),
+            (KeyCode::Char(ch), KeyModifiers::NONE) => {
+                self.search_query.push(ch);
+                self.refresh_search_results();
+            }
+            _ => {}
+        }
     }
 
     fn push_editor_char(&mut self, ch: char) {
@@ -809,6 +868,90 @@ impl AppState {
         self.encryption_key_strength = Some("Strong".to_string());
         self.encryption_key_rotation_status = Some("Current".to_string());
     }
+
+    pub fn refresh_search_results(&mut self) {
+        let query = self.search_query.to_ascii_lowercase();
+        self.search_results.clear();
+
+        if query.is_empty() {
+            self.search_results.push(SearchResultItem::new(
+                "Hint",
+                "Type to search",
+                "Requests, authorities, logs",
+            ));
+        } else {
+            let mut results = Vec::new();
+            for request in &self.tracked_requests {
+                if fuzzy_matches(&request.title, &query)
+                    || fuzzy_matches(&request.authority, &query)
+                    || fuzzy_matches(&request.status, &query)
+                {
+                    results.push(SearchResultItem::new(
+                        "Request",
+                        request.title.clone(),
+                        format!("{} | {}", request.authority, request.status),
+                    ));
+                }
+                if fuzzy_matches(&request.authority, &query) {
+                    results.push(SearchResultItem::new(
+                        "Authority",
+                        request.authority.clone(),
+                        format!("Request #{}", request.id),
+                    ));
+                }
+            }
+            for log in &self.logs {
+                if fuzzy_matches(log, &query) {
+                    results.push(SearchResultItem::new(
+                        "Activity Logs",
+                        log.clone(),
+                        "Log entry",
+                    ));
+                }
+            }
+            for entry in &self.keyring_entries {
+                if fuzzy_matches(&entry.username, &query) || fuzzy_matches(&entry.kind, &query) {
+                    results.push(SearchResultItem::new(
+                        "Keyring",
+                        entry.username.clone(),
+                        entry.kind.clone(),
+                    ));
+                }
+            }
+            self.search_results = results;
+        }
+
+        if self.selected_search_result_idx >= self.search_results.len() {
+            self.selected_search_result_idx = self.search_results.len().saturating_sub(1);
+        }
+    }
+
+    pub fn select_next_search_result(&mut self) {
+        if !self.search_results.is_empty() {
+            self.selected_search_result_idx =
+                (self.selected_search_result_idx + 1) % self.search_results.len();
+        }
+    }
+
+    pub fn select_prev_search_result(&mut self) {
+        if !self.search_results.is_empty() {
+            self.selected_search_result_idx =
+                (self.selected_search_result_idx + self.search_results.len() - 1)
+                    % self.search_results.len();
+        }
+    }
+}
+
+fn fuzzy_matches(value: &str, query: &str) -> bool {
+    let value = value.to_ascii_lowercase();
+    if value.contains(query) {
+        return true;
+    }
+
+    let mut chars = value.chars();
+    query
+        .chars()
+        .all(|needle| chars.by_ref().any(|candidate| candidate == needle))
 }
 
 fn parse_editor_tags(tags: &str) -> Option<Vec<String>> {
@@ -915,6 +1058,10 @@ pub fn draw_ui(f: &mut Frame<'_>, state: &AppState) {
 
     if state.credential_dialog_open {
         draw_credential_dialog(f, state, centered_rect(70, 55, f.size()));
+    }
+
+    if state.search_open {
+        draw_search_overlay(f, state, centered_rect(76, 60, f.size()));
     }
 }
 
@@ -1275,6 +1422,43 @@ fn draw_credential_dialog(f: &mut Frame<'_>, state: &AppState, area: Rect) {
         )
         .style(Style::default().fg(Color::White));
     f.render_widget(dialog, area);
+}
+
+fn draw_search_overlay(f: &mut Frame<'_>, state: &AppState, area: Rect) {
+    f.render_widget(Clear, area);
+    let results = if state.search_results.is_empty() {
+        "No results".to_string()
+    } else {
+        state
+            .search_results
+            .iter()
+            .enumerate()
+            .map(|(idx, result)| {
+                let marker = if idx == state.selected_search_result_idx {
+                    ">"
+                } else {
+                    " "
+                };
+                format!(
+                    "{marker} [{}] {}\n    {}",
+                    result.kind, result.title, result.detail
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+    let content = format!(
+        "Query: {}\n\n{}\n\nUp/Down: Navigate | Esc: Close",
+        state.search_query, results
+    );
+    let overlay = Paragraph::new(content)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(" Fuzzy Search "),
+        )
+        .style(Style::default().fg(Color::White));
+    f.render_widget(overlay, area);
 }
 
 fn centered_rect(percent_x: u16, percent_y: u16, area: Rect) -> Rect {
@@ -2029,6 +2213,66 @@ mod tests {
         assert!(rendered_text.contains("Strong"));
         assert!(rendered_text.contains("Current"));
         assert!(rendered_text.contains("Encryption Key"));
+    }
+
+    #[test]
+    fn test_fuzzy_search_opens_with_slash_and_accepts_query() {
+        use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+
+        let mut state = AppState::new();
+
+        state.handle_key_event(KeyEvent::new(KeyCode::Char('/'), KeyModifiers::NONE));
+        assert!(state.search_open);
+
+        state.handle_key_event(KeyEvent::new(KeyCode::Char('h'), KeyModifiers::NONE));
+        state.handle_key_event(KeyEvent::new(KeyCode::Char('e'), KeyModifiers::NONE));
+        assert_eq!(state.search_query, "he");
+        assert!(!state.search_results.is_empty());
+    }
+
+    #[test]
+    fn test_fuzzy_search_finds_requests_authorities_and_logs() {
+        let mut state = AppState::new();
+        state.search_query = "health".to_string();
+        state.refresh_search_results();
+
+        assert!(state
+            .search_results
+            .iter()
+            .any(|result| result.kind == "Request"));
+        assert!(state
+            .search_results
+            .iter()
+            .any(|result| result.kind == "Authority"));
+        assert!(state
+            .search_results
+            .iter()
+            .any(|result| result.title.contains("COVID-19")));
+    }
+
+    #[test]
+    fn test_fuzzy_search_overlay_renders_results_and_navigation() {
+        let backend = TestBackend::new(140, 30);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let mut state = AppState::new();
+        state.search_open = true;
+        state.search_query = "tor".to_string();
+        state.refresh_search_results();
+
+        terminal
+            .draw(|f| {
+                draw_ui(f, &state);
+            })
+            .unwrap();
+
+        let rendered_text = buffer_to_string(terminal.backend().buffer());
+        assert!(rendered_text.contains("Fuzzy Search"));
+        assert!(rendered_text.contains("tor"));
+        assert!(rendered_text.contains("Activity Logs"));
+
+        let initial_idx = state.selected_search_result_idx;
+        state.select_next_search_result();
+        assert_ne!(state.selected_search_result_idx, initial_idx);
     }
 
     fn buffer_to_string(buffer: &ratatui::buffer::Buffer) -> String {
