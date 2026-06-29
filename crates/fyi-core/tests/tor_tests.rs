@@ -1,4 +1,5 @@
 use fyi_core::tor::TorManager;
+use std::io::ErrorKind;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
@@ -47,11 +48,14 @@ async fn test_socks_proxy_handshake_invalid_version() {
 
     // The server should drop/close connection or return error
     let mut response = [0u8; 10];
-    let read_bytes = socket.read(&mut response).await.unwrap();
-    assert_eq!(
-        read_bytes, 0,
-        "Proxy should disconnect on unsupported version"
-    );
+    match socket.read(&mut response).await {
+        Ok(read_bytes) => assert_eq!(
+            read_bytes, 0,
+            "Proxy should disconnect on unsupported version"
+        ),
+        Err(error) if error.kind() == ErrorKind::ConnectionReset => {}
+        Err(error) => panic!("Unexpected proxy read error: {error}"),
+    }
 }
 
 #[tokio::test]

@@ -1,4 +1,6 @@
 use clap::{Parser, Subcommand, ValueEnum};
+use std::fs::OpenOptions;
+use std::path::Path;
 
 #[cfg(feature = "dhat-on")]
 #[global_allocator]
@@ -332,6 +334,10 @@ fn main() {
     let args = Cli::parse();
     match &args.command {
         Commands::InitDb { db } => {
+            if let Err(error) = initialize_database_file(db) {
+                eprintln!("Failed to initialize SQLite database at {db}: {error}");
+                std::process::exit(1);
+            }
             println!("Initialized SQLite database at {}", db);
         }
         Commands::ImportAuthorities { csv_path, db } => {
@@ -584,6 +590,18 @@ fn main() {
             println!("Starting TUI Dashboard...");
         }
     }
+}
+
+fn initialize_database_file(db: &str) -> std::io::Result<()> {
+    let path = Path::new(db);
+    if let Some(parent) = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+    {
+        std::fs::create_dir_all(parent)?;
+    }
+    OpenOptions::new().create(true).append(true).open(path)?;
+    Ok(())
 }
 
 #[cfg(test)]
