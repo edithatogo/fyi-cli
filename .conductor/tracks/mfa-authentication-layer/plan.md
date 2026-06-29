@@ -3,15 +3,15 @@
 ## Phase 1: TOTP Core Implementation
 
 ### Task 1.1: TOTP secret generation and code generation
-- [~] Add TOTP dependencies (totp-rs or manual RFC 6238 implementation)
-- [ ] Implement `generate_totp_secret()` - cryptographically secure random secret
-- [ ] Implement `generate_totp_code(secret, time_step)` - 6-digit code generation
-- [ ] Implement `verify_totp_code(secret, code, drift)` - verification with clock drift
-- [ ] Write property-based tests with proptest
-- [ ] Commit: `feat(security): implement TOTP secret and code generation`
+- [x] Add TOTP dependencies (totp-rs or manual RFC 6238 implementation)
+- [x] Implement `generate_totp_secret()` - cryptographically secure random secret
+- [x] Implement `generate_totp_code(secret, time_step)` - 6-digit code generation
+- [x] Implement `verify_totp_code(secret, code, drift)` - verification with clock drift
+- [x] Write property-based tests with proptest
+- [x] Commit: `feat(security): implement TOTP secret and code generation` [a05d40b]
 
 ### Task 1.2: Provisioning URI and QR support
-- [ ] Implement `build_provisioning_uri(issuer, account, secret)` -> `otpauth://` URI
+- [~] Implement `build_provisioning_uri(issuer, account, secret)` -> `otpauth://` URI
 - [ ] Add QR code display in terminal (ASCII art or URL output)
 - [ ] Write unit tests for URI generation
 - [ ] Commit: `feat(security): add TOTP provisioning URI generation`
