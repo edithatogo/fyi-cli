@@ -31,7 +31,7 @@
 - [x] Write integration tests for keyring MFA operations
 - [x] Commit: `feat(security): add multi-key support and secret rotation` [2db6c4d]
 
-## Phase 3: Security Enforcement
+## Phase 3: Security Enforcement [checkpoint: ca867fc]
 
 ### Task 3.1: MFA guard
 - [x] Create `MfaGuard` struct that requires verification before credential access
