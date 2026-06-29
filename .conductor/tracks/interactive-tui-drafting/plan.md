@@ -10,13 +10,13 @@
 - [x] Commit: `feat(tui): add request editor view with inline editing` [18f3d8f]
 
 ### Task 1.2: Markdown preview and auto-save
-- [ ] Add markdown preview split-pane (edit left, preview right)
-- [ ] Implement debounced auto-save to SQLite
-- [ ] Add draft management (list, open, save, discard)
-- [ ] Commit: `feat(tui): add markdown preview and auto-save for request editing`
+- [x] Add markdown preview split-pane (edit left, preview right)
+- [x] Implement debounced auto-save to SQLite
+- [x] Add draft management (list, open, save, discard)
+- [x] Commit: `feat(tui): add markdown preview and auto-save for request editing` [f54eba9]
 
 ### Task 1.3: Keyboard shortcuts for editor
-- [ ] Define consistent keybindings (Ctrl+S save, Ctrl+Q quit, Tab switch)
+- [~] Define consistent keybindings (Ctrl+S save, Ctrl+Q quit, Tab switch)
 - [ ] Update `handle_key_event()` for editor mode
 - [ ] Show keybinding hints in status bar
 - [ ] Commit: `feat(tui): add keyboard shortcuts and status bar hints`
