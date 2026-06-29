@@ -69,6 +69,61 @@ def client(base_url: str, *, transport: httpx.BaseTransport | None = None) -> ht
     )
 
 
+def parse_robots_disallow(robots_txt: str) -> list[str]:
+    """Parse simple robots.txt Disallow directives for all user agents."""
+    disallows = []
+    applies = False
+    for raw_line in robots_txt.splitlines():
+        line = raw_line.split("#", 1)[0].strip()
+        if not line:
+            continue
+        key, _, value = line.partition(":")
+        key = key.strip().lower()
+        value = value.strip()
+        if key == "user-agent":
+            applies = value == "*"
+        elif applies and key == "disallow" and value:
+            disallows.append(value)
+    return disallows
+
+
+def robots_allows(path: str, disallows: list[str]) -> bool:
+    """Return false when a path is disallowed by robots.txt."""
+    return not any(path.startswith(rule) for rule in disallows if rule != "/")
+
+
+def load_robots_disallow(http: httpx.Client) -> list[str]:
+    """Fetch robots.txt disallow rules, failing open when robots is unavailable."""
+    response = http.get("/robots.txt")
+    if response.status_code >= 400:
+        return []
+    return parse_robots_disallow(response.text)
+
+
+def get_with_backoff(
+    http: httpx.Client,
+    url: str,
+    *,
+    disallows: list[str],
+    retries: int = 3,
+    backoff_seconds: float = 1.0,
+) -> httpx.Response:
+    """GET with robots enforcement and simple retry backoff on transient statuses."""
+    path = httpx.URL(url).path if url.startswith("http") else url
+    if not robots_allows(path, disallows):
+        msg = f"robots.txt disallows fetching {path}"
+        raise PermissionError(msg)
+    for attempt in range(retries + 1):
+        response = http.get(url)
+        if response.status_code not in {429, 500, 502, 503, 504}:
+            return response
+        if attempt == retries:
+            return response
+        if backoff_seconds > 0:
+            time.sleep(backoff_seconds * (attempt + 1))
+    return response
+
+
 def load_checkpoint(path: Path | None) -> int:
     """Load the next page number from a checkpoint file."""
     if path is None or not path.exists():
@@ -187,6 +242,7 @@ def discover_feed(
     final_page = None if max_pages is None else page + max_pages - 1
     all_entries: list[DiscoveredRequest] = []
     with client(base_url, transport=transport) as http:
+        disallows = load_robots_disallow(http)
         while final_page is None or page <= final_page:
             url = build_search_url(
                 base_url=base_url,
@@ -196,7 +252,12 @@ def discover_feed(
                 status=status,
                 page=page,
             )
-            response = http.get(url)
+            response = get_with_backoff(
+                http,
+                url,
+                disallows=disallows,
+                backoff_seconds=delay_seconds,
+            )
             response.raise_for_status()
             entries, has_next = parse_feed_entries(response.json())
             all_entries.extend(entries)
@@ -219,8 +280,13 @@ def backfill_ids(
     """Probe numeric request IDs, following redirects to url_title slugs."""
     entries = []
     with client(base_url, transport=transport) as http:
+        disallows = load_robots_disallow(http)
         for request_id in range(id_from, id_to + 1):
-            response = http.get(f"/request/{request_id}.json")
+            response = get_with_backoff(
+                http,
+                f"/request/{request_id}.json",
+                disallows=disallows,
+            )
             if response.status_code == 404:
                 continue
             response.raise_for_status()

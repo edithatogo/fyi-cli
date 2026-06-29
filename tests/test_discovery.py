@@ -6,8 +6,15 @@ import json
 from typing import TYPE_CHECKING
 
 import httpx
+import pytest
 
-from fyi_system.discovery import backfill_ids, discover_feed, parse_feed_entries, write_jsonl
+from fyi_system.discovery import (
+    backfill_ids,
+    discover_feed,
+    get_with_backoff,
+    parse_feed_entries,
+    write_jsonl,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -110,3 +117,41 @@ def test_write_jsonl(tmp_path: Path) -> None:
     )
 
     assert '"request_id": 1' in output.read_text(encoding="utf-8")
+
+
+def test_discover_feed_honours_robots_disallow() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(200, text="User-agent: *\nDisallow: /search\n", request=request)
+        return httpx.Response(200, json={"entries": []}, request=request)
+
+    with pytest.raises(PermissionError, match=r"robots.txt disallows"):
+        discover_feed(
+            base_url="https://fyi.example",
+            delay_seconds=0,
+            transport=httpx.MockTransport(handler),
+        )
+
+
+def test_get_with_backoff_recovers_from_429() -> None:
+    attempts = {"count": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        attempts["count"] += 1
+        if attempts["count"] == 1:
+            return httpx.Response(429, request=request)
+        return httpx.Response(200, json={"entries": []}, request=request)
+
+    with httpx.Client(
+        transport=httpx.MockTransport(handler),
+        base_url="https://fyi.example",
+    ) as http:
+        response = get_with_backoff(
+            http,
+            "/search/all",
+            disallows=[],
+            backoff_seconds=0,
+        )
+
+    assert response.status_code == 200
+    assert attempts["count"] == 2
