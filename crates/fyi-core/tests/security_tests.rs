@@ -103,6 +103,39 @@ fn test_keyring_wrapper_graceful() {
 }
 
 #[test]
+fn test_keyring_totp_secret_storage_graceful() {
+    let store = KeyringStore::new("fyi-cli-test-mfa-service");
+    let username = "test-user-mfa";
+    let secret = ZeroizedString::new("JBSWY3DPEHPK3PXP".to_string());
+
+    let _ = store.delete_totp_secret(username);
+    match store.store_totp_secret(username, &secret) {
+        Ok(_) => {
+            let fetched = store
+                .get_totp_secret(username)
+                .expect("Failed to fetch TOTP secret after successful store");
+            assert_eq!(fetched.as_str(), secret.as_str());
+
+            let usernames = store
+                .list_totp_secrets()
+                .expect("Failed to list TOTP-enabled accounts");
+            assert!(usernames.iter().any(|stored| stored == username));
+
+            store
+                .delete_totp_secret(username)
+                .expect("Failed to delete TOTP secret");
+            let usernames = store
+                .list_totp_secrets()
+                .expect("Failed to list TOTP-enabled accounts after delete");
+            assert!(!usernames.iter().any(|stored| stored == username));
+        }
+        Err(e) => {
+            println!("Keyring backend is unavailable or failed: {}", e);
+        }
+    }
+}
+
+#[test]
 fn test_totp_matches_rfc6238_sha1_vectors() {
     let secret = ZeroizedString::new("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ".to_string());
 

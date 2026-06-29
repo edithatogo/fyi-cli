@@ -4,10 +4,11 @@ use aes_gcm::{
 };
 use data_encoding::BASE32_NOPAD;
 use hmac::{Hmac, Mac};
-use keyring::Entry;
+use keyring::{Entry, Error as KeyringBackendError};
 use percent_encoding::{utf8_percent_encode, AsciiSet, CONTROLS};
 use qrcode::QrCode;
 use sha1::Sha1;
+use std::collections::BTreeSet;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 #[derive(thiserror::Error, Debug)]
@@ -75,6 +76,8 @@ impl<'de> serde::Deserialize<'de> for ZeroizedString {
 const TOTP_SECRET_BYTES: usize = 20;
 const TOTP_TIME_STEP_SECONDS: u64 = 30;
 const TOTP_DIGITS: u32 = 6;
+const TOTP_SECRET_PREFIX: &str = "totp-secret:";
+const TOTP_SECRET_INDEX: &str = "totp-secret-index";
 const OTPAUTH_ENCODE_SET: &AsciiSet = &CONTROLS
     .add(b' ')
     .add(b'"')
@@ -367,4 +370,74 @@ impl KeyringStore {
             .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
         Ok(())
     }
+
+    pub fn store_totp_secret(
+        &self,
+        username: &str,
+        secret: &ZeroizedString,
+    ) -> Result<(), SecurityError> {
+        decode_totp_secret(secret)?;
+        let entry = Entry::new(&self.service, &totp_secret_key(username))
+            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
+        entry
+            .set_password(secret.as_str())
+            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
+
+        let mut usernames = self.read_totp_secret_index()?;
+        usernames.insert(username.to_string());
+        self.write_totp_secret_index(&usernames)
+    }
+
+    pub fn get_totp_secret(&self, username: &str) -> Result<ZeroizedString, SecurityError> {
+        let entry = Entry::new(&self.service, &totp_secret_key(username))
+            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
+        let secret = entry
+            .get_password()
+            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
+        Ok(ZeroizedString::new(secret))
+    }
+
+    pub fn delete_totp_secret(&self, username: &str) -> Result<(), SecurityError> {
+        let entry = Entry::new(&self.service, &totp_secret_key(username))
+            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
+        entry
+            .delete_password()
+            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
+
+        let mut usernames = self.read_totp_secret_index()?;
+        usernames.remove(username);
+        self.write_totp_secret_index(&usernames)
+    }
+
+    pub fn list_totp_secrets(&self) -> Result<Vec<String>, SecurityError> {
+        Ok(self.read_totp_secret_index()?.into_iter().collect())
+    }
+
+    fn read_totp_secret_index(&self) -> Result<BTreeSet<String>, SecurityError> {
+        let entry = Entry::new(&self.service, TOTP_SECRET_INDEX)
+            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
+        let payload = match entry.get_password() {
+            Ok(payload) => payload,
+            Err(KeyringBackendError::NoEntry) => return Ok(BTreeSet::new()),
+            Err(error) => return Err(SecurityError::KeyringError(error.to_string())),
+        };
+
+        serde_json::from_str::<Vec<String>>(&payload)
+            .map(|usernames| usernames.into_iter().collect())
+            .map_err(|e| SecurityError::KeyringError(e.to_string()))
+    }
+
+    fn write_totp_secret_index(&self, usernames: &BTreeSet<String>) -> Result<(), SecurityError> {
+        let entry = Entry::new(&self.service, TOTP_SECRET_INDEX)
+            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
+        let payload = serde_json::to_string(&usernames.iter().collect::<Vec<_>>())
+            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
+        entry
+            .set_password(&payload)
+            .map_err(|e| SecurityError::KeyringError(e.to_string()))
+    }
+}
+
+fn totp_secret_key(username: &str) -> String {
+    format!("{TOTP_SECRET_PREFIX}{username}")
 }
