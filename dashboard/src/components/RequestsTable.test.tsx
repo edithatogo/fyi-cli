@@ -11,6 +11,14 @@ function readBlob(blob: Blob) {
   });
 }
 
+function expectRequestVisible(title: string) {
+  expect(screen.getAllByText(title).length).toBeGreaterThan(0);
+}
+
+function expectRequestMissing(title: string) {
+  expect(screen.queryAllByText(title)).toHaveLength(0);
+}
+
 describe("RequestsTable", () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -43,8 +51,8 @@ describe("RequestsTable", () => {
       target: { value: "invoice" },
     });
 
-    expect(screen.getByText("Procurement records")).toBeDefined();
-    expect(screen.queryByText("Meeting minutes")).toBeNull();
+    expectRequestVisible("Procurement records");
+    expectRequestMissing("Meeting minutes");
   });
 
   it("filters requests by status and authority", () => {
@@ -78,8 +86,8 @@ describe("RequestsTable", () => {
       target: { value: "dia" },
     });
 
-    expect(screen.getByText("Procurement records")).toBeDefined();
-    expect(screen.queryByText("Meeting minutes")).toBeNull();
+    expectRequestVisible("Procurement records");
+    expectRequestMissing("Meeting minutes");
   });
 
   it("filters requests by updated date range", () => {
@@ -111,8 +119,8 @@ describe("RequestsTable", () => {
       target: { value: "2026-04-30" },
     });
 
-    expect(screen.getByText("April request")).toBeDefined();
-    expect(screen.queryByText("March request")).toBeNull();
+    expectRequestVisible("April request");
+    expectRequestMissing("March request");
   });
 
   it("bulk updates selected request statuses", async () => {
@@ -124,8 +132,8 @@ describe("RequestsTable", () => {
 
     render(<RequestsTable requests={requests} />);
 
-    fireEvent.click(screen.getByLabelText("Select Procurement records"));
-    fireEvent.click(screen.getByLabelText("Select Meeting minutes"));
+    fireEvent.click(screen.getAllByLabelText("Select Procurement records")[0]);
+    fireEvent.click(screen.getAllByLabelText("Select Meeting minutes")[0]);
     fireEvent.change(screen.getByLabelText("Bulk status"), {
       target: { value: "completed" },
     });
@@ -167,7 +175,10 @@ describe("RequestsTable", () => {
       key: "Enter",
     });
 
-    expect(screen.getByLabelText("Select Procurement records")).toBeChecked();
+    expect(
+      (screen.getAllByLabelText("Select Procurement records")[0] as HTMLInputElement)
+        .checked
+    ).toBe(true);
     expect(screen.getByText("1 selected")).toBeDefined();
   });
 
@@ -189,7 +200,7 @@ describe("RequestsTable", () => {
 
     render(<RequestsTable requests={requests} />);
 
-    fireEvent.click(screen.getByLabelText("Select Procurement records"));
+    fireEvent.click(screen.getAllByLabelText("Select Procurement records")[0]);
     fireEvent.click(
       screen.getByRole("button", { name: "Export 1 selected requests as CSV" })
     );
