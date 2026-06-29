@@ -343,7 +343,7 @@ fn main() {
         Commands::RegisterRequest {
             authority_slug,
             title,
-            body,
+            body: _,
             status,
             db,
             ..
