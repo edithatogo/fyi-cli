@@ -102,9 +102,10 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Description: Archive health reporting (freshness, coverage gaps, raw record counts) consumed by fyi-archive's doctor/parity CI.*
   *Consumer: fyi-archive `observability_quality_20260627`.*
 
-- [~] **Track: interactive-tui-drafting** (IN PROGRESS)
+- [x] **Track: interactive-tui-drafting** (COMPLETED 2026-06-30)
   *Link: [./tracks/interactive-tui-drafting/](./tracks/interactive-tui-drafting/)*
   *Description: Enhance the Ratatui TUI dashboard to support inline markdown request editing, credential switching dialogs, and keyring management dashboards.*
+  *Status: TARGET ACHIEVED*
 
 - [ ] **Track: offline-sync-engine** (PENDING)
   *Link: [./tracks/offline-sync-engine/](./tracks/offline-sync-engine/)*

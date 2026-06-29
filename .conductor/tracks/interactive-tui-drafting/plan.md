@@ -63,10 +63,10 @@
 - [x] Commit: `feat(tui): add bulk operations, export triggers, and help system` [a2fa5e6]
 
 ### Task 4.3: Conductor review
-- [~] Run conductor-review for interactive-tui-drafting track
-- [ ] Apply any fix recommendations
-- [ ] Push to GitHub
-- [ ] Commit: `conductor(track): complete interactive-tui-drafting after review`
+- [x] Run conductor-review for interactive-tui-drafting track
+- [x] Apply any fix recommendations
+- [x] Push to GitHub
+- [x] Commit: `conductor(track): complete interactive-tui-drafting after review`
 
 ## Archive
 - [ ] Archive track: move to archive/ directory
