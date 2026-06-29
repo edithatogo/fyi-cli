@@ -22,6 +22,19 @@ pub struct PushReport {
     pub failed: usize,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct SyncHealth {
+    pub network_reachable: bool,
+    pub api_reachable: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SyncRunReport {
+    pub health: SyncHealth,
+    pub pull: Option<PullReport>,
+    pub push: Option<PushReport>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MergeOutcome {
     pub request: AlaveteliRequest,
@@ -142,6 +155,29 @@ impl SyncClient {
             .context("failed to parse request JSON")
     }
 
+    pub async fn health_check(&self) -> SyncHealth {
+        let url = match self.base_url.join("api/v2/request.json") {
+            Ok(url) => url,
+            Err(_) => {
+                return SyncHealth {
+                    network_reachable: false,
+                    api_reachable: false,
+                }
+            }
+        };
+
+        match self.http.get(url).send().await {
+            Ok(response) => SyncHealth {
+                network_reachable: true,
+                api_reachable: response.status().is_success(),
+            },
+            Err(_) => SyncHealth {
+                network_reachable: false,
+                api_reachable: false,
+            },
+        }
+    }
+
     pub async fn push_dirty(&self, db: &DbPool) -> Result<PushReport> {
         self.push_dirty_with_config(db, &SyncConfig::default())
             .await
@@ -245,6 +281,44 @@ pub fn spawn_pull_scheduler(
             tokio::select! {
                 _ = interval.tick() => {
                     reports.push(client.pull_incremental(&db).await?);
+                }
+                _ = &mut shutdown => {
+                    return Ok(reports);
+                }
+            }
+        }
+    })
+}
+
+pub fn spawn_sync_scheduler(
+    db: DbPool,
+    client: SyncClient,
+    config: SyncConfig,
+    mut shutdown: oneshot::Receiver<()>,
+) -> JoinHandle<Result<Vec<SyncRunReport>>> {
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(config.pull_interval);
+        let mut reports = Vec::new();
+
+        loop {
+            tokio::select! {
+                _ = interval.tick() => {
+                    let health = client.health_check().await;
+                    if health.api_reachable {
+                        let pull = client.pull_incremental(&db).await?;
+                        let push = client.push_dirty_with_config(&db, &config).await?;
+                        reports.push(SyncRunReport {
+                            health,
+                            pull: Some(pull),
+                            push: Some(push),
+                        });
+                    } else {
+                        reports.push(SyncRunReport {
+                            health,
+                            pull: None,
+                            push: None,
+                        });
+                    }
                 }
                 _ = &mut shutdown => {
                     return Ok(reports);
@@ -612,6 +686,72 @@ mod tests {
 
         assert!(!reports.is_empty());
         assert_eq!(saved.title, "Scheduled request");
+    }
+
+    #[tokio::test]
+    async fn sync_scheduler_runs_health_pull_push_and_shutdown() {
+        let server = MockServer::start().await;
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+        let dirty = request(-10, "Scheduler push", "2026-06-30T06:00:00Z");
+        db.insert_request(&dirty).await.unwrap();
+
+        Mock::given(method("GET"))
+            .and(path("/api/v2/request.json"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "requests": [request(61, "Scheduler pull", "2026-06-30T07:00:00Z")]
+            })))
+            .mount(&server)
+            .await;
+        Mock::given(method("POST"))
+            .and(path("/api/v2/request"))
+            .respond_with(
+                ResponseTemplate::new(201).set_body_json(CreateRequestResponse {
+                    id: 5100,
+                    url: "https://fyi.org.nz/request/5100".to_string(),
+                }),
+            )
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new(&server.uri()).unwrap();
+        let (shutdown_tx, shutdown_rx) = oneshot::channel();
+        let handle = spawn_sync_scheduler(
+            db.clone(),
+            client,
+            SyncConfig {
+                pull_interval: Duration::from_millis(10),
+                push_initial_backoff: Duration::from_millis(1),
+                ..SyncConfig::default()
+            },
+            shutdown_rx,
+        );
+
+        tokio::time::sleep(Duration::from_millis(25)).await;
+        let _ = shutdown_tx.send(());
+        let reports = handle.await.unwrap().unwrap();
+        let pulled = db.get_request(61).await.unwrap().unwrap();
+        let pushed_metadata = db.get_request_sync_metadata(-10).await.unwrap().unwrap();
+
+        assert!(reports.iter().any(|report| report.health.api_reachable));
+        assert_eq!(pulled.title, "Scheduler pull");
+        assert_eq!(pushed_metadata.remote_request_id, Some(5100));
+    }
+
+    #[tokio::test]
+    async fn health_check_reports_unreachable_api() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/api/v2/request.json"))
+            .respond_with(ResponseTemplate::new(503))
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new(&server.uri()).unwrap();
+        let health = client.health_check().await;
+
+        assert!(health.network_reachable);
+        assert!(!health.api_reachable);
     }
 
     #[tokio::test]

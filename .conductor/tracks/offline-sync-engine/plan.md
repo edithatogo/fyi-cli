@@ -60,10 +60,10 @@
 ## Phase 5: Scheduler & Monitoring
 
 ### Task 5.1: Background scheduler
-- [ ] Implement Tokio-based background sync scheduler
-- [ ] Add graceful shutdown handling
-- [ ] Add connectivity detection and API reachability probes
-- [ ] Commit: `feat(sync): add background sync scheduler with health checks`
+- [x] Implement Tokio-based background sync scheduler
+- [x] Add graceful shutdown handling
+- [x] Add connectivity detection and API reachability probes
+- [x] Commit: `feat(sync): add background sync scheduler with health checks`
 
 ### Task 5.2: Sync dashboard and graceful degradation
 - [ ] Build sync dashboard in TUI (status, queue depth, last sync time)
