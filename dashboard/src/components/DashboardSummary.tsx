@@ -60,6 +60,7 @@ interface DashboardSummaryProps {
   charts?: DashboardChartData;
   error?: string;
   onExportJson?: () => void;
+  onExportCsv?: () => void;
 }
 
 export function DashboardSummary({
@@ -67,6 +68,7 @@ export function DashboardSummary({
   charts,
   error,
   onExportJson,
+  onExportCsv,
 }: DashboardSummaryProps) {
   const data = summary ?? {
     totalRequests: 0,
@@ -115,12 +117,20 @@ export function DashboardSummary({
             Privacy-focused OIA request management
           </p>
         </div>
-        {onExportJson && (
-          <Button type="button" variant="outline" onClick={onExportJson}>
-            <Download className="h-4 w-4" />
-            Export JSON
-          </Button>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {onExportJson && (
+            <Button type="button" variant="outline" onClick={onExportJson}>
+              <Download className="h-4 w-4" />
+              Export JSON
+            </Button>
+          )}
+          {onExportCsv && (
+            <Button type="button" variant="outline" onClick={onExportCsv}>
+              <Download className="h-4 w-4" />
+              Export CSV
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">

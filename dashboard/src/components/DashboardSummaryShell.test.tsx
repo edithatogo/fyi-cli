@@ -111,4 +111,48 @@ describe("DashboardSummaryShell", () => {
     expect(removeChild).toHaveBeenCalled();
     expect(revokeObjectUrl).toHaveBeenCalledWith("blob:dashboard-export");
   });
+
+  it("exports dashboard chart data as CSV", async () => {
+    vi.useRealTimers();
+    const createObjectUrl = vi.fn(() => "blob:dashboard-export");
+    const revokeObjectUrl = vi.fn();
+    const click = vi.fn();
+    const appendChild = vi.spyOn(document.body, "appendChild");
+    const removeChild = vi.spyOn(document.body, "removeChild");
+    vi.stubGlobal("URL", {
+      createObjectURL: createObjectUrl,
+      revokeObjectURL: revokeObjectUrl,
+    });
+    vi.spyOn(document, "createElement").mockImplementation((tagName) => {
+      const element = document.createElementNS("http://www.w3.org/1999/xhtml", tagName);
+      if (tagName === "a") {
+        Object.defineProperty(element, "click", { value: click });
+      }
+      return element as HTMLElement;
+    });
+
+    render(
+      <DashboardSummaryShell
+        initialSummary={{
+          totalRequests: 1,
+          attentionNeeded: 0,
+          overdue: 0,
+          authoritiesCount: 1,
+        }}
+        initialCharts={{
+          statusDistribution: [{ status: "draft", count: 1 }],
+          requestTimeline: [{ month: "2026-04", requests: 1 }],
+          attentionTrend: [{ month: "2026-04", attentionNeeded: 2 }],
+        }}
+      />
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Export CSV" }));
+
+    expect(createObjectUrl).toHaveBeenCalledWith(expect.any(Blob));
+    expect(click).toHaveBeenCalled();
+    expect(appendChild).toHaveBeenCalled();
+    expect(removeChild).toHaveBeenCalled();
+    expect(revokeObjectUrl).toHaveBeenCalledWith("blob:dashboard-export");
+  });
 });

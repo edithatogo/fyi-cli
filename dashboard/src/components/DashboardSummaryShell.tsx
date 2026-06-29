@@ -15,6 +15,64 @@ interface DashboardSummaryShellProps {
   refreshIntervalMs?: number;
 }
 
+const emptySummary: DashboardSummaryData = {
+  totalRequests: 0,
+  attentionNeeded: 0,
+  overdue: 0,
+  authoritiesCount: 0,
+};
+
+const emptyCharts: DashboardChartData = {
+  statusDistribution: [],
+  requestTimeline: [],
+  attentionTrend: [],
+};
+
+function csvCell(value: string | number) {
+  const text = String(value);
+  if (!/[",\r\n]/.test(text)) {
+    return text;
+  }
+  return `"${text.replaceAll("\"", "\"\"")}"`;
+}
+
+function buildDashboardCsv(data: DashboardData) {
+  const rows: Array<[string, string, number]> = [
+    ["summary", "totalRequests", data.summary.totalRequests],
+    ["summary", "attentionNeeded", data.summary.attentionNeeded],
+    ["summary", "overdue", data.summary.overdue],
+    ["summary", "authoritiesCount", data.summary.authoritiesCount],
+    ...data.charts.statusDistribution.map(
+      (entry): [string, string, number] => [
+        "statusDistribution",
+        entry.status,
+        entry.count,
+      ]
+    ),
+    ...data.charts.requestTimeline.map(
+      (entry): [string, string, number] => [
+        "requestTimeline",
+        entry.month,
+        entry.requests,
+      ]
+    ),
+    ...data.charts.attentionTrend.map(
+      (entry): [string, string, number] => [
+        "attentionTrend",
+        entry.month,
+        entry.attentionNeeded,
+      ]
+    ),
+  ];
+
+  return [
+    ["section", "label", "value"],
+    ...rows,
+  ]
+    .map((row) => row.map(csvCell).join(","))
+    .join("\n");
+}
+
 export function DashboardSummaryShell({
   initialSummary,
   initialCharts,
@@ -24,6 +82,11 @@ export function DashboardSummaryShell({
   const [summary, setSummary] = useState(initialSummary);
   const [charts, setCharts] = useState(initialCharts);
   const [error, setError] = useState(initialError);
+
+  const dashboardData: DashboardData = {
+    summary: summary ?? emptySummary,
+    charts: charts ?? emptyCharts,
+  };
 
   useEffect(() => {
     let active = true;
@@ -62,31 +125,33 @@ export function DashboardSummaryShell({
     };
   }, [refreshIntervalMs]);
 
-  function exportJson() {
-    const payload: DashboardData = {
-      summary: summary ?? {
-        totalRequests: 0,
-        attentionNeeded: 0,
-        overdue: 0,
-        authoritiesCount: 0,
-      },
-      charts: charts ?? {
-        statusDistribution: [],
-        requestTimeline: [],
-        attentionTrend: [],
-      },
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], {
-      type: "application/json",
-    });
+  function downloadBlob(blob: Blob, extension: "csv" | "json") {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `fyi-dashboard-${new Date().toISOString().slice(0, 10)}.json`;
+    link.download = `fyi-dashboard-${new Date().toISOString().slice(0, 10)}.${extension}`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  }
+
+  function exportJson() {
+    downloadBlob(
+      new Blob([JSON.stringify(dashboardData, null, 2)], {
+        type: "application/json",
+      }),
+      "json"
+    );
+  }
+
+  function exportCsv() {
+    downloadBlob(
+      new Blob([buildDashboardCsv(dashboardData)], {
+        type: "text/csv",
+      }),
+      "csv"
+    );
   }
 
   return (
@@ -95,6 +160,7 @@ export function DashboardSummaryShell({
       charts={charts}
       error={error}
       onExportJson={exportJson}
+      onExportCsv={exportCsv}
     />
   );
 }
