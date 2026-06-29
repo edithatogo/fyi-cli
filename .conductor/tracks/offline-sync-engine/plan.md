@@ -66,10 +66,10 @@
 - [x] Commit: `feat(sync): add background sync scheduler with health checks`
 
 ### Task 5.2: Sync dashboard and graceful degradation
-- [ ] Build sync dashboard in TUI (status, queue depth, last sync time)
-- [ ] Add MCP tools for sync monitoring
-- [ ] Ensure graceful offline degradation (queue changes for later)
-- [ ] Commit: `feat(sync): add sync dashboard and graceful offline operation`
+- [x] Build sync dashboard in TUI (status, queue depth, last sync time)
+- [x] Add MCP tools for sync monitoring
+- [x] Ensure graceful offline degradation (queue changes for later)
+- [x] Commit: `feat(sync): add sync dashboard and graceful offline operation`
 
 ### Task 5.3: Conductor review
 - [ ] Run conductor-review for offline-sync-engine track

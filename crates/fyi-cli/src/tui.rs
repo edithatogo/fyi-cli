@@ -266,6 +266,9 @@ pub struct AppState {
     pub sync_dirty_count: i64,
     pub sync_pending_count: i64,
     pub sync_conflict_count: i64,
+    pub sync_queue_pending_count: i64,
+    pub sync_queue_failed_count: i64,
+    pub sync_last_synced_label: String,
     pub action_now_requests: Vec<RequestItem>,
     pub tracked_requests: Vec<RequestItem>,
     pub selected_request_idx: usize,
@@ -324,6 +327,9 @@ impl AppState {
             sync_dirty_count: 0,
             sync_pending_count: 0,
             sync_conflict_count: 0,
+            sync_queue_pending_count: 0,
+            sync_queue_failed_count: 0,
+            sync_last_synced_label: "never".to_string(),
             action_now_requests: vec![
                 RequestItem {
                     id: 101,
@@ -806,6 +812,13 @@ impl AppState {
         self.sync_dirty_count = status.dirty;
         self.sync_pending_count = status.pending;
         self.sync_conflict_count = status.conflict;
+        let queue = db.get_outgoing_queue_depth().await?;
+        self.sync_queue_pending_count = queue.pending;
+        self.sync_queue_failed_count = queue.failed;
+        self.sync_last_synced_label = db
+            .get_latest_sync_timestamp()
+            .await?
+            .unwrap_or_else(|| "never".to_string());
         Ok(())
     }
 
@@ -1255,11 +1268,14 @@ fn draw_summary_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
     }
 
     let sync_line = format!(
-        "Clean: {} | Dirty: {} | Pending: {} | Conflicts: {}",
+        "Clean: {} | Dirty: {} | Pending: {} | Conflicts: {} | Queue: {} pending, {} failed | Last sync: {}",
         state.sync_clean_count,
         state.sync_dirty_count,
         state.sync_pending_count,
-        state.sync_conflict_count
+        state.sync_conflict_count,
+        state.sync_queue_pending_count,
+        state.sync_queue_failed_count,
+        state.sync_last_synced_label
     );
     let sync_panel = Paragraph::new(sync_line)
         .block(
@@ -1932,6 +1948,8 @@ mod tests {
 
         assert_eq!(state.sync_dirty_count, 1);
         assert_eq!(state.sync_clean_count, 0);
+        assert_eq!(state.sync_queue_pending_count, 0);
+        assert_eq!(state.sync_last_synced_label, "never");
     }
 
     #[tokio::test]

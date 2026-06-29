@@ -226,6 +226,14 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                         }
                     },
                     {
+                        "name": "sync_monitor",
+                        "description": "Show sync status, queue depth, and latest sync time",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {}
+                        }
+                    },
+                    {
                         "name": "sync_conflicts",
                         "description": "List requests currently marked as sync conflicts",
                         "inputSchema": {
@@ -409,6 +417,59 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                                 }),
                             )),
                         }
+                    }
+                }
+                "sync_monitor" => {
+                    let status = db.get_global_sync_status().await;
+                    let queue = db.get_outgoing_queue_depth().await;
+                    let latest = db.get_latest_sync_timestamp().await;
+                    match (status, queue, latest) {
+                        (Ok(status), Ok(queue), Ok(latest_sync)) => Some(JsonRpcResponse::success(
+                            req.id,
+                            json!({
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": serde_json::to_string_pretty(&json!({
+                                            "sync": {
+                                                "total": status.total,
+                                                "clean": status.clean,
+                                                "dirty": status.dirty,
+                                                "pending": status.pending,
+                                                "conflict": status.conflict,
+                                                "latest_sync": latest_sync
+                                            },
+                                            "queue": {
+                                                "pending": queue.pending,
+                                                "submitted": queue.submitted,
+                                                "failed": queue.failed
+                                            },
+                                            "offline_degradation": {
+                                                "queued_changes": queue.pending + queue.failed,
+                                                "dirty_records": status.dirty
+                                            }
+                                        })).unwrap()
+                                    }
+                                ]
+                            }),
+                        )),
+                        (status, queue, latest) => Some(JsonRpcResponse::success(
+                            req.id,
+                            json!({
+                                "isError": true,
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": format!(
+                                            "Failed to fetch sync monitor: status={:?}, queue={:?}, latest={:?}",
+                                            status.err(),
+                                            queue.err(),
+                                            latest.err()
+                                        )
+                                    }
+                                ]
+                            }),
+                        )),
                     }
                 }
                 "sync_conflicts" => {
@@ -1135,6 +1196,9 @@ mod tests {
             .any(|t| t.get("name").unwrap().as_str().unwrap() == "sync_status"));
         assert!(tools
             .iter()
+            .any(|t| t.get("name").unwrap().as_str().unwrap() == "sync_monitor"));
+        assert!(tools
+            .iter()
             .any(|t| t.get("name").unwrap().as_str().unwrap() == "sync_conflicts"));
         assert!(tools
             .iter()
@@ -1527,5 +1591,51 @@ mod tests {
         let resolved: Value = serde_json::from_str(resolve_text).unwrap();
 
         assert!(resolved.get("resolved").unwrap().as_bool().unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_sync_monitor_tool_reports_queue_and_status() {
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+        db.insert_request(&AlaveteliRequest {
+            id: 89,
+            title: "Queued monitor request".to_string(),
+            body: "Body".to_string(),
+            user_name: None,
+            status: Some("draft".to_string()),
+            created_at: None,
+            updated_at: None,
+            url: None,
+            tags: None,
+        })
+        .await
+        .unwrap();
+
+        let req = JsonRpcRequest {
+            jsonrpc: "2.0".to_string(),
+            id: Some(json!(14)),
+            method: "tools/call".to_string(),
+            params: Some(json!({
+                "name": "sync_monitor",
+                "arguments": {}
+            })),
+        };
+
+        let resp = handle_jsonrpc_request(&db, req).await.unwrap();
+        let result = resp.result.unwrap();
+        let content = result.get("content").unwrap().as_array().unwrap();
+        let text = content[0].get("text").unwrap().as_str().unwrap();
+        let monitor: Value = serde_json::from_str(text).unwrap();
+
+        assert_eq!(
+            monitor
+                .get("sync")
+                .unwrap()
+                .get("dirty")
+                .unwrap()
+                .as_i64()
+                .unwrap(),
+            1
+        );
     }
 }
