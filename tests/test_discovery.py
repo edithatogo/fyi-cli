@@ -13,6 +13,7 @@ from fyi_system.discovery import (
     discover_feed,
     get_with_backoff,
     parse_feed_entries,
+    reconcile_discovery_files,
     write_jsonl,
 )
 
@@ -155,3 +156,25 @@ def test_get_with_backoff_recovers_from_429() -> None:
 
     assert response.status_code == 200
     assert attempts["count"] == 2
+
+
+def test_reconcile_discovery_files_reports_set_gaps(tmp_path: Path) -> None:
+    feed = tmp_path / "feed.jsonl"
+    backfill = tmp_path / "backfill.jsonl"
+    feed.write_text(
+        '{"request_id": 1, "url_title": "one"}\n{"request_id": 2, "url_title": "two"}\n',
+        encoding="utf-8",
+    )
+    backfill.write_text(
+        '{"request_id": 2, "url_title": "two"}\n{"request_id": 3, "url_title": "three"}\n',
+        encoding="utf-8",
+    )
+
+    report = reconcile_discovery_files(feed, backfill)
+
+    assert report.feed_count == 2
+    assert report.backfill_count == 2
+    assert report.matched_count == 1
+    assert report.missing_from_feed == [3]
+    assert report.missing_from_backfill == [1]
+    assert report.is_complete is False

@@ -36,6 +36,33 @@ class DiscoveredRequest:
         return json.dumps(asdict(self), sort_keys=True, ensure_ascii=False)
 
 
+@dataclass(frozen=True)
+class DiscoveryReconciliation:
+    """Comparison of feed-discovered and ID-backfilled request sets."""
+
+    feed_count: int
+    backfill_count: int
+    matched_count: int
+    missing_from_feed: list[int]
+    missing_from_backfill: list[int]
+
+    @property
+    def is_complete(self) -> bool:
+        """Return true when both discovery methods found the same request IDs."""
+        return not self.missing_from_feed and not self.missing_from_backfill
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize the reconciliation report."""
+        return {
+            "feed_count": self.feed_count,
+            "backfill_count": self.backfill_count,
+            "matched_count": self.matched_count,
+            "missing_from_feed": self.missing_from_feed,
+            "missing_from_backfill": self.missing_from_backfill,
+            "is_complete": self.is_complete,
+        }
+
+
 def build_search_url(
     *,
     base_url: str,
@@ -310,3 +337,32 @@ def write_jsonl(path: Path, rows: Iterable[DiscoveredRequest]) -> None:
     """Write discovered requests as JSONL."""
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(row.to_json() for row in rows) + "\n", encoding="utf-8")
+
+
+def read_jsonl_request_ids(path: Path) -> set[int]:
+    """Read request IDs from discovery JSONL output."""
+    ids: set[int] = set()
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        if not line.strip():
+            continue
+        data = json.loads(line)
+        request_id = data.get("request_id")
+        if not isinstance(request_id, int):
+            msg = f"{path}:{line_number} missing integer request_id"
+            raise TypeError(msg)
+        ids.add(request_id)
+    return ids
+
+
+def reconcile_discovery_files(feed_path: Path, backfill_path: Path) -> DiscoveryReconciliation:
+    """Compare feed and backfill JSONL outputs by request ID."""
+    feed_ids = read_jsonl_request_ids(feed_path)
+    backfill_ids = read_jsonl_request_ids(backfill_path)
+    matched = feed_ids & backfill_ids
+    return DiscoveryReconciliation(
+        feed_count=len(feed_ids),
+        backfill_count=len(backfill_ids),
+        matched_count=len(matched),
+        missing_from_feed=sorted(backfill_ids - feed_ids),
+        missing_from_backfill=sorted(feed_ids - backfill_ids),
+    )

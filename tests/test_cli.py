@@ -140,6 +140,20 @@ class TestBuildParser:
             'Test Body'
         ])
         assert args.base_url == 'https://fyi.org.nz'
+
+    def test_discover_reconcile_command(self):
+        """Test discover-reconcile command parsing."""
+        parser = build_parser()
+        args = parser.parse_args([
+            'discover-reconcile',
+            '--feed', 'feed.jsonl',
+            '--backfill', 'backfill.jsonl',
+            '--output', 'report.json',
+        ])
+        assert args.cmd == 'discover-reconcile'
+        assert args.feed == 'feed.jsonl'
+        assert args.backfill == 'backfill.jsonl'
+        assert args.output == 'report.json'
     
     def test_serve_command(self):
         """Test serve command parsing."""

@@ -7,7 +7,7 @@ from .archive_capture import CaptureCaps, capture_request
 from .archive_diff import run_diff
 from .archive_health import build_archive_health, write_archive_health
 from .db import init_db, query_all, connect, get_tracked_request, export_tracked_requests, import_tracked_requests, request_timeline, update_request_status
-from .discovery import backfill_ids, discover_feed, write_jsonl
+from .discovery import backfill_ids, discover_feed, reconcile_discovery_files, write_jsonl
 from .fyi import build_prefilled_url
 from .importers import import_authorities_csv
 from .monitor import ingest_feed, reconcile_events
@@ -119,6 +119,16 @@ def cmd_discover(args):
     else:
         for row in rows:
             print(row.to_json())
+
+
+def cmd_discover_reconcile(args):
+    report = reconcile_discovery_files(Path(args.feed), Path(args.backfill))
+    payload = report.to_dict()
+    if args.output:
+        Path(args.output).write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(args.output)
+    else:
+        print(json.dumps(payload, indent=2, sort_keys=True))
 
 
 def cmd_archive_health(args):
@@ -391,6 +401,13 @@ def build_parser():
     sp.add_argument('--id-to', type=int)
     sp.add_argument('--output')
     sp.set_defaults(func=cmd_discover)
+
+    # Command: discover-reconcile
+    sp = sub.add_parser('discover-reconcile')
+    sp.add_argument('--feed', required=True)
+    sp.add_argument('--backfill', required=True)
+    sp.add_argument('--output')
+    sp.set_defaults(func=cmd_discover_reconcile)
 
     # Command: archive-health
     sp = sub.add_parser('archive-health')

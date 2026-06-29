@@ -20,7 +20,7 @@
 
 - [x] 3.1 `--backfill-ids`: probe a numeric ID range, follow the `url_title` redirect,
       skip 404s, emit the same JSONL shape.
-- [ ] 3.2 Reconciliation helper comparing feed-walk vs backfill sets per window.
+- [x] 3.2 Reconciliation helper comparing feed-walk vs backfill sets per window.
 - [x] 3.3 Tests for redirect-follow + 404 skip + dedup.
 
 ## Phase 4: Authorities
