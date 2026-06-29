@@ -1,0 +1,13 @@
+Task: Add charting library (Chart.js or Recharts)
+
+Summary:
+- Confirmed Recharts is already present in dashboard dependencies.
+- Added chart-ready dashboard data contracts for status distribution and request timeline buckets.
+- Added deterministic chart data builders and tests so upcoming Recharts components can consume stable series data.
+
+Files changed:
+- dashboard/src/lib/dashboard-summary.ts
+- dashboard/src/lib/dashboard-summary.test.ts
+
+Why:
+- Interactive chart components need a tested data shape before rendering pie/donut and timeline charts.
