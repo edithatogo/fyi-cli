@@ -19,14 +19,14 @@
 ## Phase 2: Keyring Integration
 
 ### Task 2.1: Secure secret storage
-- [~] Add `store_totp_secret(username, secret)` to `KeyringStore`
-- [ ] Add `get_totp_secret(username)` to `KeyringStore`
-- [ ] Add `delete_totp_secret(username)` to `KeyringStore`
-- [ ] Add `list_totp_secrets()` to enumerate MFA-enabled accounts
-- [ ] Commit: `feat(security): integrate TOTP secret storage with OS keyring`
+- [x] Add `store_totp_secret(username, secret)` to `KeyringStore`
+- [x] Add `get_totp_secret(username)` to `KeyringStore`
+- [x] Add `delete_totp_secret(username)` to `KeyringStore`
+- [x] Add `list_totp_secrets()` to enumerate MFA-enabled accounts
+- [x] Commit: `feat(security): integrate TOTP secret storage with OS keyring` [df846a9]
 
 ### Task 2.2: Multi-key and rotation support
-- [ ] Support multiple MFA secrets per account (versioned)
+- [~] Support multiple MFA secrets per account (versioned)
 - [ ] Implement secret rotation (re-provision with new key)
 - [ ] Write integration tests for keyring MFA operations
 - [ ] Commit: `feat(security): add multi-key support and secret rotation`
