@@ -66,13 +66,13 @@
 
 ### Task 4.2: Inline editing & attachments
 - [x] Implement inline field editing with auto-save [5657128]
-- [~] Add attachment link previews
-- [ ] Commit: `feat(dashboard): add inline editing and attachment previews`
+- [x] Add attachment link previews [8b9731b]
+- [x] Commit: `feat(dashboard): add inline editing and attachment previews` [8b9731b]
 
 ## Phase 5: Advanced Features & Polish
 
 ### Task 5.1: Search and filtering
-- [ ] Add full-text search across requests
+- [~] Add full-text search across requests
 - [ ] Add status/authority filters
 - [ ] Add date range picker for filtering
 - [ ] Commit: `feat(dashboard): add search and filtering capabilities`
