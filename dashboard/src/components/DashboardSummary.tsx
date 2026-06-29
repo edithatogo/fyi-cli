@@ -1,20 +1,33 @@
 import {
+  Building2,
   FileText,
   Clock,
-  CheckCircle2,
   AlertTriangle,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui";
+
+export interface DashboardSummaryData {
+  totalRequests: number;
+  attentionNeeded: number;
+  overdue: number;
+  authoritiesCount: number;
+}
 
 interface KpiCardProps {
   title: string;
   value: string | number;
   icon: React.ReactNode;
   description?: string;
-  trend?: { value: string; positive: boolean };
+  tone?: "default" | "warning" | "danger";
 }
 
-function KpiCard({ title, value, icon, description, trend }: KpiCardProps) {
+function KpiCard({ title, value, icon, description, tone = "default" }: KpiCardProps) {
+  const iconStyles = {
+    default: "bg-brand-50 text-brand-600 dark:bg-brand-900/50 dark:text-brand-400",
+    warning: "bg-amber-50 text-amber-600 dark:bg-amber-950/50 dark:text-amber-300",
+    danger: "bg-red-50 text-red-600 dark:bg-red-950/50 dark:text-red-300",
+  }[tone];
+
   return (
     <Card>
       <CardContent className="p-6">
@@ -31,17 +44,8 @@ function KpiCard({ title, value, icon, description, trend }: KpiCardProps) {
                 {description}
               </p>
             )}
-            {trend && (
-              <p
-                className={`text-xs font-medium ${
-                  trend.positive ? "text-green-600" : "text-red-600"
-                }`}
-              >
-                {trend.value} from last month
-              </p>
-            )}
           </div>
-          <div className="rounded-lg bg-brand-50 p-3 text-brand-600 dark:bg-brand-900/50 dark:text-brand-400">
+          <div className={`rounded-lg p-3 ${iconStyles}`}>
             {icon}
           </div>
         </div>
@@ -50,36 +54,44 @@ function KpiCard({ title, value, icon, description, trend }: KpiCardProps) {
   );
 }
 
-export function DashboardSummary() {
-  // Placeholder data — will be fetched from MCP server
+interface DashboardSummaryProps {
+  summary?: DashboardSummaryData;
+}
+
+export function DashboardSummary({ summary }: DashboardSummaryProps) {
+  const data = summary ?? {
+    totalRequests: 0,
+    attentionNeeded: 0,
+    overdue: 0,
+    authoritiesCount: 0,
+  };
+
   const kpis = [
     {
       title: "Total Requests",
-      value: 142,
+      value: data.totalRequests,
       icon: <FileText className="h-6 w-6" />,
-      description: "All time OIA requests",
-      trend: { value: "+12", positive: true },
+      description: "Tracked OIA requests",
     },
     {
-      title: "Pending",
-      value: 23,
+      title: "Attention Needed",
+      value: data.attentionNeeded,
       icon: <Clock className="h-6 w-6" />,
-      description: "Awaiting response",
-      trend: { value: "-5", positive: true },
-    },
-    {
-      title: "Completed",
-      value: 108,
-      icon: <CheckCircle2 className="h-6 w-6" />,
-      description: "Fully resolved",
-      trend: { value: "+18", positive: true },
+      description: "Needs operator review",
+      tone: "warning" as const,
     },
     {
       title: "Overdue",
-      value: 4,
+      value: data.overdue,
       icon: <AlertTriangle className="h-6 w-6" />,
       description: "Past statutory deadline",
-      trend: { value: "+1", positive: false },
+      tone: "danger" as const,
+    },
+    {
+      title: "Authorities",
+      value: data.authoritiesCount,
+      icon: <Building2 className="h-6 w-6" />,
+      description: "Available request targets",
     },
   ];
 
