@@ -11,15 +11,15 @@
 - [x] Commit: `feat(security): implement TOTP secret and code generation` [a05d40b]
 
 ### Task 1.2: Provisioning URI and QR support
-- [~] Implement `build_provisioning_uri(issuer, account, secret)` -> `otpauth://` URI
-- [ ] Add QR code display in terminal (ASCII art or URL output)
-- [ ] Write unit tests for URI generation
-- [ ] Commit: `feat(security): add TOTP provisioning URI generation`
+- [x] Implement `build_provisioning_uri(issuer, account, secret)` -> `otpauth://` URI
+- [x] Add QR code display in terminal (ASCII art or URL output)
+- [x] Write unit tests for URI generation
+- [x] Commit: `feat(security): add TOTP provisioning URI generation` [c4740c0]
 
 ## Phase 2: Keyring Integration
 
 ### Task 2.1: Secure secret storage
-- [ ] Add `store_totp_secret(username, secret)` to `KeyringStore`
+- [~] Add `store_totp_secret(username, secret)` to `KeyringStore`
 - [ ] Add `get_totp_secret(username)` to `KeyringStore`
 - [ ] Add `delete_totp_secret(username)` to `KeyringStore`
 - [ ] Add `list_totp_secrets()` to enumerate MFA-enabled accounts
