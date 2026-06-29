@@ -3,6 +3,7 @@ use fyi_core::db::{DbPool, GlobalSyncStatus};
 use fyi_core::security::{
     build_provisioning_uri, generate_totp_secret, render_provisioning_qr_ascii, KeyringStore,
 };
+use fyi_core::sync::{PullReport, SyncClient, SyncConfig};
 use std::fs::OpenOptions;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -352,6 +353,17 @@ pub enum SyncCommand {
     Status {
         #[arg(long)]
         request_id: Option<i64>,
+        #[arg(long, default_value = "fyi_system.db")]
+        db: String,
+    },
+    #[command(about = "Pull remote FYI updates into the local database")]
+    Pull {
+        #[arg(long, default_value = "https://fyi.org.nz")]
+        base_url: String,
+        #[arg(long)]
+        feed_url: Option<String>,
+        #[arg(long, default_value_t = 300)]
+        interval_seconds: u64,
         #[arg(long, default_value = "fyi_system.db")]
         db: String,
     },
@@ -743,6 +755,27 @@ fn handle_sync_command(
 
             Ok(())
         }),
+        SyncCommand::Pull {
+            base_url,
+            feed_url,
+            interval_seconds,
+            db,
+        } => runtime.block_on(async {
+            let pool = DbPool::new(&sqlite_url(db)).await?;
+            pool.run_migrations().await?;
+            let client = SyncClient::new(base_url)?;
+            let config = SyncConfig {
+                pull_interval: std::time::Duration::from_secs((*interval_seconds).max(1)),
+            };
+
+            let mut reports = vec![client.pull_incremental(&pool).await?];
+            if let Some(feed_url) = feed_url {
+                reports.push(client.pull_feed(&pool, feed_url).await?);
+            }
+            print_pull_reports(&reports, &config, output_format)?;
+
+            Ok(())
+        }),
     }
 }
 
@@ -818,6 +851,44 @@ fn print_request_sync_status(
                     })
                 });
             println!("{}", serde_json::to_string_pretty(&payload)?);
+        }
+    }
+    Ok(())
+}
+
+fn print_pull_reports(
+    reports: &[PullReport],
+    config: &SyncConfig,
+    output_format: OutputFormat,
+) -> Result<(), Box<dyn std::error::Error>> {
+    match output_format {
+        OutputFormat::Text => {
+            println!("Pull interval: {}s", config.pull_interval.as_secs().max(1));
+            for report in reports {
+                println!(
+                    "{} pull: fetched {}, applied {}",
+                    report.source, report.fetched, report.applied
+                );
+            }
+        }
+        OutputFormat::Json => {
+            let reports = reports
+                .iter()
+                .map(|report| {
+                    serde_json::json!({
+                        "source": report.source,
+                        "fetched": report.fetched,
+                        "applied": report.applied
+                    })
+                })
+                .collect::<Vec<_>>();
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&serde_json::json!({
+                    "pull_interval_seconds": config.pull_interval.as_secs().max(1),
+                    "reports": reports
+                }))?
+            );
         }
     }
     Ok(())
@@ -952,6 +1023,36 @@ mod tests {
             Commands::Sync {
                 command: SyncCommand::Status {
                     request_id: Some(42),
+                    db: "test.db".to_string(),
+                }
+            }
+        );
+    }
+
+    #[test]
+    fn test_parse_sync_pull() {
+        let args = Cli::try_parse_from([
+            "fyi-cli",
+            "sync",
+            "pull",
+            "--base-url",
+            "https://example.org",
+            "--feed-url",
+            "https://example.org/feed.atom",
+            "--interval-seconds",
+            "60",
+            "--db",
+            "test.db",
+        ])
+        .unwrap();
+
+        assert_eq!(
+            args.command,
+            Commands::Sync {
+                command: SyncCommand::Pull {
+                    base_url: "https://example.org".to_string(),
+                    feed_url: Some("https://example.org/feed.atom".to_string()),
+                    interval_seconds: 60,
                     db: "test.db".to_string(),
                 }
             }

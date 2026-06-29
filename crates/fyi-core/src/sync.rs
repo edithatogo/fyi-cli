@@ -4,12 +4,28 @@ use anyhow::{anyhow, Context, Result};
 use reqwest::{Client, Url};
 use serde_json::Value;
 use std::collections::BTreeSet;
+use std::time::Duration;
+use tokio::sync::oneshot;
+use tokio::task::JoinHandle;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct PullReport {
     pub fetched: usize,
     pub applied: usize,
     pub source: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SyncConfig {
+    pub pull_interval: Duration,
+}
+
+impl Default for SyncConfig {
+    fn default() -> Self {
+        Self {
+            pull_interval: Duration::from_secs(300),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -108,6 +124,29 @@ impl SyncClient {
             .await
             .context("failed to parse request JSON")
     }
+}
+
+pub fn spawn_pull_scheduler(
+    db: DbPool,
+    client: SyncClient,
+    config: SyncConfig,
+    mut shutdown: oneshot::Receiver<()>,
+) -> JoinHandle<Result<Vec<PullReport>>> {
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(config.pull_interval);
+        let mut reports = Vec::new();
+
+        loop {
+            tokio::select! {
+                _ = interval.tick() => {
+                    reports.push(client.pull_incremental(&db).await?);
+                }
+                _ = &mut shutdown => {
+                    return Ok(reports);
+                }
+            }
+        }
+    })
 }
 
 async fn apply_remote_requests(db: &DbPool, requests: &[AlaveteliRequest]) -> Result<usize> {
@@ -246,5 +285,39 @@ mod tests {
         );
 
         assert_eq!(ids, vec![4, 9]);
+    }
+
+    #[tokio::test]
+    async fn pull_scheduler_runs_until_shutdown() {
+        let server = MockServer::start().await;
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+
+        Mock::given(method("GET"))
+            .and(path("/api/v2/request.json"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "requests": [request(51, "Scheduled request", "2026-06-30T03:00:00Z")]
+            })))
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new(&server.uri()).unwrap();
+        let (shutdown_tx, shutdown_rx) = oneshot::channel();
+        let handle = spawn_pull_scheduler(
+            db.clone(),
+            client,
+            SyncConfig {
+                pull_interval: Duration::from_millis(10),
+            },
+            shutdown_rx,
+        );
+
+        tokio::time::sleep(Duration::from_millis(25)).await;
+        let _ = shutdown_tx.send(());
+        let reports = handle.await.unwrap().unwrap();
+        let saved = db.get_request(51).await.unwrap().unwrap();
+
+        assert!(!reports.is_empty());
+        assert_eq!(saved.title, "Scheduled request");
     }
 }

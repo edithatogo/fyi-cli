@@ -24,10 +24,10 @@
 - [x] Commit: `feat(sync): implement incremental pull synchronization from FYI API`
 
 ### Task 2.2: Pull scheduler and configuration
-- [ ] Add configurable pull interval (default 5 minutes)
-- [ ] Implement Tokio-based background pull task
-- [ ] Add `fyi sync pull` manual trigger command
-- [ ] Commit: `feat(sync): add pull scheduler and manual trigger`
+- [x] Add configurable pull interval (default 5 minutes)
+- [x] Implement Tokio-based background pull task
+- [x] Add `fyi sync pull` manual trigger command
+- [x] Commit: `feat(sync): add pull scheduler and manual trigger`
 
 ## Phase 3: Push Synchronization
 
