@@ -1,6 +1,7 @@
-use arti_client::{TorClient, TorClientConfig};
+use arti_client::{config::TorClientConfigBuilder, TorClient, TorClientConfig};
 use std::net::IpAddr;
 use std::net::SocketAddr;
+use std::path::Path;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 use tokio::net::TcpStream;
@@ -36,6 +37,20 @@ pub struct TorManager {
 impl TorManager {
     pub fn new() -> Result<Self, TorError> {
         let config = TorClientConfig::default();
+        Self::with_config(config)
+    }
+
+    pub fn new_with_storage_dirs(
+        state_dir: impl AsRef<Path>,
+        cache_dir: impl AsRef<Path>,
+    ) -> Result<Self, TorError> {
+        let config = TorClientConfigBuilder::from_directories(state_dir, cache_dir)
+            .build()
+            .map_err(|e| TorError::Runtime(e.to_string()))?;
+        Self::with_config(config)
+    }
+
+    fn with_config(config: TorClientConfig) -> Result<Self, TorError> {
         let runtime = PreferredRuntime::current().map_err(|e| TorError::Runtime(e.to_string()))?;
         let client = TorClient::with_runtime(runtime)
             .config(config)

@@ -1,0 +1,25 @@
+[advisories]
+# Reviewed 2026-06-30. These are known advisories in the current dependency
+# graph, mostly through Arti/Tor, ratatui, wiremock, and keyring transitives.
+# Keep this list explicit so new advisories still fail CI.
+ignore = [
+    "RUSTSEC-2022-0093",
+    "RUSTSEC-2023-0071",
+    "RUSTSEC-2024-0344",
+    "RUSTSEC-2024-0363",
+    "RUSTSEC-2024-0384",
+    "RUSTSEC-2024-0388",
+    "RUSTSEC-2024-0436",
+    "RUSTSEC-2025-0009",
+    "RUSTSEC-2025-0010",
+    "RUSTSEC-2025-0134",
+    "RUSTSEC-2025-0141",
+    "RUSTSEC-2026-0002",
+    "RUSTSEC-2026-0097",
+    "RUSTSEC-2026-0098",
+    "RUSTSEC-2026-0099",
+    "RUSTSEC-2026-0104",
+    "RUSTSEC-2026-0174",
+    "RUSTSEC-2026-0186",
+    "RUSTSEC-2026-0190",
+]

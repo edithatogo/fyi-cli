@@ -1,12 +1,14 @@
 use fyi_core::tor::TorManager;
 use std::io::ErrorKind;
+use std::path::PathBuf;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
 #[tokio::test]
 async fn test_tor_initialization_and_unbootstrapped_status() {
     // 1. Initialize TorManager
-    let manager = TorManager::new().expect("Failed to initialize TorManager");
+    let manager = new_test_tor_manager("initialization").expect("Failed to initialize TorManager");
 
     // 2. Check initial bootstrap status (should not be ready since it's unbootstrapped)
     let status = manager.get_bootstrap_status();
@@ -19,7 +21,8 @@ async fn test_tor_initialization_and_unbootstrapped_status() {
 
 #[tokio::test]
 async fn test_start_proxy_and_reqwest_client_setup() {
-    let mut manager = TorManager::new().expect("Failed to initialize TorManager");
+    let mut manager =
+        new_test_tor_manager("proxy-client-setup").expect("Failed to initialize TorManager");
 
     // Start the local SOCKS proxy
     let (addr, _shutdown_tx) = manager.start_proxy().await.expect("Failed to start proxy");
@@ -35,7 +38,8 @@ async fn test_start_proxy_and_reqwest_client_setup() {
 
 #[tokio::test]
 async fn test_socks_proxy_handshake_invalid_version() {
-    let mut manager = TorManager::new().expect("Failed to initialize TorManager");
+    let mut manager =
+        new_test_tor_manager("invalid-version").expect("Failed to initialize TorManager");
     let (addr, _shutdown_tx) = manager.start_proxy().await.expect("Failed to start proxy");
 
     // Connect directly to the proxy to test handshake failure
@@ -60,7 +64,8 @@ async fn test_socks_proxy_handshake_invalid_version() {
 
 #[tokio::test]
 async fn test_socks_proxy_no_auth_required_negotiation() {
-    let mut manager = TorManager::new().expect("Failed to initialize TorManager");
+    let mut manager =
+        new_test_tor_manager("no-auth-negotiation").expect("Failed to initialize TorManager");
     let (addr, _shutdown_tx) = manager.start_proxy().await.expect("Failed to start proxy");
 
     let mut socket = TcpStream::connect(addr)
@@ -76,4 +81,21 @@ async fn test_socks_proxy_no_auth_required_negotiation() {
     // Response should be version 5 (5), method 0 (NO AUTH)
     assert_eq!(response[0], 5);
     assert_eq!(response[1], 0);
+}
+
+fn new_test_tor_manager(name: &str) -> Result<TorManager, fyi_core::tor::TorError> {
+    let root = unique_test_storage_root(name);
+    let state_dir = root.join("state");
+    let cache_dir = root.join("cache");
+    std::fs::create_dir_all(&state_dir)?;
+    std::fs::create_dir_all(&cache_dir)?;
+    TorManager::new_with_storage_dirs(state_dir, cache_dir)
+}
+
+fn unique_test_storage_root(name: &str) -> PathBuf {
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_nanos())
+        .unwrap_or_default();
+    std::env::temp_dir().join(format!("fyi-cli-tor-{name}-{}-{nanos}", std::process::id()))
 }
