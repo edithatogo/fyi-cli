@@ -52,8 +52,8 @@
 - [x] Commit: `feat(dashboard): add interactive charts for request analytics`
 
 ### Task 3.3: Export actions
-- [~] Add JSON export button to dashboard
-- [ ] Add CSV export button to dashboard
+- [x] Add JSON export button to dashboard [29e076c]
+- [~] Add CSV export button to dashboard
 - [ ] Commit: `feat(dashboard): add one-click export actions`
 
 ## Phase 4: Request Detail & Timeline
