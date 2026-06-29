@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   AlertTriangle,
 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui";
 
 interface KpiCardProps {
   title: string;
@@ -15,35 +16,37 @@ interface KpiCardProps {
 
 function KpiCard({ title, value, icon, description, trend }: KpiCardProps) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-      <div className="flex items-start justify-between">
-        <div className="space-y-1">
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-            {title}
-          </p>
-          <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            {value}
-          </p>
-          {description && (
-            <p className="text-xs text-gray-400 dark:text-gray-500">
-              {description}
+    <Card>
+      <CardContent className="p-6">
+        <div className="flex items-start justify-between">
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              {title}
             </p>
-          )}
-          {trend && (
-            <p
-              className={`text-xs font-medium ${
-                trend.positive ? "text-green-600" : "text-red-600"
-              }`}
-            >
-              {trend.value} from last month
+            <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+              {value}
             </p>
-          )}
+            {description && (
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                {description}
+              </p>
+            )}
+            {trend && (
+              <p
+                className={`text-xs font-medium ${
+                  trend.positive ? "text-green-600" : "text-red-600"
+                }`}
+              >
+                {trend.value} from last month
+              </p>
+            )}
+          </div>
+          <div className="rounded-lg bg-brand-50 p-3 text-brand-600 dark:bg-brand-900/50 dark:text-brand-400">
+            {icon}
+          </div>
         </div>
-        <div className="rounded-lg bg-brand-50 p-3 text-brand-600 dark:bg-brand-900/50 dark:text-brand-400">
-          {icon}
-        </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -97,14 +100,16 @@ export function DashboardSummary() {
         ))}
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          Recent Activity
-        </h3>
-        <p className="mt-2 text-sm text-gray-400 dark:text-gray-500">
-          Dashboard data will be populated when connected to the MCP backend.
-        </p>
-      </div>
+      <Card>
+        <CardContent className="p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Recent Activity
+          </h3>
+          <p className="mt-2 text-sm text-gray-400 dark:text-gray-500">
+            Dashboard data will be populated when connected to the MCP backend.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

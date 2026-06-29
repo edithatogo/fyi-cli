@@ -5,6 +5,12 @@ __pycache__/
 .venv/
 *.pyc
 outputs/
+build/
 *.sqlite3
 *.db
 *.egg-info/
+
+# Dashboard build artifacts
+dashboard/.next/
+dashboard/node_modules/
+dashboard/tsconfig.tsbuildinfo

@@ -4,15 +4,15 @@
 
 ### Task 1.1: Initialize Next.js project
 - [x] Create Next.js 14+ project with TypeScript, App Router in `dashboard/` [11bf304]
-- [x] Configure TailwindCSS with custom design tokens [COMMIT_SHA]
-- [x] Add base layout (sidebar, header, content area) [COMMIT_SHA]
-- [x] Add dark/light mode with system preference detection [COMMIT_SHA]
-- [x] Commit: `feat(dashboard): scaffold Next.js project with TailwindCSS and dark mode`
+- [x] Configure TailwindCSS with custom design tokens [f77df17]
+- [x] Add base layout (sidebar, header, content area) [f77df17]
+- [x] Add dark/light mode with system preference detection [f77df17]
+- [x] Commit: `feat(dashboard): scaffold Next.js project with TailwindCSS and dark mode` [f77df17]
 
 ### Task 1.2: Design system components
-- [ ] Build reusable UI components (Button, Card, Badge, Input, Select, Table)
-- [ ] Build navigation sidebar with icons (done as part of 1.1)
-- [ ] Build KPI stat card component (done as part of 1.1)
+- [x] Build reusable UI components (Button, Card, Badge, Input, Select, Table)
+- [x] Build navigation sidebar with icons (done as part of 1.1)
+- [x] Build KPI stat card component (done as part of 1.1)
 - [ ] Commit: `feat(dashboard): add design system components and layout`
 
 ## Phase 2: MCP Client Layer & API Integration
