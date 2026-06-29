@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { FileText, Search } from "lucide-react";
+import { type KeyboardEvent, useEffect, useMemo, useState } from "react";
+import { Download, FileText, Search } from "lucide-react";
 import {
   Badge,
   Button,
@@ -64,6 +64,45 @@ const BULK_STATUS_OPTIONS = [
   { value: "completed", label: "completed" },
   { value: "closed", label: "closed" },
 ];
+
+function csvCell(value: string | number | null | undefined) {
+  const text = value == null ? "" : String(value);
+  if (!/[",\r\n]/.test(text)) {
+    return text;
+  }
+  return `"${text.replaceAll("\"", "\"\"")}"`;
+}
+
+function buildRequestsCsv(requests: FyiRequest[]) {
+  const rows = requests.map((request) => [
+    request.id,
+    request.title,
+    request.status,
+    request.user_name,
+    request.authority_name ?? request.authority_slug,
+    request.created_at,
+    request.updated_at,
+    request.url,
+    (request.tags ?? []).join(";"),
+  ]);
+
+  return [
+    [
+      "id",
+      "title",
+      "status",
+      "requester",
+      "authority",
+      "created_at",
+      "updated_at",
+      "url",
+      "tags",
+    ],
+    ...rows,
+  ]
+    .map((row) => row.map(csvCell).join(","))
+    .join("\n");
+}
 
 export function RequestsTable({ requests }: RequestsTableProps) {
   const [tableRequests, setTableRequests] = useState(requests);
@@ -136,6 +175,10 @@ export function RequestsTable({ requests }: RequestsTableProps) {
   const allVisibleSelected =
     filteredRequests.length > 0 &&
     filteredRequests.every((request) => selectedIds.has(request.id));
+  const selectedRequests = useMemo(
+    () => tableRequests.filter((request) => selectedIds.has(request.id)),
+    [selectedIds, tableRequests]
+  );
 
   function toggleRequestSelection(requestId: number) {
     setBulkState("idle");
@@ -161,6 +204,19 @@ export function RequestsTable({ requests }: RequestsTableProps) {
       }
       return next;
     });
+  }
+
+  function handleRowSelectionKeyDown(
+    event: KeyboardEvent<HTMLTableRowElement | HTMLDivElement>,
+    requestId: number
+  ) {
+    if (event.target !== event.currentTarget) {
+      return;
+    }
+    if (event.key === " " || event.key === "Enter") {
+      event.preventDefault();
+      toggleRequestSelection(requestId);
+    }
   }
 
   async function applyBulkStatus() {
@@ -207,6 +263,24 @@ export function RequestsTable({ requests }: RequestsTableProps) {
     } catch {
       setBulkState("error");
     }
+  }
+
+  function exportSelectedRequests() {
+    if (selectedRequests.length === 0) {
+      return;
+    }
+
+    const blob = new Blob([buildRequestsCsv(selectedRequests)], {
+      type: "text/csv",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `fyi-requests-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   }
 
   return (
@@ -297,12 +371,28 @@ export function RequestsTable({ requests }: RequestsTableProps) {
           <Button
             type="button"
             onClick={applyBulkStatus}
+            className="w-full sm:w-auto"
             disabled={!bulkStatus || selectedIds.size === 0 || bulkState === "saving"}
           >
             Apply status
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={exportSelectedRequests}
+            className="w-full sm:w-auto"
+            disabled={selectedIds.size === 0}
+            aria-label={`Export ${selectedRequests.length} selected requests as CSV`}
+          >
+            <Download className="h-4 w-4" aria-hidden="true" />
+            Export selected
+          </Button>
         </div>
-        <div className="text-sm text-gray-600 dark:text-gray-400" aria-live="polite">
+        <div
+          className="text-sm text-gray-600 dark:text-gray-400"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           {bulkState === "saving"
             ? "Updating selected requests..."
             : bulkState === "saved"
@@ -316,58 +406,122 @@ export function RequestsTable({ requests }: RequestsTableProps) {
       <Card>
         <CardContent className="p-0">
           {filteredRequests.length > 0 ? (
-            <Table>
-              <Thead>
-                <Tr>
-                  <Th>
-                    <input
-                      type="checkbox"
-                      aria-label="Select all visible requests"
-                      checked={allVisibleSelected}
-                      onChange={toggleVisibleSelection}
-                      className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
-                    />
-                  </Th>
-                  <Th>Title</Th>
-                  <Th>Status</Th>
-                  <Th>Requester</Th>
-                  <Th>Updated</Th>
-                </Tr>
-              </Thead>
-              <Tbody>
+            <>
+              <div className="block md:hidden" role="list" aria-label="Filtered requests">
                 {filteredRequests.map((request) => (
-                  <Tr key={request.id}>
-                    <Td>
+                  <div
+                    key={request.id}
+                    role="listitem"
+                    tabIndex={0}
+                    aria-label={`Request row: ${request.title}`}
+                    onKeyDown={(event) => handleRowSelectionKeyDown(event, request.id)}
+                    className="border-b border-gray-200 p-4 outline-none last:border-0 focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-gray-800"
+                  >
+                    <div className="flex items-start gap-3">
                       <input
                         type="checkbox"
                         aria-label={`Select ${request.title}`}
                         checked={selectedIds.has(request.id)}
                         onChange={() => toggleRequestSelection(request.id)}
-                        className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                        className="mt-1 h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
                       />
-                    </Td>
-                    <Td>
-                      <a
-                        href={`/requests/${request.id}`}
-                        className="font-medium text-gray-900 hover:text-brand-600 dark:text-gray-100 dark:hover:text-brand-400"
-                      >
-                        {request.title}
-                      </a>
-                      <p className="mt-1 line-clamp-1 max-w-2xl text-xs text-gray-500 dark:text-gray-400">
-                        {request.body}
-                      </p>
-                    </Td>
-                    <Td>
-                      <Badge variant={statusVariant(request.status)}>
-                        {request.status ?? "unknown"}
-                      </Badge>
-                    </Td>
-                    <Td>{request.user_name ?? "Not recorded"}</Td>
-                    <Td>{request.updated_at ?? request.created_at ?? "Not recorded"}</Td>
-                  </Tr>
+                      <div className="min-w-0 flex-1">
+                        <a
+                          href={`/requests/${request.id}`}
+                          className="font-medium text-gray-900 hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:text-gray-100 dark:hover:text-brand-400"
+                        >
+                          {request.title}
+                        </a>
+                        <p className="mt-1 line-clamp-2 text-sm text-gray-500 dark:text-gray-400">
+                          {request.body}
+                        </p>
+                        <dl className="mt-3 grid gap-2 text-sm text-gray-600 dark:text-gray-400">
+                          <div className="flex items-center justify-between gap-3">
+                            <dt className="font-medium">Status</dt>
+                            <dd>
+                              <Badge variant={statusVariant(request.status)}>
+                                {request.status ?? "unknown"}
+                              </Badge>
+                            </dd>
+                          </div>
+                          <div className="flex justify-between gap-3">
+                            <dt className="font-medium">Requester</dt>
+                            <dd className="text-right">{request.user_name ?? "Not recorded"}</dd>
+                          </div>
+                          <div className="flex justify-between gap-3">
+                            <dt className="font-medium">Updated</dt>
+                            <dd className="text-right">
+                              {request.updated_at ?? request.created_at ?? "Not recorded"}
+                            </dd>
+                          </div>
+                        </dl>
+                      </div>
+                    </div>
+                  </div>
                 ))}
-              </Tbody>
-            </Table>
+              </div>
+
+              <div className="hidden md:block">
+                <Table aria-label="Filtered requests">
+                  <Thead>
+                    <Tr>
+                      <Th>
+                        <input
+                          type="checkbox"
+                          aria-label="Select all visible requests"
+                          checked={allVisibleSelected}
+                          onChange={toggleVisibleSelection}
+                          className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                        />
+                      </Th>
+                      <Th>Title</Th>
+                      <Th>Status</Th>
+                      <Th>Requester</Th>
+                      <Th>Updated</Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {filteredRequests.map((request) => (
+                      <Tr
+                        key={request.id}
+                        tabIndex={0}
+                        aria-label={`Request row: ${request.title}`}
+                        onKeyDown={(event) => handleRowSelectionKeyDown(event, request.id)}
+                        className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500"
+                      >
+                        <Td>
+                          <input
+                            type="checkbox"
+                            aria-label={`Select ${request.title}`}
+                            checked={selectedIds.has(request.id)}
+                            onChange={() => toggleRequestSelection(request.id)}
+                            className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                          />
+                        </Td>
+                        <Td>
+                          <a
+                            href={`/requests/${request.id}`}
+                            className="font-medium text-gray-900 hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:text-gray-100 dark:hover:text-brand-400"
+                          >
+                            {request.title}
+                          </a>
+                          <p className="mt-1 line-clamp-1 max-w-2xl text-xs text-gray-500 dark:text-gray-400">
+                            {request.body}
+                          </p>
+                        </Td>
+                        <Td>
+                          <Badge variant={statusVariant(request.status)}>
+                            {request.status ?? "unknown"}
+                          </Badge>
+                        </Td>
+                        <Td>{request.user_name ?? "Not recorded"}</Td>
+                        <Td>{request.updated_at ?? request.created_at ?? "Not recorded"}</Td>
+                      </Tr>
+                    ))}
+                  </Tbody>
+                </Table>
+              </div>
+            </>
           ) : (
             <div className="flex min-h-72 flex-col items-center justify-center px-6 py-12 text-center">
               <div className="rounded-lg bg-gray-100 p-3 text-gray-500 dark:bg-gray-800 dark:text-gray-400">

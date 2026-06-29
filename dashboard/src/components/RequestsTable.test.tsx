@@ -1,8 +1,22 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { RequestsTable } from "./RequestsTable";
 
+function readBlob(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error);
+    reader.onload = () => resolve(String(reader.result));
+    reader.readAsText(blob);
+  });
+}
+
 describe("RequestsTable", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
   const requests = [
     {
       id: 1,
@@ -144,5 +158,50 @@ describe("RequestsTable", () => {
         }),
       })
     );
+  });
+
+  it("toggles request selection from the keyboard", () => {
+    render(<RequestsTable requests={requests} />);
+
+    fireEvent.keyDown(screen.getAllByLabelText("Request row: Procurement records")[0], {
+      key: "Enter",
+    });
+
+    expect(screen.getByLabelText("Select Procurement records")).toBeChecked();
+    expect(screen.getByText("1 selected")).toBeDefined();
+  });
+
+  it("exports selected requests as CSV", async () => {
+    const createObjectUrl = vi.fn<(blob: Blob) => string>(() => "blob:requests-export");
+    const revokeObjectUrl = vi.fn();
+    const click = vi.fn();
+    vi.stubGlobal("URL", {
+      createObjectURL: createObjectUrl,
+      revokeObjectURL: revokeObjectUrl,
+    });
+    vi.spyOn(document, "createElement").mockImplementation((tagName) => {
+      const element = document.createElementNS("http://www.w3.org/1999/xhtml", tagName);
+      if (tagName === "a") {
+        Object.defineProperty(element, "click", { value: click });
+      }
+      return element as HTMLElement;
+    });
+
+    render(<RequestsTable requests={requests} />);
+
+    fireEvent.click(screen.getByLabelText("Select Procurement records"));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Export 1 selected requests as CSV" })
+    );
+
+    expect(createObjectUrl).toHaveBeenCalledWith(expect.any(Blob));
+    const [[blob]] = createObjectUrl.mock.calls;
+    const csv = await readBlob(blob);
+    expect(csv).toContain(
+      "id,title,status,requester,authority,created_at,updated_at,url,tags"
+    );
+    expect(csv).toContain("1,Procurement records,submitted,Alex,,,,,finance");
+    expect(click).toHaveBeenCalled();
+    expect(revokeObjectUrl).toHaveBeenCalledWith("blob:requests-export");
   });
 });
