@@ -34,13 +34,13 @@
 ## Phase 3: Security Enforcement
 
 ### Task 3.1: MFA guard
-- [~] Create `MfaGuard` struct that requires verification before credential access
-- [ ] Integrate with `KeyringStore::get_credential()` to gate access
-- [ ] Add verified session tracking with TOTP-based expiry
-- [ ] Commit: `feat(security): add MFA guard for credential access`
+- [x] Create `MfaGuard` struct that requires verification before credential access
+- [x] Integrate with `KeyringStore::get_credential()` to gate access
+- [x] Add verified session tracking with TOTP-based expiry
+- [x] Commit: `feat(security): add MFA guard for credential access` [c09bad6]
 
 ### Task 3.2: Brute force protection and audit logging
-- [ ] Implement rate-limiting (max 5 attempts per 30s window)
+- [~] Implement rate-limiting (max 5 attempts per 30s window)
 - [ ] Add MFA audit events to audit logging system
 - [ ] Write tests for rate-limit enforcement
 - [ ] Commit: `feat(security): add brute force protection and audit logging for MFA`
