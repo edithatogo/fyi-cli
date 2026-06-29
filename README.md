@@ -231,6 +231,40 @@ Opt-in live smoke test:
 FYI_LIVE_SMOKE=1 pytest -m smoke tests/test_discovery_smoke.py
 ```
 
+### Faithful Archive Capture
+
+`fyi capture` stores the public request JSON, rendered HTML, and attachments as
+WARC records, deduplicates attachment bytes by SHA-256, and maintains a derived
+request view for downstream dataset tooling.
+
+```bash
+fyi capture 12345 \
+  --data-dir data \
+  --dist-dir dist \
+  --max-bytes 500000000 \
+  --max-runtime-minutes 30
+```
+
+Capture layout:
+
+```text
+data/
+  warc/<runid>-<request>.warc.gz
+  attachments/<sha-prefix>/<sha256>
+  raw/requests/<authority>/<request_id>/
+    request.json
+    page.html
+    attachments.json
+    snapshot_meta.json
+dist/
+  site_snapshots/<YYYYMMDD>.wacz
+```
+
+Each daily WACZ is appendable: subsequent captures add another WARC segment under
+`archive/` and merge the resource metadata in `datapackage.json`. Replay tooling
+that supports WACZ/WARC can open the package from `dist/site_snapshots/`; for
+low-level inspection, unzip it and read the WARC segments with `warcio`.
+
 ```bash
 # Database
 fyi init-db                    # Initialize database

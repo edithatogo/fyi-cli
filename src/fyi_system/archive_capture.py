@@ -129,17 +129,33 @@ def write_warc_record(
 
 
 def package_wacz(*, warc_path: Path, output_path: Path, resources: list[CapturedResource]) -> None:
-    """Create a minimal WACZ-style package containing WARC and metadata."""
+    """Create or extend a minimal WACZ-style package containing WARC segments."""
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    existing_resources: list[dict[str, Any]] = []
+    existing_entries: dict[str, bytes] = {}
+    if output_path.exists():
+        with zipfile.ZipFile(output_path) as existing:
+            for name in existing.namelist():
+                if name == "datapackage.json":
+                    payload = json.loads(existing.read(name))
+                    existing_resources = list(payload.get("resources") or [])
+                elif name != "indexes/index.cdxj":
+                    existing_entries[name] = existing.read(name)
+
+    archive_name = f"archive/{warc_path.name}"
+    existing_entries[archive_name] = warc_path.read_bytes()
     datapackage = {
         "profile": "data-package",
         "name": "fyi-request-capture",
-        "resources": [asdict(resource) for resource in resources],
+        "resources": [*existing_resources, *[asdict(resource) for resource in resources]],
     }
-    with zipfile.ZipFile(output_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-        archive.write(warc_path, f"archive/{warc_path.name}")
+    tmp_path = output_path.with_suffix(f"{output_path.suffix}.tmp")
+    with zipfile.ZipFile(tmp_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for name, payload in sorted(existing_entries.items()):
+            archive.writestr(name, payload)
         archive.writestr("datapackage.json", json.dumps(datapackage, indent=2, sort_keys=True))
         archive.writestr("indexes/index.cdxj", "")
+    tmp_path.replace(output_path)
 
 
 def write_derived_store(
@@ -195,7 +211,7 @@ def capture_request(
     started_at = time.monotonic()
     run_id = utc_now_compact()
     warc_path = data_dir / "warc" / f"{run_id}-{request_ref}.warc.gz"
-    wacz_path = dist_dir / "site_snapshots" / f"{run_id}-{request_ref}.wacz"
+    wacz_path = dist_dir / "site_snapshots" / f"{run_id[:8]}.wacz"
     attachments_dir = data_dir / "attachments"
     derived_dir = data_dir / "raw" / "requests"
     resources: list[CapturedResource] = []

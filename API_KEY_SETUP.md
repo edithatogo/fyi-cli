@@ -49,6 +49,7 @@ fyi import-authorities
 fyi discover --date-from 2024-01-01 --date-to 2024-02-01 --output discovered.jsonl
 fyi discover --backfill-ids --id-from 1 --id-to 5000 --output backfill.jsonl
 fyi discover-reconcile --feed discovered.jsonl --backfill backfill.jsonl
+fyi capture 12345 --max-runtime-minutes 30 --max-bytes 500000000
 ```
 
 Use small windows, keep rate limits conservative, and run live smoke tests only

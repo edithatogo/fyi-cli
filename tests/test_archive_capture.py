@@ -10,7 +10,7 @@ import httpx
 import pytest
 from warcio.archiveiterator import ArchiveIterator
 
-from fyi_system.archive_capture import CaptureCaps, capture_request
+from fyi_system.archive_capture import CaptureCaps, CapturedResource, capture_request, package_wacz
 from fyi_system.cli import build_parser
 
 if TYPE_CHECKING:
@@ -105,6 +105,48 @@ def test_capture_request_dedupes_attachment_payloads(tmp_path: Path) -> None:
         path for path in (tmp_path / "data" / "attachments").rglob("*") if path.is_file()
     ]
     assert len(attachment_files) == 1
+
+
+def test_package_wacz_appends_warc_segments(tmp_path: Path) -> None:
+    wacz_path = tmp_path / "snapshots" / "20260629.wacz"
+    first_warc = tmp_path / "first.warc.gz"
+    second_warc = tmp_path / "second.warc.gz"
+    first_warc.write_bytes(b"first")
+    second_warc.write_bytes(b"second")
+
+    package_wacz(
+        warc_path=first_warc,
+        output_path=wacz_path,
+        resources=[
+            CapturedResource(
+                kind="html",
+                url="https://fyi.example/request/one",
+                content_type="text/html",
+                size=5,
+                sha256="a" * 64,
+            ),
+        ],
+    )
+    package_wacz(
+        warc_path=second_warc,
+        output_path=wacz_path,
+        resources=[
+            CapturedResource(
+                kind="json",
+                url="https://fyi.example/request/two.json",
+                content_type="application/json",
+                size=6,
+                sha256="b" * 64,
+            ),
+        ],
+    )
+
+    with zipfile.ZipFile(wacz_path) as archive:
+        names = set(archive.namelist())
+        datapackage = archive.read("datapackage.json")
+
+    assert {"archive/first.warc.gz", "archive/second.warc.gz"} <= names
+    assert datapackage.count(b'"url"') == 2
 
 
 def test_capture_request_respects_max_bytes(tmp_path: Path) -> None:

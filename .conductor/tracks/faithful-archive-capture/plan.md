@@ -19,7 +19,7 @@
 
 - [x] 3.1 `py-wacz` packaging → `dist/site_snapshots/<YYYYMMDD>.wacz` with
       `datapackage.json` + index.
-- [~] 3.2 Appendable/multi-segment so snapshots compose.
+- [x] 3.2 Appendable/multi-segment so snapshots compose.
 - [x] 3.3 Tests: WACZ opens in `warcio`/`pywb` replay; index correct.
 
 ## Phase 4: Content-addressed attachments + derived store
@@ -32,4 +32,4 @@
 
 - [x] 5.1 `fyi capture` command + `--max-bytes/--max-runtime-minutes/--max-disk-gb`.
 - [x] 5.2 Cap-enforcement + clean-abort tests.
-- [ ] 5.3 Docs: WARC/WACZ layout, replay instructions, ethics cross-link.
+- [x] 5.3 Docs: WARC/WACZ layout, replay instructions, ethics cross-link.
