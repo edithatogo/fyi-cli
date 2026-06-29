@@ -47,6 +47,7 @@ pub enum Tab {
     Logs,
     Mfa,
     Editor,
+    Keyring,
 }
 
 impl Tab {
@@ -57,6 +58,7 @@ impl Tab {
             Tab::Logs,
             Tab::Mfa,
             Tab::Editor,
+            Tab::Keyring,
         ]
     }
 
@@ -67,6 +69,7 @@ impl Tab {
             Tab::Logs => "Activity Logs",
             Tab::Mfa => "MFA Security",
             Tab::Editor => "Request Editor",
+            Tab::Keyring => "Keyring Browser",
         }
     }
 }
@@ -162,6 +165,31 @@ impl CredentialAccount {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KeyringEntryItem {
+    pub kind: String,
+    pub username: String,
+    pub service: String,
+    pub created_at: String,
+    pub last_used_at: String,
+}
+
+impl KeyringEntryItem {
+    pub fn new(
+        kind: impl Into<String>,
+        username: impl Into<String>,
+        service: impl Into<String>,
+    ) -> Self {
+        Self {
+            kind: kind.into(),
+            username: username.into(),
+            service: service.into(),
+            created_at: "unknown".to_string(),
+            last_used_at: "unknown".to_string(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CredentialSessionStatus {
     NotTested,
@@ -217,6 +245,8 @@ pub struct AppState {
     pub credential_session_status: CredentialSessionStatus,
     pub credential_test_message: Option<String>,
     pub credential_test_requested: bool,
+    pub keyring_entries: Vec<KeyringEntryItem>,
+    pub selected_keyring_entry_idx: usize,
     pub should_quit: bool,
 }
 
@@ -325,6 +355,8 @@ impl AppState {
             credential_session_status: CredentialSessionStatus::NotTested,
             credential_test_message: None,
             credential_test_requested: false,
+            keyring_entries: Vec::new(),
+            selected_keyring_entry_idx: 0,
             should_quit: false,
         }
     }
@@ -356,6 +388,12 @@ impl AppState {
                     self.selected_log_idx = (self.selected_log_idx + 1) % self.logs.len();
                 }
             }
+            Tab::Keyring => {
+                if !self.keyring_entries.is_empty() {
+                    self.selected_keyring_entry_idx =
+                        (self.selected_keyring_entry_idx + 1) % self.keyring_entries.len();
+                }
+            }
             Tab::Summary | Tab::Mfa | Tab::Editor => {}
         }
     }
@@ -373,6 +411,13 @@ impl AppState {
                 if !self.logs.is_empty() {
                     self.selected_log_idx =
                         (self.selected_log_idx + self.logs.len() - 1) % self.logs.len();
+                }
+            }
+            Tab::Keyring => {
+                if !self.keyring_entries.is_empty() {
+                    self.selected_keyring_entry_idx =
+                        (self.selected_keyring_entry_idx + self.keyring_entries.len() - 1)
+                            % self.keyring_entries.len();
                 }
             }
             Tab::Summary | Tab::Mfa | Tab::Editor => {}
@@ -677,6 +722,30 @@ impl AppState {
             }
         }
     }
+
+    pub fn refresh_keyring_entries(
+        &mut self,
+        store: &fyi_core::security::KeyringStore,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let mut entries = store
+            .list_credentials()?
+            .into_iter()
+            .map(|username| KeyringEntryItem::new("Credential", username, "fyi-cli"))
+            .collect::<Vec<_>>();
+
+        entries.extend(
+            store
+                .list_totp_secrets()?
+                .into_iter()
+                .map(|username| KeyringEntryItem::new("MFA TOTP", username, "fyi-cli")),
+        );
+
+        self.keyring_entries = entries;
+        if self.selected_keyring_entry_idx >= self.keyring_entries.len() {
+            self.selected_keyring_entry_idx = self.keyring_entries.len().saturating_sub(1);
+        }
+        Ok(())
+    }
 }
 
 fn parse_editor_tags(tags: &str) -> Option<Vec<String>> {
@@ -760,6 +829,7 @@ pub fn draw_ui(f: &mut Frame<'_>, state: &AppState) {
         Tab::Logs => draw_logs_tab(f, state, chunks[1]),
         Tab::Mfa => draw_mfa_tab(f, state, chunks[1]),
         Tab::Editor => draw_editor_tab(f, state, chunks[1]),
+        Tab::Keyring => draw_keyring_tab(f, state, chunks[1]),
     }
 
     // Help Footer Bar
@@ -773,6 +843,7 @@ pub fn draw_ui(f: &mut Frame<'_>, state: &AppState) {
         Tab::Editor => {
             " Tab: Next Tab | Right: Switch Pane | Ctrl+S: Save Draft | Ctrl+Q: Close Editor | Esc: Quit "
         }
+        Tab::Keyring => " Tab: Next Tab | Up/Down: Navigate Entries | Q/Esc: Quit ",
     };
     let help_paragraph = Paragraph::new(help_text)
         .block(Block::default().borders(Borders::ALL).title(" Controls "))
@@ -1004,6 +1075,53 @@ fn draw_mfa_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
     f.render_widget(panel, area);
 }
 
+fn draw_keyring_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
+    let rows = state
+        .keyring_entries
+        .iter()
+        .enumerate()
+        .map(|(idx, entry)| {
+            let style = if idx == state.selected_keyring_entry_idx {
+                Style::default().bg(Color::DarkGray).fg(Color::Yellow)
+            } else {
+                Style::default().fg(Color::White)
+            };
+            Row::new(vec![
+                Cell::from(entry.kind.as_str()),
+                Cell::from(entry.username.as_str()),
+                Cell::from(entry.service.as_str()),
+                Cell::from(entry.created_at.as_str()),
+                Cell::from(entry.last_used_at.as_str()),
+            ])
+            .style(style)
+        });
+
+    let table = Table::new(rows)
+        .header(
+            Row::new(vec!["Kind", "Username", "Service", "Created", "Last Used"])
+                .style(
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD),
+                )
+                .bottom_margin(1),
+        )
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(" Keyring Browser "),
+        )
+        .widths(&[
+            Constraint::Length(14),
+            Constraint::Percentage(35),
+            Constraint::Length(16),
+            Constraint::Length(14),
+            Constraint::Length(14),
+        ]);
+
+    f.render_widget(table, area);
+}
+
 fn draw_credential_dialog(f: &mut Frame<'_>, state: &AppState, area: Rect) {
     f.render_widget(Clear, area);
     let active = state.active_credential_account.as_deref().unwrap_or("None");
@@ -1189,10 +1307,13 @@ mod tests {
         assert_eq!(state.active_tab, Tab::Editor);
 
         state.next_tab();
+        assert_eq!(state.active_tab, Tab::Keyring);
+
+        state.next_tab();
         assert_eq!(state.active_tab, Tab::Summary);
 
         state.prev_tab();
-        assert_eq!(state.active_tab, Tab::Editor);
+        assert_eq!(state.active_tab, Tab::Keyring);
     }
 
     #[test]
@@ -1501,7 +1622,7 @@ mod tests {
         assert!(state.editor_save_requested);
 
         state.handle_key_event(KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE));
-        assert_eq!(state.active_tab, Tab::Summary);
+        assert_eq!(state.active_tab, Tab::Keyring);
 
         state.active_tab = Tab::Editor;
         state.handle_key_event(KeyEvent::new(KeyCode::Char('q'), KeyModifiers::CONTROL));
@@ -1675,6 +1796,64 @@ mod tests {
             TuiCommand::TestCredential
         );
         assert!(state.credential_test_requested);
+    }
+
+    #[test]
+    fn test_keyring_browser_tab_renders_entries() {
+        let backend = TestBackend::new(140, 30);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let mut state = AppState::new();
+        state.active_tab = Tab::Keyring;
+        state.keyring_entries = vec![
+            KeyringEntryItem::new("Credential", "alice@example.org", "fyi-cli"),
+            KeyringEntryItem::new("MFA TOTP", "alice@example.org", "fyi-cli"),
+        ];
+
+        terminal
+            .draw(|f| {
+                draw_ui(f, &state);
+            })
+            .unwrap();
+
+        let rendered_text = buffer_to_string(terminal.backend().buffer());
+        assert!(rendered_text.contains("Keyring Browser"));
+        assert!(rendered_text.contains("Credential"));
+        assert!(rendered_text.contains("MFA TOTP"));
+        assert!(rendered_text.contains("alice@example.org"));
+        assert!(rendered_text.contains("Created"));
+        assert!(rendered_text.contains("Last Used"));
+    }
+
+    #[test]
+    fn test_keyring_browser_loads_credentials_and_totp_entries() {
+        let store = fyi_core::security::KeyringStore::new_in_memory("fyi-cli-test");
+        store
+            .set_credential(
+                "alice@example.org",
+                &fyi_core::security::ZeroizedString::new("secret-a".to_string()),
+            )
+            .expect("Failed to store credential");
+        store
+            .store_totp_secret(
+                "alice@example.org",
+                &fyi_core::security::generate_totp_secret().expect("Failed to generate TOTP"),
+            )
+            .expect("Failed to store TOTP");
+
+        let mut state = AppState::new();
+        state
+            .refresh_keyring_entries(&store)
+            .expect("Failed to refresh keyring entries");
+
+        assert_eq!(state.keyring_entries.len(), 2);
+        assert!(state
+            .keyring_entries
+            .iter()
+            .any(|entry| entry.kind == "Credential"));
+        assert!(state
+            .keyring_entries
+            .iter()
+            .any(|entry| entry.kind == "MFA TOTP"));
     }
 
     fn buffer_to_string(buffer: &ratatui::buffer::Buffer) -> String {
