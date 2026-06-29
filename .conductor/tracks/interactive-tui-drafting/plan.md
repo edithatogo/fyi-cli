@@ -37,12 +37,12 @@
 ## Phase 3: Keyring Management Dashboard
 
 ### Task 3.1: Keyring browser
-- [~] Build keyring browser view (list stored credentials)
-- [ ] Show key metadata (service, username, created, last used)
-- [ ] Commit: `feat(tui): add keyring browser dashboard`
+- [x] Build keyring browser view (list stored credentials)
+- [x] Show key metadata (service, username, created, last used)
+- [x] Commit: `feat(tui): add keyring browser dashboard` [b16c479]
 
 ### Task 3.2: Keyring management actions
-- [ ] Add/Edit/Delete keyring entries from TUI
+- [~] Add/Edit/Delete keyring entries from TUI
 - [ ] Add encryption key management view
 - [ ] Show security indicators (key strength, age, rotation status)
 - [ ] Commit: `feat(tui): add keyring management actions and security indicators`
