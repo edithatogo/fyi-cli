@@ -29,7 +29,7 @@ def capture_transport() -> httpx.MockTransport:
                     "id": 123,
                     "url_title": "example_request",
                     "title": "Example request",
-                    "authority": "Agency",
+                    "authority": {"url_name": "agency", "name": "Agency"},
                     "attachments": [
                         {
                             "name": "file.txt",

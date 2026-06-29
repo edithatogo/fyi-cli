@@ -18,7 +18,7 @@ from urllib.parse import urljoin
 from warcio.statusandheaders import StatusAndHeaders
 from warcio.warcwriter import WARCWriter
 
-from fyi_system.discovery import client
+from fyi_system.discovery import authority_name, client
 from fyi_system.fetch import extract_request_artifacts, normalize_request_payload
 
 if TYPE_CHECKING:
@@ -227,9 +227,9 @@ def capture_request(
         request = normalize_request_payload(request_json)
         request_id = int(request["id"] or request_ref)
         url_title = str(request["url_title"] or request_ref)
-        authority = str(
-            request_json.get("authority") or request_json.get("public_body") or "unknown",
-        )
+        authority = authority_name(request_json.get("authority") or request_json.get("public_body"))
+        if not authority:
+            authority = "unknown"
 
         html_response = http.get(f"/request/{url_title}")
         html_response.raise_for_status()

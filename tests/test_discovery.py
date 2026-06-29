@@ -41,7 +41,24 @@ def test_parse_feed_entries_dedupes_requests() -> None:
     assert len(entries) == 1
     assert entries[0].request_id == 1
     assert entries[0].url_title == "example_request"
+    assert entries[0].authority == "Agency"
     assert has_next is True
+
+
+def test_parse_feed_entries_normalizes_authority_objects() -> None:
+    entries, _ = parse_feed_entries(
+        {
+            "entries": [
+                {
+                    "id": 1,
+                    "url_title": "one",
+                    "authority": {"url_name": "agency", "name": "Agency"},
+                },
+            ],
+        },
+    )
+
+    assert entries[0].authority == "agency"
 
 
 def test_discover_feed_paginates_and_writes_checkpoint(tmp_path: Path) -> None:

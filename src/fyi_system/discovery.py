@@ -244,12 +244,19 @@ def parse_entry(raw: dict[str, Any]) -> DiscoveredRequest | None:
         request_id=request_id,
         url_title=url_title_from_link(link) or str(raw.get("url_title") or f"request-{request_id}"),
         title=str(raw.get("title") or raw.get("name") or ""),
-        authority=str(raw.get("authority") or raw.get("public_body") or ""),
+        authority=authority_name(raw.get("authority") or raw.get("public_body")),
         state=str(raw.get("state") or raw.get("status") or raw.get("latest_status") or ""),
         created_at=str(
             raw.get("created_at") or raw.get("requested_at") or raw.get("updated") or "",
         ),
     )
+
+
+def authority_name(value: Any) -> str:
+    """Normalize FYI authority values to a stable short string."""
+    if isinstance(value, dict):
+        return str(value.get("url_name") or value.get("name") or value.get("id") or "")
+    return str(value or "")
 
 
 def request_id_from_entry(raw: dict[str, Any]) -> int | None:
