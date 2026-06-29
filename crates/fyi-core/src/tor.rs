@@ -1,5 +1,4 @@
 use std::net::SocketAddr;
-use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::sync::oneshot;
 use arti_client::{TorClient, TorClientConfig};
@@ -187,7 +186,7 @@ async fn handle_socks_connection(
     client_stream.read_exact(&mut port_buf).await?;
     let dest_port = u16::from_be_bytes(port_buf);
     
-    let mut tor_stream = match tor_client.connect((dest_host.as_str(), dest_port)).await {
+    let tor_stream = match tor_client.connect((dest_host.as_str(), dest_port)).await {
         Ok(stream) => stream,
         Err(e) => {
             client_stream.write_all(&[5, 0x01, 0, 1, 0, 0, 0, 0, 0, 0]).await?;

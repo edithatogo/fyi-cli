@@ -6,6 +6,7 @@ __pycache__/
 *.pyc
 outputs/
 build/
+target/
 *.sqlite3
 *.db
 *.egg-info/

@@ -1,9 +1,8 @@
-use std::io::Write;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use fyi_core::db::DbPool;
-use fyi_core::api::{AlaveteliRequest, AlaveteliCorrespondence};
+use fyi_core::api::AlaveteliRequest;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct JsonRpcRequest {
