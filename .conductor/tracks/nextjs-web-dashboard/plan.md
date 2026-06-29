@@ -73,8 +73,8 @@
 
 ### Task 5.1: Search and filtering
 - [x] Add full-text search across requests [a41a4f0]
-- [~] Add status/authority filters
-- [ ] Add date range picker for filtering
+- [x] Add status/authority filters [b7e72fb]
+- [~] Add date range picker for filtering
 - [ ] Commit: `feat(dashboard): add search and filtering capabilities`
 
 ### Task 5.2: Bulk actions and responsive design
