@@ -55,13 +55,13 @@
 - [x] Commit: `feat(cli): add MFA management CLI commands` [5e70f74]
 
 ### Task 4.2: TUI and MCP integration
-- [~] Add MFA setup wizard flow in TUI
-- [ ] Guard credential access in TUI with MFA prompt
-- [ ] Expose MFA tools in MCP server
-- [ ] Commit: `feat(tui): add MFA integration to TUI and MCP server`
+- [x] Add MFA setup wizard flow in TUI
+- [x] Guard credential access in TUI with MFA prompt
+- [x] Expose MFA tools in MCP server
+- [x] Commit: `feat(tui): add MFA integration to TUI and MCP server` [9b4db56]
 
 ### Task 4.3: Conductor review
-- [ ] Run conductor-review for mfa-authentication-layer track
+- [~] Run conductor-review for mfa-authentication-layer track
 - [ ] Apply any fix recommendations
 - [ ] Push to GitHub
 - [ ] Commit: `conductor(track): complete mfa-authentication-layer after review`
