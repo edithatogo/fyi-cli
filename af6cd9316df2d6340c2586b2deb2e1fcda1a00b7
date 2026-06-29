@@ -1,0 +1,21 @@
+Task: Add CSV export button to dashboard
+
+Summary:
+- Added an Export CSV action beside the JSON export action.
+- Converts the current dashboard summary and chart data into section,label,value CSV rows.
+- Reused the dashboard Blob download path for date-stamped CSV and JSON files.
+- Added component coverage for the CSV browser download path.
+
+Modified files:
+- dashboard/src/components/DashboardSummary.tsx
+- dashboard/src/components/DashboardSummaryShell.tsx
+- dashboard/src/components/DashboardSummaryShell.test.tsx
+
+Why:
+- Task 3.3 requires one-click export actions; CSV gives operators a spreadsheet-friendly dashboard analytics snapshot.
+
+Verification:
+- npm test -- DashboardSummaryShell.test.tsx
+- npm test
+- npm run build
+- npx tsc --noEmit
