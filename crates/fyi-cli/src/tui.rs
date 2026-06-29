@@ -3,7 +3,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Cell, Paragraph, Row, Table, Tabs},
+    widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table, Tabs},
     Frame,
 };
 
@@ -148,6 +148,19 @@ pub struct DraftItem {
     pub updated_at: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CredentialAccount {
+    pub username: String,
+}
+
+impl CredentialAccount {
+    pub fn new(username: impl Into<String>) -> Self {
+        Self {
+            username: username.into(),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct AppState {
     pub active_tab: Tab,
@@ -175,6 +188,10 @@ pub struct AppState {
     pub active_editor_pane: EditorPane,
     pub editor_active_field: EditorField,
     pub editor_save_requested: bool,
+    pub credential_dialog_open: bool,
+    pub credentials: Vec<CredentialAccount>,
+    pub selected_credential_idx: usize,
+    pub active_credential_account: Option<String>,
     pub should_quit: bool,
 }
 
@@ -276,6 +293,10 @@ impl AppState {
             active_editor_pane: EditorPane::Draft,
             editor_active_field: EditorField::Title,
             editor_save_requested: false,
+            credential_dialog_open: false,
+            credentials: Vec::new(),
+            selected_credential_idx: 0,
+            active_credential_account: None,
             should_quit: false,
         }
     }
@@ -331,7 +352,15 @@ impl AppState {
     }
 
     pub fn handle_key_event(&mut self, key: KeyEvent) -> TuiCommand {
+        if self.credential_dialog_open {
+            return self.handle_credential_dialog_key_event(key);
+        }
+
         match (key.code, key.modifiers) {
+            (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
+                self.credential_dialog_open = true;
+                TuiCommand::None
+            }
             (KeyCode::Char('q'), KeyModifiers::CONTROL) if self.active_tab == Tab::Editor => {
                 self.should_quit = true;
                 TuiCommand::CloseEditor
@@ -394,6 +423,32 @@ impl AppState {
             }
             _ => TuiCommand::None,
         }
+    }
+
+    fn handle_credential_dialog_key_event(&mut self, key: KeyEvent) -> TuiCommand {
+        match (key.code, key.modifiers) {
+            (KeyCode::Esc, KeyModifiers::NONE) | (KeyCode::Char('q'), KeyModifiers::NONE) => {
+                self.credential_dialog_open = false;
+            }
+            (KeyCode::Down, KeyModifiers::NONE) => {
+                if !self.credentials.is_empty() {
+                    self.selected_credential_idx =
+                        (self.selected_credential_idx + 1) % self.credentials.len();
+                }
+            }
+            (KeyCode::Up, KeyModifiers::NONE) => {
+                if !self.credentials.is_empty() {
+                    self.selected_credential_idx =
+                        (self.selected_credential_idx + self.credentials.len() - 1)
+                            % self.credentials.len();
+                }
+            }
+            (KeyCode::Enter, KeyModifiers::NONE) => {
+                self.activate_selected_credential();
+            }
+            _ => {}
+        }
+        TuiCommand::None
     }
 
     fn push_editor_char(&mut self, ch: char) {
@@ -528,6 +583,30 @@ impl AppState {
         }
         Ok(deleted)
     }
+
+    pub fn refresh_credentials_from_keyring(
+        &mut self,
+        store: &fyi_core::security::KeyringStore,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        self.credentials = store
+            .list_credentials()?
+            .into_iter()
+            .map(CredentialAccount::new)
+            .collect();
+
+        if self.selected_credential_idx >= self.credentials.len() {
+            self.selected_credential_idx = self.credentials.len().saturating_sub(1);
+        }
+        Ok(())
+    }
+
+    pub fn activate_selected_credential(&mut self) -> bool {
+        let Some(account) = self.credentials.get(self.selected_credential_idx) else {
+            return false;
+        };
+        self.active_credential_account = Some(account.username.clone());
+        true
+    }
 }
 
 fn parse_editor_tags(tags: &str) -> Option<Vec<String>> {
@@ -629,6 +708,10 @@ pub fn draw_ui(f: &mut Frame<'_>, state: &AppState) {
         .block(Block::default().borders(Borders::ALL).title(" Controls "))
         .style(Style::default().fg(Color::Gray));
     f.render_widget(help_paragraph, chunks[2]);
+
+    if state.credential_dialog_open {
+        draw_credential_dialog(f, state, centered_rect(70, 55, f.size()));
+    }
 }
 
 fn draw_summary_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
@@ -849,6 +932,66 @@ fn draw_mfa_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
         .style(Style::default().fg(Color::White));
 
     f.render_widget(panel, area);
+}
+
+fn draw_credential_dialog(f: &mut Frame<'_>, state: &AppState, area: Rect) {
+    f.render_widget(Clear, area);
+    let active = state.active_credential_account.as_deref().unwrap_or("None");
+    let accounts = if state.credentials.is_empty() {
+        "No stored credentials".to_string()
+    } else {
+        state
+            .credentials
+            .iter()
+            .enumerate()
+            .map(|(idx, account)| {
+                let marker = if idx == state.selected_credential_idx {
+                    ">"
+                } else {
+                    " "
+                };
+                let active_marker = if Some(account.username.as_str())
+                    == state.active_credential_account.as_deref()
+                {
+                    " Active"
+                } else {
+                    ""
+                };
+                format!("{marker} {}{active_marker}", account.username)
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+    let content = format!(
+        "Active: {active}\n\nAccounts\n{accounts}\n\nEnter: Switch | Up/Down: Select | Esc: Close"
+    );
+    let dialog = Paragraph::new(content)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(" Credential Manager "),
+        )
+        .style(Style::default().fg(Color::White));
+    f.render_widget(dialog, area);
+}
+
+fn centered_rect(percent_x: u16, percent_y: u16, area: Rect) -> Rect {
+    let vertical = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage((100 - percent_y) / 2),
+            Constraint::Percentage(percent_y),
+            Constraint::Percentage((100 - percent_y) / 2),
+        ])
+        .split(area);
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage((100 - percent_x) / 2),
+            Constraint::Percentage(percent_x),
+            Constraint::Percentage((100 - percent_x) / 2),
+        ])
+        .split(vertical[1])[1]
 }
 
 fn draw_editor_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
@@ -1310,6 +1453,92 @@ mod tests {
         assert!(rendered_text.contains("Unsaved changes"));
         assert!(rendered_text.contains("Ctrl+S: Save"));
         assert!(rendered_text.contains("Ctrl+Q: Close"));
+    }
+
+    #[test]
+    fn test_credential_manager_dialog_renders_accounts() {
+        let backend = TestBackend::new(120, 30);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let mut state = AppState::new();
+        state.credential_dialog_open = true;
+        state.credentials = vec![
+            CredentialAccount::new("alice@example.org"),
+            CredentialAccount::new("bob@example.org"),
+        ];
+        state.active_credential_account = Some("alice@example.org".to_string());
+
+        terminal
+            .draw(|f| {
+                draw_ui(f, &state);
+            })
+            .unwrap();
+
+        let rendered_text = buffer_to_string(terminal.backend().buffer());
+        assert!(rendered_text.contains("Credential Manager"));
+        assert!(rendered_text.contains("alice@example.org"));
+        assert!(rendered_text.contains("bob@example.org"));
+        assert!(rendered_text.contains("Active"));
+        assert!(rendered_text.contains("Enter: Switch"));
+    }
+
+    #[test]
+    fn test_credential_manager_loads_and_switches_accounts() {
+        let store = fyi_core::security::KeyringStore::new_in_memory("fyi-cli-test");
+        store
+            .set_credential(
+                "alice@example.org",
+                &fyi_core::security::ZeroizedString::new("secret-a".to_string()),
+            )
+            .expect("Failed to store Alice credential");
+        store
+            .set_credential(
+                "bob@example.org",
+                &fyi_core::security::ZeroizedString::new("secret-b".to_string()),
+            )
+            .expect("Failed to store Bob credential");
+
+        let mut state = AppState::new();
+        state
+            .refresh_credentials_from_keyring(&store)
+            .expect("Failed to refresh credentials");
+        assert_eq!(state.credentials.len(), 2);
+
+        state.selected_credential_idx = state
+            .credentials
+            .iter()
+            .position(|credential| credential.username == "bob@example.org")
+            .expect("Bob credential not found");
+        assert!(state.activate_selected_credential());
+        assert_eq!(
+            state.active_credential_account.as_deref(),
+            Some("bob@example.org")
+        );
+    }
+
+    #[test]
+    fn test_credential_dialog_keybindings_open_switch_and_close() {
+        use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+
+        let mut state = AppState::new();
+        state.credentials = vec![
+            CredentialAccount::new("alice@example.org"),
+            CredentialAccount::new("bob@example.org"),
+        ];
+
+        state.handle_key_event(KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL));
+        assert!(state.credential_dialog_open);
+
+        state.handle_key_event(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        assert_eq!(state.selected_credential_idx, 1);
+
+        state.handle_key_event(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        assert_eq!(
+            state.active_credential_account.as_deref(),
+            Some("bob@example.org")
+        );
+
+        state.handle_key_event(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
+        assert!(!state.credential_dialog_open);
     }
 
     fn buffer_to_string(buffer: &ratatui::buffer::Buffer) -> String {

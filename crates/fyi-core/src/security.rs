@@ -89,6 +89,7 @@ const TOTP_SECRET_ACTIVE_PREFIX: &str = "totp-secret-active:";
 const TOTP_SECRET_VERSION_PREFIX: &str = "totp-secret-version:";
 const TOTP_SECRET_VERSIONS_PREFIX: &str = "totp-secret-versions:";
 const TOTP_SECRET_INDEX: &str = "totp-secret-index";
+const CREDENTIAL_INDEX: &str = "credential-index";
 const MFA_SESSION_TTL_SECONDS: u64 = 300;
 const MFA_RATE_LIMIT_MAX_ATTEMPTS: usize = 5;
 const MFA_RATE_LIMIT_WINDOW_SECONDS: u64 = 30;
@@ -386,11 +387,21 @@ impl KeyringStore {
         username: &str,
         password: &ZeroizedString,
     ) -> Result<(), SecurityError> {
-        self.set_keyring_password(username, password.as_str())
+        self.set_keyring_password(username, password.as_str())?;
+        let mut usernames = self.read_credential_index()?;
+        usernames.insert(username.to_string());
+        self.write_credential_index(&usernames)
     }
 
     pub fn delete_credential(&self, username: &str) -> Result<(), SecurityError> {
-        self.delete_keyring_password(username)
+        self.delete_keyring_password(username)?;
+        let mut usernames = self.read_credential_index()?;
+        usernames.remove(username);
+        self.write_credential_index(&usernames)
+    }
+
+    pub fn list_credentials(&self) -> Result<Vec<String>, SecurityError> {
+        Ok(self.read_credential_index()?.into_iter().collect())
     }
 
     pub fn store_totp_secret(
@@ -610,6 +621,22 @@ impl KeyringStore {
     ) -> Result<(), SecurityError> {
         let active_key = totp_secret_active_key(username);
         self.set_keyring_password(&active_key, &version.to_string())
+    }
+
+    fn read_credential_index(&self) -> Result<BTreeSet<String>, SecurityError> {
+        let Some(payload) = self.get_keyring_password(CREDENTIAL_INDEX)? else {
+            return Ok(BTreeSet::new());
+        };
+
+        serde_json::from_str::<Vec<String>>(&payload)
+            .map(|usernames| usernames.into_iter().collect())
+            .map_err(|e| SecurityError::KeyringError(e.to_string()))
+    }
+
+    fn write_credential_index(&self, usernames: &BTreeSet<String>) -> Result<(), SecurityError> {
+        let payload = serde_json::to_string(&usernames.iter().collect::<Vec<_>>())
+            .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
+        self.set_keyring_password(CREDENTIAL_INDEX, &payload)
     }
 
     fn get_keyring_password(&self, key: &str) -> Result<Option<String>, SecurityError> {
