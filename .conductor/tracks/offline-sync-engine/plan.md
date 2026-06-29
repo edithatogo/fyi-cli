@@ -46,10 +46,10 @@
 ## Phase 4: Conflict Resolution
 
 ### Task 4.1: Last-write-wins and three-way merge
-- [ ] Implement default Last-Write-Wins resolution
-- [ ] Implement field-level three-way merge for non-conflicting changes
-- [ ] Mark records with conflicting changes
-- [ ] Commit: `feat(sync): add conflict resolution (LWW and three-way merge)`
+- [x] Implement default Last-Write-Wins resolution
+- [x] Implement field-level three-way merge for non-conflicting changes
+- [x] Mark records with conflicting changes
+- [x] Commit: `feat(sync): add conflict resolution (LWW and three-way merge)`
 
 ### Task 4.2: Conflict review and resolution UI
 - [ ] Add `fyi sync conflicts` CLI command to list conflicts

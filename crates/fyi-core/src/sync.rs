@@ -1,5 +1,5 @@
 use crate::api::{AlaveteliRequest, CreateRequestResponse};
-use crate::db::DbPool;
+use crate::db::{DbPool, FieldChange, SyncStatus};
 use anyhow::{anyhow, Context, Result};
 use reqwest::{Client, Url};
 use serde_json::Value;
@@ -20,6 +20,12 @@ pub struct PushReport {
     pub queued: usize,
     pub submitted: usize,
     pub failed: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MergeOutcome {
+    pub request: AlaveteliRequest,
+    pub conflicting_fields: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -250,10 +256,197 @@ pub fn spawn_pull_scheduler(
 
 async fn apply_remote_requests(db: &DbPool, requests: &[AlaveteliRequest]) -> Result<usize> {
     for request in requests {
-        db.upsert_synced_request(request, request.updated_at.as_deref())
-            .await?;
+        apply_remote_request(db, request).await?;
     }
     Ok(requests.len())
+}
+
+async fn apply_remote_request(db: &DbPool, remote: &AlaveteliRequest) -> Result<()> {
+    let Some(metadata) = db.get_request_sync_metadata(remote.id).await? else {
+        db.upsert_synced_request(remote, remote.updated_at.as_deref())
+            .await?;
+        return Ok(());
+    };
+
+    if metadata.sync_status != SyncStatus::Dirty && metadata.sync_status != SyncStatus::Pending {
+        db.upsert_synced_request(remote, remote.updated_at.as_deref())
+            .await?;
+        return Ok(());
+    }
+
+    let Some(local) = db.get_request(remote.id).await? else {
+        db.upsert_synced_request(remote, remote.updated_at.as_deref())
+            .await?;
+        return Ok(());
+    };
+    let changes = db.list_unsynced_field_changes(remote.id).await?;
+    let base = reconstruct_base_request(&local, &changes);
+    let outcome = three_way_merge_request(&base, &local, remote);
+
+    if outcome.conflicting_fields.is_empty() {
+        db.update_request(&outcome.request).await?;
+    } else {
+        db.mark_request_conflict(remote.id).await?;
+    }
+
+    Ok(())
+}
+
+pub fn last_write_wins<'a>(
+    local: &'a AlaveteliRequest,
+    remote: &'a AlaveteliRequest,
+) -> &'a AlaveteliRequest {
+    let local_updated = local
+        .updated_at
+        .as_deref()
+        .or(local.created_at.as_deref())
+        .unwrap_or_default();
+    let remote_updated = remote
+        .updated_at
+        .as_deref()
+        .or(remote.created_at.as_deref())
+        .unwrap_or_default();
+
+    if remote_updated > local_updated {
+        remote
+    } else {
+        local
+    }
+}
+
+pub fn three_way_merge_request(
+    base: &AlaveteliRequest,
+    local: &AlaveteliRequest,
+    remote: &AlaveteliRequest,
+) -> MergeOutcome {
+    let mut merged = local.clone();
+    let mut conflicts = Vec::new();
+
+    merge_field(
+        "title",
+        &base.title,
+        &local.title,
+        &remote.title,
+        &mut merged.title,
+        &mut conflicts,
+    );
+    merge_field(
+        "body",
+        &base.body,
+        &local.body,
+        &remote.body,
+        &mut merged.body,
+        &mut conflicts,
+    );
+    merge_option_field(
+        "user_name",
+        &base.user_name,
+        &local.user_name,
+        &remote.user_name,
+        &mut merged.user_name,
+        &mut conflicts,
+    );
+    merge_option_field(
+        "status",
+        &base.status,
+        &local.status,
+        &remote.status,
+        &mut merged.status,
+        &mut conflicts,
+    );
+    merge_option_field(
+        "updated_at",
+        &base.updated_at,
+        &local.updated_at,
+        &remote.updated_at,
+        &mut merged.updated_at,
+        &mut conflicts,
+    );
+    merge_option_field(
+        "url",
+        &base.url,
+        &local.url,
+        &remote.url,
+        &mut merged.url,
+        &mut conflicts,
+    );
+    merge_option_field(
+        "tags",
+        &base.tags,
+        &local.tags,
+        &remote.tags,
+        &mut merged.tags,
+        &mut conflicts,
+    );
+
+    MergeOutcome {
+        request: merged,
+        conflicting_fields: conflicts,
+    }
+}
+
+fn merge_field<T: Clone + Eq>(
+    name: &str,
+    base: &T,
+    local: &T,
+    remote: &T,
+    merged: &mut T,
+    conflicts: &mut Vec<String>,
+) {
+    if local == remote || remote == base {
+        *merged = local.clone();
+    } else if local == base {
+        *merged = remote.clone();
+    } else {
+        conflicts.push(name.to_string());
+    }
+}
+
+fn merge_option_field<T: Clone + Eq>(
+    name: &str,
+    base: &Option<T>,
+    local: &Option<T>,
+    remote: &Option<T>,
+    merged: &mut Option<T>,
+    conflicts: &mut Vec<String>,
+) {
+    merge_field(name, base, local, remote, merged, conflicts);
+}
+
+fn reconstruct_base_request(local: &AlaveteliRequest, changes: &[FieldChange]) -> AlaveteliRequest {
+    let mut base = local.clone();
+    for change in changes {
+        apply_old_field_value(&mut base, change);
+    }
+    base
+}
+
+fn apply_old_field_value(base: &mut AlaveteliRequest, change: &FieldChange) {
+    match change.field_name.as_str() {
+        "title" => {
+            if let Some(value) = parse_json_value::<String>(&change.old_value) {
+                base.title = value;
+            }
+        }
+        "body" => {
+            if let Some(value) = parse_json_value::<String>(&change.old_value) {
+                base.body = value;
+            }
+        }
+        "user_name" => base.user_name = parse_json_value(&change.old_value),
+        "status" => base.status = parse_json_value(&change.old_value),
+        "created_at" => base.created_at = parse_json_value(&change.old_value),
+        "updated_at" => base.updated_at = parse_json_value(&change.old_value),
+        "url" => base.url = parse_json_value(&change.old_value),
+        "tags" => base.tags = parse_json_value(&change.old_value),
+        _ => {}
+    }
+}
+
+fn parse_json_value<T: serde::de::DeserializeOwned>(value: &Option<String>) -> Option<T> {
+    value
+        .as_deref()
+        .and_then(|value| serde_json::from_str(value).ok())
 }
 
 fn parse_request_list(value: Value) -> Result<Vec<AlaveteliRequest>> {
@@ -487,5 +680,59 @@ mod tests {
         assert_eq!(report.failed, 1);
         assert_eq!(depth.failed, 1);
         assert_eq!(metadata.sync_status.as_str(), "dirty");
+    }
+
+    #[test]
+    fn last_write_wins_chooses_newer_updated_at() {
+        let local = request(5, "Local", "2026-06-30T01:00:00Z");
+        let remote = request(5, "Remote", "2026-06-30T02:00:00Z");
+
+        assert_eq!(last_write_wins(&local, &remote).title, "Remote");
+    }
+
+    #[test]
+    fn three_way_merge_applies_non_conflicting_remote_fields() {
+        let base = request(6, "Base title", "2026-06-30T01:00:00Z");
+        let mut local = base.clone();
+        local.body = "Local body".to_string();
+        let mut remote = base.clone();
+        remote.title = "Remote title".to_string();
+
+        let outcome = three_way_merge_request(&base, &local, &remote);
+
+        assert!(outcome.conflicting_fields.is_empty());
+        assert_eq!(outcome.request.title, "Remote title");
+        assert_eq!(outcome.request.body, "Local body");
+    }
+
+    #[tokio::test]
+    async fn pull_marks_request_conflicted_when_local_and_remote_change_same_field() {
+        let server = MockServer::start().await;
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+        let base = request(7, "Base title", "2026-06-30T01:00:00Z");
+        db.upsert_synced_request(&base, base.updated_at.as_deref())
+            .await
+            .unwrap();
+        let mut local = base.clone();
+        local.title = "Local title".to_string();
+        local.updated_at = Some("2026-06-30T02:00:00Z".to_string());
+        db.update_request(&local).await.unwrap();
+
+        Mock::given(method("GET"))
+            .and(path("/api/v2/request.json"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "requests": [request(7, "Remote title", "2026-06-30T03:00:00Z")]
+            })))
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new(&server.uri()).unwrap();
+        let report = client.pull_incremental(&db).await.unwrap();
+        let metadata = db.get_request_sync_metadata(7).await.unwrap().unwrap();
+
+        assert_eq!(report.applied, 1);
+        assert_eq!(metadata.sync_status.as_str(), "conflict");
+        assert_eq!(metadata.conflict_version, 1);
     }
 }

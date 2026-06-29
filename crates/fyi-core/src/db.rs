@@ -511,6 +511,26 @@ impl DbPool {
         Ok(())
     }
 
+    /// Marks a request as conflicted and increments its conflict version.
+    pub async fn mark_request_conflict(&self, request_id: i64) -> Result<(), sqlx::Error> {
+        let now = now_timestamp();
+        sqlx::query(
+            "UPDATE sync_metadata
+             SET sync_status = 'conflict',
+                 conflict_version = conflict_version + 1,
+                 remote_updated_at = COALESCE(remote_updated_at, ?),
+                 local_updated_at = ?
+             WHERE request_id = ?",
+        )
+        .bind(&now)
+        .bind(&now)
+        .bind(request_id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
     /// Returns aggregate sync counts across all tracked requests.
     pub async fn get_global_sync_status(&self) -> Result<GlobalSyncStatus, sqlx::Error> {
         let rows = sqlx::query(
