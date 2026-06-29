@@ -65,8 +65,8 @@
 - [x] Commit: `feat(dashboard): add request timeline visualization` [87180a8]
 
 ### Task 4.2: Inline editing & attachments
-- [~] Implement inline field editing with auto-save
-- [ ] Add attachment link previews
+- [x] Implement inline field editing with auto-save [5657128]
+- [~] Add attachment link previews
 - [ ] Commit: `feat(dashboard): add inline editing and attachment previews`
 
 ## Phase 5: Advanced Features & Polish
