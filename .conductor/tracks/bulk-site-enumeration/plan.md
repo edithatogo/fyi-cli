@@ -25,10 +25,10 @@
 
 ## Phase 4: Authorities
 
-- [ ] 4.1 Locate + fetch the official bodies spreadsheet/JSON; parse into the
+- [x] 4.1 Locate + fetch the official bodies spreadsheet/JSON; parse into the
       authorities table.
-- [ ] 4.2 `fyi import-authorities` reads upstream when no CSV is provided.
-- [ ] 4.3 Tests for parse + idempotent upsert.
+- [x] 4.2 `fyi import-authorities` reads upstream when no CSV is provided.
+- [x] 4.3 Tests for parse + idempotent upsert.
 
 ## Phase 5: CLI surface + docs
 

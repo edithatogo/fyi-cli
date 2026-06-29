@@ -9,7 +9,7 @@ from .archive_health import build_archive_health, write_archive_health
 from .db import init_db, query_all, connect, get_tracked_request, export_tracked_requests, import_tracked_requests, request_timeline, update_request_status
 from .discovery import backfill_ids, discover_feed, reconcile_discovery_files, write_jsonl
 from .fyi import build_prefilled_url
-from .importers import import_authorities_csv
+from .importers import DEFAULT_AUTHORITIES_URL, import_authorities_csv, import_authorities_url
 from .monitor import ingest_feed, reconcile_events
 from .fetch import fetch_request_page, summarize_request_json, latest_snapshot_summary
 from .reporting import (
@@ -50,7 +50,10 @@ def cmd_init_db(args):
 
 
 def cmd_import_authorities(args):
-    n = import_authorities_csv(args.csv_path, db_path=args.db)
+    if args.csv_path:
+        n = import_authorities_csv(args.csv_path, db_path=args.db)
+    else:
+        n = import_authorities_url(args.source_url, db_path=args.db)
     print(f"Imported {n} authorities")
 
 
@@ -308,7 +311,8 @@ def build_parser():
     
     # Command: import-authorities
     sp = sub.add_parser('import-authorities')
-    sp.add_argument('csv_path')
+    sp.add_argument('csv_path', nargs='?')
+    sp.add_argument('--source-url', default=DEFAULT_AUTHORITIES_URL)
     sp.add_argument('--db', default='fyi_system.db')
     sp.set_defaults(func=cmd_import_authorities)
     

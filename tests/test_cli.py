@@ -36,6 +36,14 @@ class TestBuildParser:
         args = parser.parse_args(['import-authorities', 'data.csv'])
         assert args.cmd == 'import-authorities'
         assert args.csv_path == 'data.csv'
+
+    def test_import_authorities_default_source_url(self):
+        """Test import-authorities can use the official upstream CSV."""
+        parser = build_parser()
+        args = parser.parse_args(['import-authorities'])
+        assert args.cmd == 'import-authorities'
+        assert args.csv_path is None
+        assert args.source_url == 'https://fyi.org.nz/body/all-authorities.csv'
     
     def test_list_authorities_command(self):
         """Test list-authorities command parsing."""
