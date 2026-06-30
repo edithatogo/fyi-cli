@@ -1,7 +1,7 @@
 use crate::api::{AlaveteliRequest, CreateRequestResponse};
 use crate::db::{DbPool, FieldChange, SyncStatus};
 use anyhow::{anyhow, Context, Result};
-use reqwest::{Client, Url};
+use reqwest::{header, Client, Response, StatusCode, Url};
 use serde_json::Value;
 use std::collections::BTreeSet;
 use std::time::Duration;
@@ -87,14 +87,14 @@ impl SyncClient {
     }
 
     pub async fn pull_feed(&self, db: &DbPool, feed_url: &str) -> Result<PullReport> {
-        let feed = self
+        let response = self
             .http
             .get(feed_url)
             .send()
             .await
-            .context("failed to fetch watched request feed")?
-            .error_for_status()
-            .context("watched request feed returned an error")?
+            .context("failed to fetch watched request feed")?;
+        let feed = ensure_success(response, "watched request feed")
+            .await?
             .text()
             .await
             .context("failed to read watched request feed")?;
@@ -122,14 +122,14 @@ impl SyncClient {
             url.query_pairs_mut().append_pair("updated_since", since);
         }
 
-        let value = self
+        let response = self
             .http
             .get(url)
             .send()
             .await
-            .context("failed to fetch updated requests")?
-            .error_for_status()
-            .context("updated requests endpoint returned an error")?
+            .context("failed to fetch updated requests")?;
+        let value = ensure_success(response, "updated requests endpoint")
+            .await?
             .json::<Value>()
             .await
             .context("failed to parse updated requests JSON")?;
@@ -143,13 +143,15 @@ impl SyncClient {
             .join(&format!("api/v2/request/{request_id}.json"))
             .context("failed to build request URL")?;
 
-        self.http
+        let response = self
+            .http
             .get(url)
             .send()
             .await
-            .context("failed to fetch request")?
-            .error_for_status()
-            .context("request endpoint returned an error")?
+            .context("failed to fetch request")?;
+
+        ensure_success(response, "request endpoint")
+            .await?
             .json::<AlaveteliRequest>()
             .await
             .context("failed to parse request JSON")
@@ -227,14 +229,16 @@ impl SyncClient {
             .join("api/v2/request")
             .context("failed to build request submission URL")?;
 
-        self.http
+        let response = self
+            .http
             .post(url)
             .json(request)
             .send()
             .await
-            .context("failed to submit request")?
-            .error_for_status()
-            .context("request submission endpoint returned an error")?
+            .context("failed to submit request")?;
+
+        ensure_success(response, "request submission endpoint")
+            .await?
             .json::<CreateRequestResponse>()
             .await
             .context("failed to parse request submission response")
@@ -559,6 +563,44 @@ fn parse_request_list(value: Value) -> Result<Vec<AlaveteliRequest>> {
     ))
 }
 
+async fn ensure_success(response: Response, endpoint: &str) -> Result<Response> {
+    if response.status().is_success() {
+        return Ok(response);
+    }
+
+    let status = response.status();
+    let retry_after = response
+        .headers()
+        .get(header::RETRY_AFTER)
+        .and_then(|value| value.to_str().ok())
+        .map(str::to_owned);
+
+    Err(anyhow!(api_status_error(
+        endpoint,
+        status,
+        retry_after.as_deref()
+    )))
+}
+
+fn api_status_error(endpoint: &str, status: StatusCode, retry_after: Option<&str>) -> String {
+    let reason = match status {
+        StatusCode::UNAUTHORIZED => "authentication failed; check the FYI API key",
+        StatusCode::FORBIDDEN => "permission denied by the FYI API",
+        StatusCode::NOT_FOUND => "the requested FYI API resource was not found",
+        StatusCode::TOO_MANY_REQUESTS => "rate limited by the FYI API",
+        status if status.is_server_error() => "the FYI API returned a server error",
+        status if status.is_client_error() => "the FYI API rejected the request",
+        _ => "the FYI API returned an unexpected status",
+    };
+
+    let retry_hint = retry_after
+        .filter(|value| !value.trim().is_empty())
+        .map(|value| format!("; retry after {value} seconds"))
+        .unwrap_or_default();
+
+    format!("{endpoint} returned HTTP {status}: {reason}{retry_hint}")
+}
+
 fn request_ids_from_feed(feed: &str) -> Vec<i64> {
     let mut ids = BTreeSet::new();
     for marker in ["/request/", "/requests/"] {
@@ -625,6 +667,158 @@ mod tests {
         assert_eq!(report.applied, 1);
         assert_eq!(saved.title, "Remote update");
         assert_eq!(metadata.sync_status.as_str(), "clean");
+    }
+
+    #[test]
+    fn contract_fixtures_match_sync_parser_expectations() {
+        let success =
+            include_str!("../../../tests/fixtures/api_contracts/request-list-success.json");
+        let missing_required = include_str!(
+            "../../../tests/fixtures/api_contracts/request-list-missing-required.json"
+        );
+        let create_success =
+            include_str!("../../../tests/fixtures/api_contracts/create-request-success.json");
+
+        let requests =
+            parse_request_list(serde_json::from_str(success).expect("valid success fixture"))
+                .expect("success fixture parses");
+        let create_response: CreateRequestResponse =
+            serde_json::from_str(create_success).expect("valid create response fixture");
+        let missing_error = parse_request_list(
+            serde_json::from_str(missing_required).expect("valid error fixture"),
+        )
+        .unwrap_err()
+        .to_string();
+
+        assert_eq!(requests[0].id, 1001);
+        assert_eq!(create_response.id, 2001);
+        assert!(missing_error.contains("invalid requests field"));
+    }
+
+    #[tokio::test]
+    async fn pull_incremental_accepts_unexpected_optional_fields() {
+        let server = MockServer::start().await;
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+
+        Mock::given(method("GET"))
+            .and(path("/api/v2/request.json"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "requests": [{
+                    "id": 71,
+                    "title": "Forward compatible request",
+                    "body": "Body",
+                    "updated_at": "2026-06-30T08:00:00Z",
+                    "future_optional_field": {
+                        "ignored": true
+                    }
+                }]
+            })))
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new(&server.uri()).unwrap();
+        let report = client.pull_incremental(&db).await.unwrap();
+        let saved = db.get_request(71).await.unwrap().unwrap();
+
+        assert_eq!(report.fetched, 1);
+        assert_eq!(saved.title, "Forward compatible request");
+    }
+
+    #[tokio::test]
+    async fn pull_incremental_rejects_malformed_json_without_local_changes() {
+        let server = MockServer::start().await;
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+        let local = request(72, "Local preserved", "2026-06-30T08:00:00Z");
+        db.insert_request(&local).await.unwrap();
+
+        Mock::given(method("GET"))
+            .and(path("/api/v2/request.json"))
+            .respond_with(ResponseTemplate::new(200).set_body_string("{not valid json"))
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new(&server.uri()).unwrap();
+        let error = client.pull_incremental(&db).await.unwrap_err().to_string();
+        let saved = db.get_request(72).await.unwrap().unwrap();
+
+        assert!(error.contains("failed to parse updated requests JSON"));
+        assert_eq!(saved.title, "Local preserved");
+    }
+
+    #[tokio::test]
+    async fn pull_incremental_rejects_missing_required_fields_without_local_changes() {
+        let server = MockServer::start().await;
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+        let local = request(73, "Local required fields", "2026-06-30T08:00:00Z");
+        db.insert_request(&local).await.unwrap();
+
+        Mock::given(method("GET"))
+            .and(path("/api/v2/request.json"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "requests": [{
+                    "id": 73,
+                    "body": "Missing title"
+                }]
+            })))
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new(&server.uri()).unwrap();
+        let error = client.pull_incremental(&db).await.unwrap_err().to_string();
+        let saved = db.get_request(73).await.unwrap().unwrap();
+
+        assert!(error.contains("invalid requests field"));
+        assert_eq!(saved.title, "Local required fields");
+    }
+
+    #[tokio::test]
+    async fn pull_incremental_returns_non_secret_rate_limit_context() {
+        let server = MockServer::start().await;
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+
+        Mock::given(method("GET"))
+            .and(path("/api/v2/request.json"))
+            .respond_with(
+                ResponseTemplate::new(429)
+                    .insert_header("Retry-After", "60")
+                    .set_body_string("api_key=secret-token"),
+            )
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new(&server.uri()).unwrap();
+        let error = client.pull_incremental(&db).await.unwrap_err().to_string();
+
+        assert!(error.contains("updated requests endpoint returned HTTP 429"));
+        assert!(error.contains("rate limited"));
+        assert!(error.contains("retry after 60 seconds"));
+        assert!(!error.contains("secret-token"));
+    }
+
+    #[tokio::test]
+    async fn fetch_request_returns_auth_and_not_found_context() {
+        for (status, expected) in [
+            (StatusCode::UNAUTHORIZED, "authentication failed"),
+            (StatusCode::FORBIDDEN, "permission denied"),
+            (StatusCode::NOT_FOUND, "not found"),
+        ] {
+            let server = MockServer::start().await;
+            Mock::given(method("GET"))
+                .and(path("/api/v2/request/74.json"))
+                .respond_with(ResponseTemplate::new(status.as_u16()))
+                .mount(&server)
+                .await;
+
+            let client = SyncClient::new(&server.uri()).unwrap();
+            let error = client.fetch_request(74).await.unwrap_err().to_string();
+
+            assert!(error.contains(&format!("HTTP {status}")));
+            assert!(error.contains(expected));
+        }
     }
 
     #[tokio::test]
@@ -842,6 +1036,95 @@ mod tests {
         assert_eq!(report.failed, 1);
         assert_eq!(depth.failed, 1);
         assert_eq!(metadata.sync_status.as_str(), "dirty");
+    }
+
+    #[tokio::test]
+    async fn push_dirty_records_nonretryable_auth_failure_without_secret_body() {
+        let server = MockServer::start().await;
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+        let local = request(-3, "Auth failure draft", "2026-06-30T08:00:00Z");
+        db.insert_request(&local).await.unwrap();
+
+        Mock::given(method("POST"))
+            .and(path("/api/v2/request"))
+            .respond_with(ResponseTemplate::new(401).set_body_string("token=very-secret"))
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new(&server.uri()).unwrap();
+        let report = client
+            .push_dirty_with_config(
+                &db,
+                &SyncConfig {
+                    push_max_retries: 1,
+                    push_initial_backoff: Duration::from_millis(1),
+                    ..SyncConfig::default()
+                },
+            )
+            .await
+            .unwrap();
+        let metadata = db.get_request_sync_metadata(-3).await.unwrap().unwrap();
+        let depth = db.get_outgoing_queue_depth().await.unwrap();
+
+        assert_eq!(report.failed, 1);
+        assert_eq!(metadata.sync_status.as_str(), "dirty");
+        assert_eq!(depth.failed, 1);
+    }
+
+    #[tokio::test]
+    async fn push_dirty_keeps_dirty_request_when_server_error_retries_exhaust() {
+        let server = MockServer::start().await;
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+        let local = request(-4, "Server failure draft", "2026-06-30T08:00:00Z");
+        db.insert_request(&local).await.unwrap();
+
+        Mock::given(method("POST"))
+            .and(path("/api/v2/request"))
+            .respond_with(ResponseTemplate::new(500).set_body_string("temporary"))
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new(&server.uri()).unwrap();
+        let report = client
+            .push_dirty_with_config(
+                &db,
+                &SyncConfig {
+                    push_max_retries: 2,
+                    push_initial_backoff: Duration::from_millis(1),
+                    ..SyncConfig::default()
+                },
+            )
+            .await
+            .unwrap();
+        let saved = db.get_request(-4).await.unwrap().unwrap();
+        let metadata = db.get_request_sync_metadata(-4).await.unwrap().unwrap();
+
+        assert_eq!(report.failed, 1);
+        assert_eq!(saved.title, "Server failure draft");
+        assert_eq!(metadata.sync_status.as_str(), "dirty");
+    }
+
+    #[test]
+    fn api_status_error_classifies_contract_failures_without_body_content() {
+        let cases = [
+            (StatusCode::UNAUTHORIZED, "authentication failed"),
+            (StatusCode::FORBIDDEN, "permission denied"),
+            (StatusCode::NOT_FOUND, "not found"),
+            (StatusCode::TOO_MANY_REQUESTS, "rate limited"),
+            (StatusCode::INTERNAL_SERVER_ERROR, "server error"),
+        ];
+
+        for (status, expected) in cases {
+            let message = api_status_error("request endpoint", status, Some("30"));
+
+            assert!(message.contains(&format!("HTTP {status}")));
+            assert!(message.contains(expected));
+            assert!(message.contains("retry after 30 seconds"));
+            assert!(!message.contains("api_key"));
+            assert!(!message.contains("token"));
+        }
     }
 
     #[test]

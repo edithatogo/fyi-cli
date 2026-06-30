@@ -1,0 +1,15 @@
+{
+  "requests": [
+    {
+      "id": 1001,
+      "title": "Fixture request",
+      "body": "Fixture body",
+      "user_name": "Fixture user",
+      "status": "waiting_response",
+      "created_at": "2026-06-30T00:00:00Z",
+      "updated_at": "2026-06-30T01:00:00Z",
+      "url": "https://fyi.org.nz/request/1001/fixture_request",
+      "tags": ["fixture", "contract"]
+    }
+  ]
+}

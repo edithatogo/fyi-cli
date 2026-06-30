@@ -71,8 +71,9 @@ def build_contract_inventory(repo_root: Path) -> dict[str, Any]:
             "files": ["crates/fyi-core/src/sync.rs"],
             "tests": ["crates/fyi-core/src/sync.rs::tests"],
             "coverage": (
-                "Mocked successful pull, feed pull, health, push retry, "
-                "scheduler, and conflict merge behavior."
+                "Mocked successful pull, feed pull, malformed JSON, missing "
+                "required fields, HTTP 401/403/404/429/5xx failures, health, "
+                "push retry, scheduler, and conflict merge behavior."
             ),
             "risk": _risk(
                 repo_root,
@@ -169,18 +170,18 @@ def build_contract_inventory(repo_root: Path) -> dict[str, Any]:
     gaps = [
         {
             "surface": "rust_sync_client",
-            "risk": "high",
+            "risk": "closed",
             "gap": (
-                "HTTP 401/403/429/5xx responses are not yet asserted as "
-                "typed, normalized, non-secret contract errors."
+                "HTTP 401/403/404/429/5xx responses are covered by mocked "
+                "non-secret error contract tests."
             ),
         },
         {
             "surface": "rust_sync_client",
-            "risk": "high",
+            "risk": "closed",
             "gap": (
-                "Malformed JSON and missing required sync payload fields "
-                "need explicit regression tests."
+                "Malformed JSON, missing required fields, and unexpected "
+                "optional fields are covered by regression tests."
             ),
         },
         {
@@ -202,10 +203,7 @@ def build_contract_inventory(repo_root: Path) -> dict[str, Any]:
         {
             "surface": "archive_public_web",
             "risk": "medium",
-            "gap": (
-                "Public-web archive fixtures cover mocked paths; release "
-                "checklists should keep live smoke tests opt-in and polite."
-            ),
+            "gap": "Live public-web smoke remains opt-in to avoid network-dependent CI.",
         },
     ]
 
@@ -246,7 +244,7 @@ def render_markdown(inventory: dict[str, Any]) -> str:
     lines.extend(
         [
             "",
-            "## High-Risk Untested Paths",
+            "## Contract Gaps And Residual Risk",
             "",
         ],
     )
@@ -260,9 +258,9 @@ def render_markdown(inventory: dict[str, Any]) -> str:
             "",
             "## Phase 1 Next Actions",
             "",
-            "1. Add malformed and partial response tests for Rust sync parsing.",
-            "2. Add mocked HTTP failure tests for 401/403, 404, 429, and 5xx.",
-            "3. Reuse this matrix as the release checklist input for fixtures.",
+            "1. Keep live FYI smoke tests opt-in with `FYI_LIVE_SMOKE=1`.",
+            "2. Run mocked contract tests before release.",
+            "3. Refresh fixtures when FYI/Alaveteli response shapes change.",
             "",
         ],
     )

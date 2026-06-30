@@ -21,7 +21,7 @@ def test_contract_inventory_covers_required_api_surfaces() -> None:
     assert surface_ids >= REQUIRED_SURFACES
 
 
-def test_contract_inventory_maps_tests_and_high_risk_gaps() -> None:
+def test_contract_inventory_maps_tests_and_resolved_risk() -> None:
     """The inventory should be actionable, not only a file list."""
     repo_root = Path(__file__).resolve().parents[1]
 
@@ -33,7 +33,8 @@ def test_contract_inventory_maps_tests_and_high_risk_gaps() -> None:
         test_path.endswith("crates/fyi-core/src/sync.rs::tests")
         for test_path in surfaces["rust_sync_client"]["tests"]
     )
-    assert any(gap["risk"] == "high" for gap in inventory["gaps"])
+    assert surfaces["rust_sync_client"]["risk"] == "medium"
+    assert any(gap["risk"] == "closed" for gap in inventory["gaps"])
 
 
 def test_contract_inventory_markdown_is_release_readable() -> None:
@@ -44,5 +45,5 @@ def test_contract_inventory_markdown_is_release_readable() -> None:
 
     assert "# API Contract Inventory" in report
     assert "| Surface | Contract | Coverage | Risk |" in report
-    assert "## High-Risk Untested Paths" in report
+    assert "## Contract Gaps And Residual Risk" in report
     assert "rust_sync_client" in report
