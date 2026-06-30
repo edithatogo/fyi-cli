@@ -57,13 +57,13 @@ jobs:
 
     - name: Build conda package
       run: |
-        conda-build conda/ --output-folder conda-dist
+        conda run -n base conda-build conda/ --output-folder conda-dist
 
     - name: Upload to Anaconda.org
       env:
         ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_API_TOKEN }}
       run: |
-        anaconda upload conda-dist/noarch/fyi-cli-*.tar.bz2 || echo "Upload failed - may already exist"
+        conda run -n base anaconda upload conda-dist/noarch/fyi-cli-*.tar.bz2 || echo "Upload failed - may already exist"
 
     - name: Create conda-forge PR
       if: github.event_name == 'release' && !contains(github.ref, 'rc') && !contains(github.ref, 'beta') && !contains(github.ref, 'alpha')
