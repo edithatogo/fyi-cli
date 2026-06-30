@@ -1,8 +1,8 @@
 {
   "track_id": "api-contract-hardening-20260630",
   "type": "feature",
-  "status": "in_progress",
+  "status": "complete",
   "created_at": "2026-06-30T10:41:47+10:00",
-  "updated_at": "2026-06-30T13:27:46.7801472+10:00",
+  "updated_at": "2026-06-30T13:43:32.8325721+10:00",
   "description": "Harden FYI/Alaveteli API contracts, error handling, and live-safe integration boundaries."
 }

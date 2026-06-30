@@ -122,7 +122,7 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## Active Tracks
 
-- [~] **Track: api-contract-hardening-20260630** (IN PROGRESS)
+- [x] **Track: api-contract-hardening-20260630** (COMPLETED 2026-06-30)
   *Link: [./tracks/api-contract-hardening-20260630/](./tracks/api-contract-hardening-20260630/)*
   *Description: Harden FYI/Alaveteli API contracts, error handling, and live-safe integration boundaries.*
 
