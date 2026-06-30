@@ -103,6 +103,11 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Description: Design a SQLite sync service to handle periodic database caching, OIA request tracking, and conflict reconciliation with the upstream FYI API.*
   *Status: TARGET ACHIEVED*
 
+- [x] **Track: release-readiness-audit-20260630** (COMPLETED 2026-06-30)
+  *Link: [./archive/release-readiness-audit-20260630/](./archive/release-readiness-audit-20260630/)*
+  *Description: Reconcile release readiness, packaging, documentation, and CI state for the current Rust-first FYI CLI.*
+  *Status: TARGET ACHIEVED*
+
 - [x] **Track: load-testing-baseline** (COMPLETED)
   *Link: [./tracks/load-testing-baseline/](./tracks/load-testing-baseline/)*
   *Description: Establish performance baselines and load testing infrastructure for the FYI request system.*
@@ -116,10 +121,6 @@ This file tracks all major tracks for the project. Each track has its own detail
 ---
 
 ## Active Tracks
-
-- [~] **Track: release-readiness-audit-20260630** (IN PROGRESS)
-  *Link: [./tracks/release-readiness-audit-20260630/](./tracks/release-readiness-audit-20260630/)*
-  *Description: Reconcile release readiness, packaging, documentation, and CI state for the current Rust-first FYI CLI.*
 
 - [ ] **Track: api-contract-hardening-20260630** (PENDING)
   *Link: [./tracks/api-contract-hardening-20260630/](./tracks/api-contract-hardening-20260630/)*
