@@ -1,11 +1,11 @@
 # Plan: api-contract-hardening-20260630
 
 ## Phase 1: Contract Inventory
-- [~] Task: Inventory API contracts and coverage
-    - [~] Add a documented contract matrix for Rust API, CLI, sync, MCP, and archive surfaces
-    - [ ] Map existing tests to each contract area
-    - [ ] Identify high-risk untested error paths
-- [ ] Task: Conductor - User Manual Verification 'Contract Inventory' (Protocol in workflow.md)
+- [x] Task: Inventory API contracts and coverage (ecad245)
+    - [x] Add a documented contract matrix for Rust API, CLI, sync, MCP, and archive surfaces
+    - [x] Map existing tests to each contract area
+    - [x] Identify high-risk untested error paths
+- [~] Task: Conductor - User Manual Verification 'Contract Inventory' (Protocol in workflow.md)
 
 ## Phase 2: Response Validation And Error Semantics
 - [ ] Task: Add malformed and partial response tests
