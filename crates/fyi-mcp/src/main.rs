@@ -115,165 +115,414 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                 "tools": [
                     {
                         "name": "list_requests",
-                        "description": "List tracked Alaveteli requests from the database",
+                        "title": "List Requests",
+                        "description": "List tracked Alaveteli requests from the database, newest first.",
                         "inputSchema": {
                             "type": "object",
+                            "description": "Optional filters for the request list.",
                             "properties": {
                                 "limit": {
                                     "type": "integer",
-                                    "description": "Maximum number of requests to return"
+                                    "description": "Maximum number of requests to return."
                                 }
-                            }
+                            },
+                            "additionalProperties": false
+                        },
+                        "outputSchema": {
+                            "type": "object",
+                            "description": "A request list payload.",
+                            "properties": {
+                                "requests": {
+                                    "type": "array",
+                                    "description": "Requests ordered by most recently updated.",
+                                    "items": { "type": "object" }
+                                }
+                            },
+                            "required": ["requests"],
+                            "additionalProperties": false
+                        },
+                        "annotations": {
+                            "readOnlyHint": true,
+                            "destructiveHint": false,
+                            "idempotentHint": true,
+                            "openWorldHint": false
                         }
                     },
                     {
                         "name": "retrieve_request",
-                        "description": "Retrieve an Alaveteli request (and its correspondence) by ID from the database",
+                        "title": "Retrieve Request",
+                        "description": "Retrieve an Alaveteli request and its correspondence by ID from the database.",
                         "inputSchema": {
                             "type": "object",
+                            "description": "Request identifier to load.",
                             "properties": {
                                 "id": {
                                     "type": "integer",
-                                    "description": "The unique request ID"
+                                    "description": "The unique request ID."
                                 }
                             },
-                            "required": ["id"]
+                            "required": ["id"],
+                            "additionalProperties": false
+                        },
+                        "outputSchema": {
+                            "type": "object",
+                            "description": "A request payload with correspondence.",
+                            "properties": {
+                                "request": { "type": "object" },
+                                "correspondence": {
+                                    "type": "array",
+                                    "items": { "type": "object" }
+                                }
+                            },
+                            "required": ["request", "correspondence"],
+                            "additionalProperties": false
+                        },
+                        "annotations": {
+                            "readOnlyHint": true,
+                            "destructiveHint": false,
+                            "idempotentHint": true,
+                            "openWorldHint": false
                         }
                     },
                     {
                         "name": "create_request",
-                        "description": "Create a new request in the database",
+                        "title": "Create Request",
+                        "description": "Create a new request in the database.",
                         "inputSchema": {
                             "type": "object",
+                            "description": "Fields for the request to create.",
                             "properties": {
-                                "title": { "type": "string", "description": "The request title" },
-                                "body": { "type": "string", "description": "The request body" },
-                                "user_name": { "type": "string", "description": "Name of the user" },
-                                "status": { "type": "string", "description": "Status of the request" },
-                                "url": { "type": "string", "description": "The URL on Alaveteli/FYI" },
+                                "title": { "type": "string", "description": "The request title." },
+                                "body": { "type": "string", "description": "The request body." },
+                                "user_name": { "type": "string", "description": "Name of the user." },
+                                "status": { "type": "string", "description": "Status of the request." },
+                                "url": { "type": "string", "description": "The URL on Alaveteli or FYI." },
                                 "tags": {
                                     "type": "array",
                                     "items": { "type": "string" },
-                                    "description": "Optional list of tags"
+                                    "description": "Optional list of tags."
                                 }
                             },
-                            "required": ["title", "body"]
+                            "required": ["title", "body"],
+                            "additionalProperties": false
+                        },
+                        "outputSchema": {
+                            "type": "object",
+                            "description": "The created request.",
+                            "properties": {
+                                "request": { "type": "object" }
+                            },
+                            "required": ["request"],
+                            "additionalProperties": false
+                        },
+                        "annotations": {
+                            "readOnlyHint": false,
+                            "destructiveHint": false,
+                            "idempotentHint": false,
+                            "openWorldHint": false
                         }
                     },
                     {
                         "name": "update_request",
-                        "description": "Update an existing request in the database",
+                        "title": "Update Request",
+                        "description": "Update an existing request in the database.",
                         "inputSchema": {
                             "type": "object",
+                            "description": "Fields for the request update.",
                             "properties": {
-                                "id": { "type": "integer", "description": "The request ID" },
-                                "title": { "type": "string", "description": "The request title" },
-                                "body": { "type": "string", "description": "The request body" },
-                                "user_name": { "type": "string", "description": "Name of the user" },
-                                "status": { "type": "string", "description": "Status of the request" },
-                                "url": { "type": "string", "description": "The URL on Alaveteli/FYI" },
+                                "id": { "type": "integer", "description": "The request ID." },
+                                "title": { "type": "string", "description": "The request title." },
+                                "body": { "type": "string", "description": "The request body." },
+                                "user_name": { "type": "string", "description": "Name of the user." },
+                                "status": { "type": "string", "description": "Status of the request." },
+                                "url": { "type": "string", "description": "The URL on Alaveteli or FYI." },
                                 "tags": {
                                     "type": "array",
                                     "items": { "type": "string" },
-                                    "description": "Optional list of tags"
+                                    "description": "Optional list of tags."
                                 }
                             },
-                            "required": ["id", "title", "body"]
+                            "required": ["id", "title", "body"],
+                            "additionalProperties": false
+                        },
+                        "outputSchema": {
+                            "type": "object",
+                            "description": "The updated request.",
+                            "properties": {
+                                "request": { "type": "object" }
+                            },
+                            "required": ["request"],
+                            "additionalProperties": false
+                        },
+                        "annotations": {
+                            "readOnlyHint": false,
+                            "destructiveHint": false,
+                            "idempotentHint": false,
+                            "openWorldHint": false
                         }
                     },
                     {
                         "name": "delete_request",
-                        "description": "Delete a request and its correspondence from the database",
+                        "title": "Delete Request",
+                        "description": "Delete a request and its correspondence from the database.",
                         "inputSchema": {
                             "type": "object",
+                            "description": "Request identifier to delete.",
                             "properties": {
                                 "id": {
                                     "type": "integer",
-                                    "description": "The request ID"
+                                    "description": "The request ID."
                                 }
                             },
-                            "required": ["id"]
+                            "required": ["id"],
+                            "additionalProperties": false
+                        },
+                        "outputSchema": {
+                            "type": "object",
+                            "description": "Deletion result.",
+                            "properties": {
+                                "deleted": { "type": "boolean" },
+                                "request_id": { "type": "integer" }
+                            },
+                            "required": ["deleted", "request_id"],
+                            "additionalProperties": false
+                        },
+                        "annotations": {
+                            "readOnlyHint": false,
+                            "destructiveHint": true,
+                            "idempotentHint": false,
+                            "openWorldHint": false
                         }
                     },
                     {
                         "name": "list_authorities",
-                        "description": "List authorities stored in the database",
+                        "title": "List Authorities",
+                        "description": "List authorities stored in the database.",
                         "inputSchema": {
                             "type": "object",
-                            "properties": {}
+                            "description": "No arguments are required.",
+                            "properties": {},
+                            "additionalProperties": false
+                        },
+                        "outputSchema": {
+                            "type": "object",
+                            "description": "A list of authorities.",
+                            "properties": {
+                                "authorities": {
+                                    "type": "array",
+                                    "items": { "type": "object" }
+                                }
+                            },
+                            "required": ["authorities"],
+                            "additionalProperties": false
+                        },
+                        "annotations": {
+                            "readOnlyHint": true,
+                            "destructiveHint": false,
+                            "idempotentHint": true,
+                            "openWorldHint": false
                         }
                     },
                     {
                         "name": "import_authorities",
-                        "description": "Import or update authorities in the database",
+                        "title": "Import Authorities",
+                        "description": "Import or update authorities in the database.",
                         "inputSchema": {
                             "type": "object",
+                            "description": "Authorities to import or update.",
                             "properties": {
                                 "authorities": {
                                     "type": "array",
+                                    "description": "Authority records to import.",
                                     "items": {
                                         "type": "object",
                                         "properties": {
-                                            "slug": { "type": "string" },
-                                            "name": { "type": "string" },
-                                            "url": { "type": "string" }
+                                            "slug": { "type": "string", "description": "Authority slug." },
+                                            "name": { "type": "string", "description": "Authority name." },
+                                            "url": { "type": "string", "description": "Optional authority URL." }
                                         },
-                                        "required": ["slug", "name"]
+                                        "required": ["slug", "name"],
+                                        "additionalProperties": false
                                     }
                                 }
                             },
-                            "required": ["authorities"]
+                            "required": ["authorities"],
+                            "additionalProperties": false
+                        },
+                        "outputSchema": {
+                            "type": "object",
+                            "description": "Import summary.",
+                            "properties": {
+                                "imported": { "type": "integer" }
+                            },
+                            "required": ["imported"],
+                            "additionalProperties": false
+                        },
+                        "annotations": {
+                            "readOnlyHint": false,
+                            "destructiveHint": false,
+                            "idempotentHint": true,
+                            "openWorldHint": false
                         }
                     },
                     {
                         "name": "sync_monitor",
-                        "description": "Show sync status, queue depth, and latest sync time",
+                        "title": "Sync Monitor",
+                        "description": "Show sync status, queue depth, and latest sync time.",
                         "inputSchema": {
                             "type": "object",
-                            "properties": {}
+                            "description": "No arguments are required.",
+                            "properties": {},
+                            "additionalProperties": false
+                        },
+                        "outputSchema": {
+                            "type": "object",
+                            "description": "Global synchronization monitor data.",
+                            "properties": {
+                                "sync": { "type": "object" },
+                                "queue": { "type": "object" },
+                                "offline_degradation": { "type": "object" }
+                            },
+                            "required": ["sync", "queue", "offline_degradation"],
+                            "additionalProperties": false
+                        },
+                        "annotations": {
+                            "readOnlyHint": true,
+                            "destructiveHint": false,
+                            "idempotentHint": true,
+                            "openWorldHint": false
                         }
                     },
                     {
                         "name": "sync_conflicts",
-                        "description": "List requests currently marked as sync conflicts",
+                        "title": "Sync Conflicts",
+                        "description": "List requests currently marked as sync conflicts.",
                         "inputSchema": {
                             "type": "object",
+                            "description": "Optional filters for the conflict list.",
                             "properties": {
-                                "limit": { "type": "integer" }
-                            }
+                                "limit": {
+                                    "type": "integer",
+                                    "description": "Maximum number of conflicts to return."
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "outputSchema": {
+                            "type": "object",
+                            "description": "A conflict list payload.",
+                            "properties": {
+                                "conflicts": {
+                                    "type": "array",
+                                    "items": { "type": "object" }
+                                }
+                            },
+                            "required": ["conflicts"],
+                            "additionalProperties": false
+                        },
+                        "annotations": {
+                            "readOnlyHint": true,
+                            "destructiveHint": false,
+                            "idempotentHint": true,
+                            "openWorldHint": false
                         }
                     },
                     {
                         "name": "sync_resolve_conflict",
-                        "description": "Resolve a sync conflict as clean or dirty",
+                        "title": "Resolve Sync Conflict",
+                        "description": "Resolve a sync conflict as clean or dirty.",
                         "inputSchema": {
                             "type": "object",
+                            "description": "Conflict resolution parameters.",
+                            "properties": {
+                                "request_id": {
+                                    "type": "integer",
+                                    "description": "The request ID to resolve."
+                                },
+                                "mark_clean": {
+                                    "type": "boolean",
+                                    "description": "Set true to mark the conflict clean; false keeps it dirty."
+                                }
+                            },
+                            "required": ["request_id"],
+                            "additionalProperties": false
+                        },
+                        "outputSchema": {
+                            "type": "object",
+                            "description": "Conflict resolution result.",
                             "properties": {
                                 "request_id": { "type": "integer" },
-                                "mark_clean": { "type": "boolean" }
+                                "resolved": { "type": "boolean" },
+                                "sync_status": { "type": "string" }
                             },
-                            "required": ["request_id"]
+                            "required": ["request_id", "resolved", "sync_status"],
+                            "additionalProperties": false
+                        },
+                        "annotations": {
+                            "readOnlyHint": false,
+                            "destructiveHint": false,
+                            "idempotentHint": false,
+                            "openWorldHint": false
                         }
                     },
                     {
                         "name": "sync_status",
-                        "description": "Read offline synchronization status globally or for one request",
+                        "title": "Sync Status",
+                        "description": "Read offline synchronization status globally or for one request.",
                         "inputSchema": {
                             "type": "object",
+                            "description": "Optional request identifier for per-request sync metadata.",
                             "properties": {
                                 "request_id": {
                                     "type": "integer",
-                                    "description": "Optional request ID for per-request sync metadata"
+                                    "description": "Optional request ID for per-request sync metadata."
                                 }
-                            }
+                            },
+                            "additionalProperties": false
+                        },
+                        "outputSchema": {
+                            "type": "object",
+                            "description": "Synchronization metadata.",
+                            "properties": {
+                                "request_id": { "type": "integer" },
+                                "sync_status": { "type": ["string", "null"] }
+                            },
+                            "required": ["request_id", "sync_status"],
+                            "additionalProperties": true
+                        },
+                        "annotations": {
+                            "readOnlyHint": true,
+                            "destructiveHint": false,
+                            "idempotentHint": true,
+                            "openWorldHint": false
                         }
                     },
                     {
                         "name": "check_status",
-                        "description": "Check database status and other components",
+                        "title": "Check Status",
+                        "description": "Check database health and summarize record counts.",
                         "inputSchema": {
                             "type": "object",
-                            "properties": {}
+                            "description": "No arguments are required.",
+                            "properties": {},
+                            "additionalProperties": false
+                        },
+                        "outputSchema": {
+                            "type": "object",
+                            "description": "Database health summary.",
+                            "properties": {
+                                "status": { "type": "string" },
+                                "database": { "type": "string" },
+                                "metrics": { "type": "object" }
+                            },
+                            "required": ["status", "database", "metrics"],
+                            "additionalProperties": false
+                        },
+                        "annotations": {
+                            "readOnlyHint": true,
+                            "destructiveHint": false,
+                            "idempotentHint": true,
+                            "openWorldHint": false
                         }
                     }
                 ]
@@ -1167,6 +1416,12 @@ mod tests {
         assert_eq!(resp.id, Some(json!(2)));
         let result = resp.result.unwrap();
         let tools = result.get("tools").unwrap().as_array().unwrap();
+        let tool = |name: &str| {
+            tools
+                .iter()
+                .find(|t| t.get("name").and_then(|v| v.as_str()) == Some(name))
+                .unwrap()
+        };
         assert!(tools
             .iter()
             .any(|t| t.get("name").unwrap().as_str().unwrap() == "retrieve_request"));
@@ -1188,21 +1443,39 @@ mod tests {
         assert!(tools
             .iter()
             .any(|t| t.get("name").unwrap().as_str().unwrap() == "import_authorities"));
-        assert!(tools
-            .iter()
-            .any(|t| t.get("name").unwrap().as_str().unwrap() == "check_status"));
-        assert!(tools
-            .iter()
-            .any(|t| t.get("name").unwrap().as_str().unwrap() == "sync_status"));
-        assert!(tools
-            .iter()
-            .any(|t| t.get("name").unwrap().as_str().unwrap() == "sync_monitor"));
-        assert!(tools
-            .iter()
-            .any(|t| t.get("name").unwrap().as_str().unwrap() == "sync_conflicts"));
-        assert!(tools
-            .iter()
-            .any(|t| t.get("name").unwrap().as_str().unwrap() == "sync_resolve_conflict"));
+        assert_eq!(
+            tool("list_requests").get("title").and_then(|v| v.as_str()),
+            Some("List Requests")
+        );
+        assert_eq!(
+            tool("list_requests")
+                .get("annotations")
+                .and_then(|v| v.get("readOnlyHint"))
+                .and_then(|v| v.as_bool()),
+            Some(true)
+        );
+        assert!(tool("list_requests").get("outputSchema").is_some());
+        assert_eq!(
+            tool("create_request")
+                .get("inputSchema")
+                .and_then(|v| v.get("properties"))
+                .and_then(|v| v.get("title"))
+                .and_then(|v| v.get("description"))
+                .and_then(|v| v.as_str()),
+            Some("The request title.")
+        );
+        assert_eq!(
+            tool("sync_monitor").get("title").and_then(|v| v.as_str()),
+            Some("Sync Monitor")
+        );
+        assert_eq!(
+            tool("check_status")
+                .get("annotations")
+                .and_then(|v| v.get("readOnlyHint"))
+                .and_then(|v| v.as_bool()),
+            Some(true)
+        );
+        assert!(tool("sync_status").get("outputSchema").is_some());
     }
 
     #[tokio::test]

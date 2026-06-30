@@ -13,7 +13,7 @@
     {
       "registryType": "mcpb",
       "identifier": "https://github.com/edithatogo/fyi-cli/releases/download/fyi-mcp-v0.1.1/fyi-mcp-0.1.1-win32.mcpb",
-      "fileSha256": "0546c1175054797633466b8faa0f3faea1a710015af711e53da1fb99a3370765",
+      "fileSha256": "c188eab04d7d26474d7690c027de4f7eb21f596cb52d9df9c8041641f56dcbbc",
       "transport": {
         "type": "stdio"
       }
