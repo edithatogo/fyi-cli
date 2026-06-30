@@ -6,7 +6,7 @@ package:
   version: {{ version }}
 
 source:
-  url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/fyi-cli-{{ version }}.tar.gz
+  url: https://github.com/edithatogo/fyi-cli/archive/refs/tags/v{{ version }}.tar.gz
   sha256: PLACEHOLDER_SHA256_HASH
 
 build:
@@ -39,19 +39,18 @@ requirements:
 test:
   imports:
     - fyi_system
-  commands:
-    - fyi --help
-    - fyi-cli --help
-    - fyi-system --help
   requires:
     - pytest >=8.0.0
   source_files:
     - tests/
   commands:
+    - fyi --help
+    - fyi-cli --help
+    - fyi-system --help
     - pytest tests/ -v
 
 about:
-  home: https://github.com/yourusername/fyi-cli
+  home: https://github.com/edithatogo/fyi-cli
   summary: Privacy-focused CLI tool for managing FYI.org.nz official information requests
   description: |
     FYI CLI is a privacy-focused information retrieval and request management system
@@ -61,8 +60,8 @@ about:
   license: MIT
   license_file: LICENSE
   doc_url: https://fyi-cli.readthedocs.io/
-  dev_url: https://github.com/yourusername/fyi-cli
+  dev_url: https://github.com/edithatogo/fyi-cli
 
 extra:
   recipe-maintainers:
-    - yourusername
+    - edithatogo
