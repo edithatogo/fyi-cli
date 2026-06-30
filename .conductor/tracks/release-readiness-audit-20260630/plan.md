@@ -1,10 +1,10 @@
 # Plan: release-readiness-audit-20260630
 
 ## Phase 1: Release Surface Inventory
-- [ ] Task: Audit release-facing docs and metadata
-    - [ ] Write a checklist test or script that detects placeholder repository URLs and stale command names
-    - [ ] Inventory README, install docs, release docs, Cargo metadata, and workflow files
-    - [ ] Document release blockers and stale surfaces
+- [x] Task: Audit release-facing docs and metadata [d23dcee]
+    - [x] Write a checklist test or script that detects placeholder repository URLs and stale command names
+    - [x] Inventory README, install docs, release docs, Cargo metadata, and workflow files
+    - [x] Document release blockers and stale surfaces
 - [ ] Task: Conductor - User Manual Verification 'Release Surface Inventory' (Protocol in workflow.md)
 
 ## Phase 2: Documentation Alignment

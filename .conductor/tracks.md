@@ -117,7 +117,7 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## Active Tracks
 
-- [ ] **Track: release-readiness-audit-20260630** (PENDING)
+- [~] **Track: release-readiness-audit-20260630** (IN PROGRESS)
   *Link: [./tracks/release-readiness-audit-20260630/](./tracks/release-readiness-audit-20260630/)*
   *Description: Reconcile release readiness, packaging, documentation, and CI state for the current Rust-first FYI CLI.*
 
