@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "fyi-mcp",
   "display_name": "FYI MCP",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Model Context Protocol server for FYI request management",
   "long_description": "A native MCP server for managing FYI official information requests. It exposes the request, authority, and correspondence workflows through the standard MCP tool interface.",
   "author": {
@@ -12,6 +12,15 @@
     "type": "git",
     "url": "https://github.com/edithatogo/fyi-cli"
   },
+  "homepage": "https://github.com/edithatogo/fyi-cli",
+  "keywords": [
+    "fyi",
+    "mcp",
+    "alaveteli",
+    "requests",
+    "correspondence",
+    "sync"
+  ],
   "server": {
     "type": "binary",
     "entry_point": "server/fyi-mcp.exe",
@@ -21,6 +30,56 @@
       "env": {}
     }
   },
+  "tools": [
+    {
+      "name": "list_requests",
+      "description": "List tracked Alaveteli requests from the database"
+    },
+    {
+      "name": "retrieve_request",
+      "description": "Retrieve an Alaveteli request and its correspondence by ID"
+    },
+    {
+      "name": "create_request",
+      "description": "Create a new request in the database"
+    },
+    {
+      "name": "update_request",
+      "description": "Update an existing request in the database"
+    },
+    {
+      "name": "delete_request",
+      "description": "Delete a request and its correspondence from the database"
+    },
+    {
+      "name": "list_authorities",
+      "description": "List authorities stored in the database"
+    },
+    {
+      "name": "import_authorities",
+      "description": "Import or update authorities in the database"
+    },
+    {
+      "name": "sync_monitor",
+      "description": "Show sync status, queue depth, and latest sync time"
+    },
+    {
+      "name": "sync_conflicts",
+      "description": "List requests currently marked as sync conflicts"
+    },
+    {
+      "name": "sync_resolve_conflict",
+      "description": "Resolve a sync conflict as clean or dirty"
+    },
+    {
+      "name": "sync_status",
+      "description": "Read offline synchronization status globally or for one request"
+    },
+    {
+      "name": "check_status",
+      "description": "Check database status and other components"
+    }
+  ],
   "compatibility": {
     "platforms": ["win32"]
   }
