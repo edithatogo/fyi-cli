@@ -7,7 +7,7 @@ This file tracks all major tracks for the project. Each track has its own detail
 ## Completed Tracks
 
 - [x] **Track: integrate-fyi-cli-history** (COMPLETED 2026-03-08)
-  *Link: [./integrate-fyi-cli-history/](./integrate-fyi-cli-history/)*
+  *Link: [./tracks/integrate-fyi-request-system-history/](./tracks/integrate-fyi-request-system-history/)*
   *Description: Migrate and integrate accumulated FYI request system work from versioned zip archives (v1-v14) into this repository, preserving provenance and using v14 as canonical source.*
   *Test Results: 30/30 passed*
   *Commit: 578ee4e*
@@ -33,7 +33,7 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Status: TARGET ACHIEVED*
 
 - [x] **Track: webapp-coverage-95** (COMPLETED 2026-06-15)
-  *Link: [./webapp-coverage-95/](./webapp-coverage-95/)*
+  *Link: [./tracks/webapp-coverage-95/](./tracks/webapp-coverage-95/)*
   *Description: Achieve test coverage of >=95% on the webapp.py module.*
   *Results: 96% coverage achieved, all phases complete, documentation updated*
   *Status: TARGET ACHIEVED*
@@ -78,10 +78,6 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Description: Implemented Multi-Factor Authentication (MFA) via TOTP tokens inside the security engine to guard credential access, CLI management commands, TUI visibility, and MCP tool exposure.*
   *Status: TARGET ACHIEVED*
 
----
-
-## Active Tracks
-
 - [x] **Track: bulk-site-enumeration** (COMPLETED — fyi-archive capability)
   *Link: [./tracks/bulk-site-enumeration/](./tracks/bulk-site-enumeration/)*
   *Description: Full-corpus discovery of fyi.org.nz via advanced-search Atom/JSON feeds (date-windowed, paginated) + optional sequential-ID gap backfill. Enables the fyi-archive historical seed.*
@@ -106,6 +102,12 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Link: [./archive/offline-sync-engine/](./archive/offline-sync-engine/)*
   *Description: Design a SQLite sync service to handle periodic database caching, OIA request tracking, and conflict reconciliation with the upstream FYI API.*
   *Status: TARGET ACHIEVED*
+
+---
+
+## Active Tracks
+
+No active tracks.
 
 ---
 
