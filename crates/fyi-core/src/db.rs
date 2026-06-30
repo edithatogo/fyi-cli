@@ -149,8 +149,17 @@ impl DbPool {
             .map(|t| serde_json::to_string(t).unwrap_or_default());
 
         sqlx::query(
-            "INSERT OR REPLACE INTO requests (id, title, body, user_name, status, created_at, updated_at, url, tags)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            "INSERT INTO requests (id, title, body, user_name, status, created_at, updated_at, url, tags)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+             ON CONFLICT(id) DO UPDATE SET
+                title = excluded.title,
+                body = excluded.body,
+                user_name = excluded.user_name,
+                status = excluded.status,
+                created_at = excluded.created_at,
+                updated_at = excluded.updated_at,
+                url = excluded.url,
+                tags = excluded.tags",
         )
         .bind(request.id)
         .bind(&request.title)
@@ -258,6 +267,28 @@ impl DbPool {
         }
 
         Ok(changed)
+    }
+
+    /// Applies remote fields from a non-conflicting merge without recording them as local edits.
+    pub(crate) async fn apply_remote_merge(
+        &self,
+        request: &AlaveteliRequest,
+        remote_updated_at: Option<&str>,
+    ) -> Result<(), sqlx::Error> {
+        self.upsert_request_row(request).await?;
+        let now = now_timestamp();
+        sqlx::query(
+            "UPDATE sync_metadata
+             SET remote_updated_at = ?, last_synced_at = ?
+             WHERE request_id = ?",
+        )
+        .bind(remote_updated_at)
+        .bind(&now)
+        .bind(request.id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
     }
 
     /// Deletes a request by ID. Correspondence rows are removed by SQLite cascade.

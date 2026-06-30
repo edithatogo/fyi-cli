@@ -358,7 +358,8 @@ async fn apply_remote_request(db: &DbPool, remote: &AlaveteliRequest) -> Result<
     let outcome = three_way_merge_request(&base, &local, remote);
 
     if outcome.conflicting_fields.is_empty() {
-        db.update_request(&outcome.request).await?;
+        db.apply_remote_merge(&outcome.request, remote.updated_at.as_deref())
+            .await?;
     } else {
         db.mark_request_conflict(remote.id).await?;
     }
@@ -428,7 +429,7 @@ pub fn three_way_merge_request(
         &mut merged.status,
         &mut conflicts,
     );
-    merge_option_field(
+    merge_timestamp_field(
         "updated_at",
         &base.updated_at,
         &local.updated_at,
@@ -485,6 +486,27 @@ fn merge_option_field<T: Clone + Eq>(
     conflicts: &mut Vec<String>,
 ) {
     merge_field(name, base, local, remote, merged, conflicts);
+}
+
+fn merge_timestamp_field(
+    name: &str,
+    base: &Option<String>,
+    local: &Option<String>,
+    remote: &Option<String>,
+    merged: &mut Option<String>,
+    conflicts: &mut Vec<String>,
+) {
+    if local == remote || remote == base {
+        *merged = local.clone();
+    } else if local == base {
+        *merged = remote.clone();
+    } else if local > remote {
+        *merged = local.clone();
+    } else if remote > local {
+        *merged = remote.clone();
+    } else {
+        conflicts.push(name.to_string());
+    }
 }
 
 fn reconstruct_base_request(local: &AlaveteliRequest, changes: &[FieldChange]) -> AlaveteliRequest {
@@ -874,5 +896,50 @@ mod tests {
         assert_eq!(report.applied, 1);
         assert_eq!(metadata.sync_status.as_str(), "conflict");
         assert_eq!(metadata.conflict_version, 1);
+    }
+
+    #[tokio::test]
+    async fn pull_merge_does_not_record_remote_fields_as_local_changes() {
+        let server = MockServer::start().await;
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+        let base = request(8, "Base title", "2026-06-30T01:00:00Z");
+        db.upsert_synced_request(&base, base.updated_at.as_deref())
+            .await
+            .unwrap();
+
+        let mut local = base.clone();
+        local.body = "Local body".to_string();
+        local.updated_at = Some("2026-06-30T02:00:00Z".to_string());
+        db.update_request(&local).await.unwrap();
+
+        let mut remote = base.clone();
+        remote.title = "Remote title".to_string();
+        remote.updated_at = Some("2026-06-30T03:00:00Z".to_string());
+        Mock::given(method("GET"))
+            .and(path("/api/v2/request.json"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "requests": [remote]
+            })))
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new(&server.uri()).unwrap();
+        client.pull_incremental(&db).await.unwrap();
+
+        let saved = db.get_request(8).await.unwrap().unwrap();
+        let metadata = db.get_request_sync_metadata(8).await.unwrap().unwrap();
+        let changes = db.list_unsynced_field_changes(8).await.unwrap();
+        let fields = changes
+            .iter()
+            .map(|change| change.field_name.as_str())
+            .collect::<Vec<_>>();
+
+        assert_eq!(saved.title, "Remote title");
+        assert_eq!(saved.body, "Local body");
+        assert_eq!(metadata.sync_status.as_str(), "dirty");
+        assert!(fields.contains(&"body"));
+        assert!(fields.contains(&"updated_at"));
+        assert!(!fields.contains(&"title"));
     }
 }

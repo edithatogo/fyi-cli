@@ -77,5 +77,8 @@
 - [x] Push to GitHub
 - [x] Commit: `conductor(track): complete offline-sync-engine after review`
 
+## Review Fixes
+- [x] Preserve sync metadata and local dirty-field intent during non-conflicting remote merges
+
 ## Archive
 - [x] Archive track: move to archive/ directory
