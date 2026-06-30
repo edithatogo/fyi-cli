@@ -58,7 +58,6 @@ about:
     comprehensive privacy features including proxy/TOR support, multi-account
     management, and public information aggregation.
   license: MIT
-  license_file: LICENSE
   doc_url: https://fyi-cli.readthedocs.io/
   dev_url: https://github.com/edithatogo/fyi-cli
 
