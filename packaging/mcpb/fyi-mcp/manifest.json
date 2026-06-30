@@ -1,0 +1,27 @@
+{
+  "manifest_version": "0.3",
+  "name": "fyi-mcp",
+  "display_name": "FYI MCP",
+  "version": "0.1.0",
+  "description": "Model Context Protocol server for FYI request management",
+  "long_description": "A native MCP server for managing FYI official information requests. It exposes the request, authority, and correspondence workflows through the standard MCP tool interface.",
+  "author": {
+    "name": "edithatogo"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/edithatogo/fyi-cli"
+  },
+  "server": {
+    "type": "binary",
+    "entry_point": "server/fyi-mcp.exe",
+    "mcp_config": {
+      "command": "server/fyi-mcp.exe",
+      "args": [],
+      "env": {}
+    }
+  },
+  "compatibility": {
+    "platforms": ["win32"]
+  }
+}
