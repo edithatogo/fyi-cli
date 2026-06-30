@@ -103,11 +103,27 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Description: Design a SQLite sync service to handle periodic database caching, OIA request tracking, and conflict reconciliation with the upstream FYI API.*
   *Status: TARGET ACHIEVED*
 
+- [x] **Track: load-testing-baseline** (COMPLETED)
+  *Link: [./tracks/load-testing-baseline/](./tracks/load-testing-baseline/)*
+  *Description: Establish performance baselines and load testing infrastructure for the FYI request system.*
+  *Status: TARGET ACHIEVED*
+
+- [x] **Track: mutation-testing-execution** (COMPLETED)
+  *Link: [./tracks/mutation-testing-execution/](./tracks/mutation-testing-execution/)*
+  *Description: Execute mutation testing on the codebase to verify test effectiveness and achieve greater than 90% mutation score.*
+  *Status: TARGET ACHIEVED*
+
 ---
 
 ## Active Tracks
 
-No active tracks.
+- [ ] **Track: release-readiness-audit-20260630** (PENDING)
+  *Link: [./tracks/release-readiness-audit-20260630/](./tracks/release-readiness-audit-20260630/)*
+  *Description: Reconcile release readiness, packaging, documentation, and CI state for the current Rust-first FYI CLI.*
+
+- [ ] **Track: api-contract-hardening-20260630** (PENDING)
+  *Link: [./tracks/api-contract-hardening-20260630/](./tracks/api-contract-hardening-20260630/)*
+  *Description: Harden FYI/Alaveteli API contracts, error handling, and live-safe integration boundaries.*
 
 ---
 
