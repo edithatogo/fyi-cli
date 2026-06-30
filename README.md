@@ -78,6 +78,7 @@ pip install -e ".[dev]"
 
 | Document | Description |
 |----------|-------------|
+| [docs/cli-entrypoints-audit.md](docs/cli-entrypoints-audit.md) | Canonical cross-reference for Python CLI, Rust CLI, and Rust MCP surfaces |
 | [QUICKSTART.md](QUICKSTART.md) | 5-minute getting started guide |
 | [USER_GUIDE.md](USER_GUIDE.md) | Comprehensive user documentation |
 | [INSTALL.md](INSTALL.md) | Installation guide (Windows/Mac/Linux) |
@@ -226,6 +227,10 @@ Discovery uses a contactable User-Agent, checks `robots.txt`, and backs off on
 transient `429`/`5xx` responses. Keep live runs polite: use small date windows,
 resume with checkpoints, and coordinate archive work with the ethics guidance in
 the sibling `fyi-archive` repo at `docs/ethics-and-compliance.md`.
+
+### CLI and MCP surfaces
+
+The full command and server cross-reference is maintained in [docs/cli-entrypoints-audit.md](docs/cli-entrypoints-audit.md). It covers the Python CLI entrypoints (`fyi`, `fyi-cli`, `fyi-system`), the Rust CLI binary (`fyi-cli`), and the Rust MCP server (`fyi-mcp`) with its published registry pages.
 
 Opt-in live smoke test:
 

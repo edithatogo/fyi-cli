@@ -13,6 +13,12 @@ The rewrite is structured as a Cargo Workspace containing three primary crates:
 2. **`fyi-cli`** (`crates/fyi-cli`): The command-line client parsing subcommands with `clap` and rendering the terminal UI using `ratatui`.
 3. **`fyi-mcp`** (`crates/fyi-mcp`): A native Model Context Protocol (MCP) daemon serving JSON-RPC over stdin/stdout.
 
+Published MCP cross-references:
+
+- [GitHub MCP Registry](https://registry.modelcontextprotocol.io/servers/io.github.edithatogo/fyi-mcp)
+- [Smithery server page](https://smithery.ai/servers/edithatogo/fyi-mcp)
+- Bundle manifest: `server.json`
+
 ---
 
 ## Workspace Structure
