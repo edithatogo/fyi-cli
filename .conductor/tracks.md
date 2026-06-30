@@ -108,6 +108,11 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Description: Reconcile release readiness, packaging, documentation, and CI state for the current Rust-first FYI CLI.*
   *Status: TARGET ACHIEVED*
 
+- [x] **Track: api-contract-hardening-20260630** (COMPLETED 2026-06-30)
+  *Link: [./archive/api-contract-hardening-20260630/](./archive/api-contract-hardening-20260630/)*
+  *Description: Hardened FYI/Alaveteli API contracts, error handling, and live-safe integration boundaries.*
+  *Status: TARGET ACHIEVED*
+
 - [x] **Track: load-testing-baseline** (COMPLETED)
   *Link: [./tracks/load-testing-baseline/](./tracks/load-testing-baseline/)*
   *Description: Establish performance baselines and load testing infrastructure for the FYI request system.*
@@ -122,9 +127,7 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## Active Tracks
 
-- [x] **Track: api-contract-hardening-20260630** (COMPLETED 2026-06-30)
-  *Link: [./tracks/api-contract-hardening-20260630/](./tracks/api-contract-hardening-20260630/)*
-  *Description: Harden FYI/Alaveteli API contracts, error handling, and live-safe integration boundaries.*
+- None
 
 ---
 
