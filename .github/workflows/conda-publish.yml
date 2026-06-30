@@ -26,6 +26,8 @@ jobs:
       with:
         auto-update-conda: true
         python-version: '3.12'
+        channels: conda-forge,defaults
+        channel-priority: strict
 
     - name: Install conda-build dependencies
       run: |
