@@ -13,17 +13,14 @@ def load_release_readiness_module():
     return module
 
 
-def test_release_readiness_inventory_flags_stale_release_surfaces(tmp_path):
+def test_release_readiness_inventory_passes_after_release_hygiene(tmp_path):
     module = load_release_readiness_module()
     repo_root = Path(__file__).resolve().parents[1]
     report = module.build_report(repo_root)
 
-    issue_codes = {issue["code"] for issue in report["issues"]}
     scanned_paths = {surface["path"] for surface in report["surfaces"]}
 
-    assert "placeholder_repository_url" in issue_codes
-    assert "legacy_python_command" in issue_codes
-    assert "rust_release_command_missing" in issue_codes
+    assert report["issues"] == []
     assert "README.md" in scanned_paths
     assert "pyproject.toml" in scanned_paths
 
@@ -32,5 +29,5 @@ def test_release_readiness_inventory_flags_stale_release_surfaces(tmp_path):
     content = checklist.read_text(encoding="utf-8")
 
     assert "# Release Readiness Inventory" in content
-    assert "placeholder_repository_url" in content
-    assert "legacy_python_command" in content
+    assert "No issues found" in content
+    assert "cargo +stable-x86_64-pc-windows-gnu test --workspace --all-features" in content

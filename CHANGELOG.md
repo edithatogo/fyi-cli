@@ -55,10 +55,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Cross-platform compatibility tests
 
 - **CLI Commands**
-  - `fyi-system setup` - Interactive setup wizard
-  - `fyi-system config` - Configuration management
-  - `fyi-system health-check` - System health verification
-  - `fyi-system privacy-audit` - Privacy compliance check
+  - `fyi setup` - Interactive setup wizard
+  - `fyi config` - Configuration management
+  - `fyi health-check` - System health verification
+  - `fyi privacy-audit` - Privacy compliance check
   - All existing commands enhanced with better error messages
 
 ### Changed
@@ -258,4 +258,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 **For detailed commit history:**
-https://github.com/yourusername/fyi-cli/commits/main
+https://github.com/edithatogo/fyi-cli/commits/main

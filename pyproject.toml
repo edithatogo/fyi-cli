@@ -61,11 +61,11 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/fyi-cli"
+Homepage = "https://github.com/edithatogo/fyi-cli"
 Documentation = "https://fyi-cli.readthedocs.io/"
-Repository = "https://github.com/yourusername/fyi-cli.git"
-Issues = "https://github.com/yourusername/fyi-cli/issues"
-Changelog = "https://github.com/yourusername/fyi-cli/blob/main/CHANGELOG.md"
+Repository = "https://github.com/edithatogo/fyi-cli.git"
+Issues = "https://github.com/edithatogo/fyi-cli/issues"
+Changelog = "https://github.com/edithatogo/fyi-cli/blob/main/CHANGELOG.md"
 
 [project.scripts]
 fyi = "fyi_system.cli:main"

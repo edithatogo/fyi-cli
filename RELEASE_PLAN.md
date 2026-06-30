@@ -66,9 +66,9 @@
 #### Day 5: Standalone Executables
 - [ ] Install PyInstaller: `pip install pyinstaller`
 - [ ] Create `build/` directory for build scripts
-- [ ] Create Windows spec file (`build/fyi-system-win.spec`)
-- [ ] Create Mac spec file (`build/fyi-system-mac.spec`)
-- [ ] Create Linux spec file (`build/fyi-system-linux.spec`)
+- [ ] Create Windows spec file (`target/release/fyi-cli-win.spec`)
+- [ ] Create Mac spec file (`target/release/fyi-cli-mac.spec`)
+- [ ] Create Linux spec file (`target/release/fyi-cli-cli-linux-amd64.spec`)
 - [ ] Build and test Windows executable
 - [ ] Build and test Mac executable
 - [ ] Build and test Linux executable
@@ -177,13 +177,13 @@
 ### 2.3 Configuration (1 day)
 
 #### Day 12: Setup Wizard
-- [ ] Create `fyi-system setup` command
+- [ ] Create `fyi setup` command
 - [ ] Interactive API key configuration
 - [ ] Database location selection
 - [ ] Privacy settings configuration
 - [ ] Test configuration wizard
 - [ ] Add configuration validation
-- [ ] Add `fyi-system config` command to view/edit settings
+- [ ] Add `fyi config` command to view/edit settings
 
 **Completion Criteria:**
 - [ ] Setup wizard works
@@ -391,7 +391,7 @@ pytest --cov=fyi_system --cov-report=html
 pip-audit -r pyproject.toml
 
 # Build executable
-pyinstaller build/fyi-system.spec
+pyinstaller target/release/fyi-cli.spec
 ```
 
 ### Release Commands

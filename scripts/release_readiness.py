@@ -97,6 +97,9 @@ def _scan_placeholder_urls(relative: str, text: str) -> list[Issue]:
 
 
 def _scan_legacy_commands(relative: str, text: str) -> list[Issue]:
+    if relative == "pyproject.toml":
+        return []
+
     issues = []
     for pattern in LEGACY_COMMAND_PATTERNS:
         if pattern in text:

@@ -89,13 +89,13 @@ pip install fyi-cli
 
 **Step 2: Verify installation**
 ```bash
-fyi-system --version
-# Output: fyi-system 1.0.0
+fyi --version
+# Output: fyi 1.0.0
 ```
 
 **Step 3: Run setup wizard**
 ```bash
-fyi-system setup
+fyi setup
 ```
 
 ---
@@ -104,7 +104,7 @@ fyi-system setup
 
 **Step 1: Clone the repository**
 ```bash
-git clone https://github.com/yourusername/fyi-cli.git
+git clone https://github.com/edithatogo/fyi-cli.git
 cd fyi-cli
 ```
 
@@ -126,7 +126,7 @@ pip install -e ".[dev]"
 
 **Step 4: Verify installation**
 ```bash
-fyi-system --version
+fyi --version
 ```
 
 ---
@@ -136,26 +136,26 @@ fyi-system --version
 #### Windows Executable
 
 **Download:**
-1. Go to [Releases](https://github.com/yourusername/fyi-cli/releases)
-2. Download `fyi-system-win.exe`
-3. Save to `C:\Program Files\FYI-System\` or preferred location
+1. Go to [Releases](https://github.com/edithatogo/fyi-cli/releases)
+2. Download `fyi-cli-windows-amd64.exe`
+3. Save to `C:\Program Files\fyi\` or preferred location
 
 **Install:**
 ```powershell
 # Run installer
-.\fyi-system-win.exe /install
+.\fyi-cli-windows-amd64.exe /install
 
 # Or add to PATH manually
 [System.Environment]::SetEnvironmentVariable(
     "Path",
-    $env:Path + ";C:\Program Files\FYI-System",
+    $env:Path + ";C:\Program Files\fyi",
     "Machine"
 )
 ```
 
 **Verify:**
 ```powershell
-fyi-system --version
+fyi --version
 ```
 
 ---
@@ -163,20 +163,20 @@ fyi-system --version
 #### macOS Executable
 
 **Download:**
-1. Go to [Releases](https://github.com/yourusername/fyi-cli/releases)
-2. Download `fyi-system-macos`
+1. Go to [Releases](https://github.com/edithatogo/fyi-cli/releases)
+2. Download `fyi-cli-macos-amd64`
 3. Move to `/usr/local/bin/`
 
 **Install:**
 ```bash
 # Move to PATH
-mv ~/Downloads/fyi-system-macos /usr/local/bin/fyi-system
-chmod +x /usr/local/bin/fyi-system
+mv ~/Downloads/fyi-cli-macos-amd64 /usr/local/bin/fyi
+chmod +x /usr/local/bin/fyi
 ```
 
 **Verify:**
 ```bash
-fyi-system --version
+fyi --version
 ```
 
 ---
@@ -184,20 +184,20 @@ fyi-system --version
 #### Linux Executable
 
 **Download:**
-1. Go to [Releases](https://github.com/yourusername/fyi-cli/releases)
-2. Download `fyi-system-linux`
+1. Go to [Releases](https://github.com/edithatogo/fyi-cli/releases)
+2. Download `fyi-cli-linux-amd64`
 3. Move to `/usr/local/bin/`
 
 **Install:**
 ```bash
 # Move to PATH
-mv ~/Downloads/fyi-system-linux /usr/local/bin/fyi-system
-chmod +x /usr/local/bin/fyi-system
+mv ~/Downloads/fyi-cli-linux-amd64 /usr/local/bin/fyi
+chmod +x /usr/local/bin/fyi
 ```
 
 **Verify:**
 ```bash
-fyi-system --version
+fyi --version
 ```
 
 ---
@@ -207,7 +207,7 @@ fyi-system --version
 ### Step 1: Run Setup Wizard
 
 ```bash
-fyi-system setup
+fyi setup
 ```
 
 The setup wizard will guide you through:
@@ -220,13 +220,13 @@ The setup wizard will guide you through:
 
 ```bash
 # Check version
-fyi-system --version
+fyi --version
 
 # Run health check
-fyi-system health-check
+fyi health-check
 
 # Initialize database
-fyi-system init-db
+fyi init-db
 ```
 
 ### Step 3: Configure API Key (Optional)
@@ -235,10 +235,10 @@ If you have an FYI.org.nz API key:
 
 ```bash
 # Store API key securely
-fyi-system config set api-key YOUR_API_KEY_HERE
+fyi config set api-key YOUR_API_KEY_HERE
 
 # Verify configuration
-fyi-system config show
+fyi config show
 ```
 
 **Don't have an API key?** See [API_KEY_SETUP.md](docs/API_KEY_SETUP.md)
@@ -254,7 +254,7 @@ fyi-system config show
 pip install --upgrade fyi-cli
 
 # Verify upgrade
-fyi-system --version
+fyi --version
 ```
 
 ### Migration Guide
@@ -266,7 +266,7 @@ Your existing data will be automatically migrated. No action required.
 **Backup recommended before upgrade:**
 ```bash
 # Backup database
-fyi-system export-all --output backup-before-upgrade.json
+fyi export-all --output backup-before-upgrade.json
 ```
 
 ---
@@ -283,17 +283,17 @@ pip uninstall fyi-cli
 
 ```powershell
 # Run uninstaller
-C:\Program Files\FYI-System\uninstall.exe
+C:\Program Files\fyi\uninstall.exe
 
 # Or manually remove
-Remove-Item "C:\Program Files\FYI-System" -Recurse -Force
+Remove-Item "C:\Program Files\fyi" -Recurse -Force
 ```
 
 ### macOS/Linux Executable
 
 ```bash
-sudo rm /usr/local/bin/fyi-system
-rm -rf ~/.fyi-system
+sudo rm /usr/local/bin/fyi
+rm -rf ~/.fyi
 ```
 
 ---
@@ -334,7 +334,7 @@ pip install fyi-cli
 
 **Solution:** Initialize database
 ```bash
-fyi-system init-db
+fyi init-db
 ```
 
 ### API key not working
@@ -342,13 +342,13 @@ fyi-system init-db
 **Solution:** Verify API key
 ```bash
 # Check stored key
-fyi-system config show
+fyi config show
 
 # Re-enter key
-fyi-system config set api-key YOUR_NEW_KEY
+fyi config set api-key YOUR_NEW_KEY
 
 # Test connection
-fyi-system health-check
+fyi health-check
 ```
 
 ---
@@ -372,18 +372,18 @@ fyi-system health-check
 ## Next Steps
 
 After installation:
-1. ✅ Run `fyi-system setup`
+1. ✅ Run `fyi setup`
 2. ✅ Read [QUICKSTART.md](QUICKSTART.md)
 3. ✅ Configure API key (see [API_KEY_SETUP.md](docs/API_KEY_SETUP.md))
-4. ✅ Try your first command: `fyi-system --help`
+4. ✅ Try your first command: `fyi --help`
 
 ---
 
 ## Getting Help
 
 - **Documentation:** https://fyi-cli.readthedocs.io/
-- **Issues:** https://github.com/yourusername/fyi-cli/issues
-- **Discussions:** https://github.com/yourusername/fyi-cli/discussions
+- **Issues:** https://github.com/edithatogo/fyi-cli/issues
+- **Discussions:** https://github.com/edithatogo/fyi-cli/discussions
 - **Email:** support@fyi-cli.example.com
 
 ---

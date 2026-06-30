@@ -14,7 +14,7 @@
 ## Step 1: Initialize Database (30 seconds)
 
 ```bash
-fyi-system init-db
+fyi init-db
 ```
 
 **Expected output:**
@@ -34,7 +34,7 @@ fyi-system init-db
 3. Store it securely:
 
 ```bash
-fyi-system config set api-key YOUR_API_KEY_HERE
+fyi config set api-key YOUR_API_KEY_HERE
 ```
 
 ### Option B: Skip for Now
@@ -43,7 +43,7 @@ You can use the system without an API key. Manual submission only.
 
 ```bash
 # Skip API setup for now
-fyi-system config show
+fyi config show
 ```
 
 ---
@@ -52,7 +52,7 @@ fyi-system config show
 
 ```bash
 # Import sample authorities
-fyi-system import-authorities data/sample_authorities.csv
+fyi import-authorities data/sample_authorities.csv
 ```
 
 **Expected output:**
@@ -62,7 +62,7 @@ fyi-system import-authorities data/sample_authorities.csv
 
 **Verify:**
 ```bash
-fyi-system list-authorities
+fyi list-authorities
 ```
 
 ---
@@ -73,7 +73,7 @@ fyi-system list-authorities
 
 ```bash
 # Create a new request
-fyi-system register-request \
+fyi register-request \
   ministry-of-justice \
   "Request for Departmental Spending Data" \
   "I request the following information under the Official Information Act 1982:
@@ -97,7 +97,7 @@ Please provide this information in electronic format." \
 
 ```bash
 # Start web server
-fyi-system serve
+fyi serve
 ```
 
 Then open http://127.0.0.1:8000 in your browser and click "New Request".
@@ -108,7 +108,7 @@ Then open http://127.0.0.1:8000 in your browser and click "New Request".
 
 ```bash
 # Build prefilled URL for submission
-fyi-system build-prefilled-url 1
+fyi build-prefilled-url 1
 ```
 
 **Expected output:**
@@ -134,7 +134,7 @@ xdg-open "https://fyi.org.nz/new/..."
 
 ```bash
 # List all requests
-fyi-system list-requests
+fyi list-requests
 ```
 
 **Expected output:**
@@ -168,23 +168,23 @@ You've successfully:
 
 **Import more authorities:**
 ```bash
-fyi-system import-authorities my-authorities.csv
+fyi import-authorities my-authorities.csv
 ```
 
 **Generate dashboard:**
 ```bash
-fyi-system dashboard --output dashboard.html
+fyi dashboard --output dashboard.html
 ```
 
 **Export all requests:**
 ```bash
-fyi-system export-requests --output backup.json
+fyi export-requests --output backup.json
 ```
 
 **Get help:**
 ```bash
-fyi-system --help
-fyi-system <command> --help
+fyi --help
+fyi <command> --help
 ```
 
 ---
@@ -193,14 +193,14 @@ fyi-system <command> --help
 
 | Task | Command |
 |------|---------|
-| Create request | `fyi-system register-request ...` |
-| List requests | `fyi-system list-requests` |
-| View request | `fyi-system request-detail <id>` |
-| Update status | `fyi-system set-status <id> submitted` |
-| Generate URL | `fyi-system build-prefilled-url <id>` |
-| Export all | `fyi-system export-requests` |
-| Dashboard | `fyi-system dashboard` |
-| Help | `fyi-system --help` |
+| Create request | `fyi register-request ...` |
+| List requests | `fyi list-requests` |
+| View request | `fyi request-detail <id>` |
+| Update status | `fyi set-status <id> submitted` |
+| Generate URL | `fyi build-prefilled-url <id>` |
+| Export all | `fyi export-requests` |
+| Dashboard | `fyi dashboard` |
+| Help | `fyi --help` |
 
 ---
 
@@ -208,7 +208,7 @@ fyi-system <command> --help
 
 - **Troubleshooting:** See [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
 - **FAQ:** See [FAQ.md](FAQ.md)
-- **Issues:** https://github.com/yourusername/fyi-cli/issues
+- **Issues:** https://github.com/edithatogo/fyi-cli/issues
 
 ---
 

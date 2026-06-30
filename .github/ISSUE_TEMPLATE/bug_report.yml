@@ -8,9 +8,9 @@ body:
         Thanks for taking the time to fill out this bug report!
         
         **Before reporting:**
-        - Check if the bug has already been reported: https://github.com/yourusername/fyi-cli/issues
-        - Try the latest version: https://github.com/yourusername/fyi-cli/releases
-        - Review the troubleshooting guide: https://github.com/yourusername/fyi-cli/blob/main/TROUBLESHOOTING.md
+        - Check if the bug has already been reported: https://github.com/edithatogo/fyi-cli/issues
+        - Try the latest version: https://github.com/edithatogo/fyi-cli/releases
+        - Review the troubleshooting guide: https://github.com/edithatogo/fyi-cli/blob/main/TROUBLESHOOTING.md
   - type: input
     id: version
     attributes:
@@ -90,7 +90,7 @@ body:
     id: terms
     attributes:
       label: Code of Conduct
-      description: By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/yourusername/fyi-cli/blob/main/CODE_OF_CONDUCT.md)
+      description: By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/edithatogo/fyi-cli/blob/main/CODE_OF_CONDUCT.md)
       options:
         - label: I agree to follow the Code of Conduct
           required: true

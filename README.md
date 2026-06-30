@@ -5,8 +5,8 @@
 [![PyPI version](https://badge.fury.io/py/fyi-cli.svg)](https://badge.fury.io/py/fyi-cli)
 [![Python Support](https://img.shields.io/pypi/pyversions/fyi-cli.svg)](https://pypi.org/project/fyi-cli/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![CI](https://github.com/yourusername/fyi-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/fyi-cli/actions/workflows/ci.yml)
-[![Codecov](https://codecov.io/gh/yourusername/fyi-cli/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/fyi-cli)
+[![CI](https://github.com/edithatogo/fyi-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/edithatogo/fyi-cli/actions/workflows/ci.yml)
+[![Codecov](https://codecov.io/gh/edithatogo/fyi-cli/branch/main/graph/badge.svg)](https://codecov.io/gh/edithatogo/fyi-cli)
 
 ---
 
@@ -57,7 +57,7 @@ pip install fyi-cli
 
 ### Standalone Executables
 
-Download from [Releases](https://github.com/yourusername/fyi-cli/releases):
+Download from [Releases](https://github.com/edithatogo/fyi-cli/releases):
 - **Windows**: `fyi-cli-win.exe`
 - **macOS**: `fyi-cli-macos`
 - **Linux**: `fyi-cli-linux`
@@ -65,7 +65,7 @@ Download from [Releases](https://github.com/yourusername/fyi-cli/releases):
 ### From Source
 
 ```bash
-git clone https://github.com/yourusername/fyi-cli.git
+git clone https://github.com/edithatogo/fyi-cli.git
 cd fyi-cli
 pip install -e ".[dev]"
 ```
@@ -99,7 +99,7 @@ pip install -e ".[dev]"
 Report security issues to: **security@fyi-cli.example.com**
 
 Or use GitHub's private vulnerability reporting:  
-https://github.com/yourusername/fyi-cli/security/advisories/new
+https://github.com/edithatogo/fyi-cli/security/advisories/new
 
 **Security Policy:** [SECURITY.md](.github/SECURITY.md)
 
@@ -119,17 +119,19 @@ https://github.com/yourusername/fyi-cli/security/advisories/new
 ## 🧪 Testing
 
 ```bash
-# Run all tests
-pytest
+# Rust release checks used by this repository
+cargo +stable-x86_64-pc-windows-gnu fmt --all -- --check
+cargo +stable-x86_64-pc-windows-gnu clippy --workspace --all-targets --all-features -- -D warnings
+cargo +stable-x86_64-pc-windows-gnu test --workspace --all-features
 
-# Run with coverage
-pytest --cov=fyi_system --cov-report=html
+# Python legacy/support checks
+.\.venv\Scripts\python.exe -m pytest tests/test_release_readiness.py
 
-# Run specific test file
-pytest tests/test_alaveteli_client.py
+# Opt-in live smoke test
+FYI_LIVE_SMOKE=1 .\.venv\Scripts\python.exe -m pytest -m smoke tests/test_discovery_smoke.py
 ```
 
-**Test Coverage:** >80% (target)
+**Test Coverage:** Rust workspace checks are the release gate. Python support tests remain available for legacy docs and archive tooling.
 
 ---
 
@@ -340,8 +342,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 - **Documentation:** https://fyi-cli.readthedocs.io/
-- **Issues:** https://github.com/yourusername/fyi-cli/issues
-- **Discussions:** https://github.com/yourusername/fyi-cli/discussions
+- **Issues:** https://github.com/edithatogo/fyi-cli/issues
+- **Discussions:** https://github.com/edithatogo/fyi-cli/discussions
 - **Email:** support@fyi-cli.example.com
 
 ---

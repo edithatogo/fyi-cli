@@ -8,8 +8,8 @@ body:
         Thanks for taking the time to suggest a feature!
         
         **Before suggesting:**
-        - Check if the feature has already been requested: https://github.com/yourusername/fyi-cli/issues
-        - Review the roadmap: https://github.com/yourusername/fyi-cli/blob/main/RELEASE_PLAN.md
+        - Check if the feature has already been requested: https://github.com/edithatogo/fyi-cli/issues
+        - Review the roadmap: https://github.com/edithatogo/fyi-cli/blob/main/RELEASE_PLAN.md
   - type: textarea
     id: problem
     attributes:
@@ -65,7 +65,7 @@ body:
     id: terms
     attributes:
       label: Code of Conduct
-      description: By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/yourusername/fyi-cli/blob/main/CODE_OF_CONDUCT.md)
+      description: By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/edithatogo/fyi-cli/blob/main/CODE_OF_CONDUCT.md)
       options:
         - label: I agree to follow the Code of Conduct
           required: true
