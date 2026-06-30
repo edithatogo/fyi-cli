@@ -5,7 +5,7 @@
     - [x] Write a checklist test or script that detects placeholder repository URLs and stale command names
     - [x] Inventory README, install docs, release docs, Cargo metadata, and workflow files
     - [x] Document release blockers and stale surfaces
-- [ ] Task: Conductor - User Manual Verification 'Release Surface Inventory' (Protocol in workflow.md)
+- [~] Task: Conductor - User Manual Verification 'Release Surface Inventory' (Protocol in workflow.md)
 
 ## Phase 2: Documentation Alignment
 - [ ] Task: Align user-facing docs with the Rust-first CLI
