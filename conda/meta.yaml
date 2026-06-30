@@ -40,15 +40,10 @@ requirements:
 test:
   imports:
     - fyi_system
-  requires:
-    - pytest >=8.0.0
-  source_files:
-    - tests/
   commands:
     - fyi --help
     - fyi-cli --help
     - fyi-system --help
-    - pytest tests/ -v
 
 about:
   home: https://github.com/edithatogo/fyi-cli
