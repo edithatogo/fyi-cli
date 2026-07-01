@@ -1,0 +1,12 @@
+{
+  "$schema": "https://glama.ai/mcp/schemas/server.json",
+  "maintainers": ["edithatogo"],
+  "name": "fyi-mcp",
+  "description": "FYI request management with tools for requests, authorities, correspondence, sync, and health.",
+  "type": "mcp_server",
+  "status": "beta",
+  "framework": "Rust",
+  "tools": 12,
+  "transport": ["stdio"],
+  "keywords": ["fyi", "mcp", "requests", "correspondence", "sync", "sqlite"]
+}
