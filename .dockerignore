@@ -1,0 +1,13 @@
+target/
+.git/
+.github/
+.conductor/archive/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+dashboard/.next/
+dashboard/node_modules/
+outputs/
+*.db
+*.sqlite3

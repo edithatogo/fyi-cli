@@ -8,5 +8,17 @@
   "framework": "Rust",
   "tools": 12,
   "transport": ["stdio"],
-  "keywords": ["fyi", "mcp", "requests", "correspondence", "sync", "sqlite"]
+  "keywords": ["fyi", "mcp", "requests", "correspondence", "sync", "sqlite"],
+  "dockerfile": "Dockerfile",
+  "entrypoint": ["/usr/local/bin/fyi-mcp"],
+  "environment": {
+    "FYI_MCP_EPHEMERAL": {
+      "description": "Use an in-memory SQLite database for Glama release tests and Try in Browser sessions.",
+      "default": "1"
+    },
+    "DATABASE_URL": {
+      "description": "SQLite database URL. The Glama container defaults to sqlite::memory:.",
+      "default": "sqlite::memory:"
+    }
+  }
 }
