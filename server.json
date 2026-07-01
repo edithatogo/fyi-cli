@@ -8,12 +8,12 @@
     "url": "https://github.com/edithatogo/fyi-cli",
     "source": "github"
   },
-  "version": "0.1.1",
+  "version": "0.1.2",
   "packages": [
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/edithatogo/fyi-cli/releases/download/fyi-mcp-v0.1.1/fyi-mcp-0.1.1-win32.mcpb",
-      "fileSha256": "c188eab04d7d26474d7690c027de4f7eb21f596cb52d9df9c8041641f56dcbbc",
+      "identifier": "https://github.com/edithatogo/fyi-cli/releases/download/fyi-mcp-v0.1.2/fyi-mcp-0.1.2-win32.mcpb",
+      "fileSha256": "26af553e9620bf7da8a7d9579fa191114fe470653de3ed7be1b996f577589df7",
       "transport": {
         "type": "stdio"
       }

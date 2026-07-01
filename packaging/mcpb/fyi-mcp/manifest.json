@@ -1,8 +1,8 @@
 {
-  "manifest_version": "0.3",
+  "manifest_version": "0.4",
   "name": "fyi-mcp",
   "display_name": "FYI MCP",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Model Context Protocol server for FYI request management",
   "long_description": "A native MCP server for managing FYI official information requests. It exposes the request, authority, and correspondence workflows through the standard MCP tool interface.",
   "author": {
@@ -80,6 +80,7 @@
       "description": "Check database status and other components"
     }
   ],
+  "tools_generated": false,
   "compatibility": {
     "platforms": ["win32"]
   }

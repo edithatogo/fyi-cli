@@ -101,7 +101,7 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                 },
                 "serverInfo": {
                     "name": "fyi-mcp",
-                    "version": "0.1.1"
+                    "version": "0.1.2"
                 }
             });
             Some(JsonRpcResponse::success(req.id, res))
