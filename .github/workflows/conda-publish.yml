@@ -37,7 +37,7 @@ jobs:
       id: version
       run: |
         if [ "${{ github.event_name }}" = "release" ]; then
-          VERSION=${GITHUB_REF#refs/tags/v}
+          VERSION=${GITHUB_REF_NAME#fyi-mcp-v}
         else
           VERSION=${{ github.event.inputs.version }}
         fi
@@ -50,7 +50,7 @@ jobs:
     - name: Get source hash
       id: hash
       run: |
-        SOURCE_URL="https://github.com/edithatogo/fyi-cli/archive/refs/tags/v${{ steps.version.outputs.version }}.tar.gz"
+        SOURCE_URL="https://github.com/edithatogo/fyi-cli/archive/refs/tags/fyi-mcp-v${{ steps.version.outputs.version }}.tar.gz"
         HASH=$(curl -sL "$SOURCE_URL" | sha256sum | cut -d' ' -f1)
         echo "source_url=$SOURCE_URL" >> $GITHUB_OUTPUT
         echo "hash=$HASH" >> $GITHUB_OUTPUT
