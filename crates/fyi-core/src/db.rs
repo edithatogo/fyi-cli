@@ -106,7 +106,13 @@ impl DbPool {
 
     /// Create an in-memory SQLite connection pool for testing or transient usage.
     pub async fn new_in_memory() -> Result<Self, sqlx::Error> {
-        Self::new("sqlite::memory:").await
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .acquire_timeout(Duration::from_secs(3))
+            .idle_timeout(Duration::from_secs(10))
+            .connect("sqlite::memory:")
+            .await?;
+        Ok(Self { pool })
     }
 
     /// Runs all embedded migrations on the database pool.
