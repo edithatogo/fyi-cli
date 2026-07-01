@@ -19,3 +19,11 @@ cargo build --release --package fyi-mcp
 ```bash
 cargo run --package fyi-mcp
 ```
+
+## Glama
+
+The repository root contains the Dockerfile used for Glama release builds. It
+builds the `fyi-mcp` binary and starts it over stdio with an ephemeral SQLite
+database so registry inspection can list and call tools without external state.
+
+See [../../GLAMA.md](../../GLAMA.md) for the release checklist.
