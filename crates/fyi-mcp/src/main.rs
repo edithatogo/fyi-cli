@@ -90,6 +90,302 @@ async fn ensure_authorities_table(pool: &sqlx::SqlitePool) -> Result<(), sqlx::E
     Ok(())
 }
 
+fn request_schema(description: &str) -> Value {
+    json!({
+        "type": "object",
+        "description": description,
+        "properties": {
+            "id": {
+                "type": "integer",
+                "description": "Stable local request identifier."
+            },
+            "title": {
+                "type": "string",
+                "description": "Public title of the official information request."
+            },
+            "body": {
+                "type": "string",
+                "description": "Request body or draft correspondence text."
+            },
+            "user_name": {
+                "type": ["string", "null"],
+                "description": "Requester display name when known."
+            },
+            "status": {
+                "type": ["string", "null"],
+                "description": "Current Alaveteli/FYI request lifecycle status."
+            },
+            "created_at": {
+                "type": ["string", "null"],
+                "description": "ISO-8601 creation timestamp when recorded."
+            },
+            "updated_at": {
+                "type": ["string", "null"],
+                "description": "ISO-8601 update timestamp used for ordering and sync."
+            },
+            "url": {
+                "type": ["string", "null"],
+                "description": "Canonical public request URL when available."
+            },
+            "tags": {
+                "type": ["array", "null"],
+                "description": "Optional local tags attached to the request.",
+                "items": { "type": "string" }
+            }
+        },
+        "required": ["id", "title", "body"],
+        "additionalProperties": true
+    })
+}
+
+fn correspondence_schema() -> Value {
+    json!({
+        "type": "object",
+        "description": "A correspondence item associated with an FYI request.",
+        "properties": {
+            "id": {
+                "type": "integer",
+                "description": "Stable local correspondence identifier."
+            },
+            "request_id": {
+                "type": "integer",
+                "description": "Request identifier this correspondence belongs to."
+            },
+            "sender": {
+                "type": ["string", "null"],
+                "description": "Sender name or email when captured."
+            },
+            "body": {
+                "type": ["string", "null"],
+                "description": "Message body or extracted correspondence text."
+            },
+            "sent_at": {
+                "type": ["string", "null"],
+                "description": "ISO-8601 sent timestamp when captured."
+            }
+        },
+        "additionalProperties": true
+    })
+}
+
+fn authority_schema() -> Value {
+    json!({
+        "type": "object",
+        "description": "Public authority record used to route or classify requests.",
+        "properties": {
+            "slug": {
+                "type": "string",
+                "description": "Stable authority slug used as an import key."
+            },
+            "name": {
+                "type": "string",
+                "description": "Human-readable public authority name."
+            },
+            "url": {
+                "type": ["string", "null"],
+                "description": "Optional public authority URL."
+            }
+        },
+        "required": ["slug", "name"],
+        "additionalProperties": false
+    })
+}
+
+fn enrich_tool_definitions(tools: &mut Value) {
+    let Some(tool_list) = tools.get_mut("tools").and_then(Value::as_array_mut) else {
+        return;
+    };
+
+    for tool in tool_list {
+        let Some(name) = tool.get("name").and_then(Value::as_str) else {
+            continue;
+        };
+
+        match name {
+            "list_requests" => {
+                tool["description"] = json!(
+                    "List locally tracked FYI/Alaveteli official information requests, ordered newest first, for dashboards, audits, and follow-up triage."
+                );
+                tool["inputSchema"]["properties"]["limit"]["description"] = json!(
+                    "Maximum number of request records to return. Defaults to 100 when omitted."
+                );
+                tool["outputSchema"]["properties"]["requests"]["items"] =
+                    request_schema("One tracked FYI/Alaveteli request.");
+            }
+            "retrieve_request" => {
+                tool["description"] = json!(
+                    "Retrieve one locally tracked FYI/Alaveteli request and its stored correspondence by request ID."
+                );
+                tool["inputSchema"]["properties"]["id"]["description"] = json!(
+                    "Stable local request ID to load, matching the ID returned by list_requests."
+                );
+                tool["outputSchema"]["properties"]["request"] =
+                    request_schema("The requested FYI/Alaveteli request record.");
+                tool["outputSchema"]["properties"]["correspondence"]["description"] =
+                    json!("Stored correspondence items linked to the request, in database order.");
+                tool["outputSchema"]["properties"]["correspondence"]["items"] =
+                    correspondence_schema();
+            }
+            "create_request" => {
+                tool["description"] = json!(
+                    "Create a local draft or tracked FYI/Alaveteli official information request record without submitting it to a remote authority."
+                );
+                tool["inputSchema"]["properties"]["title"]["description"] =
+                    json!("Short public-facing request title.");
+                tool["inputSchema"]["properties"]["body"]["description"] =
+                    json!("Full request body or draft text to store locally.");
+                tool["inputSchema"]["properties"]["user_name"]["description"] =
+                    json!("Optional requester display name for local tracking.");
+                tool["inputSchema"]["properties"]["status"]["description"] = json!(
+                    "Optional initial local status such as draft, waiting_response, or successful."
+                );
+                tool["inputSchema"]["properties"]["url"]["description"] =
+                    json!("Optional FYI/Alaveteli URL if the request already exists online.");
+                tool["inputSchema"]["properties"]["tags"]["description"] =
+                    json!("Optional local classification tags for filtering or reporting.");
+                tool["outputSchema"]["properties"]["request"] =
+                    request_schema("The newly created local request record.");
+            }
+            "update_request" => {
+                tool["description"] = json!(
+                    "Replace editable fields on an existing local FYI/Alaveteli request record and mark changed fields for offline sync."
+                );
+                tool["inputSchema"]["properties"]["id"]["description"] =
+                    json!("Stable local request ID to update.");
+                tool["inputSchema"]["properties"]["title"]["description"] =
+                    json!("Replacement request title.");
+                tool["inputSchema"]["properties"]["body"]["description"] =
+                    json!("Replacement request body or draft text.");
+                tool["inputSchema"]["properties"]["user_name"]["description"] =
+                    json!("Optional replacement requester display name.");
+                tool["inputSchema"]["properties"]["status"]["description"] =
+                    json!("Optional replacement local lifecycle status.");
+                tool["inputSchema"]["properties"]["url"]["description"] =
+                    json!("Optional replacement FYI/Alaveteli URL.");
+                tool["inputSchema"]["properties"]["tags"]["description"] =
+                    json!("Optional replacement tag list.");
+                tool["outputSchema"]["properties"]["request"] =
+                    request_schema("The updated local request record.");
+            }
+            "delete_request" => {
+                tool["description"] = json!(
+                    "Delete a local request record and its stored correspondence from the FYI database."
+                );
+                tool["inputSchema"]["properties"]["id"]["description"] =
+                    json!("Stable local request ID to delete.");
+                tool["outputSchema"]["properties"]["deleted"]["description"] =
+                    json!("True when the local delete operation completed.");
+                tool["outputSchema"]["properties"]["request_id"]["description"] =
+                    json!("Request ID that was targeted for deletion.");
+            }
+            "list_authorities" => {
+                tool["description"] = json!(
+                    "List imported public authority records that can be used to route, classify, or validate FYI requests."
+                );
+                tool["outputSchema"]["properties"]["authorities"]["description"] =
+                    json!("Imported public authority records.");
+                tool["outputSchema"]["properties"]["authorities"]["items"] = authority_schema();
+            }
+            "import_authorities" => {
+                tool["description"] = json!(
+                    "Import or update local public authority reference records by slug for request routing and discovery."
+                );
+                tool["inputSchema"]["properties"]["authorities"]["description"] =
+                    json!("Authority records to upsert into the local reference table.");
+                tool["inputSchema"]["properties"]["authorities"]["items"] = authority_schema();
+                tool["outputSchema"]["properties"]["imported"]["description"] =
+                    json!("Number of authority records accepted for import or update.");
+            }
+            "sync_monitor" => {
+                tool["description"] = json!(
+                    "Summarize offline synchronization health, including clean/dirty/conflicted request counts and outgoing queue depth."
+                );
+                tool["outputSchema"]["properties"]["sync"]["description"] =
+                    json!("Aggregate request sync counts and latest sync timestamp.");
+                tool["outputSchema"]["properties"]["queue"]["description"] = json!(
+                    "Outgoing offline queue counts by pending, submitted, and failed status."
+                );
+                tool["outputSchema"]["properties"]["offline_degradation"]["description"] =
+                    json!("Operational indicators showing queued local changes and dirty records.");
+            }
+            "sync_conflicts" => {
+                tool["description"] = json!(
+                    "List locally tracked requests whose offline sync metadata is currently marked as conflicted."
+                );
+                tool["inputSchema"]["properties"]["limit"]["description"] = json!(
+                    "Maximum number of conflicted request records to return. Defaults to 100 when omitted."
+                );
+                tool["outputSchema"]["properties"]["conflicts"]["description"] =
+                    json!("Requests with sync_status set to conflict.");
+                tool["outputSchema"]["properties"]["conflicts"]["items"] =
+                    request_schema("A request currently marked as a sync conflict.");
+            }
+            "sync_resolve_conflict" => {
+                tool["description"] = json!(
+                    "Resolve a local offline-sync conflict by marking the request clean after reconciliation or dirty for later push."
+                );
+                tool["inputSchema"]["properties"]["request_id"]["description"] =
+                    json!("Stable local request ID whose conflict metadata should be updated.");
+                tool["inputSchema"]["properties"]["mark_clean"]["description"] = json!(
+                    "Set true after manual reconciliation; set false to keep the request dirty for a later push."
+                );
+                tool["outputSchema"]["properties"]["request_id"]["description"] =
+                    json!("Request ID whose conflict state was updated.");
+                tool["outputSchema"]["properties"]["resolved"]["description"] =
+                    json!("True when the conflict metadata was changed.");
+                tool["outputSchema"]["properties"]["sync_status"]["description"] =
+                    json!("Resulting sync status, usually clean or dirty.");
+            }
+            "sync_status" => {
+                tool["description"] = json!(
+                    "Read global offline-sync status or detailed sync metadata for one locally tracked FYI request."
+                );
+                tool["inputSchema"]["properties"]["request_id"]["description"] =
+                    json!("Optional local request ID. Omit it to return aggregate sync counts.");
+                tool["outputSchema"]["properties"]["request_id"]["description"] = json!(
+                    "Request ID when a per-request lookup was requested; absent from aggregate responses."
+                );
+                tool["outputSchema"]["properties"]["sync_status"]["description"] = json!(
+                    "Per-request sync status, or null when that request has no sync metadata."
+                );
+                tool["outputSchema"]["properties"]["total"] = json!({
+                    "type": "integer",
+                    "description": "Total number of requests represented in aggregate sync status."
+                });
+                tool["outputSchema"]["properties"]["clean"] = json!({
+                    "type": "integer",
+                    "description": "Number of requests with clean sync metadata."
+                });
+                tool["outputSchema"]["properties"]["dirty"] = json!({
+                    "type": "integer",
+                    "description": "Number of requests with unsynced local changes."
+                });
+                tool["outputSchema"]["properties"]["pending"] = json!({
+                    "type": "integer",
+                    "description": "Number of requests queued or pending sync."
+                });
+                tool["outputSchema"]["properties"]["conflict"] = json!({
+                    "type": "integer",
+                    "description": "Number of requests currently in conflict."
+                });
+            }
+            "check_status" => {
+                tool["description"] = json!(
+                    "Check FYI MCP database readiness and return record-count metrics for requests, correspondence, and authorities."
+                );
+                tool["outputSchema"]["properties"]["status"]["description"] = json!(
+                    "Overall service health, reported as healthy when database queries succeed."
+                );
+                tool["outputSchema"]["properties"]["database"]["description"] =
+                    json!("Database connection state used by the MCP server.");
+                tool["outputSchema"]["properties"]["metrics"]["description"] =
+                    json!("Record-count metrics for core FYI tables.");
+            }
+            _ => {}
+        }
+    }
+}
+
 /// Handles a single incoming JSON-RPC request and produces the response.
 pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<JsonRpcResponse> {
     match req.method.as_str() {
@@ -111,7 +407,7 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
             None
         }
         "tools/list" => {
-            let tools = json!({
+            let mut tools = json!({
                 "tools": [
                     {
                         "name": "list_requests",
@@ -527,6 +823,7 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                     }
                 ]
             });
+            enrich_tool_definitions(&mut tools);
             Some(JsonRpcResponse::success(req.id, tools))
         }
         "tools/call" => {
@@ -1558,7 +1855,19 @@ mod tests {
                 .and_then(|v| v.get("title"))
                 .and_then(|v| v.get("description"))
                 .and_then(|v| v.as_str()),
-            Some("The request title.")
+            Some("Short public-facing request title.")
+        );
+        assert_eq!(
+            tool("list_requests")
+                .get("outputSchema")
+                .and_then(|v| v.get("properties"))
+                .and_then(|v| v.get("requests"))
+                .and_then(|v| v.get("items"))
+                .and_then(|v| v.get("properties"))
+                .and_then(|v| v.get("updated_at"))
+                .and_then(|v| v.get("description"))
+                .and_then(|v| v.as_str()),
+            Some("ISO-8601 update timestamp used for ordering and sync.")
         );
         assert_eq!(
             tool("sync_monitor").get("title").and_then(|v| v.as_str()),
