@@ -6,7 +6,7 @@
 [![Python Support](https://img.shields.io/pypi/pyversions/fyi-cli.svg)](https://pypi.org/project/fyi-cli/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/edithatogo/fyi-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/edithatogo/fyi-cli/actions/workflows/ci.yml)
-[![Codecov](https://codecov.io/gh/edithatogo/fyi-cli/branch/main/graph/badge.svg)](https://codecov.io/gh/edithatogo/fyi-cli)
+[![Codecov](https://codecov.io/gh/edithatogo/fyi-cli/branch/master/graph/badge.svg)](https://codecov.io/gh/edithatogo/fyi-cli)
 [![smithery badge](https://smithery.ai/badge/edithatogo/fyi-mcp)](https://smithery.ai/servers/edithatogo/fyi-mcp)
 
 ---
@@ -98,9 +98,7 @@ pip install -e ".[dev]"
 
 **Please do NOT report security vulnerabilities through public GitHub issues.**
 
-Report security issues to: **security@fyi-cli.example.com**
-
-Or use GitHub's private vulnerability reporting:  
+Use GitHub's private vulnerability reporting:
 https://github.com/edithatogo/fyi-cli/security/advisories/new
 
 **Security Policy:** [SECURITY.md](.github/SECURITY.md)
@@ -356,7 +354,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Documentation:** https://fyi-cli.readthedocs.io/
 - **Issues:** https://github.com/edithatogo/fyi-cli/issues
 - **Discussions:** https://github.com/edithatogo/fyi-cli/discussions
-- **Email:** support@fyi-cli.example.com
 
 ---
 
