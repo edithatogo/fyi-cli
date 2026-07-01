@@ -68,6 +68,21 @@ impl JsonRpcResponse {
     }
 }
 
+fn tool_success(id: Option<Value>, payload: Value) -> JsonRpcResponse {
+    JsonRpcResponse::success(
+        id,
+        json!({
+            "structuredContent": payload,
+            "content": [
+                {
+                    "type": "text",
+                    "text": serde_json::to_string_pretty(&payload).unwrap()
+                }
+            ]
+        }),
+    )
+}
+
 /// Helper function to generate the next auto-incremented ID for Alaveteli requests in SQLite.
 async fn get_next_request_id(pool: &sqlx::SqlitePool) -> i64 {
     sqlx::query_scalar::<_, i64>("SELECT COALESCE(MAX(id), 0) + 1 FROM requests")
@@ -97,14 +112,17 @@ fn request_schema(description: &str) -> Value {
         "properties": {
             "id": {
                 "type": "integer",
+                "minimum": 1,
                 "description": "Stable local request identifier."
             },
             "title": {
                 "type": "string",
+                "minLength": 1,
                 "description": "Public title of the official information request."
             },
             "body": {
                 "type": "string",
+                "minLength": 1,
                 "description": "Request body or draft correspondence text."
             },
             "user_name": {
@@ -113,18 +131,22 @@ fn request_schema(description: &str) -> Value {
             },
             "status": {
                 "type": ["string", "null"],
+                "enum": ["draft", "submitted", "waiting_response", "successful", "partially_successful", "refused", "overdue", "clean", "dirty", "pending", "conflict", null],
                 "description": "Current Alaveteli/FYI request lifecycle status."
             },
             "created_at": {
                 "type": ["string", "null"],
+                "format": "date-time",
                 "description": "ISO-8601 creation timestamp when recorded."
             },
             "updated_at": {
                 "type": ["string", "null"],
+                "format": "date-time",
                 "description": "ISO-8601 update timestamp used for ordering and sync."
             },
             "url": {
                 "type": ["string", "null"],
+                "format": "uri",
                 "description": "Canonical public request URL when available."
             },
             "tags": {
@@ -134,7 +156,7 @@ fn request_schema(description: &str) -> Value {
             }
         },
         "required": ["id", "title", "body"],
-        "additionalProperties": true
+        "additionalProperties": false
     })
 }
 
@@ -143,28 +165,36 @@ fn correspondence_schema() -> Value {
         "type": "object",
         "description": "A correspondence item associated with an FYI request.",
         "properties": {
-            "id": {
-                "type": "integer",
-                "description": "Stable local correspondence identifier."
-            },
-            "request_id": {
-                "type": "integer",
-                "description": "Request identifier this correspondence belongs to."
-            },
-            "sender": {
-                "type": ["string", "null"],
-                "description": "Sender name or email when captured."
+            "direction": {
+                "type": "string",
+                "enum": ["request", "response"],
+                "description": "Whether the correspondence was sent by the requester or received as an authority response."
             },
             "body": {
-                "type": ["string", "null"],
+                "type": "string",
+                "minLength": 1,
                 "description": "Message body or extracted correspondence text."
             },
             "sent_at": {
-                "type": ["string", "null"],
+                "type": "string",
+                "format": "date-time",
                 "description": "ISO-8601 sent timestamp when captured."
+            },
+            "state": {
+                "type": ["string", "null"],
+                "description": "Optional Alaveteli correspondence state when captured."
+            },
+            "attachments": {
+                "type": ["array", "null"],
+                "description": "Optional attachment URLs or identifiers linked to the correspondence.",
+                "items": {
+                    "type": "string",
+                    "minLength": 1
+                }
             }
         },
-        "additionalProperties": true
+        "required": ["direction", "body", "sent_at"],
+        "additionalProperties": false
     })
 }
 
@@ -175,14 +205,17 @@ fn authority_schema() -> Value {
         "properties": {
             "slug": {
                 "type": "string",
+                "minLength": 1,
                 "description": "Stable authority slug used as an import key."
             },
             "name": {
                 "type": "string",
+                "minLength": 1,
                 "description": "Human-readable public authority name."
             },
             "url": {
                 "type": ["string", "null"],
+                "format": "uri",
                 "description": "Optional public authority URL."
             }
         },
@@ -209,6 +242,9 @@ fn enrich_tool_definitions(tools: &mut Value) {
                 tool["inputSchema"]["properties"]["limit"]["description"] = json!(
                     "Maximum number of request records to return. Defaults to 100 when omitted."
                 );
+                tool["inputSchema"]["properties"]["limit"]["minimum"] = json!(1);
+                tool["inputSchema"]["properties"]["limit"]["maximum"] = json!(500);
+                tool["inputSchema"]["properties"]["limit"]["default"] = json!(100);
                 tool["outputSchema"]["properties"]["requests"]["items"] =
                     request_schema("One tracked FYI/Alaveteli request.");
             }
@@ -219,6 +255,7 @@ fn enrich_tool_definitions(tools: &mut Value) {
                 tool["inputSchema"]["properties"]["id"]["description"] = json!(
                     "Stable local request ID to load, matching the ID returned by list_requests."
                 );
+                tool["inputSchema"]["properties"]["id"]["minimum"] = json!(1);
                 tool["outputSchema"]["properties"]["request"] =
                     request_schema("The requested FYI/Alaveteli request record.");
                 tool["outputSchema"]["properties"]["correspondence"]["description"] =
@@ -232,8 +269,10 @@ fn enrich_tool_definitions(tools: &mut Value) {
                 );
                 tool["inputSchema"]["properties"]["title"]["description"] =
                     json!("Short public-facing request title.");
+                tool["inputSchema"]["properties"]["title"]["minLength"] = json!(1);
                 tool["inputSchema"]["properties"]["body"]["description"] =
                     json!("Full request body or draft text to store locally.");
+                tool["inputSchema"]["properties"]["body"]["minLength"] = json!(1);
                 tool["inputSchema"]["properties"]["user_name"]["description"] =
                     json!("Optional requester display name for local tracking.");
                 tool["inputSchema"]["properties"]["status"]["description"] = json!(
@@ -241,6 +280,7 @@ fn enrich_tool_definitions(tools: &mut Value) {
                 );
                 tool["inputSchema"]["properties"]["url"]["description"] =
                     json!("Optional FYI/Alaveteli URL if the request already exists online.");
+                tool["inputSchema"]["properties"]["url"]["format"] = json!("uri");
                 tool["inputSchema"]["properties"]["tags"]["description"] =
                     json!("Optional local classification tags for filtering or reporting.");
                 tool["outputSchema"]["properties"]["request"] =
@@ -252,16 +292,20 @@ fn enrich_tool_definitions(tools: &mut Value) {
                 );
                 tool["inputSchema"]["properties"]["id"]["description"] =
                     json!("Stable local request ID to update.");
+                tool["inputSchema"]["properties"]["id"]["minimum"] = json!(1);
                 tool["inputSchema"]["properties"]["title"]["description"] =
                     json!("Replacement request title.");
+                tool["inputSchema"]["properties"]["title"]["minLength"] = json!(1);
                 tool["inputSchema"]["properties"]["body"]["description"] =
                     json!("Replacement request body or draft text.");
+                tool["inputSchema"]["properties"]["body"]["minLength"] = json!(1);
                 tool["inputSchema"]["properties"]["user_name"]["description"] =
                     json!("Optional replacement requester display name.");
                 tool["inputSchema"]["properties"]["status"]["description"] =
                     json!("Optional replacement local lifecycle status.");
                 tool["inputSchema"]["properties"]["url"]["description"] =
                     json!("Optional replacement FYI/Alaveteli URL.");
+                tool["inputSchema"]["properties"]["url"]["format"] = json!("uri");
                 tool["inputSchema"]["properties"]["tags"]["description"] =
                     json!("Optional replacement tag list.");
                 tool["outputSchema"]["properties"]["request"] =
@@ -273,6 +317,7 @@ fn enrich_tool_definitions(tools: &mut Value) {
                 );
                 tool["inputSchema"]["properties"]["id"]["description"] =
                     json!("Stable local request ID to delete.");
+                tool["inputSchema"]["properties"]["id"]["minimum"] = json!(1);
                 tool["outputSchema"]["properties"]["deleted"]["description"] =
                     json!("True when the local delete operation completed.");
                 tool["outputSchema"]["properties"]["request_id"]["description"] =
@@ -302,11 +347,88 @@ fn enrich_tool_definitions(tools: &mut Value) {
                 );
                 tool["outputSchema"]["properties"]["sync"]["description"] =
                     json!("Aggregate request sync counts and latest sync timestamp.");
+                tool["outputSchema"]["properties"]["sync"]["properties"] = json!({
+                    "total": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Total number of requests tracked by sync metadata."
+                    },
+                    "clean": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Requests known to be cleanly synchronized."
+                    },
+                    "dirty": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Requests with unsynced local changes."
+                    },
+                    "pending": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Requests pending synchronization."
+                    },
+                    "conflict": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Requests with unresolved sync conflicts."
+                    },
+                    "latest_sync": {
+                        "type": ["string", "null"],
+                        "format": "date-time",
+                        "description": "Most recent successful synchronization timestamp."
+                    }
+                });
+                tool["outputSchema"]["properties"]["sync"]["required"] = json!([
+                    "total",
+                    "clean",
+                    "dirty",
+                    "pending",
+                    "conflict",
+                    "latest_sync"
+                ]);
+                tool["outputSchema"]["properties"]["sync"]["additionalProperties"] = json!(false);
                 tool["outputSchema"]["properties"]["queue"]["description"] = json!(
                     "Outgoing offline queue counts by pending, submitted, and failed status."
                 );
+                tool["outputSchema"]["properties"]["queue"]["properties"] = json!({
+                    "pending": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Outgoing queue entries waiting to be submitted."
+                    },
+                    "submitted": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Outgoing queue entries already submitted."
+                    },
+                    "failed": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Outgoing queue entries that failed submission."
+                    }
+                });
+                tool["outputSchema"]["properties"]["queue"]["required"] =
+                    json!(["pending", "submitted", "failed"]);
+                tool["outputSchema"]["properties"]["queue"]["additionalProperties"] = json!(false);
                 tool["outputSchema"]["properties"]["offline_degradation"]["description"] =
                     json!("Operational indicators showing queued local changes and dirty records.");
+                tool["outputSchema"]["properties"]["offline_degradation"]["properties"] = json!({
+                    "queued_changes": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Pending plus failed outgoing queue entries."
+                    },
+                    "dirty_records": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Requests with unsynced local changes."
+                    }
+                });
+                tool["outputSchema"]["properties"]["offline_degradation"]["required"] =
+                    json!(["queued_changes", "dirty_records"]);
+                tool["outputSchema"]["properties"]["offline_degradation"]["additionalProperties"] =
+                    json!(false);
             }
             "sync_conflicts" => {
                 tool["description"] = json!(
@@ -315,6 +437,9 @@ fn enrich_tool_definitions(tools: &mut Value) {
                 tool["inputSchema"]["properties"]["limit"]["description"] = json!(
                     "Maximum number of conflicted request records to return. Defaults to 100 when omitted."
                 );
+                tool["inputSchema"]["properties"]["limit"]["minimum"] = json!(1);
+                tool["inputSchema"]["properties"]["limit"]["maximum"] = json!(500);
+                tool["inputSchema"]["properties"]["limit"]["default"] = json!(100);
                 tool["outputSchema"]["properties"]["conflicts"]["description"] =
                     json!("Requests with sync_status set to conflict.");
                 tool["outputSchema"]["properties"]["conflicts"]["items"] =
@@ -326,9 +451,11 @@ fn enrich_tool_definitions(tools: &mut Value) {
                 );
                 tool["inputSchema"]["properties"]["request_id"]["description"] =
                     json!("Stable local request ID whose conflict metadata should be updated.");
+                tool["inputSchema"]["properties"]["request_id"]["minimum"] = json!(1);
                 tool["inputSchema"]["properties"]["mark_clean"]["description"] = json!(
                     "Set true after manual reconciliation; set false to keep the request dirty for a later push."
                 );
+                tool["inputSchema"]["properties"]["mark_clean"]["default"] = json!(false);
                 tool["outputSchema"]["properties"]["request_id"]["description"] =
                     json!("Request ID whose conflict state was updated.");
                 tool["outputSchema"]["properties"]["resolved"]["description"] =
@@ -342,31 +469,84 @@ fn enrich_tool_definitions(tools: &mut Value) {
                 );
                 tool["inputSchema"]["properties"]["request_id"]["description"] =
                     json!("Optional local request ID. Omit it to return aggregate sync counts.");
-                tool["outputSchema"]["properties"]["request_id"]["description"] = json!(
-                    "Request ID when a per-request lookup was requested; absent from aggregate responses."
-                );
-                tool["outputSchema"]["properties"]["sync_status"]["description"] = json!(
-                    "Per-request sync status, or null when that request has no sync metadata."
-                );
-                tool["outputSchema"]["properties"]["total"] = json!({
-                    "type": "integer",
-                    "description": "Total number of requests represented in aggregate sync status."
-                });
-                tool["outputSchema"]["properties"]["clean"] = json!({
-                    "type": "integer",
-                    "description": "Number of requests with clean sync metadata."
-                });
-                tool["outputSchema"]["properties"]["dirty"] = json!({
-                    "type": "integer",
-                    "description": "Number of requests with unsynced local changes."
-                });
-                tool["outputSchema"]["properties"]["pending"] = json!({
-                    "type": "integer",
-                    "description": "Number of requests queued or pending sync."
-                });
-                tool["outputSchema"]["properties"]["conflict"] = json!({
-                    "type": "integer",
-                    "description": "Number of requests currently in conflict."
+                tool["inputSchema"]["properties"]["request_id"]["minimum"] = json!(1);
+                tool["outputSchema"] = json!({
+                    "type": "object",
+                    "description": "Synchronization metadata. Aggregate counts are returned when request_id is omitted; per-request metadata is returned when request_id is provided.",
+                    "oneOf": [
+                        {
+                            "type": "object",
+                            "description": "Aggregate offline synchronization counts.",
+                            "properties": {
+                                "total": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "description": "Total number of requests represented in aggregate sync status."
+                                },
+                                "clean": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "description": "Number of requests with clean sync metadata."
+                                },
+                                "dirty": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "description": "Number of requests with unsynced local changes."
+                                },
+                                "pending": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "description": "Number of requests queued or pending sync."
+                                },
+                                "conflict": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "description": "Number of requests currently in conflict."
+                                }
+                            },
+                            "required": ["total", "clean", "dirty", "pending", "conflict"],
+                            "additionalProperties": false
+                        },
+                        {
+                            "type": "object",
+                            "description": "Per-request offline synchronization metadata.",
+                            "properties": {
+                                "request_id": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "description": "Request ID for the per-request sync lookup."
+                                },
+                                "sync_status": {
+                                    "type": ["string", "null"],
+                                    "enum": ["clean", "dirty", "pending", "conflict", null],
+                                    "description": "Per-request sync status, or null when that request has no sync metadata."
+                                },
+                                "last_synced_at": {
+                                    "type": ["string", "null"],
+                                    "format": "date-time",
+                                    "description": "Last successful sync timestamp for this request."
+                                },
+                                "remote_updated_at": {
+                                    "type": ["string", "null"],
+                                    "format": "date-time",
+                                    "description": "Last remote update timestamp known for this request."
+                                },
+                                "local_updated_at": {
+                                    "type": ["string", "null"],
+                                    "format": "date-time",
+                                    "description": "Last local update timestamp known for this request."
+                                },
+                                "conflict_version": {
+                                    "type": ["integer", "null"],
+                                    "minimum": 0,
+                                    "description": "Conflict version counter when a sync conflict has been detected."
+                                }
+                            },
+                            "required": ["request_id", "sync_status"],
+                            "additionalProperties": false
+                        }
+                    ],
+                    "additionalProperties": false
                 });
             }
             "check_status" => {
@@ -380,6 +560,55 @@ fn enrich_tool_definitions(tools: &mut Value) {
                     json!("Database connection state used by the MCP server.");
                 tool["outputSchema"]["properties"]["metrics"]["description"] =
                     json!("Record-count metrics for core FYI tables.");
+                tool["outputSchema"]["properties"]["metrics"]["properties"] = json!({
+                    "total_requests": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Number of request records in the database."
+                    },
+                    "total_correspondence": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Number of correspondence records in the database."
+                    },
+                    "sync": {
+                        "type": ["object", "null"],
+                        "description": "Aggregate sync counts when sync metadata can be read.",
+                        "properties": {
+                            "total": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "description": "Total number of requests represented in sync metadata."
+                            },
+                            "clean": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "description": "Number of clean synchronized requests."
+                            },
+                            "dirty": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "description": "Number of requests with unsynced local changes."
+                            },
+                            "pending": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "description": "Number of requests pending sync."
+                            },
+                            "conflict": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "description": "Number of requests in sync conflict."
+                            }
+                        },
+                        "required": ["total", "clean", "dirty", "pending", "conflict"],
+                        "additionalProperties": false
+                    }
+                });
+                tool["outputSchema"]["properties"]["metrics"]["required"] =
+                    json!(["total_requests", "total_correspondence", "sync"]);
+                tool["outputSchema"]["properties"]["metrics"]["additionalProperties"] =
+                    json!(false);
             }
             _ => {}
         }
@@ -859,15 +1088,10 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                         .unwrap_or(100);
 
                     match db.list_requests(limit).await {
-                        Ok(requests) => Some(JsonRpcResponse::success(
+                        Ok(requests) => Some(tool_success(
                             req.id,
                             json!({
-                                "content": [
-                                    {
-                                        "type": "text",
-                                        "text": serde_json::to_string_pretty(&requests).unwrap()
-                                    }
-                                ]
+                                "requests": requests
                             }),
                         )),
                         Err(e) => Some(JsonRpcResponse::success(
@@ -906,17 +1130,7 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                                             "sync_status": Value::Null
                                         })
                                     });
-                                Some(JsonRpcResponse::success(
-                                    req.id,
-                                    json!({
-                                        "content": [
-                                            {
-                                                "type": "text",
-                                                "text": serde_json::to_string_pretty(&payload).unwrap()
-                                            }
-                                        ]
-                                    }),
-                                ))
+                                Some(tool_success(req.id, payload))
                             }
                             Err(e) => Some(JsonRpcResponse::success(
                                 req.id,
@@ -933,21 +1147,14 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                         }
                     } else {
                         match db.get_global_sync_status().await {
-                            Ok(status) => Some(JsonRpcResponse::success(
+                            Ok(status) => Some(tool_success(
                                 req.id,
                                 json!({
-                                    "content": [
-                                        {
-                                            "type": "text",
-                                            "text": serde_json::to_string_pretty(&json!({
-                                                "total": status.total,
-                                                "clean": status.clean,
-                                                "dirty": status.dirty,
-                                                "pending": status.pending,
-                                                "conflict": status.conflict
-                                            })).unwrap()
-                                        }
-                                    ]
+                                    "total": status.total,
+                                    "clean": status.clean,
+                                    "dirty": status.dirty,
+                                    "pending": status.pending,
+                                    "conflict": status.conflict
                                 }),
                             )),
                             Err(e) => Some(JsonRpcResponse::success(
@@ -970,33 +1177,26 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                     let queue = db.get_outgoing_queue_depth().await;
                     let latest = db.get_latest_sync_timestamp().await;
                     match (status, queue, latest) {
-                        (Ok(status), Ok(queue), Ok(latest_sync)) => Some(JsonRpcResponse::success(
+                        (Ok(status), Ok(queue), Ok(latest_sync)) => Some(tool_success(
                             req.id,
                             json!({
-                                "content": [
-                                    {
-                                        "type": "text",
-                                        "text": serde_json::to_string_pretty(&json!({
-                                            "sync": {
-                                                "total": status.total,
-                                                "clean": status.clean,
-                                                "dirty": status.dirty,
-                                                "pending": status.pending,
-                                                "conflict": status.conflict,
-                                                "latest_sync": latest_sync
-                                            },
-                                            "queue": {
-                                                "pending": queue.pending,
-                                                "submitted": queue.submitted,
-                                                "failed": queue.failed
-                                            },
-                                            "offline_degradation": {
-                                                "queued_changes": queue.pending + queue.failed,
-                                                "dirty_records": status.dirty
-                                            }
-                                        })).unwrap()
-                                    }
-                                ]
+                                "sync": {
+                                    "total": status.total,
+                                    "clean": status.clean,
+                                    "dirty": status.dirty,
+                                    "pending": status.pending,
+                                    "conflict": status.conflict,
+                                    "latest_sync": latest_sync
+                                },
+                                "queue": {
+                                    "pending": queue.pending,
+                                    "submitted": queue.submitted,
+                                    "failed": queue.failed
+                                },
+                                "offline_degradation": {
+                                    "queued_changes": queue.pending + queue.failed,
+                                    "dirty_records": status.dirty
+                                }
                             }),
                         )),
                         (status, queue, latest) => Some(JsonRpcResponse::success(
@@ -1024,15 +1224,10 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                         .and_then(|value| value.as_i64())
                         .unwrap_or(100);
                     match db.list_conflicted_requests(limit).await {
-                        Ok(conflicts) => Some(JsonRpcResponse::success(
+                        Ok(conflicts) => Some(tool_success(
                             req.id,
                             json!({
-                                "content": [
-                                    {
-                                        "type": "text",
-                                        "text": serde_json::to_string_pretty(&conflicts).unwrap()
-                                    }
-                                ]
+                                "conflicts": conflicts
                             }),
                         )),
                         Err(e) => Some(JsonRpcResponse::success(
@@ -1065,19 +1260,12 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                         .and_then(|value| value.as_bool())
                         .unwrap_or(false);
                     match db.resolve_request_conflict(request_id, mark_clean).await {
-                        Ok(resolved) => Some(JsonRpcResponse::success(
+                        Ok(resolved) => Some(tool_success(
                             req.id,
                             json!({
-                                "content": [
-                                    {
-                                        "type": "text",
-                                        "text": serde_json::to_string_pretty(&json!({
-                                            "request_id": request_id,
-                                            "resolved": resolved,
-                                            "sync_status": if mark_clean { "clean" } else { "dirty" }
-                                        })).unwrap()
-                                    }
-                                ]
+                                "request_id": request_id,
+                                "resolved": resolved,
+                                "sync_status": if mark_clean { "clean" } else { "dirty" }
                             }),
                         )),
                         Err(e) => Some(JsonRpcResponse::success(
@@ -1116,17 +1304,7 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                                 "request": request,
                                 "correspondence": correspondence
                             });
-                            Some(JsonRpcResponse::success(
-                                req.id,
-                                json!({
-                                    "content": [
-                                        {
-                                            "type": "text",
-                                            "text": serde_json::to_string_pretty(&result_val).unwrap()
-                                        }
-                                    ]
-                                }),
-                            ))
+                            Some(tool_success(req.id, result_val))
                         }
                         Ok(None) => Some(JsonRpcResponse::success(
                             req.id,
@@ -1213,15 +1391,10 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                     };
 
                     match db.insert_request(&new_req).await {
-                        Ok(_) => Some(JsonRpcResponse::success(
+                        Ok(_) => Some(tool_success(
                             req.id,
                             json!({
-                                "content": [
-                                    {
-                                        "type": "text",
-                                        "text": serde_json::to_string_pretty(&new_req).unwrap()
-                                    }
-                                ]
+                                "request": new_req
                             }),
                         )),
                         Err(e) => Some(JsonRpcResponse::success(
@@ -1329,15 +1502,10 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                     };
 
                     match db.update_request(&updated).await {
-                        Ok(true) => Some(JsonRpcResponse::success(
+                        Ok(true) => Some(tool_success(
                             req.id,
                             json!({
-                                "content": [
-                                    {
-                                        "type": "text",
-                                        "text": serde_json::to_string_pretty(&updated).unwrap()
-                                    }
-                                ]
+                                "request": updated
                             }),
                         )),
                         Ok(false) => Some(JsonRpcResponse::success(
@@ -1379,18 +1547,11 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                     };
 
                     match db.delete_request(id).await {
-                        Ok(true) => Some(JsonRpcResponse::success(
+                        Ok(true) => Some(tool_success(
                             req.id,
                             json!({
-                                "content": [
-                                    {
-                                        "type": "text",
-                                        "text": serde_json::to_string_pretty(&json!({
-                                            "deleted": true,
-                                            "id": id
-                                        })).unwrap()
-                                    }
-                                ]
+                                "deleted": true,
+                                "request_id": id
                             }),
                         )),
                         Ok(false) => Some(JsonRpcResponse::success(
@@ -1446,15 +1607,10 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                                 .into_iter()
                                 .map(|(slug, name, url)| Authority { slug, name, url })
                                 .collect();
-                            Some(JsonRpcResponse::success(
+                            Some(tool_success(
                                 req.id,
                                 json!({
-                                    "content": [
-                                        {
-                                            "type": "text",
-                                            "text": serde_json::to_string_pretty(&authorities).unwrap()
-                                        }
-                                    ]
+                                    "authorities": authorities
                                 }),
                             ))
                         }
@@ -1559,15 +1715,10 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                         imported += 1;
                     }
 
-                    Some(JsonRpcResponse::success(
+                    Some(tool_success(
                         req.id,
                         json!({
-                            "content": [
-                                {
-                                    "type": "text",
-                                    "text": serde_json::to_string_pretty(&ImportAuthoritiesResult { imported }).unwrap()
-                                }
-                            ]
+                            "imported": ImportAuthoritiesResult { imported }.imported
                         }),
                     ))
                 }
@@ -1603,17 +1754,7 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                         }
                     });
 
-                    Some(JsonRpcResponse::success(
-                        req.id,
-                        json!({
-                            "content": [
-                                    {
-                                        "type": "text",
-                                        "text": serde_json::to_string_pretty(&status_info).unwrap()
-                                    }
-                            ]
-                        }),
-                    ))
+                    Some(tool_success(req.id, status_info))
                 }
                 _ => Some(JsonRpcResponse::error(
                     req.id,
@@ -1730,6 +1871,12 @@ mod tests {
         std::env::remove_var("FYI_MCP_EPHEMERAL");
         std::env::remove_var("FYI_MCP_INSPECTION");
         std::env::remove_var("GLAMA_VERSION");
+    }
+
+    fn structured_content(result: &Value) -> &Value {
+        result
+            .get("structuredContent")
+            .expect("tool result should include structuredContent")
     }
 
     #[test]
@@ -1910,9 +2057,9 @@ mod tests {
         assert!(create_resp.error.is_none());
 
         let result = create_resp.result.unwrap();
-        let content = result.get("content").unwrap().as_array().unwrap();
-        let text = content[0].get("text").unwrap().as_str().unwrap();
-        let created_request: AlaveteliRequest = serde_json::from_str(text).unwrap();
+        let created_request: AlaveteliRequest =
+            serde_json::from_value(structured_content(&result).get("request").unwrap().clone())
+                .unwrap();
         assert_eq!(created_request.title, "My OIA Test");
         assert_eq!(created_request.id, 1);
 
@@ -1932,10 +2079,8 @@ mod tests {
         let retrieve_resp = handle_jsonrpc_request(&db, retrieve_req).await.unwrap();
         assert_eq!(retrieve_resp.id, Some(json!(4)));
         let retrieve_result = retrieve_resp.result.unwrap();
-        let retrieve_content = retrieve_result.get("content").unwrap().as_array().unwrap();
-        let retrieve_text = retrieve_content[0].get("text").unwrap().as_str().unwrap();
 
-        let parsed_retrieve: Value = serde_json::from_str(retrieve_text).unwrap();
+        let parsed_retrieve = structured_content(&retrieve_result);
         assert_eq!(
             parsed_retrieve
                 .get("request")
@@ -1984,9 +2129,9 @@ mod tests {
         let resp = handle_jsonrpc_request(&db, req).await.unwrap();
         assert_eq!(resp.id, Some(json!(6)));
         let result = resp.result.unwrap();
-        let content = result.get("content").unwrap().as_array().unwrap();
-        let text = content[0].get("text").unwrap().as_str().unwrap();
-        let requests: Vec<AlaveteliRequest> = serde_json::from_str(text).unwrap();
+        let requests: Vec<AlaveteliRequest> =
+            serde_json::from_value(structured_content(&result).get("requests").unwrap().clone())
+                .unwrap();
 
         assert_eq!(requests.len(), 2);
         assert_eq!(requests[0].title, "Request 2");
@@ -2031,9 +2176,9 @@ mod tests {
         let resp = handle_jsonrpc_request(&db, req).await.unwrap();
         assert_eq!(resp.id, Some(json!(7)));
         let result = resp.result.unwrap();
-        let content = result.get("content").unwrap().as_array().unwrap();
-        let text = content[0].get("text").unwrap().as_str().unwrap();
-        let request: AlaveteliRequest = serde_json::from_str(text).unwrap();
+        let request: AlaveteliRequest =
+            serde_json::from_value(structured_content(&result).get("request").unwrap().clone())
+                .unwrap();
 
         assert_eq!(request.title, "Updated");
         assert_eq!(request.body, "New body");
@@ -2074,6 +2219,15 @@ mod tests {
 
         let resp = handle_jsonrpc_request(&db, req).await.unwrap();
         assert_eq!(resp.id, Some(json!(8)));
+        let result = resp.result.unwrap();
+        assert_eq!(
+            structured_content(&result)
+                .get("request_id")
+                .unwrap()
+                .as_i64()
+                .unwrap(),
+            1
+        );
         assert!(db.get_request(1).await.unwrap().is_none());
     }
 
@@ -2113,10 +2267,14 @@ mod tests {
         let import_resp = handle_jsonrpc_request(&db, import_req).await.unwrap();
         assert_eq!(import_resp.id, Some(json!(9)));
         let import_result = import_resp.result.unwrap();
-        let import_content = import_result.get("content").unwrap().as_array().unwrap();
-        let import_text = import_content[0].get("text").unwrap().as_str().unwrap();
-        let imported: ImportAuthoritiesResult = serde_json::from_str(import_text).unwrap();
-        assert_eq!(imported.imported, 3);
+        assert_eq!(
+            structured_content(&import_result)
+                .get("imported")
+                .unwrap()
+                .as_u64()
+                .unwrap(),
+            3
+        );
 
         let list_req = JsonRpcRequest {
             jsonrpc: "2.0".to_string(),
@@ -2130,9 +2288,13 @@ mod tests {
 
         let list_resp = handle_jsonrpc_request(&db, list_req).await.unwrap();
         let list_result = list_resp.result.unwrap();
-        let list_content = list_result.get("content").unwrap().as_array().unwrap();
-        let list_text = list_content[0].get("text").unwrap().as_str().unwrap();
-        let authorities: Vec<Authority> = serde_json::from_str(list_text).unwrap();
+        let authorities: Vec<Authority> = serde_json::from_value(
+            structured_content(&list_result)
+                .get("authorities")
+                .unwrap()
+                .clone(),
+        )
+        .unwrap();
 
         assert_eq!(authorities.len(), 2);
         assert_eq!(authorities[0].slug, "dia");
@@ -2162,9 +2324,7 @@ mod tests {
         let resp = handle_jsonrpc_request(&db, req).await.unwrap();
         assert_eq!(resp.id, Some(json!(5)));
         let result = resp.result.unwrap();
-        let content = result.get("content").unwrap().as_array().unwrap();
-        let text = content[0].get("text").unwrap().as_str().unwrap();
-        let status_info: Value = serde_json::from_str(text).unwrap();
+        let status_info = structured_content(&result);
         assert_eq!(
             status_info.get("status").unwrap().as_str().unwrap(),
             "healthy"
@@ -2204,9 +2364,7 @@ mod tests {
         let resp = handle_jsonrpc_request(&db, req).await.unwrap();
         assert_eq!(resp.id, Some(json!(11)));
         let result = resp.result.unwrap();
-        let content = result.get("content").unwrap().as_array().unwrap();
-        let text = content[0].get("text").unwrap().as_str().unwrap();
-        let status_info: Value = serde_json::from_str(text).unwrap();
+        let status_info = structured_content(&result);
 
         assert_eq!(status_info.get("request_id").unwrap().as_i64().unwrap(), 77);
         assert_eq!(
@@ -2245,9 +2403,13 @@ mod tests {
         };
         let list_resp = handle_jsonrpc_request(&db, list_req).await.unwrap();
         let list_result = list_resp.result.unwrap();
-        let list_content = list_result.get("content").unwrap().as_array().unwrap();
-        let list_text = list_content[0].get("text").unwrap().as_str().unwrap();
-        let conflicts: Vec<AlaveteliRequest> = serde_json::from_str(list_text).unwrap();
+        let conflicts: Vec<AlaveteliRequest> = serde_json::from_value(
+            structured_content(&list_result)
+                .get("conflicts")
+                .unwrap()
+                .clone(),
+        )
+        .unwrap();
         assert_eq!(conflicts.len(), 1);
 
         let resolve_req = JsonRpcRequest {
@@ -2264,9 +2426,7 @@ mod tests {
         };
         let resolve_resp = handle_jsonrpc_request(&db, resolve_req).await.unwrap();
         let resolve_result = resolve_resp.result.unwrap();
-        let resolve_content = resolve_result.get("content").unwrap().as_array().unwrap();
-        let resolve_text = resolve_content[0].get("text").unwrap().as_str().unwrap();
-        let resolved: Value = serde_json::from_str(resolve_text).unwrap();
+        let resolved = structured_content(&resolve_result);
 
         assert!(resolved.get("resolved").unwrap().as_bool().unwrap());
     }
@@ -2301,9 +2461,7 @@ mod tests {
 
         let resp = handle_jsonrpc_request(&db, req).await.unwrap();
         let result = resp.result.unwrap();
-        let content = result.get("content").unwrap().as_array().unwrap();
-        let text = content[0].get("text").unwrap().as_str().unwrap();
-        let monitor: Value = serde_json::from_str(text).unwrap();
+        let monitor = structured_content(&result);
 
         assert_eq!(
             monitor

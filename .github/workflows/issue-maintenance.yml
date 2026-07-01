@@ -1,0 +1,53 @@
+name: Issue Maintenance
+
+on:
+  schedule:
+    - cron: "17 21 * * 1"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  triage:
+    name: Label unlabeled open issues
+    runs-on: ubuntu-latest
+    steps:
+      - name: Apply needs-triage label
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const labels = [
+              { name: "needs-triage", color: "ededed", description: "Awaiting maintainer classification" },
+              { name: "accepted", color: "0e8a16", description: "Accepted and ready for implementation" },
+              { name: "blocked-external", color: "d93f0b", description: "Blocked by an external service or registry" },
+              { name: "duplicate", color: "cfd3d7", description: "Duplicate of another issue" },
+              { name: "wontfix", color: "ffffff", description: "Intentionally out of scope" },
+              { name: "good first issue", color: "7057ff", description: "Good for new contributors" }
+            ];
+
+            for (const label of labels) {
+              try {
+                await github.rest.issues.getLabel({ owner, repo, name: label.name });
+              } catch (error) {
+                if (error.status !== 404) throw error;
+                await github.rest.issues.createLabel({ owner, repo, ...label });
+              }
+            }
+
+            for await (const { data: issues } of github.paginate.iterator(
+              github.rest.issues.listForRepo,
+              { owner, repo, state: "open", per_page: 100 }
+            )) {
+              for (const issue of issues) {
+                if (issue.pull_request || issue.labels.length > 0) continue;
+                await github.rest.issues.addLabels({
+                  owner,
+                  repo,
+                  issue_number: issue.number,
+                  labels: ["needs-triage"]
+                });
+              }
+            }

@@ -16,9 +16,7 @@ We take the security of FYI Request System seriously. If you believe you have fo
 
 **Please do NOT report security vulnerabilities through public GitHub issues.**
 
-Instead, please report them via email to: **security@fyi-cli.example.com**
-
-Or use GitHub's private vulnerability reporting feature:
+Instead, use GitHub's private vulnerability reporting feature:
 https://github.com/edithatogo/fyi-cli/security/advisories/new
 
 ### What to Include
@@ -90,7 +88,6 @@ https://github.com/edithatogo/fyi-cli/security/advisories
 
 ### Contact
 
-- **Email:** security@fyi-cli.example.com
 - **GitHub Advisories:** https://github.com/edithatogo/fyi-cli/security/advisories/new
 
 ---
