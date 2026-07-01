@@ -79,22 +79,22 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Status: TARGET ACHIEVED*
 
 - [x] **Track: bulk-site-enumeration** (COMPLETED — fyi-archive capability)
-  *Link: [./tracks/bulk-site-enumeration/](./tracks/bulk-site-enumeration/)*
+  *Link: [./archive/bulk-site-enumeration/](./archive/bulk-site-enumeration/)*
   *Description: Full-corpus discovery of fyi.org.nz via advanced-search Atom/JSON feeds (date-windowed, paginated) + optional sequential-ID gap backfill. Enables the fyi-archive historical seed.*
   *Consumer: fyi-archive `historical_seed_orchestration_20260627`.*
 
 - [x] **Track: faithful-archive-capture** (COMPLETED — fyi-archive capability)
-  *Link: [./tracks/faithful-archive-capture/](./tracks/faithful-archive-capture/)*
+  *Link: [./archive/faithful-archive-capture/](./archive/faithful-archive-capture/)*
   *Description: Faithful per-request capture (JSON + rendered HTML + attachment binaries) written as WARC 1.1 records packaged into WACZ, with content-addressed attachment dedup. The archival source of truth.*
   *Consumer: fyi-archive `historical_seed_orchestration_20260627`.*
 
 - [x] **Track: archival-content-diff** (COMPLETED — fyi-archive capability)
-  *Link: [./tracks/archival-content-diff/](./tracks/archival-content-diff/)*
+  *Link: [./archive/archival-content-diff/](./archive/archival-content-diff/)*
   *Description: Content-addressed change detection (added/updated/removed by SHA-256 of the captured JSON) → latest_changes.json. Powers the fyi-archive prospective daily sync. Read-only; distinct from the tracker-focused offline-sync-engine.*
   *Consumer: fyi-archive `prospective_sync_orchestration_20260627`.*
 
 - [x] **Track: archive-health-doctor** (COMPLETED — fyi-archive capability)
-  *Link: [./tracks/archive-health-doctor/](./tracks/archive-health-doctor/)*
+  *Link: [./archive/archive-health-doctor/](./archive/archive-health-doctor/)*
   *Description: Archive health reporting (freshness, coverage gaps, raw record counts) consumed by fyi-archive's doctor/parity CI.*
   *Consumer: fyi-archive `observability_quality_20260627`.*
 
