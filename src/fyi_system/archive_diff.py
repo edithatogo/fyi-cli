@@ -33,6 +33,75 @@ def content_sha256(data: dict[str, Any]) -> str:
     return hashlib.sha256(canonical_json(data).encode("utf-8")).hexdigest()
 
 
+def _validate_datetime(value: str | None, field_name: str) -> None:
+    """Validate an ISO-8601 datetime string or null."""
+    if value is None:
+        return
+    try:
+        datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        msg = f"{field_name} must be an ISO-8601 datetime string or null"
+        raise ValueError(msg) from exc
+
+
+def validate_change_entry(entry: object) -> None:
+    """Validate one content-addressed change entry."""
+    if not isinstance(entry, dict):
+        msg = "Change entry must be an object"
+        raise TypeError(msg)
+    request_id = entry.get("request_id")
+    if not isinstance(request_id, int) or request_id < 1:
+        msg = "Change entry request_id must be a positive integer"
+        raise ValueError(msg)
+    digest = entry.get("content_sha256")
+    if (
+        not isinstance(digest, str)
+        or len(digest) != 64
+        or any(char not in "0123456789abcdef" for char in digest)
+    ):
+        msg = "Change entry content_sha256 must be a 64-character lowercase hex string"
+        raise ValueError(msg)
+    previous = entry.get("previous_sha256")
+    if previous is not None and (
+        not isinstance(previous, str)
+        or len(previous) != 64
+        or any(char not in "0123456789abcdef" for char in previous)
+    ):
+        msg = "Change entry previous_sha256 must be null or a 64-character lowercase hex string"
+        raise ValueError(msg)
+
+
+def validate_changes(changes: dict[str, Any]) -> None:
+    """Validate the subset required by changes.schema.json."""
+    if not isinstance(changes, dict):
+        msg = "Changes must be an object"
+        raise TypeError(msg)
+    meta = changes.get("meta")
+    if not isinstance(meta, dict):
+        msg = "Changes must contain object 'meta'"
+        raise TypeError(msg)
+    if not isinstance(meta.get("version"), str):
+        msg = "Changes meta.version must be a string"
+        raise TypeError(msg)
+    if not isinstance(meta.get("generated_at"), str):
+        msg = "Changes meta.generated_at must be a string"
+        raise TypeError(msg)
+    _validate_datetime(meta.get("generated_at"), "Changes meta.generated_at")
+    since = meta.get("since")
+    if since is not None and not isinstance(since, str):
+        msg = "Changes meta.since must be a string or null"
+        raise ValueError(msg)
+    _validate_datetime(since, "Changes meta.since")
+
+    for bucket in ("added", "updated", "removed"):
+        entries = changes.get(bucket)
+        if not isinstance(entries, list):
+            msg = f"Changes {bucket} must be an array"
+            raise TypeError(msg)
+        for entry in entries:
+            validate_change_entry(entry)
+
+
 def load_current_records(derived_dir: Path) -> dict[int, DiffRecord]:
     """Load current request records from the derived capture store."""
     records = {}
@@ -109,6 +178,7 @@ def diff_records(
 
 def write_changes(path: Path, changes: dict[str, Any]) -> None:
     """Write latest_changes.json."""
+    validate_changes(changes)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(changes, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
@@ -118,17 +188,20 @@ def read_cursor(path: Path | None) -> str | None:
     if path is None or not path.exists():
         return None
     data = json.loads(path.read_text(encoding="utf-8"))
-    value = data.get("last_successful_diff")
+    value = data.get("last_successful_diff") or data.get("last_successful_sync")
     return str(value) if value else None
 
 
 def write_cursor(path: Path, generated_at: str) -> None:
     """Write diff high-water cursor."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps({"last_successful_diff": generated_at}, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    payload: dict[str, Any] = {}
+    if path.exists():
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            payload = {}
+    payload["last_successful_diff"] = generated_at
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def run_diff(
@@ -137,17 +210,19 @@ def run_diff(
     previous_manifest: Path,
     output_path: Path,
     cursor_path: Path | None = None,
+    sync_state_path: Path | None = None,
     advance_cursor: bool = False,
     since: str | None = None,
 ) -> dict[str, Any]:
     """Run archive diff and optionally advance cursor after successful write."""
-    effective_since = since if since is not None else read_cursor(cursor_path)
+    state_path = cursor_path or sync_state_path
+    effective_since = since if since is not None else read_cursor(state_path)
     changes = diff_records(
         current=load_current_records(derived_dir),
         previous=load_previous_records(previous_manifest),
         since=effective_since,
     )
     write_changes(output_path, changes)
-    if advance_cursor and cursor_path is not None:
-        write_cursor(cursor_path, str(changes["meta"]["generated_at"]))
+    if advance_cursor and state_path is not None:
+        write_cursor(state_path, str(changes["meta"]["generated_at"]))
     return changes

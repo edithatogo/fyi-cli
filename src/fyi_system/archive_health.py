@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 import json
+import sqlite3
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
+
+from .db import query_all
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -101,28 +105,72 @@ def latest_completed_at(ledger_rows: list[dict[str, Any]]) -> str | None:
     return max(values) if values else None
 
 
+def load_run_log_rows(db_path: Path) -> list[dict[str, Any]]:
+    """Load run log rows from the archive state database."""
+    if not db_path.exists():
+        return []
+    try:
+        return [
+            dict(row)
+            for row in query_all(
+                db_path,
+                "SELECT job_name, status, detail, ran_at, id FROM run_log ORDER BY id DESC",
+            )
+        ]
+    except sqlite3.OperationalError:
+        return []
+
+
+def consecutive_failed_runs(run_log_rows: list[dict[str, Any]]) -> int:
+    """Count consecutive failed runs from newest to oldest."""
+    count = 0
+    for row in run_log_rows:
+        if str(row.get("status")) == "ok":
+            break
+        count += 1
+    return count
+
+
+def parse_utc_timestamp(value: str | None) -> datetime | None:
+    """Parse an ISO-8601 timestamp into UTC-aware datetime."""
+    if not value:
+        return None
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
+
+
 def build_archive_health(
     *,
     discovered_path: Path,
     ledger_path: Path,
     manifest_path: Path,
     sync_state_path: Path,
+    db_path: Path,
     attachments_dir: Path,
     wacz_dir: Path,
     missing_sample_size: int = 25,
+    stale_after_days: int = 14,
 ) -> dict[str, Any]:
     """Build deterministic archive health signals."""
     discovered_rows = load_jsonl(discovered_path)
     ledger_rows = load_jsonl(ledger_path)
     sync_state = load_json(sync_state_path)
+    run_log_rows = load_run_log_rows(db_path)
     discovered = request_ids(discovered_rows)
     captured = captured_ids_from_ledger(ledger_rows)
     missing = sorted(discovered - captured)
     manifest_count = manifest_record_count(manifest_path)
+    last_successful_capture = latest_completed_at(ledger_rows)
+    last_successful_diff = sync_state.get("last_successful_diff") or sync_state.get(
+        "last_successful_sync"
+    )
     report = {
         "schema": "schemas/archive-health.schema.json",
         "freshness": {
-            "last_successful_capture": latest_completed_at(ledger_rows),
+            "last_successful_capture": last_successful_capture,
+            "last_successful_diff": last_successful_diff,
             "last_successful_sync": sync_state.get("last_successful_sync"),
         },
         "coverage": {
@@ -141,12 +189,22 @@ def build_archive_health(
             "attachment_bytes": directory_bytes(attachments_dir),
             "wacz_count": file_count(wacz_dir, "*.wacz"),
         },
+        "runs": {
+            "consecutive_failed_runs": consecutive_failed_runs(run_log_rows),
+            "latest_run_status": run_log_rows[0].get("status") if run_log_rows else None,
+            "latest_run_at": run_log_rows[0].get("ran_at") if run_log_rows else None,
+        },
         "warnings": [],
     }
     if missing:
         report["warnings"].append("coverage_gaps")
     if manifest_count and manifest_count != len(captured):
         report["warnings"].append("manifest_capture_count_mismatch")
+    capture_time = parse_utc_timestamp(last_successful_capture)
+    if capture_time is None or (datetime.now(UTC) - capture_time) > timedelta(days=stale_after_days):
+        report["warnings"].append("stale_data")
+    if report["runs"]["consecutive_failed_runs"]:
+        report["warnings"].append("consecutive_failed_runs")
     return report
 
 

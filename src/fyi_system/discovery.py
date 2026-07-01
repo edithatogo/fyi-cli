@@ -7,13 +7,19 @@ import os
 import random
 import re
 import time
+from contextlib import suppress
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlencode
 
 import httpx
 
-from .db import acquire_shared_rate_limit, read_shared_rate_limit_state
+from .db import (
+    acquire_shared_rate_limit,
+    read_shared_rate_limit_events,
+    read_shared_rate_limit_state,
+    record_shared_rate_limit_backoff,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -109,6 +115,7 @@ class SharedRateLimitSnapshot:
     last_sleep_seconds: float
     interval_seconds: float
     jitter_seconds: float
+    recent_events: list[dict[str, Any]]
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -119,6 +126,7 @@ class SharedRateLimitSnapshot:
             "last_sleep_seconds": self.last_sleep_seconds,
             "interval_seconds": self.interval_seconds,
             "jitter_seconds": self.jitter_seconds,
+            "recent_events": self.recent_events,
         }
 
 
@@ -158,11 +166,24 @@ class SharedRateLimiter:
         if sleep_for > 0:
             self.sleeper(sleep_for)
 
+    def backoff(self, delay_seconds: float, *, status_code: int | None = None) -> dict[str, Any]:
+        """Advance the shared limiter after a transient response."""
+        return record_shared_rate_limit_backoff(
+            self.db_path,
+            name=self.name,
+            delay_seconds=delay_seconds,
+            jitter_seconds=self.jitter_seconds,
+            owner_id=self.owner_id,
+            status_code=status_code,
+            randomizer=self.randomizer,
+        )
+
     def snapshot(self) -> SharedRateLimitSnapshot | None:
         """Read the current shared limiter state from SQLite."""
         row = read_shared_rate_limit_state(self.db_path, name=self.name)
         if row is None:
             return None
+        events = read_shared_rate_limit_events(self.db_path, name=self.name)
         return SharedRateLimitSnapshot(
             name=str(row["name"]),
             next_allowed_at=float(row["next_allowed_at"]),
@@ -171,6 +192,7 @@ class SharedRateLimiter:
             last_sleep_seconds=float(row["last_sleep_seconds"]),
             interval_seconds=float(row["interval_seconds"]),
             jitter_seconds=float(row["jitter_seconds"]),
+            recent_events=events,
         )
 
 
@@ -238,6 +260,31 @@ def load_robots_disallow(http: httpx.Client) -> list[str]:
     return parse_robots_disallow(response.text)
 
 
+def _wait_with_shared_fallback(
+    shared_rate_limiter: SharedRateLimiter | None,
+    rate_limiter: PoliteRateLimiter | None,
+    interval_seconds: float,
+) -> None:
+    if shared_rate_limiter is not None:
+        with suppress(Exception):
+            shared_rate_limiter.wait(interval_seconds)
+            return
+    if rate_limiter is not None:
+        rate_limiter.wait()
+
+
+def _record_shared_backoff(
+    shared_rate_limiter: SharedRateLimiter | None,
+    *,
+    delay_seconds: float,
+    status_code: int,
+) -> None:
+    if shared_rate_limiter is None:
+        return
+    with suppress(Exception):
+        shared_rate_limiter.backoff(delay_seconds, status_code=status_code)
+
+
 def get_with_backoff(
     http: httpx.Client,
     url: str,
@@ -255,15 +302,17 @@ def get_with_backoff(
         msg = f"robots.txt disallows fetching {path}"
         raise PermissionError(msg)
     for attempt in range(retries + 1):
-        if shared_rate_limiter is not None:
-            shared_rate_limiter.wait(backoff_seconds)
-        elif rate_limiter is not None:
-            rate_limiter.wait()
+        _wait_with_shared_fallback(shared_rate_limiter, rate_limiter, backoff_seconds)
         response = http.get(url)
         if response.status_code not in {429, 500, 502, 503, 504}:
             return response
         if attempt == retries:
             return response
+        _record_shared_backoff(
+            shared_rate_limiter,
+            delay_seconds=backoff_seconds * (attempt + 1),
+            status_code=response.status_code,
+        )
         if backoff_seconds > 0:
             sleeper(backoff_seconds * (attempt + 1))
     return response
@@ -402,7 +451,7 @@ def discover_feed(
             if shared_rate_limit_db_path is not None
             else None
         )
-        rate_limiter = None if shared_rate_limiter is not None else PoliteRateLimiter(delay_seconds)
+        rate_limiter = PoliteRateLimiter(delay_seconds)
         while final_page is None or page <= final_page:
             url = build_search_url(
                 base_url=base_url,
@@ -449,7 +498,7 @@ def backfill_ids(
             if shared_rate_limit_db_path is not None
             else None
         )
-        rate_limiter = None if shared_rate_limiter is not None else PoliteRateLimiter(delay_seconds)
+        rate_limiter = PoliteRateLimiter(delay_seconds)
         for request_id in range(id_from, id_to + 1):
             response = get_with_backoff(
                 http,

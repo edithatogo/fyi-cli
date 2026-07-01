@@ -217,6 +217,40 @@ def test_get_with_backoff_enforces_rate_cap() -> None:
     assert sleeps == [1.25]
 
 
+def test_get_with_backoff_falls_back_when_shared_limiter_fails() -> None:
+    local_waits: list[str] = []
+
+    class SharedLimiter:
+        def wait(self, _interval_seconds: float) -> None:
+            msg = "shared limiter unavailable"
+            raise RuntimeError(msg)
+
+        def backoff(self, _delay_seconds: float, *, status_code: int | None = None) -> None:
+            _ = status_code
+            msg = "shared limiter unavailable"
+            raise RuntimeError(msg)
+
+    class LocalLimiter:
+        def wait(self) -> None:
+            local_waits.append("wait")
+
+    with httpx.Client(
+        transport=httpx.MockTransport(lambda request: httpx.Response(200, request=request)),
+        base_url="https://fyi.example",
+    ) as http:
+        response = get_with_backoff(
+            http,
+            "/search/all",
+            disallows=[],
+            shared_rate_limiter=SharedLimiter(),
+            rate_limiter=LocalLimiter(),
+            backoff_seconds=0,
+        )
+
+    assert response.status_code == 200
+    assert local_waits == ["wait"]
+
+
 def test_shared_rate_limit_reserves_across_calls(tmp_path: Path) -> None:
     db_path = tmp_path / "fyi.db"
 
@@ -246,6 +280,41 @@ def test_shared_rate_limit_reserves_across_calls(tmp_path: Path) -> None:
     assert status is not None
     assert status["last_owner_id"] == "worker-2"
     assert status["interval_seconds"] == 1.0
+    assert status["recent_events"][-1]["kind"] == "acquired"
+
+
+def test_shared_rate_limit_records_backoff_events(tmp_path: Path) -> None:
+    db_path = tmp_path / "fyi.db"
+    attempts = {"count": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(200, text="User-agent: *\nDisallow:\n", request=request)
+        attempts["count"] += 1
+        if attempts["count"] == 1:
+            return httpx.Response(429, request=request)
+        return httpx.Response(
+            200,
+            json={"entries": [{"request_id": 1, "url_title": "one"}]},
+            request=request,
+        )
+
+    rows = discover_feed(
+        base_url="https://fyi.example",
+        delay_seconds=0,
+        shared_rate_limit_db_path=db_path,
+        transport=httpx.MockTransport(handler),
+    )
+
+    status = shared_rate_limit_status(db_path, name="archive-discovery")
+
+    assert [row.request_id for row in rows] == [1]
+    assert attempts["count"] == 2
+    assert status is not None
+    assert any(
+        event["kind"] == "backoff" and event["status_code"] == 429
+        for event in status["recent_events"]
+    )
 
 
 def test_discover_feed_uses_shared_rate_limit_db(tmp_path: Path) -> None:

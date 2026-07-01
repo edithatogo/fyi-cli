@@ -156,8 +156,10 @@ def cmd_archive_health(args):
         ledger_path=Path(args.ledger),
         manifest_path=Path(args.manifest),
         sync_state_path=Path(args.sync_state),
+        db_path=Path(args.db),
         attachments_dir=Path(args.attachments_dir),
         wacz_dir=Path(args.wacz_dir),
+        stale_after_days=args.stale_after_days,
     )
     if args.output:
         write_archive_health(Path(args.output), report)
@@ -187,6 +189,7 @@ def cmd_diff(args):
         previous_manifest=Path(args.previous_manifest),
         output_path=Path(args.output),
         cursor_path=Path(args.cursor) if args.cursor else None,
+        sync_state_path=Path(args.sync_state) if args.sync_state else None,
         advance_cursor=args.advance_cursor,
         since=args.since,
     )
@@ -443,8 +446,10 @@ def build_parser():
     sp.add_argument('--ledger', default='data/_state/ledger.jsonl')
     sp.add_argument('--manifest', default='manifests/latest_manifest.json')
     sp.add_argument('--sync-state', default='data/_state/sync_state.json')
+    sp.add_argument('--db', default='fyi_system.db')
     sp.add_argument('--attachments-dir', default='data/attachments')
     sp.add_argument('--wacz-dir', default='dist/site_snapshots')
+    sp.add_argument('--stale-after-days', type=int, default=14)
     sp.add_argument('--output')
     sp.set_defaults(func=cmd_archive_health)
 
@@ -465,6 +470,7 @@ def build_parser():
     sp.add_argument('--previous-manifest', default='manifests/latest_manifest.json')
     sp.add_argument('--output', default='manifests/latest_changes.json')
     sp.add_argument('--cursor')
+    sp.add_argument('--sync-state', default='data/_state/sync_state.json')
     sp.add_argument('--since')
     sp.add_argument('--advance-cursor', action='store_true')
     sp.set_defaults(func=cmd_diff)

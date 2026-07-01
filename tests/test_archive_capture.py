@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import gzip
+import json
 import zipfile
 from typing import TYPE_CHECKING
 
@@ -60,6 +61,60 @@ def capture_transport() -> httpx.MockTransport:
     return httpx.MockTransport(handler)
 
 
+def capture_transport_without_attachments() -> httpx.MockTransport:
+    """Build a mocked FYI request with no attachments."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        path = request.url.path
+        if path == "/request/123.json":
+            return httpx.Response(
+                200,
+                json={
+                    "id": 123,
+                    "url_title": "example_request",
+                    "title": "Example request",
+                    "authority": {"url_name": "agency", "name": "Agency"},
+                    "attachments": [],
+                },
+                headers={"content-type": "application/json"},
+                request=request,
+            )
+        if path == "/request/example_request":
+            return httpx.Response(
+                200,
+                content=b"<html>Example</html>",
+                headers={"content-type": "text/html"},
+                request=request,
+            )
+        return httpx.Response(404, request=request)
+
+    return httpx.MockTransport(handler)
+
+
+def capture_transport_with_exact_cap() -> httpx.MockTransport:
+    """Build a mocked FYI request whose JSON payload is exactly two bytes."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        path = request.url.path
+        if path == "/request/123.json":
+            return httpx.Response(
+                200,
+                content=b"{}",
+                headers={"content-type": "application/json"},
+                request=request,
+            )
+        if path == "/request/123":
+            return httpx.Response(
+                200,
+                content=b"<html>Example</html>",
+                headers={"content-type": "text/html"},
+                request=request,
+            )
+        return httpx.Response(404, request=request)
+
+    return httpx.MockTransport(handler)
+
+
 def test_capture_request_writes_warc_wacz_and_derived_store(tmp_path: Path) -> None:
     summary = capture_request(
         request_ref="123",
@@ -88,6 +143,31 @@ def test_capture_request_writes_warc_wacz_and_derived_store(tmp_path: Path) -> N
         names = set(archive.namelist())
     assert "datapackage.json" in names
     assert "indexes/index.cdxj" in names
+
+
+def test_capture_request_derived_store_matches_warc_contents(tmp_path: Path) -> None:
+    summary = capture_request(
+        request_ref="123",
+        base_url="https://fyi.example",
+        data_dir=tmp_path / "data",
+        dist_dir=tmp_path / "dist",
+        transport=capture_transport(),
+    )
+
+    warc_path = tmp_path / summary["warc_path"]
+    derived_path = tmp_path / summary["derived_path"]
+
+    with gzip.open(warc_path, "rb") as stream:
+        records = list(ArchiveIterator(stream))
+
+    derived_snapshot = json.loads((derived_path / "snapshot_meta.json").read_text())
+    derived_attachments = json.loads((derived_path / "attachments.json").read_text())
+
+    assert len(records) == len(summary["resources"])
+    assert derived_snapshot["resources"] == summary["resources"]
+    assert derived_attachments == [
+        resource for resource in summary["resources"] if resource["kind"] == "attachment"
+    ]
 
 
 def test_capture_request_dedupes_attachment_payloads(tmp_path: Path) -> None:
@@ -157,7 +237,23 @@ def test_capture_request_respects_max_bytes(tmp_path: Path) -> None:
             data_dir=tmp_path / "data",
             dist_dir=tmp_path / "dist",
             caps=CaptureCaps(max_bytes=1),
-            transport=capture_transport(),
+            transport=capture_transport_without_attachments(),
+        )
+
+    warc_files = list((tmp_path / "data" / "warc").glob("*.warc.gz"))
+    assert warc_files
+    assert warc_files[0].stat().st_size > 0
+
+
+def test_capture_request_aborts_on_exact_max_bytes_boundary(tmp_path: Path) -> None:
+    with pytest.raises(RuntimeError, match="max_bytes"):
+        capture_request(
+            request_ref="123",
+            base_url="https://fyi.example",
+            data_dir=tmp_path / "data",
+            dist_dir=tmp_path / "dist",
+            caps=CaptureCaps(max_bytes=2),
+            transport=capture_transport_with_exact_cap(),
         )
 
 
