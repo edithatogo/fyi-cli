@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 import httpx
 import pytest
 
+from fyi_system.db import acquire_shared_rate_limit
 from fyi_system.discovery import (
     PoliteRateLimiter,
     backfill_ids,
@@ -15,6 +16,7 @@ from fyi_system.discovery import (
     get_with_backoff,
     parse_feed_entries,
     reconcile_discovery_files,
+    shared_rate_limit_status,
     write_jsonl,
 )
 
@@ -213,6 +215,59 @@ def test_get_with_backoff_enforces_rate_cap() -> None:
         )
 
     assert sleeps == [1.25]
+
+
+def test_shared_rate_limit_reserves_across_calls(tmp_path: Path) -> None:
+    db_path = tmp_path / "fyi.db"
+
+    first = acquire_shared_rate_limit(
+        db_path,
+        name="archive-discovery",
+        interval_seconds=1.0,
+        jitter_seconds=0.0,
+        owner_id="worker-1",
+        now=0.0,
+        randomizer=lambda: 0.0,
+    )
+    second = acquire_shared_rate_limit(
+        db_path,
+        name="archive-discovery",
+        interval_seconds=1.0,
+        jitter_seconds=0.0,
+        owner_id="worker-2",
+        now=0.0,
+        randomizer=lambda: 0.0,
+    )
+
+    status = shared_rate_limit_status(db_path, name="archive-discovery")
+
+    assert first["sleep_seconds"] == 0.0
+    assert second["sleep_seconds"] == 1.0
+    assert status is not None
+    assert status["last_owner_id"] == "worker-2"
+    assert status["interval_seconds"] == 1.0
+
+
+def test_discover_feed_uses_shared_rate_limit_db(tmp_path: Path) -> None:
+    db_path = tmp_path / "fyi.db"
+
+    rows = discover_feed(
+        base_url="https://fyi.example",
+        delay_seconds=0,
+        shared_rate_limit_db_path=db_path,
+        transport=httpx.MockTransport(
+            lambda request: httpx.Response(
+                200,
+                json={"entries": [{"request_id": 1, "url_title": "one"}]},
+                request=request,
+            ),
+        ),
+    )
+
+    status = shared_rate_limit_status(db_path, name="archive-discovery")
+
+    assert [row.request_id for row in rows] == [1]
+    assert status is not None
 
 
 def test_reconcile_discovery_files_reports_set_gaps(tmp_path: Path) -> None:

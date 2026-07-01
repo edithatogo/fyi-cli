@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import random
 import re
 import time
@@ -11,6 +12,8 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import urlencode
 
 import httpx
+
+from .db import acquire_shared_rate_limit, read_shared_rate_limit_state
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -95,6 +98,82 @@ class PoliteRateLimiter:
         self.next_allowed_at = now + self.interval_seconds + jitter
 
 
+@dataclass(frozen=True)
+class SharedRateLimitSnapshot:
+    """Snapshot of a shared rate limit state row."""
+
+    name: str
+    next_allowed_at: float
+    last_acquired_at: str
+    last_owner_id: str
+    last_sleep_seconds: float
+    interval_seconds: float
+    jitter_seconds: float
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "next_allowed_at": self.next_allowed_at,
+            "last_acquired_at": self.last_acquired_at,
+            "last_owner_id": self.last_owner_id,
+            "last_sleep_seconds": self.last_sleep_seconds,
+            "interval_seconds": self.interval_seconds,
+            "jitter_seconds": self.jitter_seconds,
+        }
+
+
+class SharedRateLimiter:
+    """Cross-process limiter backed by a SQLite coordination row."""
+
+    def __init__(
+        self,
+        db_path: str | Path,
+        *,
+        name: str = "archive-discovery",
+        jitter_seconds: float = 0.25,
+        owner_id: str | None = None,
+        sleeper: Any = time.sleep,
+        randomizer: Any = random.random,
+    ) -> None:
+        self.db_path = db_path
+        self.name = name
+        self.jitter_seconds = max(jitter_seconds, 0)
+        self.owner_id = owner_id or f"pid:{os.getpid()}"
+        self.sleeper = sleeper
+        self.randomizer = randomizer
+        self.last_acquire: dict[str, Any] | None = None
+
+    def wait(self, interval_seconds: float) -> None:
+        """Reserve and sleep for the next shared slot."""
+        state = acquire_shared_rate_limit(
+            self.db_path,
+            name=self.name,
+            interval_seconds=interval_seconds,
+            jitter_seconds=self.jitter_seconds,
+            owner_id=self.owner_id,
+            randomizer=self.randomizer,
+        )
+        self.last_acquire = state
+        sleep_for = float(state["sleep_seconds"])
+        if sleep_for > 0:
+            self.sleeper(sleep_for)
+
+    def snapshot(self) -> SharedRateLimitSnapshot | None:
+        """Read the current shared limiter state from SQLite."""
+        row = read_shared_rate_limit_state(self.db_path, name=self.name)
+        if row is None:
+            return None
+        return SharedRateLimitSnapshot(
+            name=str(row["name"]),
+            next_allowed_at=float(row["next_allowed_at"]),
+            last_acquired_at=str(row["last_acquired_at"]),
+            last_owner_id=str(row["last_owner_id"]),
+            last_sleep_seconds=float(row["last_sleep_seconds"]),
+            interval_seconds=float(row["interval_seconds"]),
+            jitter_seconds=float(row["jitter_seconds"]),
+        )
+
+
 def build_search_url(
     *,
     base_url: str,
@@ -164,6 +243,7 @@ def get_with_backoff(
     url: str,
     *,
     disallows: list[str],
+    shared_rate_limiter: SharedRateLimiter | None = None,
     rate_limiter: PoliteRateLimiter | None = None,
     retries: int = 3,
     backoff_seconds: float = 1.0,
@@ -175,7 +255,9 @@ def get_with_backoff(
         msg = f"robots.txt disallows fetching {path}"
         raise PermissionError(msg)
     for attempt in range(retries + 1):
-        if rate_limiter is not None:
+        if shared_rate_limiter is not None:
+            shared_rate_limiter.wait(backoff_seconds)
+        elif rate_limiter is not None:
             rate_limiter.wait()
         response = http.get(url)
         if response.status_code not in {429, 500, 502, 503, 504}:
@@ -305,6 +387,8 @@ def discover_feed(
     checkpoint_path: Path | None = None,
     max_pages: int | None = None,
     delay_seconds: float = 1.0,
+    shared_rate_limit_db_path: str | Path | None = None,
+    shared_rate_limit_name: str = "archive-discovery",
     transport: httpx.BaseTransport | None = None,
 ) -> list[DiscoveredRequest]:
     """Walk paginated search feed pages and return deduplicated requests."""
@@ -313,7 +397,12 @@ def discover_feed(
     all_entries: list[DiscoveredRequest] = []
     with client(base_url, transport=transport) as http:
         disallows = load_robots_disallow(http)
-        rate_limiter = PoliteRateLimiter(delay_seconds)
+        shared_rate_limiter = (
+            SharedRateLimiter(shared_rate_limit_db_path, name=shared_rate_limit_name)
+            if shared_rate_limit_db_path is not None
+            else None
+        )
+        rate_limiter = None if shared_rate_limiter is not None else PoliteRateLimiter(delay_seconds)
         while final_page is None or page <= final_page:
             url = build_search_url(
                 base_url=base_url,
@@ -327,6 +416,7 @@ def discover_feed(
                 http,
                 url,
                 disallows=disallows,
+                shared_rate_limiter=shared_rate_limiter,
                 rate_limiter=rate_limiter,
                 backoff_seconds=delay_seconds,
             )
@@ -346,18 +436,26 @@ def backfill_ids(
     id_to: int,
     base_url: str = "https://fyi.org.nz",
     delay_seconds: float = 1.0,
+    shared_rate_limit_db_path: str | Path | None = None,
+    shared_rate_limit_name: str = "archive-discovery",
     transport: httpx.BaseTransport | None = None,
 ) -> list[DiscoveredRequest]:
     """Probe numeric request IDs, following redirects to url_title slugs."""
     entries = []
     with client(base_url, transport=transport) as http:
         disallows = load_robots_disallow(http)
-        rate_limiter = PoliteRateLimiter(delay_seconds)
+        shared_rate_limiter = (
+            SharedRateLimiter(shared_rate_limit_db_path, name=shared_rate_limit_name)
+            if shared_rate_limit_db_path is not None
+            else None
+        )
+        rate_limiter = None if shared_rate_limiter is not None else PoliteRateLimiter(delay_seconds)
         for request_id in range(id_from, id_to + 1):
             response = get_with_backoff(
                 http,
                 f"/request/{request_id}.json",
                 disallows=disallows,
+                shared_rate_limiter=shared_rate_limiter,
                 rate_limiter=rate_limiter,
                 backoff_seconds=delay_seconds,
             )
@@ -413,3 +511,13 @@ def reconcile_discovery_files(feed_path: Path, backfill_path: Path) -> Discovery
         missing_from_feed=sorted(backfill_ids - feed_ids),
         missing_from_backfill=sorted(feed_ids - backfill_ids),
     )
+
+
+def shared_rate_limit_status(
+    db_path: str | Path,
+    *,
+    name: str = "archive-discovery",
+) -> dict[str, Any] | None:
+    """Return the current shared limiter state as plain JSON-compatible data."""
+    snapshot = SharedRateLimiter(db_path, name=name).snapshot()
+    return snapshot.to_dict() if snapshot is not None else None

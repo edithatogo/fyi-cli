@@ -7,7 +7,7 @@ from .archive_capture import CaptureCaps, capture_request
 from .archive_diff import run_diff
 from .archive_health import build_archive_health, write_archive_health
 from .db import init_db, query_all, connect, get_tracked_request, export_tracked_requests, import_tracked_requests, request_timeline, update_request_status
-from .discovery import backfill_ids, discover_feed, reconcile_discovery_files, write_jsonl
+from .discovery import backfill_ids, discover_feed, reconcile_discovery_files, shared_rate_limit_status, write_jsonl
 from .fyi import build_prefilled_url
 from .importers import DEFAULT_AUTHORITIES_URL, import_authorities_csv, import_authorities_url
 from .monitor import ingest_feed, reconcile_events
@@ -109,6 +109,7 @@ def cmd_discover(args):
             id_to=args.id_to,
             base_url=args.base_url,
             delay_seconds=args.delay_seconds,
+            shared_rate_limit_db_path=args.db,
         )
     else:
         rows = discover_feed(
@@ -120,6 +121,7 @@ def cmd_discover(args):
             checkpoint_path=Path(args.checkpoint) if args.checkpoint else None,
             max_pages=args.max_pages,
             delay_seconds=args.delay_seconds,
+            shared_rate_limit_db_path=args.db,
         )
     if args.output:
         write_jsonl(Path(args.output), rows)
@@ -132,6 +134,15 @@ def cmd_discover(args):
 def cmd_discover_reconcile(args):
     report = reconcile_discovery_files(Path(args.feed), Path(args.backfill))
     payload = report.to_dict()
+    if args.output:
+        Path(args.output).write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(args.output)
+    else:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+
+
+def cmd_rate_limit_status(args):
+    payload = shared_rate_limit_status(args.db, name=args.name)
     if args.output:
         Path(args.output).write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         print(args.output)
@@ -408,8 +419,16 @@ def build_parser():
     sp.add_argument('--backfill-ids', action='store_true')
     sp.add_argument('--id-from', type=int)
     sp.add_argument('--id-to', type=int)
+    sp.add_argument('--db', default='fyi_system.db')
     sp.add_argument('--output')
     sp.set_defaults(func=cmd_discover)
+
+    # Command: rate-limit-status
+    sp = sub.add_parser('rate-limit-status')
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.add_argument('--name', default='archive-discovery')
+    sp.add_argument('--output')
+    sp.set_defaults(func=cmd_rate_limit_status)
 
     # Command: discover-reconcile
     sp = sub.add_parser('discover-reconcile')
