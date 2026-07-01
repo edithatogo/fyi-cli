@@ -67,6 +67,16 @@ CREATE TABLE IF NOT EXISTS shared_rate_limit_state (
   interval_seconds REAL NOT NULL DEFAULT 0,
   jitter_seconds REAL NOT NULL DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS shared_rate_limit_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  owner_id TEXT NOT NULL DEFAULT '',
+  status_code INTEGER,
+  delay_seconds REAL NOT NULL DEFAULT 0,
+  next_allowed_at REAL NOT NULL DEFAULT 0,
+  observed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 
@@ -237,6 +247,127 @@ def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _ensure_shared_rate_limit_tables(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS shared_rate_limit_state (
+          name TEXT PRIMARY KEY,
+          next_allowed_at REAL NOT NULL DEFAULT 0,
+          last_acquired_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          last_owner_id TEXT NOT NULL DEFAULT '',
+          last_sleep_seconds REAL NOT NULL DEFAULT 0,
+          interval_seconds REAL NOT NULL DEFAULT 0,
+          jitter_seconds REAL NOT NULL DEFAULT 0
+        )
+        """,
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS shared_rate_limit_events (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          kind TEXT NOT NULL,
+          owner_id TEXT NOT NULL DEFAULT '',
+          status_code INTEGER,
+          delay_seconds REAL NOT NULL DEFAULT 0,
+          next_allowed_at REAL NOT NULL DEFAULT 0,
+          observed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+        """,
+    )
+
+
+def _reserve_shared_rate_limit(
+    conn: sqlite3.Connection,
+    *,
+    name: str,
+    interval_seconds: float,
+    jitter_seconds: float = 0.25,
+    owner_id: str | None = None,
+    now: float | None = None,
+    randomizer: Any = random.random,
+    kind: str,
+    status_code: int | None = None,
+) -> dict[str, Any]:
+    interval_seconds = max(float(interval_seconds), 0.0)
+    jitter_seconds = max(float(jitter_seconds), 0.0)
+    owner_id = owner_id or f"pid:{os.getpid()}"
+    current_time = float(now if now is not None else time.time())
+    jitter = jitter_seconds * float(randomizer()) if interval_seconds > 0 else 0.0
+
+    conn.execute("BEGIN IMMEDIATE")
+    row = conn.execute(
+        "SELECT next_allowed_at FROM shared_rate_limit_state WHERE name = ?",
+        (name,),
+    ).fetchone()
+    previous_next_allowed_at = float(row["next_allowed_at"]) if row else 0.0
+    scheduled_at = max(current_time, previous_next_allowed_at)
+    sleep_seconds = max(0.0, scheduled_at - current_time)
+    next_allowed_at = scheduled_at + interval_seconds + jitter
+    conn.execute(
+        """
+        INSERT INTO shared_rate_limit_state(
+          name,
+          next_allowed_at,
+          last_acquired_at,
+          last_owner_id,
+          last_sleep_seconds,
+          interval_seconds,
+          jitter_seconds
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(name) DO UPDATE SET
+          next_allowed_at=excluded.next_allowed_at,
+          last_acquired_at=excluded.last_acquired_at,
+          last_owner_id=excluded.last_owner_id,
+          last_sleep_seconds=excluded.last_sleep_seconds,
+          interval_seconds=excluded.interval_seconds,
+          jitter_seconds=excluded.jitter_seconds
+        """,
+        (
+            name,
+            next_allowed_at,
+            _utc_now_iso(),
+            owner_id,
+            sleep_seconds,
+            interval_seconds,
+            jitter_seconds,
+        ),
+    )
+    conn.execute(
+        """
+        INSERT INTO shared_rate_limit_events(
+          name,
+          kind,
+          owner_id,
+          status_code,
+          delay_seconds,
+          next_allowed_at,
+          observed_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            name,
+            kind,
+            owner_id,
+            status_code,
+            sleep_seconds if kind == 'acquired' else interval_seconds,
+            next_allowed_at,
+            _utc_now_iso(),
+        ),
+    )
+    return {
+        "name": name,
+        "owner_id": owner_id,
+        "sleep_seconds": sleep_seconds,
+        "next_allowed_at": next_allowed_at,
+        "previous_next_allowed_at": previous_next_allowed_at,
+        "interval_seconds": interval_seconds,
+        "jitter_seconds": jitter_seconds,
+        "kind": kind,
+        "status_code": status_code,
+    }
+
+
 def acquire_shared_rate_limit(
     db_path: str | Path,
     *,
@@ -248,76 +379,58 @@ def acquire_shared_rate_limit(
     randomizer: Any = random.random,
 ) -> dict[str, Any]:
     """Atomically reserve the next slot in a shared rate limit."""
-    interval_seconds = max(float(interval_seconds), 0.0)
-    jitter_seconds = max(float(jitter_seconds), 0.0)
-    owner_id = owner_id or f"pid:{os.getpid()}"
-    current_time = float(now if now is not None else time.time())
-    jitter = jitter_seconds * float(randomizer()) if interval_seconds > 0 else 0.0
-
     conn = connect(db_path)
     try:
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS shared_rate_limit_state (
-              name TEXT PRIMARY KEY,
-              next_allowed_at REAL NOT NULL DEFAULT 0,
-              last_acquired_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-              last_owner_id TEXT NOT NULL DEFAULT '',
-              last_sleep_seconds REAL NOT NULL DEFAULT 0,
-              interval_seconds REAL NOT NULL DEFAULT 0,
-              jitter_seconds REAL NOT NULL DEFAULT 0
-            )
-            """,
+        _ensure_shared_rate_limit_tables(conn)
+        conn.commit()
+        result = _reserve_shared_rate_limit(
+            conn,
+            name=name,
+            interval_seconds=interval_seconds,
+            jitter_seconds=jitter_seconds,
+            owner_id=owner_id,
+            now=now,
+            randomizer=randomizer,
+            kind="acquired",
         )
         conn.commit()
-        conn.execute("BEGIN IMMEDIATE")
-        row = conn.execute(
-            "SELECT next_allowed_at FROM shared_rate_limit_state WHERE name = ?",
-            (name,),
-        ).fetchone()
-        previous_next_allowed_at = float(row["next_allowed_at"]) if row else 0.0
-        scheduled_at = max(current_time, previous_next_allowed_at)
-        sleep_seconds = max(0.0, scheduled_at - current_time)
-        next_allowed_at = scheduled_at + interval_seconds + jitter
-        conn.execute(
-            """
-            INSERT INTO shared_rate_limit_state(
-              name,
-              next_allowed_at,
-              last_acquired_at,
-              last_owner_id,
-              last_sleep_seconds,
-              interval_seconds,
-              jitter_seconds
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(name) DO UPDATE SET
-              next_allowed_at=excluded.next_allowed_at,
-              last_acquired_at=excluded.last_acquired_at,
-              last_owner_id=excluded.last_owner_id,
-              last_sleep_seconds=excluded.last_sleep_seconds,
-              interval_seconds=excluded.interval_seconds,
-              jitter_seconds=excluded.jitter_seconds
-            """,
-            (
-                name,
-                next_allowed_at,
-                _utc_now_iso(),
-                owner_id,
-                sleep_seconds,
-                interval_seconds,
-                jitter_seconds,
-            ),
+        return result
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+def record_shared_rate_limit_backoff(
+    db_path: str | Path,
+    *,
+    name: str,
+    delay_seconds: float,
+    jitter_seconds: float = 0.25,
+    owner_id: str | None = None,
+    now: float | None = None,
+    status_code: int | None = None,
+    randomizer: Any = random.random,
+) -> dict[str, Any]:
+    """Advance the shared rate limit after a transient failure."""
+    conn = connect(db_path)
+    try:
+        _ensure_shared_rate_limit_tables(conn)
+        conn.commit()
+        result = _reserve_shared_rate_limit(
+            conn,
+            name=name,
+            interval_seconds=delay_seconds,
+            jitter_seconds=jitter_seconds,
+            owner_id=owner_id,
+            now=now,
+            randomizer=randomizer,
+            kind="backoff",
+            status_code=status_code,
         )
         conn.commit()
-        return {
-            "name": name,
-            "owner_id": owner_id,
-            "sleep_seconds": sleep_seconds,
-            "next_allowed_at": next_allowed_at,
-            "previous_next_allowed_at": previous_next_allowed_at,
-            "interval_seconds": interval_seconds,
-            "jitter_seconds": jitter_seconds,
-        }
+        return result
     except Exception:
         conn.rollback()
         raise
@@ -329,19 +442,7 @@ def read_shared_rate_limit_state(db_path: str | Path, *, name: str) -> dict[str,
     """Read the current shared rate limit state snapshot."""
     conn = connect(db_path)
     try:
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS shared_rate_limit_state (
-              name TEXT PRIMARY KEY,
-              next_allowed_at REAL NOT NULL DEFAULT 0,
-              last_acquired_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-              last_owner_id TEXT NOT NULL DEFAULT '',
-              last_sleep_seconds REAL NOT NULL DEFAULT 0,
-              interval_seconds REAL NOT NULL DEFAULT 0,
-              jitter_seconds REAL NOT NULL DEFAULT 0
-            )
-            """,
-        )
+        _ensure_shared_rate_limit_tables(conn)
         conn.commit()
         row = conn.execute(
             """
@@ -359,5 +460,37 @@ def read_shared_rate_limit_state(db_path: str | Path, *, name: str) -> dict[str,
             (name,),
         ).fetchone()
         return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def read_shared_rate_limit_events(
+    db_path: str | Path,
+    *,
+    name: str,
+    limit: int = 10,
+) -> list[dict[str, Any]]:
+    """Return the most recent shared limiter events."""
+    conn = connect(db_path)
+    try:
+        _ensure_shared_rate_limit_tables(conn)
+        conn.commit()
+        rows = conn.execute(
+            """
+            SELECT
+              kind,
+              owner_id,
+              status_code,
+              delay_seconds,
+              next_allowed_at,
+              observed_at
+            FROM shared_rate_limit_events
+            WHERE name = ?
+            ORDER BY id DESC
+            LIMIT ?
+            """,
+            (name, limit),
+        ).fetchall()
+        return [dict(row) for row in rows]
     finally:
         conn.close()

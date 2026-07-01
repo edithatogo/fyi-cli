@@ -74,11 +74,11 @@ def ensure_disk_budget(path: Path, max_disk_gb: float | None) -> None:
 
 def cap_exceeded(*, started_at: float, bytes_written: int, caps: CaptureCaps) -> str | None:
     """Return first exceeded cap name."""
-    if caps.max_bytes is not None and bytes_written > caps.max_bytes:
+    if caps.max_bytes is not None and bytes_written >= caps.max_bytes:
         return "max_bytes"
     if caps.max_runtime_minutes is not None:
         elapsed_minutes = (time.monotonic() - started_at) / 60
-        if elapsed_minutes > caps.max_runtime_minutes:
+        if elapsed_minutes >= caps.max_runtime_minutes:
             return "max_runtime_minutes"
     return None
 
@@ -217,6 +217,44 @@ def capture_request(
     resources: list[CapturedResource] = []
     bytes_written = 0
 
+    def record_resource(
+        *,
+        writer: WARCWriter,
+        kind: str,
+        response: httpx.Response,
+        payload: bytes,
+        path: str | None = None,
+    ) -> None:
+        nonlocal bytes_written
+        digest = sha256_bytes(payload)
+        record_id = write_warc_record(
+            writer=writer,
+            url=str(response.url),
+            payload=payload,
+            response=response,
+            digest=digest,
+        )
+        resources.append(
+            CapturedResource(
+                kind=kind,
+                url=str(response.url),
+                content_type=response_content_type(response),
+                size=len(payload),
+                sha256=digest,
+                path=path,
+                warc_record_id=record_id,
+            ),
+        )
+        bytes_written += len(payload)
+        exceeded = cap_exceeded(
+            started_at=started_at,
+            bytes_written=bytes_written,
+            caps=caps,
+        )
+        if exceeded is not None:
+            msg = f"Capture aborted because {exceeded} was exceeded"
+            raise RuntimeError(msg)
+
     with client(base_url, transport=transport) as http:
         json_response = http.get(f"/request/{request_ref}.json")
         if json_response.status_code == 404:
@@ -241,25 +279,12 @@ def capture_request(
                 ("json", json_response, json_response.content),
                 ("html", html_response, html_response.content),
             ):
-                digest = sha256_bytes(payload)
-                record_id = write_warc_record(
+                record_resource(
                     writer=writer,
-                    url=str(response.url),
-                    payload=payload,
+                    kind=kind,
                     response=response,
-                    digest=digest,
+                    payload=payload,
                 )
-                resources.append(
-                    CapturedResource(
-                        kind=kind,
-                        url=str(response.url),
-                        content_type=response_content_type(response),
-                        size=len(payload),
-                        sha256=digest,
-                        warc_record_id=record_id,
-                    ),
-                )
-                bytes_written += len(payload)
 
             for attachment in extract_request_artifacts(request_json)["attachments"]:
                 attachment_url = urljoin(base_url.rstrip("/") + "/", str(attachment["url"]))
@@ -268,35 +293,14 @@ def capture_request(
                     continue
                 response.raise_for_status()
                 payload = response.content
-                digest = sha256_bytes(payload)
                 attachment_path = write_attachment_payload(attachments_dir, payload)
-                record_id = write_warc_record(
+                record_resource(
                     writer=writer,
-                    url=str(response.url),
-                    payload=payload,
+                    kind="attachment",
                     response=response,
-                    digest=digest,
+                    payload=payload,
+                    path=attachment_path.as_posix(),
                 )
-                resources.append(
-                    CapturedResource(
-                        kind="attachment",
-                        url=str(response.url),
-                        content_type=response_content_type(response),
-                        size=len(payload),
-                        sha256=digest,
-                        path=attachment_path.as_posix(),
-                        warc_record_id=record_id,
-                    ),
-                )
-                bytes_written += len(payload)
-                exceeded = cap_exceeded(
-                    started_at=started_at,
-                    bytes_written=bytes_written,
-                    caps=caps,
-                )
-                if exceeded is not None:
-                    msg = f"Capture aborted because {exceeded} was exceeded"
-                    raise RuntimeError(msg)
 
     derived_path = write_derived_store(
         derived_dir=derived_dir,

@@ -229,6 +229,12 @@ transient `429`/`5xx` responses. Keep live runs polite: use small date windows,
 resume with checkpoints, and coordinate archive work with the ethics guidance in
 the sibling `fyi-archive` repo at `docs/ethics-and-compliance.md`.
 
+For concurrent workers, point `discover` and `backfill` at the same SQLite
+database with `--db`. That enables the shared cross-worker limiter, which
+reserves one aggregate request slot across processes and records both normal
+reservations and transient-failure backoff events. Inspect the current state
+with `fyi rate-limit-status --db fyi_system.db`.
+
 ### CLI and MCP surfaces
 
 The full command and server cross-reference is maintained in [docs/cli-entrypoints-audit.md](docs/cli-entrypoints-audit.md). It covers the Python CLI entrypoints (`fyi`, `fyi-cli`, `fyi-system`), the Rust CLI binary (`fyi-cli`), and the Rust MCP server (`fyi-mcp`) with its published registry pages.
