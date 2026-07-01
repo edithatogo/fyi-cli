@@ -1333,15 +1333,62 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
     }
 }
 
+fn truthy_env_var(name: &str) -> bool {
+    std::env::var(name)
+        .map(|value| {
+            matches!(
+                value.to_ascii_lowercase().as_str(),
+                "1" | "true" | "yes" | "on"
+            )
+        })
+        .unwrap_or(false)
+}
+
+fn should_use_ephemeral_database() -> bool {
+    truthy_env_var("FYI_MCP_EPHEMERAL")
+        || truthy_env_var("FYI_MCP_INSPECTION")
+        || std::env::var_os("GLAMA_VERSION").is_some()
+}
+
+fn sqlite_url_with_create_mode(database_url: String) -> String {
+    if database_url == "sqlite::memory:" || !database_url.starts_with("sqlite:") {
+        return database_url;
+    }
+
+    if database_url.contains("mode=") {
+        return database_url;
+    }
+
+    let separator = if database_url.contains('?') { '&' } else { '?' };
+    format!("{database_url}{separator}mode=rwc")
+}
+
+fn database_url_from_env() -> String {
+    if should_use_ephemeral_database() {
+        "sqlite::memory:".to_string()
+    } else {
+        sqlite_url_with_create_mode(
+            std::env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite://fyi_system.db".to_string()),
+        )
+    }
+}
+
+async fn open_database(database_url: &str) -> Result<DbPool, sqlx::Error> {
+    if database_url == "sqlite::memory:" {
+        DbPool::new_in_memory().await
+    } else {
+        DbPool::new(database_url).await
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     eprintln!("FYI MCP Server starting up...");
 
-    let db_path =
-        std::env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite://fyi_system.db".to_string());
+    let db_path = database_url_from_env();
 
     eprintln!("Connecting to database at: {}", db_path);
-    let db = DbPool::new(&db_path).await?;
+    let db = open_database(&db_path).await?;
     db.run_migrations().await?;
     ensure_authorities_table(db.pool()).await?;
 
@@ -1377,6 +1424,55 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
+
+    fn clear_database_env() {
+        std::env::remove_var("DATABASE_URL");
+        std::env::remove_var("FYI_MCP_EPHEMERAL");
+        std::env::remove_var("FYI_MCP_INSPECTION");
+        std::env::remove_var("GLAMA_VERSION");
+    }
+
+    #[test]
+    fn test_database_url_defaults_to_create_mode() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        clear_database_env();
+
+        assert_eq!(
+            database_url_from_env(),
+            "sqlite://fyi_system.db?mode=rwc".to_string()
+        );
+
+        clear_database_env();
+    }
+
+    #[test]
+    fn test_database_url_preserves_explicit_create_mode() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        clear_database_env();
+        std::env::set_var("DATABASE_URL", "sqlite:///tmp/fyi_system.db?mode=rwc");
+
+        assert_eq!(
+            database_url_from_env(),
+            "sqlite:///tmp/fyi_system.db?mode=rwc".to_string()
+        );
+
+        clear_database_env();
+    }
+
+    #[test]
+    fn test_database_url_uses_memory_for_glama_inspection() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        clear_database_env();
+        std::env::set_var("DATABASE_URL", "sqlite:///tmp/fyi_system.db?mode=rwc");
+        std::env::set_var("GLAMA_VERSION", "1.0.0");
+
+        assert_eq!(database_url_from_env(), "sqlite::memory:".to_string());
+
+        clear_database_env();
+    }
 
     #[tokio::test]
     async fn test_initialize() {
