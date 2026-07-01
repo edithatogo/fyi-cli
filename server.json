@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.edithatogo/fyi-mcp",
   "title": "FYI MCP",
-  "description": "Model Context Protocol server for FYI request management.",
+  "description": "Model Context Protocol server for FYI request management, including request lifecycle, authority import, correspondence lookup, offline sync monitoring, conflict resolution, and database health checks.",
   "status": "active",
   "repository": {
     "url": "https://github.com/edithatogo/fyi-cli",
@@ -13,7 +13,7 @@
     {
       "registryType": "mcpb",
       "identifier": "https://github.com/edithatogo/fyi-cli/releases/download/fyi-mcp-v0.1.2/fyi-mcp-0.1.2-win32.mcpb",
-      "fileSha256": "26af553e9620bf7da8a7d9579fa191114fe470653de3ed7be1b996f577589df7",
+      "fileSha256": "87ef957d9c4dbf30322e7872ea4f23f92f8640344ceac2bb8a3b5fa22bc7fc2f",
       "transport": {
         "type": "stdio"
       }
