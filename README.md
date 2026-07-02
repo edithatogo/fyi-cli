@@ -167,6 +167,34 @@ Please note that this project is released with a [Contributor Code of Conduct](C
 
 ## 📊 Project Status
 
+### GitHub Projects
+
+The project board for this repository is
+[fyi-cli Conductor Roadmap](https://github.com/users/edithatogo/projects/6).
+It mirrors the local `.conductor/tracks.md` registry and tracks completed
+Conductor work, release-readiness items, and external MCP registry follow-ups.
+
+The umbrella
+[Rare Insights on Open Policy from Aotearoa](https://github.com/users/edithatogo/projects/4)
+project is synchronized at the item level. GitHub Projects does not support
+nested projects, so synchronization is handled by
+[`scripts/sync_github_projects.py`](scripts/sync_github_projects.py) and the
+manual/scheduled [`project-sync`](.github/workflows/project-sync.yml) workflow.
+
+```bash
+# Preview synchronization without changing either project
+.\.venv\Scripts\python.exe scripts\sync_github_projects.py --dry-run
+
+# Apply synchronization from fyi-cli project 6 into RIOPA project 4
+.\.venv\Scripts\python.exe scripts\sync_github_projects.py
+```
+
+The workflow requires a repository secret named `PROJECT_SYNC_TOKEN` with
+GitHub Projects access for user-level ProjectsV2 writes. The sync is
+conservative: it adds missing `fyi-cli` issue/PR items to RIOPA, copies shared
+status values, sets the RIOPA mirror source to `other` unless a `fyi-cli` option
+exists, and never deletes umbrella-board items.
+
 ### v1.0.0 Release Progress
 
 | Phase | Status | Progress |
