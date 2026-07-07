@@ -12,17 +12,19 @@ from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from io import BytesIO
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from urllib.parse import urljoin
 
+import httpx
 from warcio.statusandheaders import StatusAndHeaders
 from warcio.warcwriter import WARCWriter
 
 from fyi_system.discovery import authority_name, client
 from fyi_system.fetch import extract_request_artifacts, normalize_request_payload
 
-if TYPE_CHECKING:
-    import httpx
+CAPTURE_RETRY_ATTEMPTS = 3
+CAPTURE_RETRY_BACKOFF_SECONDS = 2.0
+RETRYABLE_CAPTURE_STATUS_CODES = {429, 500, 502, 503, 504}
 
 
 @dataclass(frozen=True)
@@ -70,6 +72,38 @@ def ensure_disk_budget(path: Path, max_disk_gb: float | None) -> None:
     if free_bytes < required:
         msg = f"Free disk space {free_bytes} bytes is below required budget {required} bytes"
         raise RuntimeError(msg)
+
+
+def get_with_retry(
+    http: httpx.Client,
+    url: str,
+    *,
+    retries: int = CAPTURE_RETRY_ATTEMPTS,
+    backoff_seconds: float = CAPTURE_RETRY_BACKOFF_SECONDS,
+    sleeper: Any = time.sleep,
+) -> httpx.Response:
+    """GET with bounded retry for transient transport failures and server errors."""
+    attempts = max(1, retries)
+    response: httpx.Response | None = None
+    for attempt in range(1, attempts + 1):
+        try:
+            response = http.get(url)
+        except (httpx.TimeoutException, httpx.TransportError):
+            if attempt >= attempts:
+                raise
+            if backoff_seconds > 0:
+                sleeper(backoff_seconds * attempt)
+            continue
+        if response.status_code not in RETRYABLE_CAPTURE_STATUS_CODES:
+            return response
+        if attempt >= attempts:
+            return response
+        if backoff_seconds > 0:
+            sleeper(backoff_seconds * attempt)
+    if response is None:
+        msg = f"Failed to GET {url}"
+        raise RuntimeError(msg)
+    return response
 
 
 def cap_exceeded(*, started_at: float, bytes_written: int, caps: CaptureCaps) -> str | None:
@@ -256,7 +290,7 @@ def capture_request(
             raise RuntimeError(msg)
 
     with client(base_url, transport=transport) as http:
-        json_response = http.get(f"/request/{request_ref}.json")
+        json_response = get_with_retry(http, f"/request/{request_ref}.json")
         if json_response.status_code == 404:
             msg = f"Request {request_ref} was not found"
             raise FileNotFoundError(msg)
@@ -269,7 +303,7 @@ def capture_request(
         if not authority:
             authority = "unknown"
 
-        html_response = http.get(f"/request/{url_title}")
+        html_response = get_with_retry(http, f"/request/{url_title}")
         html_response.raise_for_status()
 
         warc_path.parent.mkdir(parents=True, exist_ok=True)
@@ -288,7 +322,7 @@ def capture_request(
 
             for attachment in extract_request_artifacts(request_json)["attachments"]:
                 attachment_url = urljoin(base_url.rstrip("/") + "/", str(attachment["url"]))
-                response = http.get(attachment_url)
+                response = get_with_retry(http, attachment_url)
                 if response.status_code == 404:
                     continue
                 response.raise_for_status()
