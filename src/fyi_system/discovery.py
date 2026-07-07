@@ -224,7 +224,7 @@ def client(base_url: str, *, transport: httpx.BaseTransport | None = None) -> ht
         base_url=base_url.rstrip("/"),
         follow_redirects=True,
         headers={"User-Agent": USER_AGENT},
-        timeout=30,
+        timeout=60,
         transport=transport,
     )
 

@@ -115,6 +115,41 @@ def capture_transport_with_exact_cap() -> httpx.MockTransport:
     return httpx.MockTransport(handler)
 
 
+def capture_transport_with_transient_timeout() -> httpx.MockTransport:
+    """Build a mocked FYI request that times out once before succeeding."""
+    attempts = {"json": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        path = request.url.path
+        if path == "/request/123.json":
+            attempts["json"] += 1
+            if attempts["json"] == 1:
+                message = "read timed out"
+                raise httpx.ReadTimeout(message, request=request)
+            return httpx.Response(
+                200,
+                json={
+                    "id": 123,
+                    "url_title": "example_request",
+                    "title": "Example request",
+                    "authority": {"url_name": "agency", "name": "Agency"},
+                    "attachments": [],
+                },
+                headers={"content-type": "application/json"},
+                request=request,
+            )
+        if path == "/request/example_request":
+            return httpx.Response(
+                200,
+                content=b"<html>Example</html>",
+                headers={"content-type": "text/html"},
+                request=request,
+            )
+        return httpx.Response(404, request=request)
+
+    return httpx.MockTransport(handler)
+
+
 def test_capture_request_writes_warc_wacz_and_derived_store(tmp_path: Path) -> None:
     summary = capture_request(
         request_ref="123",
@@ -255,6 +290,21 @@ def test_capture_request_aborts_on_exact_max_bytes_boundary(tmp_path: Path) -> N
             caps=CaptureCaps(max_bytes=2),
             transport=capture_transport_with_exact_cap(),
         )
+
+
+def test_capture_request_retries_transient_timeout(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr("fyi_system.archive_capture.time.sleep", lambda _seconds: None)
+
+    summary = capture_request(
+        request_ref="123",
+        base_url="https://fyi.example",
+        data_dir=tmp_path / "data",
+        dist_dir=tmp_path / "dist",
+        transport=capture_transport_with_transient_timeout(),
+    )
+
+    assert summary["request_id"] == 123
+    assert (tmp_path / summary["derived_path"] / "request.json").exists()
 
 
 def test_capture_cli_parses() -> None:
