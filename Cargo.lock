@@ -1780,7 +1780,7 @@ dependencies = [
 
 [[package]]
 name = "fyi-cli"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "clap",
  "crossterm",
@@ -1791,12 +1791,14 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "tracing",
+ "tracing-subscriber",
  "wiremock",
 ]
 
 [[package]]
 name = "fyi-core"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "aead",
  "aes-gcm",
@@ -1833,6 +1835,8 @@ dependencies = [
  "serde_json",
  "sqlx",
  "tokio",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

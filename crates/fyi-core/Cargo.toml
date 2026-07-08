@@ -2,6 +2,9 @@
 name = "fyi-core"
 version = "0.1.2"
 edition = "2021"
+license = "MIT"
+repository = "https://github.com/edithatogo/fyi-cli"
+description = "Core library for the fyi-cli multi-jurisdiction FOI/Alaveteli platform"
 
 [dependencies]
 tokio = { version = "1.36", features = ["full"] }

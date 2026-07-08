@@ -2,5 +2,6 @@ import { defineConfig } from 'astro/config';
 
 // https://astro.build/config
 export default defineConfig({
-  // Custom vanilla Astro config
+  site: 'https://edithatogo.github.io',
+  base: '/fyi-cli',
 });

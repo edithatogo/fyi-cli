@@ -15,3 +15,8 @@ target/
 dashboard/.next/
 dashboard/node_modules/
 dashboard/tsconfig.tsbuildinfo
+
+# Astro docs site build artifacts
+docs-site/node_modules/
+docs-site/dist/
+docs-site/.astro/
