@@ -72,3 +72,53 @@ prefilled_url = true
 health = true
 
 status = "experimental"
+
+[[instances]]
+id = "ie-myrighttoknow"
+base_url = "https://www.myrighttoknow.org"
+country = "IE"
+locale = "en-IE"
+
+[instances.foi_law]
+law_name = "Freedom of Information Act"
+citation = "FOI Act"
+request_term = "FOI request"
+statutory_deadline_days = 20
+appeal_body = "Office of the Information Commissioner"
+
+[instances.capabilities]
+read = true
+write = true
+attachments = true
+batch = false
+feeds = true
+search = true
+prefilled_url = true
+health = true
+
+status = "experimental"
+
+[[instances]]
+id = "de-fds"
+base_url = "https://fragdenstaat.de"
+country = "DE"
+locale = "de-DE"
+
+[instances.foi_law]
+law_name = "Informationsfreiheitsgesetz"
+citation = "IFG"
+request_term = "Anfrage"
+statutory_deadline_days = 30
+appeal_body = "Informationsfreiheitsbeauftragte"
+
+[instances.capabilities]
+read = true
+write = true
+attachments = true
+batch = false
+feeds = true
+search = true
+prefilled_url = true
+health = true
+
+status = "community"

@@ -8,6 +8,7 @@ use fyi_core::sync::{PullReport, PushReport, SyncClient, SyncConfig};
 use std::fs::OpenOptions;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
+use tokio::runtime::Runtime;
 
 #[allow(dead_code)]
 mod tui;
@@ -133,6 +134,8 @@ pub enum Commands {
         body: String,
         #[arg(long)]
         tags: Option<String>,
+        #[arg(long)]
+        instance: Option<String>,
         #[arg(long, default_value = "https://fyi.org.nz")]
         base_url: String,
     },
@@ -485,13 +488,38 @@ fn main() {
         Commands::BuildPrefilledUrl {
             authority_slug,
             title,
+            body,
+            tags,
+            instance,
             base_url,
-            ..
         } => {
-            println!(
-                "Prefilled URL for '{}' on {}/{} built.",
-                title, base_url, authority_slug
-            );
+            let registry = InstanceRegistry::embedded().unwrap_or_default();
+            let resolved_base_url = instance
+                .as_deref()
+                .and_then(|instance_id| {
+                    registry
+                        .get(instance_id)
+                        .map(|instance| instance.base_url.clone())
+                })
+                .unwrap_or_else(|| base_url.clone());
+
+            let runtime = Runtime::new().unwrap_or_else(|error| {
+                eprintln!("Failed to create async runtime: {error}");
+                std::process::exit(1);
+            });
+
+            match runtime.block_on(async {
+                let client = SyncClient::new(&resolved_base_url)?;
+                client
+                    .build_prefilled_url(authority_slug, title, body, tags.as_deref())
+                    .await
+            }) {
+                Ok(url) => println!("Prefilled URL: {url}"),
+                Err(error) => {
+                    eprintln!("Failed to build prefilled URL: {error}");
+                    std::process::exit(1);
+                }
+            }
         }
         Commands::Instances => {
             let registry = InstanceRegistry::embedded().unwrap_or_default();

@@ -16,7 +16,7 @@ impl LocaleBundle {
         if locale.starts_with("en") {
             let salutation = if locale.starts_with("en-nz") {
                 "Kia ora {authority}"
-            } else if locale.starts_with("en-au") {
+            } else if locale.starts_with("en-au") || locale.starts_with("en-ie") {
                 "Dear {authority}"
             } else if locale.starts_with("en-gb") {
                 "Dear {authority}"
@@ -46,6 +46,16 @@ impl LocaleBundle {
             translations.insert("working_days".to_string(), "jours ouvrables".to_string());
             translations.insert("working_day".to_string(), "jour ouvrable".to_string());
             translations.insert("deadline".to_string(), "Délai légal".to_string());
+        } else if locale.starts_with("es") {
+            translations.insert(
+                "salutation".to_string(),
+                "Estimado/a {authority}".to_string(),
+            );
+            translations.insert("request_term".to_string(), "solicitud".to_string());
+            translations.insert("closing".to_string(), "Atentamente".to_string());
+            translations.insert("working_days".to_string(), "días hábiles".to_string());
+            translations.insert("working_day".to_string(), "día hábil".to_string());
+            translations.insert("deadline".to_string(), "Plazo legal".to_string());
         } else {
             translations.insert(
                 "salutation".to_string(),
@@ -217,5 +227,16 @@ mod tests {
             .render_request_template_with_instance("Ministry", instance)
             .contains("Kia ora Ministry"));
         assert_eq!(deadline, NaiveDate::from_ymd_opt(2026, 7, 31).unwrap());
+    }
+
+    #[test]
+    fn de_locale_uses_german_terms_for_non_english_instances() {
+        let engine = LocalizationEngine::new("de-DE");
+        let registry = InstanceRegistry::embedded().unwrap();
+        let instance = registry.get("de-fds").unwrap();
+        let template = engine.render_request_template_with_instance("FragDenStaat", instance);
+
+        assert!(template.contains("Sehr geehrte/r FragDenStaat"));
+        assert!(template.contains("Informationsfreiheitsgesetz"));
     }
 }
