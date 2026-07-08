@@ -221,8 +221,8 @@ class TestRedactText:
         """Test that redact_text preserves URLs without secrets."""
         text = "Visit https://example.com for more info"
         result = redact_text(text)
-        # Plain URL should be preserved
-        assert 'https://example.com' in result
+        # Plain URL should be preserved exactly.
+        assert result == text
     
     def test_redact_text_redacts_emails(self):
         """Test that redact_text redacts email addresses."""
