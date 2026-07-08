@@ -69,7 +69,7 @@ Instances of abusive, harassing, or otherwise unacceptable behavior may be repor
 
 - **General questions:** Use [GitHub Discussions](https://github.com/edithatogo/fyi-cli/discussions)
 - **Bug reports:** Use [GitHub Issues](https://github.com/edithatogo/fyi-cli/issues)
-- **Security issues:** See [SECURITY.md](SECURITY.md)
+- **Security issues:** See [SECURITY.md](.github/SECURITY.md)
 
 ---
 
@@ -133,11 +133,15 @@ Instances of abusive, harassing, or otherwise unacceptable behavior may be repor
 
 ## Development Setup
 
+`fyi-cli` is a **Rust workspace** (`crates/fyi-core`, `crates/fyi-cli`, `crates/fyi-mcp`) plus a
+legacy `fyi_system` Python package kept as a reference/parity oracle. New feature work happens in
+the Rust workspace; the Python code is not being extended.
+
 ### Prerequisites
 
-- Python 3.10 or higher
+- Rust (stable toolchain) via [rustup](https://rustup.rs/)
 - Git
-- pip
+- Python 3.10+ (only needed for the legacy `fyi_system` package and its tests)
 
 ### Clone the Repository
 
@@ -146,38 +150,33 @@ git clone https://github.com/edithatogo/fyi-cli.git
 cd fyi-cli
 ```
 
-### Create Virtual Environment
+### Rust Workspace Setup
 
 ```bash
-# Create virtual environment
+# Build the whole workspace
+cargo build --workspace --all-features
+
+# Format, lint, and test (the same gates CI runs)
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo test --workspace --all-features
+```
+
+### Legacy Python Setup (optional)
+
+```bash
 python -m venv venv
-
-# Activate it
-# Windows:
-venv\Scripts\activate
-# macOS/Linux:
-source venv/bin/activate
-```
-
-### Install Dependencies
-
-```bash
-# Install in development mode with dev dependencies
+source venv/bin/activate  # or venv\Scripts\activate on Windows
 pip install -e ".[dev]"
-```
-
-### Verify Setup
-
-```bash
-# Run tests
 pytest
-
-# Check code style
-ruff check .
-
-# Type checking
-mypy src/
 ```
+
+### Working with Conductor Tracks
+
+Larger, multi-step work is planned as [Conductor](https://conductor.build) tracks under
+`.conductor/tracks/<slug>/` (spec + plan per track), registered in `.conductor/tracks.md` and
+mirrored to GitHub epic/sub-issues. If you're picking up a tracked piece of work, check the
+relevant track's `plan.md` for scope and open sub-issues before starting.
 
 ---
 
@@ -314,6 +313,21 @@ Fixes #456
 ---
 
 ## Testing
+
+### Rust Workspace (primary, release-gating)
+
+```bash
+# Run all tests
+cargo test --workspace --all-features
+
+# Run tests for a single crate
+cargo test -p fyi-core
+
+# Run a specific test
+cargo test -p fyi-core sync::tests::test_pull_feed
+```
+
+### Legacy Python Tests (optional, `fyi_system` reference only)
 
 ### Running Tests
 

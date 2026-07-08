@@ -34,11 +34,24 @@ body:
         - Other Linux (specify below)
     validations:
       required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of fyi-cli were you using?
+      options:
+        - Rust CLI (fyi-cli binary)
+        - Rust MCP server (fyi-mcp)
+        - Legacy Python package (fyi_system)
+        - Docs site
+        - Other / not sure
+    validations:
+      required: true
   - type: input
     id: python-version
     attributes:
-      label: Python Version
-      description: What Python version are you using? (run `python --version`)
+      label: Python Version (legacy component only)
+      description: If you're using the legacy `fyi_system` Python package, what Python version are you using? (run `python --version`)
       placeholder: "e.g., 3.11.5"
   - type: textarea
     id: description
