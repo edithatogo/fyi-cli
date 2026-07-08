@@ -88,7 +88,7 @@ mod tests {
     fn australia_prompt_includes_foi_act_context_and_appeal_body() {
         let registry = InstanceRegistry::embedded().unwrap();
         let instance = registry.get("au-rtk").unwrap();
-        let engine = DraftingEngine::default();
+        let engine = DraftingEngine;
         let request = DraftRequest::new(
             "Department of Finance",
             "Budget records",
@@ -111,7 +111,7 @@ mod tests {
     fn uk_prompt_includes_foia_2000_context_and_ico_review_body() {
         let registry = InstanceRegistry::embedded().unwrap();
         let instance = registry.get("uk-wdtk").unwrap();
-        let engine = DraftingEngine::default();
+        let engine = DraftingEngine;
         let request = DraftRequest::new(
             "Ministry of Justice",
             "Policy documents",
