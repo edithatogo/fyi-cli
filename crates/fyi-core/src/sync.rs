@@ -774,7 +774,7 @@ fn is_public_ip(ip: IpAddr) -> bool {
 }
 
 fn is_public_ipv4(ip: Ipv4Addr) -> bool {
-    let [a, b, c, d] = ip.octets();
+    let [a, b, c, _d] = ip.octets();
 
     if a == 0 || a == 10 || a == 127 || a == 169 && b == 254 {
         return false;
@@ -812,13 +812,14 @@ fn is_public_ipv4(ip: Ipv4Addr) -> bool {
 }
 
 fn is_public_ipv6(ip: Ipv6Addr) -> bool {
-    let [a, b, c, d, e, f, g, h] = ip.octets();
+    let octets = ip.octets();
+    let [a, b, ..] = octets;
 
-    if a == 0 && b == 0 && c == 0 && d == 0 && e == 0 && f == 0 && g == 0 && h == 1 {
+    if octets == [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1] {
         return false;
     }
 
-    if a == 0 && b == 0 && c == 0 && d == 0 && e == 0 && f == 0 && g == 0 && h == 0 {
+    if octets.iter().all(|octet| *octet == 0) {
         return false;
     }
 
