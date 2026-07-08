@@ -1,7 +1,7 @@
 {
   "track_id": "fyi-api-coverage-audit",
   "type": "feature",
-  "status": "new",
+  "status": "in_progress",
   "created_at": "2026-07-08T22:07:37+10:00",
   "updated_at": "2026-07-08T22:07:37+10:00",
   "description": "Audit FYI/Alaveteli API surface; bring Rust core to full parity with Python client + close web-artifact gaps.",

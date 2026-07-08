@@ -1,7 +1,7 @@
 {
   "track_id": "jurisdiction-abstraction-core",
   "type": "feature",
-  "status": "new",
+  "status": "in_progress",
   "created_at": "2026-07-08T22:07:37+10:00",
   "updated_at": "2026-07-08T22:07:37+10:00",
   "description": "Instance registry, FoiProvider trait, capabilities model, DB instance_id migration, config + --instance CLI/MCP surface.",

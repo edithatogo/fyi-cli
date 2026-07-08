@@ -1,5 +1,6 @@
 use clap::{Parser, Subcommand, ValueEnum};
 use fyi_core::db::{DbPool, GlobalSyncStatus};
+use fyi_core::jurisdiction::InstanceRegistry;
 use fyi_core::security::{
     build_provisioning_uri, generate_totp_secret, render_provisioning_qr_ascii, KeyringStore,
 };
@@ -135,6 +136,8 @@ pub enum Commands {
         #[arg(long, default_value = "https://fyi.org.nz")]
         base_url: String,
     },
+    #[command(about = "List built-in jurisdictions and instances")]
+    Instances,
     #[command(about = "Ingest RSS or JSON feed")]
     IngestFeed {
         feed_url: String,
@@ -489,6 +492,15 @@ fn main() {
                 "Prefilled URL for '{}' on {}/{} built.",
                 title, base_url, authority_slug
             );
+        }
+        Commands::Instances => {
+            let registry = InstanceRegistry::embedded().unwrap_or_default();
+            for instance in registry.list() {
+                println!(
+                    "{}\t{}\t{}\t{}",
+                    instance.id, instance.country, instance.base_url, instance.foi_law.law_name
+                );
+            }
         }
         Commands::IngestFeed { feed_url, db } => {
             println!("Ingesting feed from {} into {}", feed_url, db);

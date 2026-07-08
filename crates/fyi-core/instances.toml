@@ -1,0 +1,49 @@
+[[instances]]
+id = "nz-fyi"
+base_url = "https://fyi.org.nz"
+country = "NZ"
+locale = "en-NZ"
+
+[instances.foi_law]
+law_name = "Official Information Act"
+citation = "OIA 1982"
+request_term = "request"
+statutory_deadline_days = 20
+appeal_body = "Ombudsman"
+
+[instances.capabilities]
+read = true
+write = true
+attachments = true
+batch = true
+feeds = true
+search = true
+prefilled_url = true
+health = true
+
+status = "supported"
+
+[[instances]]
+id = "au-rtk"
+base_url = "https://www.righttoknow.org.au"
+country = "AU"
+locale = "en-AU"
+
+[instances.foi_law]
+law_name = "Freedom of Information Act"
+citation = "FOI Act"
+request_term = "request"
+statutory_deadline_days = 30
+appeal_body = "Information Commissioner"
+
+[instances.capabilities]
+read = true
+write = true
+attachments = true
+batch = false
+feeds = true
+search = true
+prefilled_url = true
+health = true
+
+status = "experimental"

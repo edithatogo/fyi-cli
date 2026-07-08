@@ -1,9 +1,14 @@
-use crate::api::{AlaveteliRequest, CreateRequestResponse};
+use crate::api::{
+    AddCorrespondencePayload, AlaveteliRequest, Authority, CorrespondenceResponse,
+    CreateRequestPayload, CreateRequestResponse, UpdateRequestStatePayload,
+    UpdateRequestStateResponse,
+};
 use crate::db::{DbPool, FieldChange, SyncStatus};
 use anyhow::{anyhow, Context, Result};
 use reqwest::{header, Client, Response, StatusCode, Url};
 use serde_json::Value;
 use std::collections::BTreeSet;
+use std::net::IpAddr;
 use std::time::Duration;
 use tokio::sync::oneshot;
 use tokio::task::JoinHandle;
@@ -71,6 +76,7 @@ impl SyncClient {
 
     pub fn with_http_client(base_url: &str, http: Client) -> Result<Self> {
         let base_url = Url::parse(base_url).context("invalid FYI base URL")?;
+        validate_instance_url(&base_url)?;
         Ok(Self { base_url, http })
     }
 
@@ -155,6 +161,173 @@ impl SyncClient {
             .json::<AlaveteliRequest>()
             .await
             .context("failed to parse request JSON")
+    }
+
+    pub async fn search_requests(&self, query: &str) -> Result<Vec<AlaveteliRequest>> {
+        let mut url = self
+            .base_url
+            .join("search.json")
+            .context("failed to build search URL")?;
+        if !query.trim().is_empty() {
+            url.query_pairs_mut().append_pair("q", query);
+        }
+
+        let response = self
+            .http
+            .get(url)
+            .send()
+            .await
+            .context("failed to search requests")?;
+        let value = ensure_success(response, "search endpoint")
+            .await?
+            .json::<Value>()
+            .await
+            .context("failed to parse search results")?;
+
+        parse_search_response(value)
+    }
+
+    pub async fn create_request(
+        &self,
+        payload: &CreateRequestPayload,
+    ) -> Result<CreateRequestResponse> {
+        let url = self
+            .base_url
+            .join("api/v2/request")
+            .context("failed to build request submission URL")?;
+
+        let response = self
+            .http
+            .post(url)
+            .json(payload)
+            .send()
+            .await
+            .context("failed to submit request")?;
+
+        ensure_success(response, "request submission endpoint")
+            .await?
+            .json::<CreateRequestResponse>()
+            .await
+            .context("failed to parse request submission response")
+    }
+
+    pub async fn add_correspondence(
+        &self,
+        request_id: i64,
+        payload: &AddCorrespondencePayload,
+    ) -> Result<CorrespondenceResponse> {
+        let url = self
+            .base_url
+            .join(&format!("api/v2/request/{request_id}/correspondence.json"))
+            .context("failed to build correspondence URL")?;
+
+        let response = self
+            .http
+            .post(url)
+            .json(payload)
+            .send()
+            .await
+            .context("failed to add correspondence")?;
+
+        ensure_success(response, "correspondence endpoint")
+            .await?
+            .json::<CorrespondenceResponse>()
+            .await
+            .context("failed to parse correspondence response")
+    }
+
+    pub async fn update_request_state(
+        &self,
+        request_id: i64,
+        payload: &UpdateRequestStatePayload,
+    ) -> Result<UpdateRequestStateResponse> {
+        let url = self
+            .base_url
+            .join(&format!("api/v2/request/{request_id}/state.json"))
+            .context("failed to build request state URL")?;
+
+        let response = self
+            .http
+            .put(url)
+            .json(payload)
+            .send()
+            .await
+            .context("failed to update request state")?;
+
+        ensure_success(response, "request state endpoint")
+            .await?
+            .json::<UpdateRequestStateResponse>()
+            .await
+            .context("failed to parse request state response")
+    }
+
+    pub async fn list_authorities(&self) -> Result<Vec<Authority>> {
+        let url = self
+            .base_url
+            .join("api/v2/authority.json")
+            .context("failed to build authorities URL")?;
+
+        let response = self
+            .http
+            .get(url)
+            .send()
+            .await
+            .context("failed to list authorities")?;
+        let value = ensure_success(response, "authorities endpoint")
+            .await?
+            .json::<Value>()
+            .await
+            .context("failed to parse authorities response")?;
+
+        parse_authorities(value)
+    }
+
+    pub async fn get_api_version(&self) -> Result<String> {
+        let url = self
+            .base_url
+            .join("api/v2/version.json")
+            .context("failed to build API version URL")?;
+
+        let response = self
+            .http
+            .get(url)
+            .send()
+            .await
+            .context("failed to get API version")?;
+        let value = ensure_success(response, "version endpoint")
+            .await?
+            .json::<Value>()
+            .await
+            .context("failed to parse API version response")?;
+
+        match value {
+            Value::String(version) => Ok(version),
+            Value::Object(map) => map
+                .get("version")
+                .and_then(Value::as_str)
+                .map(str::to_owned)
+                .ok_or_else(|| anyhow!("version endpoint did not include a version string")),
+            _ => Err(anyhow!("version endpoint returned an unsupported payload")),
+        }
+    }
+
+    pub async fn build_prefilled_url(
+        &self,
+        authority_slug: &str,
+        title: &str,
+        body: &str,
+        tags: Option<&str>,
+    ) -> Result<Url> {
+        let mut url = self
+            .base_url
+            .join(&format!("new/{authority_slug}"))
+            .context("failed to build prefilled URL")?;
+        url.query_pairs_mut().append_pair("title", title);
+        url.query_pairs_mut().append_pair("body", body);
+        if let Some(tags) = tags.filter(|value| !value.trim().is_empty()) {
+            url.query_pairs_mut().append_pair("tags", tags);
+        }
+        Ok(url)
     }
 
     pub async fn health_check(&self) -> SyncHealth {
@@ -549,6 +722,53 @@ fn parse_json_value<T: serde::de::DeserializeOwned>(value: &Option<String>) -> O
         .and_then(|value| serde_json::from_str(value).ok())
 }
 
+fn validate_instance_url(url: &Url) -> Result<()> {
+    if url.scheme() != "https" {
+        return Err(anyhow!("instance URLs must use https"));
+    }
+
+    let Some(host) = url.host_str() else {
+        return Err(anyhow!("instance URL must include a host"));
+    };
+
+    if host.eq_ignore_ascii_case("localhost") || host.ends_with(".local") {
+        return Err(anyhow!(
+            "instance URL must not target localhost or .local hosts"
+        ));
+    }
+
+    if let Ok(ip) = host.parse::<IpAddr>() {
+        if !is_public_ip(ip) {
+            return Err(anyhow!(
+                "instance URL must not target private or loopback addresses"
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+fn is_public_ip(ip: IpAddr) -> bool {
+    match ip {
+        IpAddr::V4(ip) => {
+            !ip.is_private()
+                && !ip.is_loopback()
+                && !ip.is_link_local()
+                && !ip.is_broadcast()
+                && !ip.is_unspecified()
+                && !ip.is_multicast()
+                && !ip.is_reserved()
+        }
+        IpAddr::V6(ip) => {
+            !ip.is_loopback()
+                && !ip.is_unspecified()
+                && !ip.is_multicast()
+                && !ip.is_link_local()
+                && !ip.is_global()
+        }
+    }
+}
+
 fn parse_request_list(value: Value) -> Result<Vec<AlaveteliRequest>> {
     if value.is_array() {
         return serde_json::from_value(value).context("invalid request array");
@@ -560,6 +780,38 @@ fn parse_request_list(value: Value) -> Result<Vec<AlaveteliRequest>> {
 
     Err(anyhow!(
         "updated requests response must be an array or requests object"
+    ))
+}
+
+fn parse_search_response(value: Value) -> Result<Vec<AlaveteliRequest>> {
+    if value.is_array() {
+        return serde_json::from_value(value).context("invalid search results array");
+    }
+
+    if let Some(requests) = value.get("results").cloned() {
+        return serde_json::from_value(requests).context("invalid results field");
+    }
+
+    if let Some(requests) = value.get("requests").cloned() {
+        return serde_json::from_value(requests).context("invalid requests field");
+    }
+
+    Err(anyhow!(
+        "search response must be an array or object with results/requests"
+    ))
+}
+
+fn parse_authorities(value: Value) -> Result<Vec<Authority>> {
+    if value.is_array() {
+        return serde_json::from_value(value).context("invalid authority array");
+    }
+
+    if let Some(authorities) = value.get("authorities").cloned() {
+        return serde_json::from_value(authorities).context("invalid authorities field");
+    }
+
+    Err(anyhow!(
+        "authority response must be an array or object with an authorities field"
     ))
 }
 
@@ -667,6 +919,53 @@ mod tests {
         assert_eq!(report.applied, 1);
         assert_eq!(saved.title, "Remote update");
         assert_eq!(metadata.sync_status.as_str(), "clean");
+    }
+
+    #[tokio::test]
+    async fn search_requests_parses_results_payload() {
+        let server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/search.json"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "results": [{
+                    "id": 77,
+                    "title": "Search result",
+                    "body": "Body"
+                }]
+            })))
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new(&server.uri()).unwrap();
+        let requests = client.search_requests("transparency").await.unwrap();
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].id, 77);
+        assert_eq!(requests[0].title, "Search result");
+    }
+
+    #[tokio::test]
+    async fn build_prefilled_url_includes_title_and_body() {
+        let server = MockServer::start().await;
+        let client = SyncClient::new(&server.uri()).unwrap();
+
+        let url = client
+            .build_prefilled_url("ministry", "My title", "My body", Some("foo"))
+            .await
+            .unwrap();
+
+        assert!(url.to_string().contains("/new/ministry"));
+        assert!(url.to_string().contains("title=My+title"));
+        assert!(url.to_string().contains("body=My+body"));
+        assert!(url.to_string().contains("tags=foo"));
+    }
+
+    #[test]
+    fn rejects_non_https_or_private_targets() {
+        assert!(SyncClient::new("http://example.com").is_err());
+        assert!(SyncClient::new("https://localhost").is_err());
+        assert!(SyncClient::new("https://127.0.0.1").is_err());
     }
 
     #[test]
