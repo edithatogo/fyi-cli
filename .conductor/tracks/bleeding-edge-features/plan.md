@@ -11,10 +11,10 @@
 - [ ] Task: Conductor - User Manual Verification 'Phase 1.1: LLM Framework' (Protocol in workflow.md)
 
 ### 1.2 Jurisdiction-Aware Drafting
-- [ ] Task: Create jurisdiction-aware prompt templates
-- [ ] Task: Include legal citations in prompts
-- [ ] Task: Inject authority context
-- [ ] Task: Test with multiple jurisdictions
+- [x] Task: Create jurisdiction-aware prompt templates
+- [x] Task: Include legal citations in prompts
+- [x] Task: Inject authority context
+- [x] Task: Test with multiple jurisdictions
 - [ ] Task: Conductor - User Manual Verification 'Phase 1.2: Drafting' (Protocol in workflow.md)
 
 ### 1.3 Request Refinement
