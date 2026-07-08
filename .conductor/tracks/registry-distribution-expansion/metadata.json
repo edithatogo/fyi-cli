@@ -1,0 +1,10 @@
+{
+  "track_id": "registry-distribution-expansion",
+  "type": "infrastructure",
+  "status": "new",
+  "created_at": "2026-07-08T22:07:37+10:00",
+  "updated_at": "2026-07-08T22:07:37+10:00",
+  "description": "Registry matrix expansion (MCP catalogs, package managers, container registries) + submission automation.",
+  "dependencies": [],
+  "priority": "medium"
+}

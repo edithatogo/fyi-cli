@@ -1,0 +1,10 @@
+{
+  "track_id": "jurisdiction-global-i18n-rollout",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-07-08T22:07:37+10:00",
+  "updated_at": "2026-07-08T22:07:37+10:00",
+  "description": "Non-English instances (Germany/FragDenStaat, France, Spain, etc.), full i18n, GDPR/PII handling per locale.",
+  "dependencies": ["jurisdiction-english-alaveteli-fleet", "i18n-localization-framework"],
+  "priority": "medium"
+}

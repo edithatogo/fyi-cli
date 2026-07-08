@@ -1,0 +1,10 @@
+{
+  "track_id": "jurisdiction-au-righttoknow",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-07-08T22:07:37+10:00",
+  "updated_at": "2026-07-08T22:07:37+10:00",
+  "description": "Onboard righttoknow.org.au: instance entry, FOI Act metadata, authority taxonomy, AU templates, discovery/archive parity, live-safe tests.",
+  "dependencies": ["jurisdiction-abstraction-core"],
+  "priority": "high"
+}

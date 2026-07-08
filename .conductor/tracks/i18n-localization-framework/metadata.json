@@ -1,0 +1,10 @@
+{
+  "track_id": "i18n-localization-framework",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-07-08T22:07:37+10:00",
+  "updated_at": "2026-07-08T22:07:37+10:00",
+  "description": "fluent-rs i18n, locale-aware templates, terminology map, working-day/deadline engine + holiday calendars.",
+  "dependencies": ["jurisdiction-abstraction-core"],
+  "priority": "high"
+}
