@@ -8,7 +8,7 @@ use anyhow::{anyhow, Context, Result};
 use reqwest::{header, Client, Response, StatusCode, Url};
 use serde_json::Value;
 use std::collections::BTreeSet;
-use std::net::IpAddr;
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::time::Duration;
 use tokio::sync::oneshot;
 use tokio::task::JoinHandle;
@@ -732,7 +732,7 @@ fn validate_instance_url(url: &Url) -> Result<()> {
         return Err(anyhow!("instance URL must not include credentials"));
     }
 
-    if !url.query().is_empty() || url.fragment().is_some() {
+    if url.query().is_some_and(|query| !query.is_empty()) || url.fragment().is_some() {
         return Err(anyhow!(
             "instance URL must not contain query strings or fragments"
         ));
@@ -768,23 +768,73 @@ fn is_loopback_host(host: &str) -> bool {
 
 fn is_public_ip(ip: IpAddr) -> bool {
     match ip {
-        IpAddr::V4(ip) => {
-            !ip.is_private()
-                && !ip.is_loopback()
-                && !ip.is_link_local()
-                && !ip.is_broadcast()
-                && !ip.is_unspecified()
-                && !ip.is_multicast()
-                && !ip.is_reserved()
-        }
-        IpAddr::V6(ip) => {
-            !ip.is_loopback()
-                && !ip.is_unspecified()
-                && !ip.is_multicast()
-                && !ip.is_link_local()
-                && !ip.is_global()
-        }
+        IpAddr::V4(ip) => is_public_ipv4(ip),
+        IpAddr::V6(ip) => is_public_ipv6(ip),
     }
+}
+
+fn is_public_ipv4(ip: Ipv4Addr) -> bool {
+    let [a, b, c, d] = ip.octets();
+
+    if a == 0 || a == 10 || a == 127 || a == 169 && b == 254 {
+        return false;
+    }
+
+    if a == 100 && (64..=127).contains(&b) {
+        return false;
+    }
+
+    if a == 172 && (16..=31).contains(&b) {
+        return false;
+    }
+
+    if a == 192 && b == 168 {
+        return false;
+    }
+
+    if a == 198 && (18..=19).contains(&b) {
+        return false;
+    }
+
+    if a == 198 && b == 51 && c == 100 {
+        return false;
+    }
+
+    if a == 203 && b == 0 && c == 113 {
+        return false;
+    }
+
+    if a == 224 || a >= 240 {
+        return false;
+    }
+
+    true
+}
+
+fn is_public_ipv6(ip: Ipv6Addr) -> bool {
+    let [a, b, c, d, e, f, g, h] = ip.octets();
+
+    if a == 0 && b == 0 && c == 0 && d == 0 && e == 0 && f == 0 && g == 0 && h == 1 {
+        return false;
+    }
+
+    if a == 0 && b == 0 && c == 0 && d == 0 && e == 0 && f == 0 && g == 0 && h == 0 {
+        return false;
+    }
+
+    if a == 0xff {
+        return false;
+    }
+
+    if a == 0xfe && (b & 0xC0) == 0x80 {
+        return false;
+    }
+
+    if a == 0xfc || a == 0xfd {
+        return false;
+    }
+
+    true
 }
 
 fn parse_request_list(value: Value) -> Result<Vec<AlaveteliRequest>> {

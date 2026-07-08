@@ -3,7 +3,7 @@ use crate::api::{
     CreateRequestResponse, UpdateRequestStatePayload, UpdateRequestStateResponse,
 };
 use crate::sync::{SyncClient, SyncHealth};
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::future::Future;
@@ -44,9 +44,10 @@ pub struct Capabilities {
     pub health: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum InstanceStatus {
+    #[default]
     Supported,
     Experimental,
     Community,
