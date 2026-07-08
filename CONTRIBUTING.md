@@ -426,30 +426,7 @@ pytest --cov=fyi_system --cov-report=term-missing --cov-fail-under=80
 
 ### Pull Request Template
 
-```markdown
-## Description
-Brief description of changes
-
-## Related Issue
-Fixes #123
-
-## Type of Change
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Breaking change
-- [ ] Documentation update
-
-## Testing
-- [ ] Tests added
-- [ ] Tests pass
-- [ ] Coverage maintained
-
-## Checklist
-- [ ] Code follows style guidelines
-- [ ] Self-review completed
-- [ ] Documentation updated
-- [ ] No new warnings
-```
+Opening a PR automatically applies [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md) — fill it in rather than deleting it.
 
 ---
 

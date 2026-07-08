@@ -59,8 +59,10 @@ representative at an online or offline event.
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the community leaders responsible for enforcement at
-conduct@fyi-cli.example.com.
+reported to the community leaders responsible for enforcement by opening a
+private [GitHub Security Advisory](https://github.com/edithatogo/fyi-cli/security/advisories/new)
+or by contacting the maintainer, [@edithatogo](https://github.com/edithatogo),
+directly via a GitHub issue marked confidential where possible.
 
 All complaints will be reviewed and investigated promptly and fairly.
 
