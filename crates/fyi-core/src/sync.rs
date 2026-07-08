@@ -75,9 +75,22 @@ impl SyncClient {
     }
 
     pub fn with_http_client(base_url: &str, http: Client) -> Result<Self> {
+        Self::with_http_client_and_validation(base_url, http, false)
+    }
+
+    fn with_http_client_and_validation(
+        base_url: &str,
+        http: Client,
+        allow_loopback: bool,
+    ) -> Result<Self> {
         let base_url = Url::parse(base_url).context("invalid FYI base URL")?;
-        validate_instance_url(&base_url)?;
+        validate_instance_url(&base_url, allow_loopback)?;
         Ok(Self { base_url, http })
+    }
+
+    #[cfg(test)]
+    fn new_for_testing(base_url: &str) -> Result<Self> {
+        Self::with_http_client_and_validation(base_url, Client::new(), true)
     }
 
     pub async fn pull_incremental(&self, db: &DbPool) -> Result<PullReport> {
@@ -722,7 +735,7 @@ fn parse_json_value<T: serde::de::DeserializeOwned>(value: &Option<String>) -> O
         .and_then(|value| serde_json::from_str(value).ok())
 }
 
-fn validate_instance_url(url: &Url) -> Result<()> {
+fn validate_instance_url(url: &Url, allow_loopback: bool) -> Result<()> {
     let Some(host) = url.host_str() else {
         return Err(anyhow!("instance URL must include a host"));
     };
@@ -750,6 +763,9 @@ fn validate_instance_url(url: &Url) -> Result<()> {
 
     if let Ok(ip) = host.parse::<IpAddr>() {
         if !is_public_ip(ip) {
+            if allow_loopback && ip.is_loopback() {
+                return Ok(());
+            }
             return Err(anyhow!(
                 "instance URL must not target private or loopback addresses"
             ));
@@ -969,7 +985,8 @@ mod tests {
         assert!(SyncClient::new("https://example.com").is_ok());
         assert!(SyncClient::new("https://user:pass@example.com").is_err());
         assert!(SyncClient::new("https://example.com?x=1").is_err());
-        assert!(SyncClient::new("http://127.0.0.1").is_ok());
+        assert!(SyncClient::new("http://127.0.0.1").is_err());
+        assert!(SyncClient::new_for_testing("http://127.0.0.1").is_ok());
     }
 
     #[tokio::test]
@@ -990,7 +1007,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = SyncClient::new(&server.uri()).unwrap();
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
         let report = client.pull_incremental(&db).await.unwrap();
         let saved = db.get_request(2).await.unwrap().unwrap();
         let metadata = db.get_request_sync_metadata(2).await.unwrap().unwrap();
@@ -1017,7 +1034,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = SyncClient::new(&server.uri()).unwrap();
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
         let requests = client.search_requests("transparency").await.unwrap();
 
         assert_eq!(requests.len(), 1);
@@ -1028,7 +1045,7 @@ mod tests {
     #[tokio::test]
     async fn build_prefilled_url_includes_title_and_body() {
         let server = MockServer::start().await;
-        let client = SyncClient::new(&server.uri()).unwrap();
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
 
         let url = client
             .build_prefilled_url("ministry", "My title", "My body", Some("foo"))
@@ -1096,7 +1113,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = SyncClient::new(&server.uri()).unwrap();
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
         let report = client.pull_incremental(&db).await.unwrap();
         let saved = db.get_request(71).await.unwrap().unwrap();
 
@@ -1118,7 +1135,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = SyncClient::new(&server.uri()).unwrap();
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
         let error = client.pull_incremental(&db).await.unwrap_err().to_string();
         let saved = db.get_request(72).await.unwrap().unwrap();
 
@@ -1145,7 +1162,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = SyncClient::new(&server.uri()).unwrap();
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
         let error = client.pull_incremental(&db).await.unwrap_err().to_string();
         let saved = db.get_request(73).await.unwrap().unwrap();
 
@@ -1169,7 +1186,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = SyncClient::new(&server.uri()).unwrap();
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
         let error = client.pull_incremental(&db).await.unwrap_err().to_string();
 
         assert!(error.contains("updated requests endpoint returned HTTP 429"));
@@ -1192,7 +1209,7 @@ mod tests {
                 .mount(&server)
                 .await;
 
-            let client = SyncClient::new(&server.uri()).unwrap();
+            let client = SyncClient::new_for_testing(&server.uri()).unwrap();
             let error = client.fetch_request(74).await.unwrap_err().to_string();
 
             assert!(error.contains(&format!("HTTP {status}")));
@@ -1223,7 +1240,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = SyncClient::new(&server.uri()).unwrap();
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
         let report = client
             .pull_feed(&db, &format!("{}/feed.atom", server.uri()))
             .await
@@ -1262,7 +1279,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = SyncClient::new(&server.uri()).unwrap();
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
         let (shutdown_tx, shutdown_rx) = oneshot::channel();
         let handle = spawn_pull_scheduler(
             db.clone(),
@@ -1309,7 +1326,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = SyncClient::new(&server.uri()).unwrap();
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
         let (shutdown_tx, shutdown_rx) = oneshot::channel();
         let handle = spawn_sync_scheduler(
             db.clone(),
@@ -1342,7 +1359,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = SyncClient::new(&server.uri()).unwrap();
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
         let health = client.health_check().await;
 
         assert!(health.network_reachable);
@@ -1368,7 +1385,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = SyncClient::new(&server.uri()).unwrap();
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
         let report = client.push_dirty(&db).await.unwrap();
         let metadata = db.get_request_sync_metadata(-1).await.unwrap().unwrap();
         let pending = db.list_pending_outgoing_queue(10).await.unwrap();
@@ -1395,7 +1412,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = SyncClient::new(&server.uri()).unwrap();
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
         let report = client
             .push_dirty_with_config(
                 &db,
@@ -1431,7 +1448,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = SyncClient::new(&server.uri()).unwrap();
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
         let report = client
             .push_dirty_with_config(
                 &db,
@@ -1465,7 +1482,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = SyncClient::new(&server.uri()).unwrap();
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
         let report = client
             .push_dirty_with_config(
                 &db,
@@ -1551,7 +1568,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = SyncClient::new(&server.uri()).unwrap();
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
         let report = client.pull_incremental(&db).await.unwrap();
         let metadata = db.get_request_sync_metadata(7).await.unwrap().unwrap();
 
@@ -1586,7 +1603,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = SyncClient::new(&server.uri()).unwrap();
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
         client.pull_incremental(&db).await.unwrap();
 
         let saved = db.get_request(8).await.unwrap().unwrap();
