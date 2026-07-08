@@ -244,11 +244,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn embedded_catalog_contains_nz_au_and_uk_instances() {
+    fn embedded_catalog_contains_nz_au_uk_and_new_fleet_instances() {
         let registry = InstanceRegistry::embedded().unwrap();
         assert!(registry.get("nz-fyi").is_some());
         assert!(registry.get("au-rtk").is_some());
         assert!(registry.get("uk-wdtk").is_some());
+        assert!(registry.get("ie-myrighttoknow").is_some());
+        assert!(registry.get("fr-cada").is_some());
+        assert!(registry.get("es-tdas").is_some());
+        assert!(registry.get("de-fds").is_some());
     }
 
     #[test]

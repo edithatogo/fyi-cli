@@ -239,4 +239,22 @@ mod tests {
         assert!(template.contains("Sehr geehrte/r FragDenStaat"));
         assert!(template.contains("Informationsfreiheitsgesetz"));
     }
+
+    #[test]
+    fn fr_and_es_locales_render_locale_specific_templates() {
+        let fr_engine = LocalizationEngine::new("fr-FR");
+        let es_engine = LocalizationEngine::new("es-ES");
+        let registry = InstanceRegistry::embedded().unwrap();
+        let fr_instance = registry.get("fr-cada").unwrap();
+        let es_instance = registry.get("es-tdas").unwrap();
+
+        let fr_template = fr_engine.render_request_template_with_instance("CADA", fr_instance);
+        let es_template =
+            es_engine.render_request_template_with_instance("Tu Derecho a Saber", es_instance);
+
+        assert!(fr_template.contains("Bonjour CADA"));
+        assert!(fr_template.contains("Loi sur l'accès aux documents administratifs"));
+        assert!(es_template.contains("Estimado/a Tu Derecho a Saber"));
+        assert!(es_template.contains("Ley de Transparencia"));
+    }
 }

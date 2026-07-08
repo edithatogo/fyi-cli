@@ -525,8 +525,13 @@ fn main() {
             let registry = InstanceRegistry::embedded().unwrap_or_default();
             for instance in registry.list() {
                 println!(
-                    "{}\t{}\t{}\t{}",
-                    instance.id, instance.country, instance.base_url, instance.foi_law.law_name
+                    "{}\t{}\t{}\t{}\t{}\t{}",
+                    instance.id,
+                    instance.country,
+                    instance.locale,
+                    instance.base_url,
+                    instance.foi_law.law_name,
+                    format!("{:?}", instance.status).to_ascii_lowercase()
                 );
             }
         }

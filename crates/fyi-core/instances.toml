@@ -99,6 +99,56 @@ health = true
 status = "experimental"
 
 [[instances]]
+id = "fr-cada"
+base_url = "https://www.madada.fr"
+country = "FR"
+locale = "fr-FR"
+
+[instances.foi_law]
+law_name = "Loi sur l'accès aux documents administratifs"
+citation = "Loi sur l'accès aux documents administratifs"
+request_term = "demande"
+statutory_deadline_days = 30
+appeal_body = "Commission d'accès aux documents administratifs"
+
+[instances.capabilities]
+read = true
+write = true
+attachments = true
+batch = false
+feeds = true
+search = true
+prefilled_url = true
+health = true
+
+status = "community"
+
+[[instances]]
+id = "es-tdas"
+base_url = "https://www.tuderechoasaber.es"
+country = "ES"
+locale = "es-ES"
+
+[instances.foi_law]
+law_name = "Ley de Transparencia"
+citation = "Ley de Transparencia"
+request_term = "solicitud"
+statutory_deadline_days = 20
+appeal_body = "Autoridad de Control"
+
+[instances.capabilities]
+read = true
+write = true
+attachments = true
+batch = false
+feeds = true
+search = true
+prefilled_url = true
+health = true
+
+status = "community"
+
+[[instances]]
 id = "de-fds"
 base_url = "https://fragdenstaat.de"
 country = "DE"
