@@ -16,10 +16,6 @@ impl LocaleBundle {
         if locale.starts_with("en") {
             let salutation = if locale.starts_with("en-nz") {
                 "Kia ora {authority}"
-            } else if locale.starts_with("en-au") || locale.starts_with("en-ie") {
-                "Dear {authority}"
-            } else if locale.starts_with("en-gb") {
-                "Dear {authority}"
             } else {
                 "Dear {authority}"
             };
@@ -46,16 +42,6 @@ impl LocaleBundle {
             translations.insert("working_days".to_string(), "jours ouvrables".to_string());
             translations.insert("working_day".to_string(), "jour ouvrable".to_string());
             translations.insert("deadline".to_string(), "Délai légal".to_string());
-        } else if locale.starts_with("es") {
-            translations.insert(
-                "salutation".to_string(),
-                "Estimado/a {authority}".to_string(),
-            );
-            translations.insert("request_term".to_string(), "solicitud".to_string());
-            translations.insert("closing".to_string(), "Atentamente".to_string());
-            translations.insert("working_days".to_string(), "días hábiles".to_string());
-            translations.insert("working_day".to_string(), "día hábil".to_string());
-            translations.insert("deadline".to_string(), "Plazo legal".to_string());
         } else {
             translations.insert(
                 "salutation".to_string(),
@@ -189,9 +175,9 @@ mod tests {
     fn english_locale_uses_english_terms() {
         let engine = LocalizationEngine::new("en-NZ");
         assert_eq!(engine.deadline_label(2), "2 working days");
-        assert!(engine
-            .render_request_template("Ministry", "OIA")
-            .contains("Dear Ministry"));
+        let rendered = engine.render_request_template("Ministry", "OIA");
+        assert!(rendered.contains("Kia ora Ministry"));
+        assert!(rendered.contains("request"));
     }
 
     #[test]
