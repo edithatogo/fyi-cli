@@ -29,8 +29,21 @@
       "include-v-in-tag": true,
       "tag-separator": "/",
       "component": "fyi-cli"
+    },
+    "crates/fyi-core": {
+      "release-type": "rust",
+      "component": "fyi-core"
+    },
+    "crates/fyi-cli": {
+      "release-type": "rust",
+      "component": "fyi-cli"
+    },
+    "crates/fyi-mcp": {
+      "release-type": "rust",
+      "component": "fyi-mcp"
     }
   },
+  "plugins": ["cargo-workspace"],
   "changelog-sections": [
     {"type": "feat", "section": "Features", "hidden": false},
     {"type": "fix", "section": "Bug Fixes", "hidden": false},

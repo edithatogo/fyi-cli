@@ -40,6 +40,15 @@ pub struct Cli {
     #[arg(long, short, global = true, value_enum, default_value_t = OutputFormat::Text, help = "Output format")]
     pub output_format: OutputFormat,
 
+    #[arg(
+        long,
+        short = 'v',
+        global = true,
+        action = clap::ArgAction::Count,
+        help = "Increase logging verbosity (-v for debug, -vv for trace)"
+    )]
+    pub verbose: u8,
+
     #[command(subcommand)]
     pub command: Commands,
 }
@@ -433,6 +442,24 @@ fn main() {
     #[cfg(feature = "dhat-on")]
     let _profiler = dhat::Profiler::new_heap();
     let args = Cli::parse();
+
+    // Logging: RUST_LOG env var takes precedence; otherwise -v/-vv raises the
+    // default level above the CLI's baseline "warn". User-facing CLI output
+    // (println!) is unaffected -- this only governs diagnostic tracing spans.
+    let default_level = match args.verbose {
+        0 => "warn",
+        1 => "info",
+        2 => "debug",
+        _ => "trace",
+    };
+    tracing_subscriber::fmt()
+        .with_writer(std::io::stderr)
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new(default_level)),
+        )
+        .init();
+
     match &args.command {
         Commands::InitDb { db } => {
             if let Err(error) = initialize_database_file(db) {

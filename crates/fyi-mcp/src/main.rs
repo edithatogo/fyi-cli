@@ -1821,11 +1821,23 @@ async fn open_database(database_url: &str) -> Result<DbPool, sqlx::Error> {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    eprintln!("FYI MCP Server starting up...");
+    // MCP servers speak JSON-RPC over stdout, so all diagnostics must go to
+    // stderr. `tracing` is configured with an `EnvFilter` (RUST_LOG, default
+    // "info") writing to stderr to keep the stdio protocol clean while giving
+    // operators structured, leveled logs.
+    tracing_subscriber::fmt()
+        .with_writer(std::io::stderr)
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
+        )
+        .init();
+
+    tracing::info!("FYI MCP Server starting up...");
 
     let db_path = database_url_from_env();
 
-    eprintln!("Connecting to database at: {}", db_path);
+    tracing::info!(database_url = %db_path, "Connecting to database");
     let db = open_database(&db_path).await?;
     db.run_migrations().await?;
     ensure_authorities_table(db.pool()).await?;
