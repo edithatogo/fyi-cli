@@ -32,9 +32,9 @@ locale = "en-AU"
 [instances.foi_law]
 law_name = "Freedom of Information Act"
 citation = "FOI Act"
-request_term = "request"
+request_term = "FOI request"
 statutory_deadline_days = 30
-appeal_body = "Information Commissioner"
+appeal_body = "Office of the Australian Information Commissioner (OAIC)"
 
 [instances.capabilities]
 read = true

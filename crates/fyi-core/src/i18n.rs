@@ -1,3 +1,4 @@
+use crate::jurisdiction::Instance;
 use chrono::{Datelike, NaiveDate};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -85,6 +86,38 @@ impl LocalizationEngine {
         format!("{} {}", days, noun)
     }
 
+    pub fn render_request_template_with_instance(
+        &self,
+        authority_name: &str,
+        instance: &Instance,
+    ) -> String {
+        let salutation = self
+            .bundle
+            .translate("salutation", "Dear {authority}")
+            .replace("{authority}", authority_name);
+        let law_name = instance.foi_law.law_name.as_str();
+        let citation = instance.foi_law.citation.as_deref().unwrap_or(law_name);
+        let request_term = instance.foi_law.request_term.as_str();
+        let appeal_body = instance
+            .foi_law
+            .appeal_body
+            .as_deref()
+            .map(|body| format!("If this request is refused, I may seek review by {}.", body))
+            .unwrap_or_default();
+        format!(
+            "{}\n\nUnder {} ({}) I am making this {}.{}",
+            salutation,
+            law_name,
+            citation,
+            request_term,
+            if appeal_body.is_empty() {
+                String::new()
+            } else {
+                format!("\n\n{}", appeal_body)
+            }
+        )
+    }
+
     pub fn add_working_days(&self, start: NaiveDate, days: usize) -> NaiveDate {
         let mut current = start;
         let mut remaining = days;
@@ -105,6 +138,7 @@ fn is_weekday(day: NaiveDate) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::jurisdiction::InstanceRegistry;
 
     #[test]
     fn english_locale_uses_english_terms() {
@@ -121,5 +155,18 @@ mod tests {
         let start = NaiveDate::from_ymd_opt(2026, 7, 3).unwrap();
         let deadline = engine.add_working_days(start, 2);
         assert_eq!(deadline, NaiveDate::from_ymd_opt(2026, 7, 7).unwrap());
+    }
+
+    #[test]
+    fn au_instance_template_includes_foi_act_citation_and_appeal_body() {
+        let engine = LocalizationEngine::new("en-AU");
+        let registry = InstanceRegistry::embedded().unwrap();
+        let instance = registry.get("au-rtk").unwrap();
+        let template = engine.render_request_template_with_instance("Right To Know", instance);
+
+        assert!(template.contains("Freedom of Information Act"));
+        assert!(template.contains("FOI Act"));
+        assert!(template.contains("FOI request"));
+        assert!(template.contains("Australian Information Commissioner"));
     }
 }
