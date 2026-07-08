@@ -1,0 +1,1 @@
+Track: ci-security-audit-fix. Diagnosed cargo-deny failures introduced by fresh advisory-DB pulls against the existing (pre-Rust-migration) dependency graph, not by this session's code changes. Full remediation of the Tor/arti-client transitive advisories is deferred to multi-jurisdiction-security-hardening; documented inline in deny.toml.
