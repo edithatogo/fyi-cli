@@ -47,3 +47,28 @@ prefilled_url = true
 health = true
 
 status = "experimental"
+
+[[instances]]
+id = "uk-wdtk"
+base_url = "https://www.whatdotheyknow.com"
+country = "GB"
+locale = "en-GB"
+
+[instances.foi_law]
+law_name = "Freedom of Information Act"
+citation = "FOIA 2000"
+request_term = "FOI request"
+statutory_deadline_days = 20
+appeal_body = "Information Commissioner's Office (ICO)"
+
+[instances.capabilities]
+read = true
+write = true
+attachments = true
+batch = false
+feeds = true
+search = true
+prefilled_url = true
+health = true
+
+status = "experimental"
