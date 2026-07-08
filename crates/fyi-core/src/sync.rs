@@ -63,6 +63,15 @@ impl Default for SyncConfig {
     }
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct SearchOptions {
+    pub query: Option<String>,
+    pub page: Option<u32>,
+    pub per_page: Option<u32>,
+    pub sort: Option<String>,
+    pub filter: Option<String>,
+}
+
 #[derive(Debug, Clone)]
 pub struct SyncClient {
     base_url: Url,
@@ -177,12 +186,48 @@ impl SyncClient {
     }
 
     pub async fn search_requests(&self, query: &str) -> Result<Vec<AlaveteliRequest>> {
+        self.search_requests_with_options(&SearchOptions {
+            query: Some(query.to_string()),
+            ..Default::default()
+        })
+        .await
+    }
+
+    pub async fn search_requests_with_options(
+        &self,
+        options: &SearchOptions,
+    ) -> Result<Vec<AlaveteliRequest>> {
         let mut url = self
             .base_url
             .join("search.json")
             .context("failed to build search URL")?;
-        if !query.trim().is_empty() {
+        if let Some(query) = options
+            .query
+            .as_deref()
+            .filter(|value| !value.trim().is_empty())
+        {
             url.query_pairs_mut().append_pair("q", query);
+        }
+        if let Some(page) = options.page {
+            url.query_pairs_mut().append_pair("page", &page.to_string());
+        }
+        if let Some(per_page) = options.per_page {
+            url.query_pairs_mut()
+                .append_pair("per_page", &per_page.to_string());
+        }
+        if let Some(sort) = options
+            .sort
+            .as_deref()
+            .filter(|value| !value.trim().is_empty())
+        {
+            url.query_pairs_mut().append_pair("sort", sort);
+        }
+        if let Some(filter) = options
+            .filter
+            .as_deref()
+            .filter(|value| !value.trim().is_empty())
+        {
+            url.query_pairs_mut().append_pair("filter", filter);
         }
 
         let response = self
@@ -960,7 +1005,7 @@ fn request_ids_from_feed(feed: &str) -> Vec<i64> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{method, path, query_param};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     fn request(id: i64, title: &str, updated_at: &str) -> AlaveteliRequest {
@@ -1040,6 +1085,44 @@ mod tests {
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].id, 77);
         assert_eq!(requests[0].title, "Search result");
+    }
+
+    #[tokio::test]
+    async fn search_requests_with_options_applies_pagination_sort_and_filter() {
+        let server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/search.json"))
+            .and(query_param("q", "transparency"))
+            .and(query_param("page", "2"))
+            .and(query_param("per_page", "25"))
+            .and(query_param("sort", "updated"))
+            .and(query_param("filter", "awaiting_response"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "results": [{
+                    "id": 88,
+                    "title": "Filtered search result",
+                    "body": "Body"
+                }]
+            })))
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+        let requests = client
+            .search_requests_with_options(&SearchOptions {
+                query: Some("transparency".to_string()),
+                page: Some(2),
+                per_page: Some(25),
+                sort: Some("updated".to_string()),
+                filter: Some("awaiting_response".to_string()),
+            })
+            .await
+            .unwrap();
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].id, 88);
+        assert_eq!(requests[0].title, "Filtered search result");
     }
 
     #[tokio::test]

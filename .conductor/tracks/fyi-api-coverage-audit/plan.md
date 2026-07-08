@@ -3,10 +3,10 @@
 ## Phase 1: Search API Implementation
 
 ### 1.1 Search Endpoint
-- [ ] Task: Write failing tests for search API (`/search.json`)
-- [ ] Task: Implement search endpoint with query parameters
-- [ ] Task: Add pagination support (page, per_page)
-- [ ] Task: Add filtering and sorting options
+- [x] Task: Write failing tests for search API (`/search.json`)
+- [x] Task: Implement search endpoint with query parameters
+- [x] Task: Add pagination support (page, per_page)
+- [x] Task: Add filtering and sorting options
 - [ ] Task: Conductor - User Manual Verification 'Phase 1.1: Search API' (Protocol in workflow.md)
 
 ### 1.2 Search Result Feeds
