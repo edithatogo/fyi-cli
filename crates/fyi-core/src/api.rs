@@ -58,6 +58,28 @@ pub struct CreateRequestResponse {
     pub url: String,
 }
 
+/// A search response payload that includes a list of matching requests.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct SearchResponse {
+    #[serde(default)]
+    pub results: Vec<AlaveteliRequest>,
+    #[serde(default)]
+    pub total: i64,
+}
+
+/// A descriptive object for an authority returned by the authorities endpoint.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct Authority {
+    #[serde(default)]
+    pub id: Option<String>,
+    #[serde(default)]
+    pub slug: Option<String>,
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub url: Option<String>,
+}
+
 /// Payload for adding correspondence to an existing request.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct AddCorrespondencePayload {

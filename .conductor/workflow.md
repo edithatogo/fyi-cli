@@ -17,6 +17,15 @@
 4. **Validate**: Run tests and verify coverage
 5. **Handover**: Document decisions and learnings
 
+## Issue, PR, and Conductor Sync Workflow
+
+1. Every implementation track has a GitHub epic issue and sub-issues.
+2. Work proceeds on a branch and a pull request is opened once the slice is ready for review.
+3. The PR body must use close keywords such as `Fixes #<issue>` for each track that is completed by that slice.
+4. When the PR merges, GitHub closes the referenced issues automatically.
+5. Conductor track metadata (`.conductor/tracks/<slug>/metadata.json` and `tracks.md`) must be updated to record the issue number, pull request number, and current status after merge or on progress updates.
+6. Completed tracks are archived from the active list and moved under `.conductor/archive/` when the corresponding work is merged.
+
 ## Task Workflow
 
 All tasks follow a strict lifecycle:

@@ -1,0 +1,246 @@
+use crate::jurisdiction::Instance;
+use chrono::{Datelike, NaiveDate};
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LocaleBundle {
+    pub locale: String,
+    translations: BTreeMap<String, String>,
+}
+
+impl LocaleBundle {
+    pub fn for_locale(locale: &str) -> Self {
+        let locale = locale.to_ascii_lowercase();
+        let mut translations = BTreeMap::new();
+        if locale.starts_with("en") {
+            let salutation = if locale.starts_with("en-nz") {
+                "Kia ora {authority}"
+            } else {
+                "Dear {authority}"
+            };
+            translations.insert("salutation".to_string(), salutation.to_string());
+            translations.insert("request_term".to_string(), "request".to_string());
+            translations.insert("closing".to_string(), "Yours sincerely".to_string());
+            translations.insert("working_days".to_string(), "working days".to_string());
+            translations.insert("working_day".to_string(), "working day".to_string());
+            translations.insert("deadline".to_string(), "Statutory deadline".to_string());
+        } else if locale.starts_with("de") {
+            translations.insert(
+                "salutation".to_string(),
+                "Sehr geehrte/r {authority}".to_string(),
+            );
+            translations.insert("request_term".to_string(), "Anfrage".to_string());
+            translations.insert("closing".to_string(), "Mit freundlichen Grüßen".to_string());
+            translations.insert("working_days".to_string(), "Werktage".to_string());
+            translations.insert("working_day".to_string(), "Werktag".to_string());
+            translations.insert("deadline".to_string(), "Gesetzliche Frist".to_string());
+        } else if locale.starts_with("fr") {
+            translations.insert("salutation".to_string(), "Bonjour {authority}".to_string());
+            translations.insert("request_term".to_string(), "demande".to_string());
+            translations.insert("closing".to_string(), "Cordialement".to_string());
+            translations.insert("working_days".to_string(), "jours ouvrables".to_string());
+            translations.insert("working_day".to_string(), "jour ouvrable".to_string());
+            translations.insert("deadline".to_string(), "Délai légal".to_string());
+        } else {
+            translations.insert(
+                "salutation".to_string(),
+                "Estimado/a {authority}".to_string(),
+            );
+            translations.insert("request_term".to_string(), "solicitud".to_string());
+            translations.insert("closing".to_string(), "Atentamente".to_string());
+            translations.insert("working_days".to_string(), "días hábiles".to_string());
+            translations.insert("working_day".to_string(), "día hábil".to_string());
+            translations.insert("deadline".to_string(), "Plazo legal".to_string());
+        }
+
+        Self {
+            locale,
+            translations,
+        }
+    }
+
+    pub fn translate(&self, key: &str, fallback: &str) -> String {
+        self.translations
+            .get(key)
+            .cloned()
+            .unwrap_or_else(|| fallback.to_string())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct LocalizationEngine {
+    locale: String,
+    bundle: LocaleBundle,
+}
+
+impl LocalizationEngine {
+    pub fn new(locale: &str) -> Self {
+        let bundle = LocaleBundle::for_locale(locale);
+        Self {
+            locale: locale.to_string(),
+            bundle,
+        }
+    }
+
+    pub fn locale(&self) -> &str {
+        &self.locale
+    }
+
+    pub fn render_request_template(&self, authority_name: &str, law_name: &str) -> String {
+        let salutation = self
+            .bundle
+            .translate("salutation", "Dear {authority}")
+            .replace("{authority}", authority_name);
+        format!(
+            "{}\n\nUnder {} I am requesting information for this {}.\n\n{}",
+            salutation,
+            law_name,
+            self.bundle.translate("request_term", "request"),
+            self.bundle.translate("closing", "Yours sincerely")
+        )
+    }
+
+    pub fn deadline_label(&self, days: usize) -> String {
+        let singular = self.bundle.translate("working_day", "working day");
+        let plural = self.bundle.translate("working_days", "working days");
+        let noun = if days == 1 { singular } else { plural };
+        format!("{} {}", days, noun)
+    }
+
+    pub fn render_request_template_with_instance(
+        &self,
+        authority_name: &str,
+        instance: &Instance,
+    ) -> String {
+        let salutation = self
+            .bundle
+            .translate("salutation", "Dear {authority}")
+            .replace("{authority}", authority_name);
+        let law_name = instance.foi_law.law_name.as_str();
+        let citation = instance.foi_law.citation.as_deref().unwrap_or(law_name);
+        let request_term = instance.foi_law.request_term.as_str();
+        let appeal_body = instance
+            .foi_law
+            .appeal_body
+            .as_deref()
+            .map(|body| format!("If this request is refused, I may seek review by {}.", body))
+            .unwrap_or_default();
+        format!(
+            "{}\n\nUnder {} ({}) I am making this {}.{}",
+            salutation,
+            law_name,
+            citation,
+            request_term,
+            if appeal_body.is_empty() {
+                String::new()
+            } else {
+                format!("\n\n{}", appeal_body)
+            }
+        )
+    }
+
+    pub fn deadline_for_instance(&self, start: NaiveDate, instance: &Instance) -> NaiveDate {
+        let days = instance
+            .foi_law
+            .statutory_deadline_days
+            .unwrap_or(20)
+            .max(0) as usize;
+        self.add_working_days(start, days)
+    }
+
+    pub fn add_working_days(&self, start: NaiveDate, days: usize) -> NaiveDate {
+        let mut current = start;
+        let mut remaining = days;
+        while remaining > 0 {
+            current = current.succ_opt().unwrap_or(current);
+            if is_weekday(current) {
+                remaining -= 1;
+            }
+        }
+        current
+    }
+}
+
+fn is_weekday(day: NaiveDate) -> bool {
+    matches!(day.weekday().num_days_from_monday(), 0..=4)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::jurisdiction::InstanceRegistry;
+
+    #[test]
+    fn english_locale_uses_english_terms() {
+        let engine = LocalizationEngine::new("en-NZ");
+        assert_eq!(engine.deadline_label(2), "2 working days");
+        let rendered = engine.render_request_template("Ministry", "OIA");
+        assert!(rendered.contains("Kia ora Ministry"));
+        assert!(rendered.contains("request"));
+    }
+
+    #[test]
+    fn add_working_days_skips_weekends() {
+        let engine = LocalizationEngine::new("en-AU");
+        let start = NaiveDate::from_ymd_opt(2026, 7, 3).unwrap();
+        let deadline = engine.add_working_days(start, 2);
+        assert_eq!(deadline, NaiveDate::from_ymd_opt(2026, 7, 7).unwrap());
+    }
+
+    #[test]
+    fn au_instance_template_includes_foi_act_citation_and_appeal_body() {
+        let engine = LocalizationEngine::new("en-AU");
+        let registry = InstanceRegistry::embedded().unwrap();
+        let instance = registry.get("au-rtk").unwrap();
+        let template = engine.render_request_template_with_instance("Right To Know", instance);
+
+        assert!(template.contains("Freedom of Information Act"));
+        assert!(template.contains("FOI Act"));
+        assert!(template.contains("FOI request"));
+        assert!(template.contains("Australian Information Commissioner"));
+    }
+
+    #[test]
+    fn nz_locale_uses_kia_ora_salutation_and_deadline_for_instance() {
+        let engine = LocalizationEngine::new("en-NZ");
+        let registry = InstanceRegistry::embedded().unwrap();
+        let instance = registry.get("nz-fyi").unwrap();
+        let start = NaiveDate::from_ymd_opt(2026, 7, 3).unwrap();
+        let deadline = engine.deadline_for_instance(start, instance);
+
+        assert!(engine
+            .render_request_template_with_instance("Ministry", instance)
+            .contains("Kia ora Ministry"));
+        assert_eq!(deadline, NaiveDate::from_ymd_opt(2026, 7, 31).unwrap());
+    }
+
+    #[test]
+    fn de_locale_uses_german_terms_for_non_english_instances() {
+        let engine = LocalizationEngine::new("de-DE");
+        let registry = InstanceRegistry::embedded().unwrap();
+        let instance = registry.get("de-fds").unwrap();
+        let template = engine.render_request_template_with_instance("FragDenStaat", instance);
+
+        assert!(template.contains("Sehr geehrte/r FragDenStaat"));
+        assert!(template.contains("Informationsfreiheitsgesetz"));
+    }
+
+    #[test]
+    fn fr_and_es_locales_render_locale_specific_templates() {
+        let fr_engine = LocalizationEngine::new("fr-FR");
+        let es_engine = LocalizationEngine::new("es-ES");
+        let registry = InstanceRegistry::embedded().unwrap();
+        let fr_instance = registry.get("fr-cada").unwrap();
+        let es_instance = registry.get("es-tdas").unwrap();
+
+        let fr_template = fr_engine.render_request_template_with_instance("CADA", fr_instance);
+        let es_template =
+            es_engine.render_request_template_with_instance("Tu Derecho a Saber", es_instance);
+
+        assert!(fr_template.contains("Bonjour CADA"));
+        assert!(fr_template.contains("Loi sur l'accès aux documents administratifs"));
+        assert!(es_template.contains("Estimado/a Tu Derecho a Saber"));
+        assert!(es_template.contains("Ley de Transparencia"));
+    }
+}

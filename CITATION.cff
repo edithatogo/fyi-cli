@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "fyi-cli"
+abstract: >-
+  A multi-jurisdiction command-line and MCP tool for interacting with
+  Alaveteli-based Freedom of Information request platforms (FYI.co.nz,
+  RightToKnow.org.au, WhatDoTheyKnow.com, and others).
+authors:
+  - name: "edithatogo"
+repository-code: "https://github.com/edithatogo/fyi-cli"
+url: "https://github.com/edithatogo/fyi-cli"
+license: MIT
+version: "0.1.0"
+date-released: "2026-07-09"

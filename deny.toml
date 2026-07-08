@@ -1,0 +1,75 @@
+[graph]
+all-features = true
+
+[advisories]
+version = 2
+# NOTE (multi-jurisdiction-security-hardening track): the ids below are transitive
+# advisories pulled in almost entirely by the optional Tor anonymity feature
+# (arti-client + tor-rtcompat), which is beta-quality software with a large,
+# fast-moving dependency graph (ring, curve25519-dalek, ed25519-dalek,
+# rustls-pemfile, derivative, instant, paste, webpki/x509-parser). Bumping
+# arti-client to pull in fixed transitives needs to be validated against a
+# working Rust toolchain build (blocked locally by the Windows SDK linker) and
+# is tracked as follow-up work rather than silently accepted forever. Do not
+# add further ignores here without a corresponding tracking issue.
+ignore = [
+  "RUSTSEC-2026-0190", # curve25519-dalek timing variability (via arti-client -> tor-*)
+  "RUSTSEC-2024-0344", # curve25519-dalek timing variability, older advisory (via arti-client)
+  "RUSTSEC-2024-0388", # derivative unmaintained (via arti-client -> tor-*)
+  "RUSTSEC-2022-0093", # ed25519-dalek double public key oracle attack (via arti-client)
+  "RUSTSEC-2026-0174", # http/hyper header ASCII invariant notice (via arti-client -> tor-*)
+  "RUSTSEC-2024-0384", # instant unmaintained (via arti-client -> tor-*)
+  "RUSTSEC-2024-0436", # paste unmaintained (via arti-client -> tor-*)
+  "RUSTSEC-2025-0009", # aes overflow panic (via arti-client -> tor-*)
+  "RUSTSEC-2025-0010", # ring unmaintained pre-0.17 (via arti-client -> tor-*)
+  "RUSTSEC-2023-0071", # rsa Marvin Attack timing sidechannel (via arti-client -> tor-*)
+  "RUSTSEC-2025-0134", # rustls-pemfile unmaintained (via arti-client -> tor-*)
+  "RUSTSEC-2026-0098", # webpki/x509 name constraint issue (via arti-client -> tor-*)
+  "RUSTSEC-2026-0099", # webpki/x509 name constraint wildcard issue (via arti-client -> tor-*)
+  "RUSTSEC-2026-0104", # x509 reachable panic in CRL parsing (via arti-client -> tor-*)
+  # RUSTSEC-2024-0363: sqlx binary protocol truncation. Upgrading to sqlx >=0.8.1
+  # is blocked by a `links = "sqlite3"` conflict with arti-client's transitive
+  # `rusqlite` (via tor-dirmgr), which pins libsqlite3-sys 0.26 vs sqlx 0.8's
+  # 0.28 -- cargo refuses to link two versions of the native sqlite3 lib in one
+  # binary. Per the advisory itself, only Postgres is demonstrated exploitable;
+  # "MySQL and SQLite do not appear to be exploitable, but upgrading is
+  # recommended nonetheless." We only use the sqlite driver here. Revisit once
+  # arti-client updates its rusqlite dependency.
+  "RUSTSEC-2024-0363",
+]
+
+[bans]
+multiple-versions = "warn"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+
+[licenses]
+version = 2
+allow = [
+  "MIT",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "ISC",
+  "Unicode-3.0",
+  "CC0-1.0",
+  "Zlib",
+  "MPL-2.0",
+  "Unlicense",
+  "OpenSSL"
+]
+confidence-threshold = 0.8
+
+# `ring` embeds a composite LICENSE file (MIT/ISC/OpenSSL) that cargo-deny's
+# text-similarity scorer can't confidently classify; the hash below matches the
+# LICENSE text bundled with the currently-resolved ring 0.16.20, as reported by
+# cargo-deny itself. See https://github.com/briansmith/ring/blob/main/LICENSE.
+[[licenses.clarify]]
+name = "ring"
+expression = "MIT AND ISC AND OpenSSL"
+license-files = [
+  { path = "LICENSE", hash = 0xbd0eed23 },
+]

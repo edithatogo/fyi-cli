@@ -1,5 +1,6 @@
 use clap::{Parser, Subcommand, ValueEnum};
 use fyi_core::db::{DbPool, GlobalSyncStatus};
+use fyi_core::jurisdiction::InstanceRegistry;
 use fyi_core::security::{
     build_provisioning_uri, generate_totp_secret, render_provisioning_qr_ascii, KeyringStore,
 };
@@ -7,6 +8,7 @@ use fyi_core::sync::{PullReport, PushReport, SyncClient, SyncConfig};
 use std::fs::OpenOptions;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
+use tokio::runtime::Runtime;
 
 #[allow(dead_code)]
 mod tui;
@@ -37,6 +39,15 @@ pub struct Cli {
 
     #[arg(long, short, global = true, value_enum, default_value_t = OutputFormat::Text, help = "Output format")]
     pub output_format: OutputFormat,
+
+    #[arg(
+        long,
+        short = 'v',
+        global = true,
+        action = clap::ArgAction::Count,
+        help = "Increase logging verbosity (-v for debug, -vv for trace)"
+    )]
+    pub verbose: u8,
 
     #[command(subcommand)]
     pub command: Commands,
@@ -132,9 +143,13 @@ pub enum Commands {
         body: String,
         #[arg(long)]
         tags: Option<String>,
+        #[arg(long)]
+        instance: Option<String>,
         #[arg(long, default_value = "https://fyi.org.nz")]
         base_url: String,
     },
+    #[command(about = "List built-in jurisdictions and instances")]
+    Instances,
     #[command(about = "Ingest RSS or JSON feed")]
     IngestFeed {
         feed_url: String,
@@ -427,6 +442,24 @@ fn main() {
     #[cfg(feature = "dhat-on")]
     let _profiler = dhat::Profiler::new_heap();
     let args = Cli::parse();
+
+    // Logging: RUST_LOG env var takes precedence; otherwise -v/-vv raises the
+    // default level above the CLI's baseline "warn". User-facing CLI output
+    // (println!) is unaffected -- this only governs diagnostic tracing spans.
+    let default_level = match args.verbose {
+        0 => "warn",
+        1 => "info",
+        2 => "debug",
+        _ => "trace",
+    };
+    tracing_subscriber::fmt()
+        .with_writer(std::io::stderr)
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new(default_level)),
+        )
+        .init();
+
     match &args.command {
         Commands::InitDb { db } => {
             if let Err(error) = initialize_database_file(db) {
@@ -482,13 +515,52 @@ fn main() {
         Commands::BuildPrefilledUrl {
             authority_slug,
             title,
+            body,
+            tags,
+            instance,
             base_url,
-            ..
         } => {
-            println!(
-                "Prefilled URL for '{}' on {}/{} built.",
-                title, base_url, authority_slug
-            );
+            let registry = InstanceRegistry::embedded().unwrap_or_default();
+            let resolved_base_url = instance
+                .as_deref()
+                .and_then(|instance_id| {
+                    registry
+                        .get(instance_id)
+                        .map(|instance| instance.base_url.clone())
+                })
+                .unwrap_or_else(|| base_url.clone());
+
+            let runtime = Runtime::new().unwrap_or_else(|error| {
+                eprintln!("Failed to create async runtime: {error}");
+                std::process::exit(1);
+            });
+
+            match runtime.block_on(async {
+                let client = SyncClient::new(&resolved_base_url)?;
+                client
+                    .build_prefilled_url(authority_slug, title, body, tags.as_deref())
+                    .await
+            }) {
+                Ok(url) => println!("Prefilled URL: {url}"),
+                Err(error) => {
+                    eprintln!("Failed to build prefilled URL: {error}");
+                    std::process::exit(1);
+                }
+            }
+        }
+        Commands::Instances => {
+            let registry = InstanceRegistry::embedded().unwrap_or_default();
+            for instance in registry.list() {
+                println!(
+                    "{}\t{}\t{}\t{}\t{}\t{}",
+                    instance.id,
+                    instance.country,
+                    instance.locale,
+                    instance.base_url,
+                    instance.foi_law.law_name,
+                    format!("{:?}", instance.status).to_ascii_lowercase()
+                );
+            }
         }
         Commands::IngestFeed { feed_url, db } => {
             println!("Ingesting feed from {} into {}", feed_url, db);

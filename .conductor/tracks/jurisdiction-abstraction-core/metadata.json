@@ -1,0 +1,16 @@
+{
+  "track_id": "jurisdiction-abstraction-core",
+  "type": "feature",
+  "status": "in_progress",
+  "created_at": "2026-07-08T22:07:37+10:00",
+  "updated_at": "2026-07-08T13:59:00+10:00",
+  "description": "Instance registry, FoiProvider trait, capabilities model, DB instance_id migration, config + --instance CLI/MCP surface.",
+  "dependencies": ["fyi-api-coverage-audit"],
+  "priority": "high",
+  "github_issue": 38,
+  "github_pr": 126,
+  "implementation_workflow": {
+    "tracked_by": "github-issues-prs",
+    "branch": "60217257-implement-foi-tracks"
+  }
+}

@@ -2,11 +2,15 @@
 
 ## Supported Versions
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.0.x   | :white_check_mark: |
-| 0.14.x  | :warning: Security fixes only |
-| < 0.14  | :x:                |
+`fyi-cli` is transitioning to a Rust workspace (`fyi-core`, `fyi-cli`, `fyi-mcp`); the legacy
+`fyi_system` Python package remains as a reference implementation but is not actively extended.
+Only the latest released version of each component is supported with security fixes.
+
+| Component | Supported          |
+| --------- | ------------------ |
+| Rust workspace (`fyi-core`/`fyi-cli`/`fyi-mcp`), latest release | :white_check_mark: |
+| Legacy `fyi_system` Python package, latest release | :warning: Security fixes only |
+| Any older release | :x: |
 
 ## Reporting a Vulnerability
 

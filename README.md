@@ -1,34 +1,37 @@
 # FYI CLI
 
-**Privacy-focused CLI tool for managing FYI.org.nz official information requests**
+**A multi-jurisdiction Freedom-of-Information (FOI) client for Alaveteli-based platforms** — track,
+submit, and archive official information requests across New Zealand, Australia, the UK, and any
+other [Alaveteli](https://alaveteli.org/) deployment (FYI.org.nz, WhatDoTheyKnow, FragDenStaat, and
+more), from a single privacy-focused CLI.
 
 [![PyPI version](https://badge.fury.io/py/fyi-cli.svg)](https://badge.fury.io/py/fyi-cli)
-[![Python Support](https://img.shields.io/pypi/pyversions/fyi-cli.svg)](https://pypi.org/project/fyi-cli/)
+[![Crates.io](https://img.shields.io/crates/v/fyi-cli.svg)](https://crates.io/crates/fyi-cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/edithatogo/fyi-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/edithatogo/fyi-cli/actions/workflows/ci.yml)
 [![Codecov](https://codecov.io/gh/edithatogo/fyi-cli/branch/master/graph/badge.svg)](https://codecov.io/gh/edithatogo/fyi-cli)
 [![smithery badge](https://smithery.ai/badge/edithatogo/fyi-mcp)](https://smithery.ai/servers/edithatogo/fyi-mcp)
+
+The project's core is a **Rust workspace** (`fyi-core`, `fyi-cli`, `fyi-mcp`); a legacy Python
+package (`fyi_system`) remains available as a reference implementation but is no longer extended.
 
 ---
 
 ## 🚀 Quick Start
 
 ```bash
-# Install
-pip install fyi-cli
+# Install (Rust workspace, recommended)
+cargo install --path crates/fyi-cli
+# or: cargo install fyi-cli   (once published to crates.io)
 
 # Initialize
-fyi init-db
+fyi-cli init-db
 
 # Create your first request
-fyi register-request ministry-of-justice "OIA Request" "Request body..." --status draft
-
-# Generate submission URL
-fyi build-prefilled-url 1
+fyi-cli register-request ministry-of-justice "OIA Request" "Request body..." --status draft
 
 # Track and manage requests
-fyi list-requests
-fyi dashboard --output dashboard.html
+fyi-cli list-requests
 ```
 
 **Full guide:** [QUICKSTART.md](QUICKSTART.md)
@@ -37,23 +40,29 @@ fyi dashboard --output dashboard.html
 
 ## ✨ Features
 
-- **🔒 Privacy-First**: All data stored locally, optional encryption
-- **📊 Track Requests**: Monitor OIA requests from creation to completion
-- **🤖 Automated Monitoring**: Watch FYI.org.nz for updates automatically
+- **🌐 Multi-Jurisdiction**: Works with any Alaveteli deployment — FYI.org.nz (NZ), WhatDoTheyKnow
+  (UK), FragDenStaat (Germany), righttoknow.org.au (Australia), and more, with jurisdiction-aware
+  metadata and localization on the way
+- **🔒 Privacy-First**: All data stored locally, optional encryption, Tor support
+- **📊 Track Requests**: Monitor FOI/OIA requests from creation to completion
+- **🤖 Automated Monitoring**: Watch instances for updates automatically
 - **📈 Reports & Analytics**: Generate dashboards, attention reports, handover docs
 - **🔐 Secure Storage**: Encrypted credentials, OS keyring integration
-- **🌐 Alaveteli Compatible**: Works with any Alaveteli instance (FYI, WDTK, FDS)
-- **💻 CLI + Web UI**: Command-line and web interface options
-- **📦 Export Options**: JSON, CSV, HTML, PDF export capabilities
+- **💻 CLI + MCP**: Command-line tool and an [MCP server](crates/fyi-mcp) for AI assistants
+- **📦 Export Options**: JSON, CSV, HTML export capabilities
+- **🗄️ Faithful Archiving**: WARC/WACZ capture of requests, correspondence, and attachments
 
 ---
 
 ## 📦 Installation
 
-### From PyPI (Recommended)
+### From Source (Rust workspace, recommended)
 
 ```bash
-pip install fyi-cli
+git clone https://github.com/edithatogo/fyi-cli.git
+cd fyi-cli
+cargo build --workspace --release
+./target/release/fyi-cli --help
 ```
 
 ### Standalone Executables
@@ -63,12 +72,13 @@ Download from [Releases](https://github.com/edithatogo/fyi-cli/releases):
 - **macOS**: `fyi-cli-macos`
 - **Linux**: `fyi-cli-linux`
 
-### From Source
+### Legacy Python Package
+
+The original Python implementation (`fyi_system`) is still published to PyPI for existing users, but
+is not being extended with new features:
 
 ```bash
-git clone https://github.com/edithatogo/fyi-cli.git
-cd fyi-cli
-pip install -e ".[dev]"
+pip install fyi-cli
 ```
 
 **Full installation guide:** [INSTALL.md](INSTALL.md)
@@ -79,6 +89,7 @@ pip install -e ".[dev]"
 
 | Document | Description |
 |----------|-------------|
+| [Docs site](https://edithatogo.github.io/fyi-cli/) | Full documentation (Astro + Starlight) |
 | [docs/cli-entrypoints-audit.md](docs/cli-entrypoints-audit.md) | Canonical cross-reference for Python CLI, Rust CLI, and Rust MCP surfaces |
 | [QUICKSTART.md](QUICKSTART.md) | 5-minute getting started guide |
 | [USER_GUIDE.md](USER_GUIDE.md) | Comprehensive user documentation |
@@ -146,18 +157,17 @@ We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 git clone https://github.com/YOUR_USERNAME/fyi-cli.git
 cd fyi-cli
 
-# Set up development environment
-python -m venv venv
-source venv/bin/activate  # or venv\Scripts\activate on Windows
-pip install -e ".[dev]"
-
-# Run tests
-pytest
+# Build & test the Rust workspace
+cargo build --workspace --all-features
+cargo test --workspace --all-features
 
 # Make your changes, then submit a PR
 git commit -m "feat: Add awesome feature"
 git push origin feature/awesome-feature
 ```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full development setup, including the legacy
+Python `fyi_system` package.
 
 ### Code of Conduct
 
@@ -195,32 +205,34 @@ conservative: it adds missing `fyi-cli` issue/PR items to RIOPA, copies shared
 status values, sets the RIOPA mirror source to `other` unless a `fyi-cli` option
 exists, and never deletes umbrella-board items.
 
-### v1.0.0 Release Progress
+### Project Status
 
-| Phase | Status | Progress |
-|-------|--------|----------|
-| **Phase 1.1: Documentation** | ✅ Complete | 100% |
-| **Phase 1.2: Packaging** | ⏳ In Progress | 0% |
-| **Phase 1.3: UX Improvements** | ⏳ Pending | 0% |
-| **Phase 2: Beta Release** | ⏳ Pending | 0% |
-| **Phase 3: Public Release** | ⏳ Pending | 0% |
-
-**Target Release Date:** 2026-03-30
-
-**Release Plan:** [RELEASE_PLAN.md](RELEASE_PLAN.md)
+This project is actively evolving from an NZ-only tool into a multi-jurisdiction FOI/Alaveteli
+platform built on the Rust workspace. Current work is tracked as
+[Conductor](https://conductor.build) tracks under `.conductor/tracks.md`, mirrored to GitHub epic
+issues (#37-#46) and their sub-issues. See the project board below for live status, and
+[CHANGELOG.md](CHANGELOG.md) for released versions.
 
 ---
 
 ## 🔗 Compatible Platforms
 
-FYI CLI works with any Alaveteli-based platform:
+FYI CLI works with any Alaveteli-based platform. The embedded jurisdiction catalog currently
+includes:
 
 | Platform | Region | URL |
 |----------|--------|-----|
 | **FYI.org.nz** | New Zealand | https://fyi.org.nz |
+| **RightToKnow** | Australia | https://www.righttoknow.org.au |
 | **WhatDoTheyKnow** | United Kingdom | https://www.whatdotheyknow.com |
+| **MyRightToKnow** | Ireland | https://www.myrighttoknow.org |
+| **Ma Da Da (CADA)** | France | https://www.madada.fr |
+| **Tu Derecho a Saber** | Spain | https://www.tuderechoasaber.es |
 | **FragDenStaat** | Germany | https://fragdenstaat.de |
 | **Alaveteli** | Any | Self-hosted instances |
+
+See `.conductor/tracks/jurisdiction-*` for the rollout plan covering additional instances and
+non-English localization.
 
 ---
 
@@ -346,19 +358,23 @@ fyi health-check               # System health verification
 ## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                      FYI CLI                             │
-├─────────────────────────────────────────────────────────┤
-│  CLI Commands  │  Web UI  │  Scheduler  │  Reports     │
-├─────────────────────────────────────────────────────────┤
-│              Alaveteli API Client                        │
-│         (Read API + Write API support)                  │
-├─────────────────────────────────────────────────────────┤
-│                   SQLite Database                        │
-│  (tracked_requests, authorities, feed_events, etc.)     │
-├─────────────────────────────────────────────────────────┤
-│              FYI.org.nz / Alaveteli API                 │
-└─────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────┐
+│                         fyi-cli workspace                      │
+├───────────────────┬───────────────────────┬───────────────────┤
+│   fyi-cli (bin)   │   fyi-mcp (MCP server) │  legacy fyi_system │
+│  CLI commands,     │  JSON-RPC over stdio,   │  (Python, reference │
+│  TUI dashboard      │  tools for AI assistants│  implementation)   │
+├───────────────────┴───────────────────────┴───────────────────┤
+│                          fyi-core (lib)                         │
+│   Alaveteli API client · Tor client · encryption/keyring ·       │
+│   sync engine · jurisdiction/instance registry (in progress)     │
+├─────────────────────────────────────────────────────────────────┤
+│                        SQLite database                          │
+│      (requests, correspondence, authorities, sync_metadata)     │
+├─────────────────────────────────────────────────────────────────┤
+│      Alaveteli instances: FYI.org.nz · WhatDoTheyKnow ·          │
+│      FragDenStaat · righttoknow.org.au · any self-hosted deploy  │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -379,7 +395,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- **Documentation:** https://fyi-cli.readthedocs.io/
+- **Documentation:** https://edithatogo.github.io/fyi-cli/
 - **Issues:** https://github.com/edithatogo/fyi-cli/issues
 - **Discussions:** https://github.com/edithatogo/fyi-cli/discussions
 

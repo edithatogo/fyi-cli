@@ -1,0 +1,174 @@
+[[instances]]
+id = "nz-fyi"
+base_url = "https://fyi.org.nz"
+country = "NZ"
+locale = "en-NZ"
+
+[instances.foi_law]
+law_name = "Official Information Act"
+citation = "OIA 1982"
+request_term = "request"
+statutory_deadline_days = 20
+appeal_body = "Ombudsman"
+
+[instances.capabilities]
+read = true
+write = true
+attachments = true
+batch = true
+feeds = true
+search = true
+prefilled_url = true
+health = true
+
+status = "supported"
+
+[[instances]]
+id = "au-rtk"
+base_url = "https://www.righttoknow.org.au"
+country = "AU"
+locale = "en-AU"
+
+[instances.foi_law]
+law_name = "Freedom of Information Act"
+citation = "FOI Act"
+request_term = "FOI request"
+statutory_deadline_days = 30
+appeal_body = "Office of the Australian Information Commissioner (OAIC)"
+
+[instances.capabilities]
+read = true
+write = true
+attachments = true
+batch = false
+feeds = true
+search = true
+prefilled_url = true
+health = true
+
+status = "experimental"
+
+[[instances]]
+id = "uk-wdtk"
+base_url = "https://www.whatdotheyknow.com"
+country = "GB"
+locale = "en-GB"
+
+[instances.foi_law]
+law_name = "Freedom of Information Act"
+citation = "FOIA 2000"
+request_term = "FOI request"
+statutory_deadline_days = 20
+appeal_body = "Information Commissioner's Office (ICO)"
+
+[instances.capabilities]
+read = true
+write = true
+attachments = true
+batch = false
+feeds = true
+search = true
+prefilled_url = true
+health = true
+
+status = "experimental"
+
+[[instances]]
+id = "ie-myrighttoknow"
+base_url = "https://www.myrighttoknow.org"
+country = "IE"
+locale = "en-IE"
+
+[instances.foi_law]
+law_name = "Freedom of Information Act"
+citation = "FOI Act"
+request_term = "FOI request"
+statutory_deadline_days = 20
+appeal_body = "Office of the Information Commissioner"
+
+[instances.capabilities]
+read = true
+write = true
+attachments = true
+batch = false
+feeds = true
+search = true
+prefilled_url = true
+health = true
+
+status = "experimental"
+
+[[instances]]
+id = "fr-cada"
+base_url = "https://www.madada.fr"
+country = "FR"
+locale = "fr-FR"
+
+[instances.foi_law]
+law_name = "Loi sur l'accès aux documents administratifs"
+citation = "Loi sur l'accès aux documents administratifs"
+request_term = "demande"
+statutory_deadline_days = 30
+appeal_body = "Commission d'accès aux documents administratifs"
+
+[instances.capabilities]
+read = true
+write = true
+attachments = true
+batch = false
+feeds = true
+search = true
+prefilled_url = true
+health = true
+
+status = "community"
+
+[[instances]]
+id = "es-tdas"
+base_url = "https://www.tuderechoasaber.es"
+country = "ES"
+locale = "es-ES"
+
+[instances.foi_law]
+law_name = "Ley de Transparencia"
+citation = "Ley de Transparencia"
+request_term = "solicitud"
+statutory_deadline_days = 20
+appeal_body = "Autoridad de Control"
+
+[instances.capabilities]
+read = true
+write = true
+attachments = true
+batch = false
+feeds = true
+search = true
+prefilled_url = true
+health = true
+
+status = "community"
+
+[[instances]]
+id = "de-fds"
+base_url = "https://fragdenstaat.de"
+country = "DE"
+locale = "de-DE"
+
+[instances.foi_law]
+law_name = "Informationsfreiheitsgesetz"
+citation = "IFG"
+request_term = "Anfrage"
+statutory_deadline_days = 30
+appeal_body = "Informationsfreiheitsbeauftragte"
+
+[instances.capabilities]
+read = true
+write = true
+attachments = true
+batch = false
+feeds = true
+search = true
+prefilled_url = true
+health = true
+
+status = "community"

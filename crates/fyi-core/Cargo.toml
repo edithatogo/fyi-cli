@@ -1,7 +1,10 @@
 [package]
 name = "fyi-core"
-version = "0.1.0"
+version = "0.1.2"
 edition = "2021"
+license = "MIT"
+repository = "https://github.com/edithatogo/fyi-cli"
+description = "Core library for the fyi-cli multi-jurisdiction FOI/Alaveteli platform"
 
 [dependencies]
 tokio = { version = "1.36", features = ["full"] }
@@ -23,6 +26,7 @@ sha1 = "0.10"
 data-encoding = "2.6"
 percent-encoding = "2.3"
 qrcode = { version = "0.14", default-features = false }
+toml = "0.8"
 
 [dev-dependencies]
 wiremock = "0.5"

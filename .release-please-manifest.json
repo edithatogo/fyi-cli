@@ -1,3 +1,6 @@
 {
-  ".": "1.1.0"
+  ".": "1.1.0",
+  "crates/fyi-core": "0.1.2",
+  "crates/fyi-cli": "0.1.2",
+  "crates/fyi-mcp": "0.1.2"
 }
