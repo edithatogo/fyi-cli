@@ -1,10 +1,16 @@
 {
   "track_id": "jurisdiction-english-alaveteli-fleet",
   "type": "feature",
-  "status": "new",
+  "status": "in_progress",
   "created_at": "2026-07-08T22:07:37+10:00",
-  "updated_at": "2026-07-08T22:07:37+10:00",
+  "updated_at": "2026-07-08T13:59:00+10:00",
   "description": "Remaining English Alaveteli instances (e.g. Ireland, other en deployments), community-tier onboarding + catalog automation.",
   "dependencies": ["jurisdiction-uk-whatdotheyknow"],
-  "priority": "medium"
+  "priority": "medium",
+  "github_issue": 42,
+  "github_pr": 126,
+  "implementation_workflow": {
+    "tracked_by": "github-issues-prs",
+    "branch": "60217257-implement-foi-tracks"
+  }
 }

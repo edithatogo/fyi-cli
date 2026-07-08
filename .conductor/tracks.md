@@ -127,50 +127,72 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## Active Tracks
 
-- [ ] **Track: fyi-api-coverage-audit**
+The current implementation slice is tracked in GitHub issues and PR #126. Each track below is linked to its epic issue and the branch PR so merge/close automation stays consistent.
+
+- [~] **Track: fyi-api-coverage-audit**
+  *Issue: #37*
+  *PR: #126*
   *Link: [./tracks/fyi-api-coverage-audit/](./tracks/fyi-api-coverage-audit/)*
   *Description: Audit FYI/Alaveteli API surface; bring Rust core to full parity with Python client + close web-artifact gaps.*
 
-- [ ] **Track: jurisdiction-abstraction-core**
+- [~] **Track: jurisdiction-abstraction-core**
+  *Issue: #38*
+  *PR: #126*
   *Link: [./tracks/jurisdiction-abstraction-core/](./tracks/jurisdiction-abstraction-core/)*
   *Description: Instance registry, FoiProvider trait, capabilities model, DB instance_id migration, config + --instance CLI/MCP surface.*
   *Dependencies: fyi-api-coverage-audit*
 
-- [ ] **Track: i18n-localization-framework**
+- [~] **Track: i18n-localization-framework**
+  *Issue: #39*
+  *PR: #126*
   *Link: [./tracks/i18n-localization-framework/](./tracks/i18n-localization-framework/)*
   *Description: fluent-rs i18n, locale-aware templates, terminology map, working-day/deadline engine + holiday calendars.*
   *Dependencies: jurisdiction-abstraction-core*
 
-- [ ] **Track: jurisdiction-au-righttoknow**
+- [~] **Track: jurisdiction-au-righttoknow**
+  *Issue: #40*
+  *PR: #126*
   *Link: [./tracks/jurisdiction-au-righttoknow/](./tracks/jurisdiction-au-righttoknow/)*
   *Description: Onboard righttoknow.org.au: instance entry, FOI Act metadata, authority taxonomy, AU templates, discovery/archive parity, live-safe tests.*
   *Dependencies: jurisdiction-abstraction-core*
 
-- [ ] **Track: jurisdiction-uk-whatdotheyknow**
+- [~] **Track: jurisdiction-uk-whatdotheyknow**
+  *Issue: #41*
+  *PR: #126*
   *Link: [./tracks/jurisdiction-uk-whatdotheyknow/](./tracks/jurisdiction-uk-whatdotheyknow/)*
   *Description: Onboard whatdotheyknow.com (FOIA 2000); proves the pattern a second time; scale/rate-limit hardening for a large corpus.*
   *Dependencies: jurisdiction-au-righttoknow*
 
-- [ ] **Track: jurisdiction-english-alaveteli-fleet**
+- [~] **Track: jurisdiction-english-alaveteli-fleet**
+  *Issue: #42*
+  *PR: #126*
   *Link: [./tracks/jurisdiction-english-alaveteli-fleet/](./tracks/jurisdiction-english-alaveteli-fleet/)*
   *Description: Remaining English Alaveteli instances (e.g. Ireland, other en deployments), community-tier onboarding + catalog automation.*
   *Dependencies: jurisdiction-uk-whatdotheyknow*
 
-- [ ] **Track: jurisdiction-global-i18n-rollout**
+- [~] **Track: jurisdiction-global-i18n-rollout**
+  *Issue: #43*
+  *PR: #126*
   *Link: [./tracks/jurisdiction-global-i18n-rollout/](./tracks/jurisdiction-global-i18n-rollout/)*
   *Description: Non-English instances (Germany/FragDenStaat, France, Spain, etc.), full i18n, GDPR/PII handling per locale.*
   *Dependencies: jurisdiction-english-alaveteli-fleet, i18n-localization-framework*
 
-- [ ] **Track: multi-jurisdiction-security-hardening**
+- [~] **Track: multi-jurisdiction-security-hardening**
+  *Issue: #44*
+  *PR: #126*
   *Link: [./tracks/multi-jurisdiction-security-hardening/](./tracks/multi-jurisdiction-security-hardening/)*
   *Description: SSRF prevention, credential isolation, GDPR/PII, supply chain (cargo-deny/audit, SBOM, sigstore/cosign), Tor isolation, fuzzing, threat model.*
   *Dependencies: jurisdiction-abstraction-core*
 
-- [ ] **Track: registry-distribution-expansion**
+- [~] **Track: registry-distribution-expansion**
+  *Issue: #45*
+  *PR: #126*
   *Link: [./tracks/registry-distribution-expansion/](./tracks/registry-distribution-expansion/)*
   *Description: Registry matrix expansion (MCP catalogs, package managers, container registries) + submission automation.*
 
-- [ ] **Track: bleeding-edge-features**
+- [~] **Track: bleeding-edge-features**
+  *Issue: #46*
+  *PR: #126*
   *Link: [./tracks/bleeding-edge-features/](./tracks/bleeding-edge-features/)*
   *Description: Prioritized R&D backlog: AI request drafting, semantic search, deadline engine, federation, adapter SDK, signed provenance, MCP resources, offline PWA.*
   *Dependencies: jurisdiction-abstraction-core*
