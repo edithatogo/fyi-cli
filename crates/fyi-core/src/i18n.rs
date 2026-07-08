@@ -14,12 +14,38 @@ impl LocaleBundle {
         let locale = locale.to_ascii_lowercase();
         let mut translations = BTreeMap::new();
         if locale.starts_with("en") {
-            translations.insert("salutation".to_string(), "Dear {authority}".to_string());
+            let salutation = if locale.starts_with("en-nz") {
+                "Kia ora {authority}"
+            } else if locale.starts_with("en-au") {
+                "Dear {authority}"
+            } else if locale.starts_with("en-gb") {
+                "Dear {authority}"
+            } else {
+                "Dear {authority}"
+            };
+            translations.insert("salutation".to_string(), salutation.to_string());
             translations.insert("request_term".to_string(), "request".to_string());
             translations.insert("closing".to_string(), "Yours sincerely".to_string());
             translations.insert("working_days".to_string(), "working days".to_string());
             translations.insert("working_day".to_string(), "working day".to_string());
             translations.insert("deadline".to_string(), "Statutory deadline".to_string());
+        } else if locale.starts_with("de") {
+            translations.insert(
+                "salutation".to_string(),
+                "Sehr geehrte/r {authority}".to_string(),
+            );
+            translations.insert("request_term".to_string(), "Anfrage".to_string());
+            translations.insert("closing".to_string(), "Mit freundlichen Grüßen".to_string());
+            translations.insert("working_days".to_string(), "Werktage".to_string());
+            translations.insert("working_day".to_string(), "Werktag".to_string());
+            translations.insert("deadline".to_string(), "Gesetzliche Frist".to_string());
+        } else if locale.starts_with("fr") {
+            translations.insert("salutation".to_string(), "Bonjour {authority}".to_string());
+            translations.insert("request_term".to_string(), "demande".to_string());
+            translations.insert("closing".to_string(), "Cordialement".to_string());
+            translations.insert("working_days".to_string(), "jours ouvrables".to_string());
+            translations.insert("working_day".to_string(), "jour ouvrable".to_string());
+            translations.insert("deadline".to_string(), "Délai légal".to_string());
         } else {
             translations.insert(
                 "salutation".to_string(),
@@ -118,6 +144,15 @@ impl LocalizationEngine {
         )
     }
 
+    pub fn deadline_for_instance(&self, start: NaiveDate, instance: &Instance) -> NaiveDate {
+        let days = instance
+            .foi_law
+            .statutory_deadline_days
+            .unwrap_or(20)
+            .max(0) as usize;
+        self.add_working_days(start, days)
+    }
+
     pub fn add_working_days(&self, start: NaiveDate, days: usize) -> NaiveDate {
         let mut current = start;
         let mut remaining = days;
@@ -168,5 +203,19 @@ mod tests {
         assert!(template.contains("FOI Act"));
         assert!(template.contains("FOI request"));
         assert!(template.contains("Australian Information Commissioner"));
+    }
+
+    #[test]
+    fn nz_locale_uses_kia_ora_salutation_and_deadline_for_instance() {
+        let engine = LocalizationEngine::new("en-NZ");
+        let registry = InstanceRegistry::embedded().unwrap();
+        let instance = registry.get("nz-fyi").unwrap();
+        let start = NaiveDate::from_ymd_opt(2026, 7, 3).unwrap();
+        let deadline = engine.deadline_for_instance(start, instance);
+
+        assert!(engine
+            .render_request_template_with_instance("Ministry", instance)
+            .contains("Kia ora Ministry"));
+        assert_eq!(deadline, NaiveDate::from_ymd_opt(2026, 7, 31).unwrap());
     }
 }

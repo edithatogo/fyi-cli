@@ -723,13 +723,24 @@ fn parse_json_value<T: serde::de::DeserializeOwned>(value: &Option<String>) -> O
 }
 
 fn validate_instance_url(url: &Url) -> Result<()> {
-    if url.scheme() != "https" {
-        return Err(anyhow!("instance URLs must use https"));
-    }
-
     let Some(host) = url.host_str() else {
         return Err(anyhow!("instance URL must include a host"));
     };
+
+    if url.username().is_empty() && url.password().is_none() {
+    } else {
+        return Err(anyhow!("instance URL must not include credentials"));
+    }
+
+    if !url.query().is_empty() || url.fragment().is_some() {
+        return Err(anyhow!(
+            "instance URL must not contain query strings or fragments"
+        ));
+    }
+
+    if url.scheme() != "https" && !is_loopback_host(host) {
+        return Err(anyhow!("instance URLs must use https for public hosts"));
+    }
 
     if host.eq_ignore_ascii_case("localhost") || host.ends_with(".local") {
         return Err(anyhow!(
@@ -746,6 +757,13 @@ fn validate_instance_url(url: &Url) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn is_loopback_host(host: &str) -> bool {
+    host.eq_ignore_ascii_case("localhost")
+        || host.eq_ignore_ascii_case("::1")
+        || host == "127.0.0.1"
+        || host.starts_with("127.")
 }
 
 fn is_public_ip(ip: IpAddr) -> bool {
@@ -890,6 +908,17 @@ mod tests {
             url: Some(format!("https://fyi.org.nz/request/{id}")),
             tags: None,
         }
+    }
+
+    #[test]
+    fn validate_instance_url_rejects_private_targets_and_credentials() {
+        assert!(SyncClient::new("https://www.fyi.org.nz").is_ok());
+        assert!(SyncClient::new("https://127.0.0.1").is_err());
+        assert!(SyncClient::new("https://example.local").is_err());
+        assert!(SyncClient::new("https://example.com").is_ok());
+        assert!(SyncClient::new("https://user:pass@example.com").is_err());
+        assert!(SyncClient::new("https://example.com?x=1").is_err());
+        assert!(SyncClient::new("http://127.0.0.1").is_ok());
     }
 
     #[tokio::test]
