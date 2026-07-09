@@ -458,3 +458,56 @@ class TestAlaveteliCompatibility:
         
         # Machine tags should preserve colon notation
         assert 'spending_id:12345' in url or 'spending_id%3A12345' in url
+
+
+class TestSustainabilityExtensions:
+    """Test sustainability features like ETags, retries, and bulk exports."""
+
+    @patch('fyi_system.alaveteli_client.requests.Session.get')
+    def test_rate_limit_headers_parsed(self, mock_get, client):
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.raise_for_status = Mock()
+        mock_response.headers = {
+            'RateLimit-Limit': '10',
+            'RateLimit-Remaining': '9',
+            'RateLimit-Reset': '45',
+            'X-Advisory-Status': 'nominal'
+        }
+        mock_get.return_value = mock_response
+
+        client._get('/api/v2/request/123.json')
+        assert client.last_rate_limit['limit'] == '10'
+        assert client.last_rate_limit['remaining'] == '9'
+        assert client.last_rate_limit['reset'] == '45'
+        assert client.last_rate_limit['advisory_status'] == 'nominal'
+
+    @patch('fyi_system.alaveteli_client.requests.Session.get')
+    @patch('fyi_system.alaveteli_client.db.get_cached_response')
+    def test_etag_cache_hit_304(self, mock_get_cached, mock_get, client):
+        mock_get_cached.return_value = {
+            'etag': '"abc"',
+            'last_modified': 'Mon, 09 Jul 2026 12:00:00 GMT',
+            'response_body': '{"cached": true}'
+        }
+        mock_response = Mock()
+        mock_response.status_code = 304
+        mock_response.headers = {'ETag': '"abc"'}
+        mock_get.return_value = mock_response
+
+        res = client._get('/api/v2/request/123.json')
+        assert res.status_code == 200
+        assert res.text == '{"cached": true}'
+
+    @patch('fyi_system.alaveteli_client.requests.Session.get')
+    def test_get_bulk_export(self, mock_get, client):
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.raise_for_status = Mock()
+        mock_response.text = '{"id": 1, "title": "Req 1"}\n{"id": 2, "title": "Req 2"}\n'
+        mock_get.return_value = mock_response
+
+        results = client.get_bulk_export()
+        assert len(results) == 2
+        assert results[0]['id'] == 1
+        assert results[1]['title'] == 'Req 2'

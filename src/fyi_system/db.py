@@ -77,6 +77,13 @@ CREATE TABLE IF NOT EXISTS shared_rate_limit_events (
   next_allowed_at REAL NOT NULL DEFAULT 0,
   observed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE TABLE IF NOT EXISTS http_cache (
+  url TEXT PRIMARY KEY,
+  etag TEXT,
+  last_modified TEXT,
+  response_body TEXT,
+  cached_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 
@@ -492,5 +499,38 @@ def read_shared_rate_limit_events(
             (name, limit),
         ).fetchall()
         return [dict(row) for row in rows]
+    finally:
+        conn.close()
+
+
+def get_cached_response(db_path: str | Path, url: str) -> dict[str, Any] | None:
+    conn = connect(db_path)
+    try:
+        row = conn.execute(
+            "SELECT etag, last_modified, response_body FROM http_cache WHERE url = ?",
+            (url,),
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def set_cached_response(
+    db_path: str | Path,
+    url: str,
+    etag: str | None,
+    last_modified: str | None,
+    response_body: str,
+) -> None:
+    conn = connect(db_path)
+    try:
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO http_cache (url, etag, last_modified, response_body, cached_at)
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+            """,
+            (url, etag, last_modified, response_body),
+        )
+        conn.commit()
     finally:
         conn.close()

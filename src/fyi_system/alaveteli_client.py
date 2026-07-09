@@ -14,10 +14,12 @@ API Documentation: https://alaveteli.org/docs/developers/api/
 from __future__ import annotations
 import json
 import requests
+import time
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
+from . import db
 
 
 @dataclass
@@ -79,7 +81,8 @@ class AlaveteliClient:
         self,
         base_url: str = 'https://fyi.org.nz',
         api_key: Optional[str] = None,
-        timeout: int = 30
+        timeout: int = 30,
+        db_path: str = 'fyi_system.db'
     ):
         """Initialize Alaveteli API client.
         
@@ -87,17 +90,22 @@ class AlaveteliClient:
             base_url: Base URL of Alaveteli instance (e.g., https://fyi.org.nz)
             api_key: API key for Write API operations (optional for Read API)
             timeout: Request timeout in seconds
+            db_path: Path to local SQLite database for caching
         """
         self.base_url = base_url.rstrip('/')
         self.api_key = api_key
         self.timeout = timeout
+        self.db_path = db_path
         self.session = requests.Session()
+        self.last_rate_limit = {}
         
         if api_key:
             self.session.params = {'k': api_key}
+            # Set bot token header for rate-limit bypass
+            self.session.headers['X-FYI-Bot-Token'] = api_key
     
     def _get(self, endpoint: str, **kwargs) -> requests.Response:
-        """Make GET request.
+        """Make GET request with rate-limit handling and ETag caching.
         
         Args:
             endpoint: API endpoint (e.g., '/api/v2/request/123.json')
@@ -110,15 +118,72 @@ class AlaveteliClient:
             AlaveteliAPIError: On API error
         """
         url = f"{self.base_url}{endpoint}"
-        
+        headers = kwargs.pop('headers', {})
+
+        # Load cached ETag/Last-Modified details
+        cached = None
         try:
-            response = self.session.get(url, timeout=self.timeout, **kwargs)
-            response.raise_for_status()
-            return response
-        except requests.exceptions.HTTPError as e:
-            raise AlaveteliAPIError(f"API error: {e}", response.status_code)
-        except requests.exceptions.RequestException as e:
-            raise AlaveteliAPIError(f"Request failed: {e}")
+            cached = db.get_cached_response(self.db_path, url)
+        except Exception:
+            pass
+
+        if cached:
+            if cached.get('etag'):
+                headers['If-None-Match'] = cached['etag']
+            if cached.get('last_modified'):
+                headers['If-Modified-Since'] = cached['last_modified']
+        
+        retries = 0
+        max_retries = 3
+        while retries < max_retries:
+            try:
+                response = self.session.get(url, headers=headers, timeout=self.timeout, **kwargs)
+                
+                # Capture Rate Limits
+                if 'RateLimit-Limit' in response.headers:
+                    self.last_rate_limit = {
+                        'limit': response.headers.get('RateLimit-Limit'),
+                        'remaining': response.headers.get('RateLimit-Remaining'),
+                        'reset': response.headers.get('RateLimit-Reset'),
+                        'advisory_status': response.headers.get('X-Advisory-Status', 'nominal')
+                    }
+
+                # Handle 429 Too Many Requests
+                if response.status_code == 429:
+                    retry_after = int(response.headers.get('Retry-After', 5))
+                    time.sleep(retry_after)
+                    retries += 1
+                    continue
+
+                # Handle ETag cache hits (304 Not Modified)
+                if response.status_code == 304 and cached:
+                    mock_response = requests.Response()
+                    mock_response.status_code = 200
+                    mock_response._content = cached['response_body'].encode('utf-8')
+                    mock_response.headers = response.headers
+                    return mock_response
+
+                response.raise_for_status()
+
+                # Cache successful GET responses containing ETags or Last-Modified
+                etag = response.headers.get('ETag')
+                last_modified = response.headers.get('Last-Modified')
+                if response.status_code == 200 and (etag or last_modified):
+                    try:
+                        db.set_cached_response(self.db_path, url, etag, last_modified, response.text)
+                    except Exception:
+                        pass
+
+                return response
+            except requests.exceptions.HTTPError as e:
+                if response.status_code == 429:
+                    retries += 1
+                    continue
+                raise AlaveteliAPIError(f"API error: {e}", response.status_code)
+            except requests.exceptions.RequestException as e:
+                raise AlaveteliAPIError(f"Request failed: {e}")
+
+        raise AlaveteliAPIError("Request failed: Max retries exceeded due to rate limiting", 429)
     
     def _post(self, endpoint: str, data: Optional[Dict] = None, 
               files: Optional[Dict] = None, **kwargs) -> requests.Response:
@@ -246,6 +311,21 @@ class AlaveteliClient:
         response = self._get('/search.json', params=params)
         return response.json()
     
+    def get_bulk_export(self) -> List[Dict[str, Any]]:
+        """Fetch bulk request metadata stream from Alaveteli.
+        
+        Endpoint: GET /api/v1/bulk_export
+        
+        Returns:
+            List of request metadata dictionaries
+        """
+        response = self._get('/api/v1/bulk_export')
+        results = []
+        for line in response.text.strip().split("\n"):
+            if line:
+                results.append(json.loads(line))
+        return results
+
     # ========== Write API Methods ==========
     
     def create_request(
