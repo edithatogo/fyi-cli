@@ -235,3 +235,16 @@
 
 ## Track History
 - **2026-07-08**: Track created for multi-jurisdictional expansion
+
+## Implementation progress (2026-07-09)
+
+- [x] #120 deadlines engine module (`crates/fyi-core/src/deadlines.rs`)
+- [x] #118 LlmClient + MockLlm + draft_request_with_llm (`drafting.rs`)
+- [x] #119 in-memory hybrid search (`search.rs`)
+- [x] #121 federation view (`federation.rs`)
+- [x] #122 community adapter trait (`adapter.rs`)
+- [x] #123 SHA-256 provenance chain (`provenance.rs`)
+- [x] #124 MCP resources/list + resources/read (`fyi-mcp`)
+- [x] #125 offline PWA design + SW stub (design only)
+- [ ] Full production integrations (remote LLM, OCR, Flathub publish, full Next.js PWA, etc.)
+

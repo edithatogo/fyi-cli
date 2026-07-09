@@ -181,13 +181,14 @@ The current implementation slice is tracked in GitHub issues. Each track below i
   *Issue: #45*
   *Link: [./tracks/registry-distribution-expansion/](./tracks/registry-distribution-expansion/)*
   *Description: Registry matrix expansion (MCP catalogs, package managers, container registries) + submission automation.*
-  *Progress (2026-07-09): matrix doc expanded; Scoop/WinGet drafts + cargo-binstall metadata; Glama verified live; Smithery listed (score still null); GitHub curated MCP still blocked-external.*
+  *Progress (2026-07-09): matrix + Scoop/WinGet/binstall; packaging drafts for AUR/nix/snap/flatpak/asdf/deb/rpm; MCP catalog packages; GHCR workflow+docs. Implementation wave 2026-07-09.*
 
 - [~] **Track: bleeding-edge-features**
   *Issue: #46*
   *Link: [./tracks/bleeding-edge-features/](./tracks/bleeding-edge-features/)*
   *Description: Prioritized R&D backlog: AI request drafting, semantic search, deadline engine, federation, adapter SDK, signed provenance, MCP resources, offline PWA.*
   *Dependencies: jurisdiction-abstraction-core*
+  *Progress (2026-07-09): foundations for deadlines, drafting LLM trait, search, federation, adapter SDK, provenance, MCP resources, PWA design.*
 
 ## Recently completed (2026-07-09)
 
@@ -238,3 +239,4 @@ Potential tracks for future development:
 - `[ ]` - Not started
 - `[~]` - In progress
 - `[x]` - Completed
+

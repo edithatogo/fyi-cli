@@ -1,0 +1,36 @@
+Source: fyi-cli
+Section: utils
+Priority: optional
+Maintainer: edithatogo <https://github.com/edithatogo>
+Uploaders: edithatogo <https://github.com/edithatogo>
+Build-Depends:
+ debhelper-compat (= 13),
+ cargo,
+ rustc,
+ libssl-dev,
+ pkg-config,
+ ca-certificates
+Standards-Version: 4.6.2
+Homepage: https://github.com/edithatogo/fyi-cli
+Vcs-Git: https://github.com/edithatogo/fyi-cli.git
+Vcs-Browser: https://github.com/edithatogo/fyi-cli
+Rules-Requires-Root: no
+
+Package: fyi-cli
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ca-certificates
+Recommends: tor
+Description: Privacy-focused multi-jurisdiction FOI/OIA CLI for Alaveteli
+ fyi-cli tracks and manages Freedom of Information / Official Information
+ requests against Alaveteli-based platforms (FYI.org.nz and other instances),
+ with a Rust CLI, optional Tor support, and local SQLite storage.
+ .
+ This package provides the fyi-cli binary.
+
+Package: fyi-mcp
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ca-certificates
+Recommends: fyi-cli
+Description: MCP server for FYI/Alaveteli request management
+ fyi-mcp is the Model Context Protocol server companion to fyi-cli for
+ AI assistants integrating with multi-jurisdiction FOI/OIA workflows.

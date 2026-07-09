@@ -1,0 +1,73 @@
+# Draft Snapcraft manifest for fyi-cli / fyi-mcp.
+# Submit via snapcraft after release assets or source builds verify cleanly.
+#
+# Homepage: https://github.com/edithatogo/fyi-cli
+# Version: 0.1.2
+# License: MIT
+# Publisher: edithatogo
+
+name: fyi-cli
+base: core22
+version: "0.1.2"
+summary: Privacy-focused multi-jurisdiction FOI/OIA CLI for Alaveteli
+description: |
+  fyi-cli tracks and manages Freedom of Information / Official Information
+  requests against Alaveteli-based platforms (FYI.org.nz and other instances),
+  with a Rust CLI, MCP server (fyi-mcp), optional Tor support, and local
+  SQLite storage.
+
+  Binaries provided:
+    - fyi-cli  — primary CLI
+    - fyi-mcp  — Model Context Protocol server
+
+grade: devel
+confinement: strict
+license: MIT
+website: https://github.com/edithatogo/fyi-cli
+contact: https://github.com/edithatogo/fyi-cli/issues
+source-code: https://github.com/edithatogo/fyi-cli
+issues: https://github.com/edithatogo/fyi-cli/issues
+
+architectures:
+  - build-on: amd64
+  - build-on: arm64
+
+apps:
+  fyi-cli:
+    command: bin/fyi-cli
+    plugs:
+      - home
+      - network
+      - network-bind
+      - removable-media
+  fyi-mcp:
+    command: bin/fyi-mcp
+    plugs:
+      - home
+      - network
+      - network-bind
+      - removable-media
+
+parts:
+  fyi-cli:
+    plugin: rust
+    source: https://github.com/edithatogo/fyi-cli.git
+    source-tag: v0.1.2
+    # When building from a release tarball instead:
+    # source: https://github.com/edithatogo/fyi-cli/archive/refs/tags/v0.1.2.tar.gz
+    rust-channel: stable
+    rust-features: []
+    build-packages:
+      - pkg-config
+      - libssl-dev
+      - build-essential
+      - ca-certificates
+    stage-packages:
+      - ca-certificates
+      - libssl3
+    override-build: |
+      craftctl default
+      # Ensure both workspace binaries are present (plugin may build default member only).
+      cargo build --release --locked --package fyi-cli --package fyi-mcp
+      install -Dm755 target/release/fyi-cli "${CRAFT_PART_INSTALL}/bin/fyi-cli"
+      install -Dm755 target/release/fyi-mcp "${CRAFT_PART_INSTALL}/bin/fyi-mcp"

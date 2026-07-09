@@ -31,6 +31,70 @@ pub struct DraftPrompt {
     pub body: String,
 }
 
+/// Polished letter returned by an LLM (or mock) drafting path.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DraftedLetter {
+    pub title: String,
+    pub body: String,
+    /// True when an LLM client produced the body; false for template-only.
+    pub llm_assisted: bool,
+}
+
+/// Provider-agnostic LLM client for AI-assisted drafting.
+///
+/// Implementations may call remote APIs; tests should use [`MockLlmClient`].
+/// The trait is synchronous so unit tests need no async runtime; async wrappers
+/// can call these methods from `spawn_blocking` or own async traits later.
+pub trait LlmClient: Send + Sync {
+    /// Complete a drafting prompt into letter body text.
+    fn complete(&self, system: &str, user_prompt: &str) -> Result<String, String>;
+}
+
+/// Deterministic mock LLM used in unit tests (no network).
+#[derive(Debug, Clone, Default)]
+pub struct MockLlmClient {
+    /// Optional fixed response; when `None`, echoes a polished wrapper around the prompt.
+    pub fixed_response: Option<String>,
+    /// When true, `complete` returns an error.
+    pub fail: bool,
+}
+
+impl MockLlmClient {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_response(response: impl Into<String>) -> Self {
+        Self {
+            fixed_response: Some(response.into()),
+            fail: false,
+        }
+    }
+
+    pub fn always_fail() -> Self {
+        Self {
+            fixed_response: None,
+            fail: true,
+        }
+    }
+}
+
+impl LlmClient for MockLlmClient {
+    fn complete(&self, system: &str, user_prompt: &str) -> Result<String, String> {
+        if self.fail {
+            return Err("mock LLM failure".into());
+        }
+        if let Some(fixed) = &self.fixed_response {
+            return Ok(fixed.clone());
+        }
+        Ok(format!(
+            "[Mock LLM draft]\nSystem: {}\n---\n{}",
+            system.lines().next().unwrap_or_default(),
+            user_prompt
+        ))
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct DraftingEngine;
 
@@ -76,6 +140,66 @@ impl DraftingEngine {
                 request.requested_information,
             ),
         }
+    }
+
+    /// Build a jurisdiction-templated letter without calling an LLM.
+    pub fn draft_from_template(
+        &self,
+        request: &DraftRequest,
+        instance: &Instance,
+        locale: &str,
+    ) -> DraftedLetter {
+        let localization = LocalizationEngine::new(locale);
+        let opening =
+            localization.render_request_template_with_instance(&request.authority_name, instance);
+        let request_term = instance.foi_law.request_term.as_str();
+        let body = format!(
+            "{}\n\nSubject: {}\n\nBackground:\n{}\n\nRequested information:\n{}\n\n{}",
+            opening,
+            request.subject,
+            request.details,
+            request.requested_information,
+            localization
+                .render_request_template(&request.authority_name, &instance.foi_law.law_name)
+                .lines()
+                .last()
+                .unwrap_or("Yours sincerely")
+        );
+        DraftedLetter {
+            title: format!("{} draft for {}", request_term, request.authority_name),
+            body,
+            llm_assisted: false,
+        }
+    }
+}
+
+const DRAFT_SYSTEM_PROMPT: &str = "You are an assistant that drafts clear, polite freedom-of-information request letters. Use the jurisdiction scaffold and legal basis provided. Do not invent legal citations.";
+
+/// Draft a request letter using jurisdiction templates and an optional LLM client.
+///
+/// When `llm` is `Some`, the template prompt is sent to the client and the
+/// completion becomes the letter body. When `None`, a pure template draft is
+/// returned. LLM errors fall back to the template draft with `llm_assisted = false`.
+pub fn draft_request_with_llm(
+    engine: &DraftingEngine,
+    request: &DraftRequest,
+    instance: &Instance,
+    locale: &str,
+    llm: Option<&dyn LlmClient>,
+) -> DraftedLetter {
+    let template = engine.draft_from_template(request, instance, locale);
+    let Some(client) = llm else {
+        return template;
+    };
+
+    let prompt = engine.build_prompt(request, instance, locale);
+    match client.complete(DRAFT_SYSTEM_PROMPT, &prompt.body) {
+        Ok(body) => DraftedLetter {
+            title: prompt.title,
+            body,
+            llm_assisted: true,
+        },
+        Err(_) => template,
     }
 }
 
@@ -128,5 +252,55 @@ mod tests {
             .body
             .contains("Information Commissioner's Office (ICO)"));
         assert!(prompt.body.contains("Policy documents"));
+    }
+
+    #[test]
+    fn draft_without_llm_uses_template() {
+        let registry = InstanceRegistry::embedded().unwrap();
+        let instance = registry.get("nz-fyi").unwrap();
+        let engine = DraftingEngine;
+        let request = DraftRequest::new(
+            "Ministry of Health",
+            "Waiting lists",
+            "Background on elective surgery.",
+            "Monthly statistics for 2025.",
+        );
+
+        let letter = draft_request_with_llm(&engine, &request, instance, "en-NZ", None);
+        assert!(!letter.llm_assisted);
+        assert!(letter.body.contains("Official Information Act"));
+        assert!(letter.body.contains("Waiting lists"));
+        assert!(letter.body.contains("Monthly statistics"));
+    }
+
+    #[test]
+    fn draft_with_mock_llm_sets_assisted_flag() {
+        let registry = InstanceRegistry::embedded().unwrap();
+        let instance = registry.get("nz-fyi").unwrap();
+        let engine = DraftingEngine;
+        let request = DraftRequest::new(
+            "Ministry of Health",
+            "Waiting lists",
+            "Background on elective surgery.",
+            "Monthly statistics for 2025.",
+        );
+        let mock = MockLlmClient::with_response("Polished OIA letter body.");
+
+        let letter = draft_request_with_llm(&engine, &request, instance, "en-NZ", Some(&mock));
+        assert!(letter.llm_assisted);
+        assert_eq!(letter.body, "Polished OIA letter body.");
+    }
+
+    #[test]
+    fn draft_falls_back_when_llm_fails() {
+        let registry = InstanceRegistry::embedded().unwrap();
+        let instance = registry.get("uk-wdtk").unwrap();
+        let engine = DraftingEngine;
+        let request = DraftRequest::new("MoJ", "Subject", "Details", "Info");
+        let mock = MockLlmClient::always_fail();
+
+        let letter = draft_request_with_llm(&engine, &request, instance, "en-GB", Some(&mock));
+        assert!(!letter.llm_assisted);
+        assert!(letter.body.contains("Freedom of Information Act"));
     }
 }

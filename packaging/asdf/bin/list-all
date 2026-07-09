@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# asdf plugin: list-all
+# Lists published fyi-cli versions from GitHub Releases.
+# Draft plugin scripts live under packaging/asdf; copy to an asdf plugin repo
+# (e.g. asdf-fyi-cli) for distribution.
+#
+# Homepage: https://github.com/edithatogo/fyi-cli
+
+set -euo pipefail
+
+repo="edithatogo/fyi-cli"
+
+# Prefer gh if available (handles auth/rate limits better).
+if command -v gh >/dev/null 2>&1; then
+  gh api "repos/${repo}/releases" --jq '.[].tag_name' 2>/dev/null \
+    | sed -E 's/^v//' \
+    | sed -E 's/^fyi-(cli|mcp)-v?//' \
+    | grep -E '^[0-9]+\.[0-9]+' \
+    | sort -V \
+    | uniq \
+    | tr '\n' ' '
+  exit 0
+fi
+
+# Fallback: GitHub Releases API (unauthenticated; may rate-limit).
+curl -fsSL "https://api.github.com/repos/${repo}/releases" \
+  | grep -oE '"tag_name":\s*"[^"]+"' \
+  | sed -E 's/.*"([^"]+)".*/\1/' \
+  | sed -E 's/^v//' \
+  | sed -E 's/^fyi-(cli|mcp)-v?//' \
+  | grep -E '^[0-9]+\.[0-9]+' \
+  | sort -V \
+  | uniq \
+  | tr '\n' ' '

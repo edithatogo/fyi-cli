@@ -661,7 +661,11 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
             let res = json!({
                 "protocolVersion": "2024-11-05",
                 "capabilities": {
-                    "tools": {}
+                    "tools": {},
+                    "resources": {
+                        "subscribe": false,
+                        "listChanged": false
+                    }
                 },
                 "serverInfo": {
                     "name": "fyi-mcp",
@@ -1093,6 +1097,32 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
             });
             enrich_tool_definitions(&mut tools);
             Some(JsonRpcResponse::success(req.id, tools))
+        }
+        "resources/list" => Some(JsonRpcResponse::success(
+            req.id,
+            list_mcp_resources(db).await,
+        )),
+        "resources/read" => {
+            let uri = req
+                .params
+                .as_ref()
+                .and_then(|p| p.get("uri"))
+                .and_then(|u| u.as_str())
+                .unwrap_or("");
+            if uri.is_empty() {
+                return Some(JsonRpcResponse::error(
+                    req.id,
+                    -32602,
+                    "Missing resource uri".to_string(),
+                ));
+            }
+            match read_mcp_resource(db, uri).await {
+                Ok(contents) => Some(JsonRpcResponse::success(
+                    req.id,
+                    json!({ "contents": contents }),
+                )),
+                Err(message) => Some(JsonRpcResponse::error(req.id, -32002, message)),
+            }
         }
         "tools/call" => {
             let params = match req.params.as_ref() {
@@ -1810,6 +1840,113 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
     }
 }
 
+/// Static + dynamic MCP resource catalog for corpus exposure.
+///
+/// URIs:
+/// - `fyi://authorities` — imported public authorities
+/// - `fyi://requests` — request index (ids + titles)
+/// - `fyi://requests/{id}` — single request document
+pub async fn list_mcp_resources(db: &DbPool) -> Value {
+    let mut resources = vec![
+        json!({
+            "uri": "fyi://authorities",
+            "name": "Public authorities",
+            "description": "Imported public authority records used for FOI routing.",
+            "mimeType": "application/json"
+        }),
+        json!({
+            "uri": "fyi://requests",
+            "name": "Request index",
+            "description": "Index of locally tracked FYI/Alaveteli requests.",
+            "mimeType": "application/json"
+        }),
+    ];
+
+    if let Ok(requests) = db.list_requests(500).await {
+        for request in requests {
+            resources.push(json!({
+                "uri": format!("fyi://requests/{}", request.id),
+                "name": format!("Request {}", request.id),
+                "description": request.title,
+                "mimeType": "application/json"
+            }));
+        }
+    }
+
+    json!({ "resources": resources })
+}
+
+/// Read a single MCP resource by URI into MCP content items.
+pub async fn read_mcp_resource(db: &DbPool, uri: &str) -> Result<Vec<Value>, String> {
+    if uri == "fyi://authorities" {
+        ensure_authorities_table(db.pool())
+            .await
+            .map_err(|e| format!("Failed to ensure authorities table: {e}"))?;
+        let rows = sqlx::query_as::<_, (String, String, Option<String>)>(
+            "SELECT slug, name, url FROM authorities ORDER BY name",
+        )
+        .fetch_all(db.pool())
+        .await
+        .map_err(|e| format!("Failed to list authorities: {e}"))?;
+        let authorities: Vec<Authority> = rows
+            .into_iter()
+            .map(|(slug, name, url)| Authority { slug, name, url })
+            .collect();
+        let text = serde_json::to_string_pretty(&authorities)
+            .map_err(|e| format!("Failed to serialize authorities: {e}"))?;
+        return Ok(vec![json!({
+            "uri": uri,
+            "mimeType": "application/json",
+            "text": text
+        })]);
+    }
+
+    if uri == "fyi://requests" {
+        let requests = db
+            .list_requests(500)
+            .await
+            .map_err(|e| format!("Failed to list requests: {e}"))?;
+        let index: Vec<Value> = requests
+            .into_iter()
+            .map(|r| {
+                json!({
+                    "id": r.id,
+                    "title": r.title,
+                    "status": r.status,
+                    "uri": format!("fyi://requests/{}", r.id)
+                })
+            })
+            .collect();
+        let text = serde_json::to_string_pretty(&index)
+            .map_err(|e| format!("Failed to serialize request index: {e}"))?;
+        return Ok(vec![json!({
+            "uri": uri,
+            "mimeType": "application/json",
+            "text": text
+        })]);
+    }
+
+    if let Some(id_str) = uri.strip_prefix("fyi://requests/") {
+        let id: i64 = id_str
+            .parse()
+            .map_err(|_| format!("Invalid request resource uri: {uri}"))?;
+        let request = db
+            .get_request(id)
+            .await
+            .map_err(|e| format!("Failed to load request {id}: {e}"))?
+            .ok_or_else(|| format!("Resource not found: {uri}"))?;
+        let text = serde_json::to_string_pretty(&request)
+            .map_err(|e| format!("Failed to serialize request: {e}"))?;
+        return Ok(vec![json!({
+            "uri": uri,
+            "mimeType": "application/json",
+            "text": text
+        })]);
+    }
+
+    Err(format!("Resource not found: {uri}"))
+}
+
 fn truthy_env_var(name: &str) -> bool {
     std::env::var(name)
         .map(|value| {
@@ -1989,6 +2126,93 @@ mod tests {
             result.get("protocolVersion").unwrap().as_str().unwrap(),
             "2024-11-05"
         );
+        assert!(result.pointer("/capabilities/resources").is_some());
+    }
+
+    #[tokio::test]
+    async fn test_resources_list_and_read() {
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+
+        let create = JsonRpcRequest {
+            jsonrpc: "2.0".to_string(),
+            id: Some(json!(10)),
+            method: "tools/call".to_string(),
+            params: Some(json!({
+                "name": "create_request",
+                "arguments": {
+                    "title": "Resource test request",
+                    "body": "Body for MCP resource coverage."
+                }
+            })),
+        };
+        let create_resp = handle_jsonrpc_request(&db, create).await.unwrap();
+        assert!(create_resp.error.is_none());
+
+        let list_req = JsonRpcRequest {
+            jsonrpc: "2.0".to_string(),
+            id: Some(json!(11)),
+            method: "resources/list".to_string(),
+            params: None,
+        };
+        let list_resp = handle_jsonrpc_request(&db, list_req).await.unwrap();
+        assert!(list_resp.error.is_none());
+        let resources = list_resp
+            .result
+            .as_ref()
+            .and_then(|r| r.get("resources"))
+            .and_then(|r| r.as_array())
+            .cloned()
+            .unwrap_or_default();
+        assert!(resources
+            .iter()
+            .any(|r| r.get("uri").and_then(|u| u.as_str()) == Some("fyi://authorities")));
+        assert!(resources
+            .iter()
+            .any(|r| r.get("uri").and_then(|u| u.as_str()) == Some("fyi://requests")));
+        assert!(resources.iter().any(|r| {
+            r.get("uri")
+                .and_then(|u| u.as_str())
+                .map(|u| u.starts_with("fyi://requests/"))
+                .unwrap_or(false)
+        }));
+
+        let read_index = JsonRpcRequest {
+            jsonrpc: "2.0".to_string(),
+            id: Some(json!(12)),
+            method: "resources/read".to_string(),
+            params: Some(json!({ "uri": "fyi://requests" })),
+        };
+        let index_resp = handle_jsonrpc_request(&db, read_index).await.unwrap();
+        assert!(index_resp.error.is_none());
+        let text = index_resp
+            .result
+            .as_ref()
+            .and_then(|r| r.get("contents"))
+            .and_then(|c| c.as_array())
+            .and_then(|a| a.first())
+            .and_then(|item| item.get("text"))
+            .and_then(|t| t.as_str())
+            .unwrap_or("");
+        assert!(text.contains("Resource test request"));
+
+        let read_one = JsonRpcRequest {
+            jsonrpc: "2.0".to_string(),
+            id: Some(json!(13)),
+            method: "resources/read".to_string(),
+            params: Some(json!({ "uri": "fyi://requests/1" })),
+        };
+        let one_resp = handle_jsonrpc_request(&db, read_one).await.unwrap();
+        assert!(one_resp.error.is_none());
+
+        let missing = JsonRpcRequest {
+            jsonrpc: "2.0".to_string(),
+            id: Some(json!(14)),
+            method: "resources/read".to_string(),
+            params: Some(json!({ "uri": "fyi://unknown" })),
+        };
+        let missing_resp = handle_jsonrpc_request(&db, missing).await.unwrap();
+        assert!(missing_resp.error.is_some());
     }
 
     #[tokio::test]

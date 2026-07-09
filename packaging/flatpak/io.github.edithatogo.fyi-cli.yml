@@ -1,0 +1,61 @@
+# Draft Flatpak manifest for fyi-cli / fyi-mcp.
+# App ID follows reverse-DNS of GitHub pages: io.github.edithatogo.fyi-cli
+#
+# Build (example):
+#   flatpak-builder --user --install --force-clean build-dir \
+#     packaging/flatpak/io.github.edithatogo.fyi-cli.yml
+#
+# Homepage: https://github.com/edithatogo/fyi-cli
+# Version: 0.1.2
+# License: MIT
+# Publisher: edithatogo
+#
+# Note: This is a CLI/MCP tool (no GUI). It is intended for Flathub "CLI apps"
+# or a private Flatpak repo until a desktop entry / portal story is defined.
+
+app-id: io.github.edithatogo.fyi-cli
+runtime: org.freedesktop.Platform
+runtime-version: "24.08"
+sdk: org.freedesktop.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+command: fyi-cli
+finish-args:
+  # Network for Alaveteli instance API / archive fetch
+  - --share=network
+  # Persist local SQLite DB and config under XDG paths
+  - --filesystem=xdg-config/fyi-cli:create
+  - --filesystem=xdg-data/fyi-cli:create
+  - --filesystem=xdg-cache/fyi-cli:create
+  # Allow reading user project dirs when exporting packs
+  - --filesystem=home
+build-options:
+  append-path: /usr/lib/sdk/rust-stable/bin
+  env:
+    CARGO_HOME: /run/build/fyi-cli/cargo
+    RUST_BACKTRACE: "1"
+
+modules:
+  - name: fyi-cli
+    buildsystem: simple
+    build-options:
+      build-args:
+        - --share=network
+    build-commands:
+      - cargo --offline fetch --manifest-path Cargo.toml --verbose || cargo fetch --manifest-path Cargo.toml --verbose
+      - cargo --offline build --release --locked --package fyi-cli --package fyi-mcp --verbose ||
+        cargo build --release --locked --package fyi-cli --package fyi-mcp --verbose
+      - install -Dm755 target/release/fyi-cli /app/bin/fyi-cli
+      - install -Dm755 target/release/fyi-mcp /app/bin/fyi-mcp
+      - install -Dm644 LICENSE /app/share/licenses/fyi-cli/LICENSE
+      # metainfo.xml is provided as an extra flatpak source file (see sources below)
+      - install -Dm644 io.github.edithatogo.fyi-cli.metainfo.xml
+          /app/share/metainfo/io.github.edithatogo.fyi-cli.metainfo.xml
+    sources:
+      - type: git
+        url: https://github.com/edithatogo/fyi-cli.git
+        tag: v0.1.2
+        # commit: REPLACE_WITH_TAG_COMMIT
+      # Local metainfo next to this manifest (also kept in-tree for reference)
+      - type: file
+        path: io.github.edithatogo.fyi-cli.metainfo.xml

@@ -24,12 +24,12 @@ Home-page listing (README): see **Where fyi-cli / fyi-mcp is listed** in [`READM
 | Glama | **live** | Listed as [fyi-mcp by edithatogo](https://glama.ai/mcp/servers/edithatogo/fyi-cli); search `author:edithatogo` returns the server; scores license A / quality A / maintenance B | #25 |
 | Smithery | **live** (score pending) | Registry: `edithatogo/fyi-mcp` via `namespace=edithatogo`; page `https://smithery.ai/server/@edithatogo/fyi-mcp`; **score still `null`** | #26 |
 | GitHub curated MCP surface (`github.com/mcp`) | **blocked-external** | Official registry entry exists; curated GitHub surface still requires manual onboarding | #32 |
-| PulseMCP | **planned** | Submit package metadata | #100 |
-| mcp.so | **planned** | Register + submit | #101 |
-| Docker MCP Catalog | **assets-ready** | Dockerfile builds `fyi-mcp` image; submit when multi-arch publish is live | #102 |
-| mcp-get | **planned** | Add install metadata | #103 |
-| OpenTools | **planned** | Directory submission | #104 |
-| Awesome-MCP-Servers | **assets-ready** | Community PR opened: https://github.com/punkpeye/awesome-mcp-servers/pull/9693 | #105 |
+| PulseMCP | **assets-ready** | Package: [`packaging/mcp-catalogs/pulsemcp/`](../packaging/mcp-catalogs/pulsemcp/) (`submission.json` + README). Submit via https://www.pulsemcp.com/submit or wait for official-registry weekly ingest; do not mark live without a public PulseMCP URL | #100 |
+| mcp.so | **assets-ready** | Package: [`packaging/mcp-catalogs/mcp-so/`](../packaging/mcp-catalogs/mcp-so/) (`listing.md` + issue template). Submit via mcp.so **Submit** / GitHub issue | #101 |
+| Docker MCP Catalog | **assets-ready** | Package: [`packaging/mcp-catalogs/docker-mcp/`](../packaging/mcp-catalogs/docker-mcp/); root `Dockerfile`; intended image `ghcr.io/edithatogo/fyi-mcp`. Open PR per [docker/mcp-registry](https://github.com/docker/mcp-registry) when multi-arch pull is verified | #102 |
+| mcp-get | **assets-ready** | Package: [`packaging/mcp-catalogs/mcp-get/`](../packaging/mcp-catalogs/mcp-get/) install notes + draft metadata. Upstream mcp-get is archived/deprecated — prefer Official Registry; keep assets for successors | #103 |
+| OpenTools | **assets-ready** | Package: [`packaging/mcp-catalogs/opentools/`](../packaging/mcp-catalogs/opentools/) listing blurb ready for directory submit | #104 |
+| Awesome-MCP-Servers | **assets-ready** | Community PR opened (not merged): https://github.com/punkpeye/awesome-mcp-servers/pull/9693 — see also [`packaging/mcp-catalogs/SUBMISSION_CHECKLIST.md`](../packaging/mcp-catalogs/SUBMISSION_CHECKLIST.md) | #105 |
 
 ## Package managers
 
@@ -41,28 +41,32 @@ Home-page listing (README): see **Where fyi-cli / fyi-mcp is listed** in [`READM
 | Chocolatey | **assets-ready** | `packaging/chocolatey/fyi-cli.nuspec` | — |
 | Scoop | **assets-ready** | `packaging/scoop/fyi-cli.json` | #106 |
 | WinGet | **assets-ready** (draft) | `packaging/winget/edithatogo.fyi-cli.yaml` — prefer cargo-dist `.zip`/`.exe` before community PR | #107 |
-| AUR | **planned** | PKGBUILD not yet authored | #108 |
-| nixpkgs | **planned** | expression not yet authored | #109 |
-| Snap | **planned** | snapcraft.yaml not yet authored | #110 |
-| Flatpak | **planned** | manifest not yet authored | #111 |
-| asdf / mise | **planned** | plugin repo not yet authored | #112 |
+| AUR | **assets-ready** (draft) | `packaging/aur/PKGBUILD` — set `sha256sums` from release source tarball before AUR submit | #108 |
+| nixpkgs | **assets-ready** (draft) | `packaging/nix/default.nix` — fill `src.hash` / `cargoHash` after first `nix-build` | #109 |
+| Snap | **assets-ready** (draft) | `packaging/snap/snapcraft.yaml` — builds `fyi-cli` + `fyi-mcp` from tagged source | #110 |
+| Flatpak | **assets-ready** (draft) | `packaging/flatpak/io.github.edithatogo.fyi-cli.yml` (+ AppStream metainfo) | #111 |
+| asdf / mise | **assets-ready** (draft) | `packaging/asdf/bin/{install,list-all}`, `packaging/mise/backend.toml` | #112 |
 | cargo-binstall | **assets-ready** | `packaging/cargo-binstall/metadata.toml` (+ crate metadata to wire) | #113 |
-| Debian / PPA | **planned** | packaging not yet authored | #114 |
-| Fedora / COPR | **planned** | packaging not yet authored | #115 |
+| Debian / PPA | **assets-ready** (draft) | `packaging/debian/{control,rules,changelog,copyright}` skeleton | #114 |
+| Fedora / COPR | **assets-ready** (draft) | `packaging/fedora/fyi-cli.spec` | #115 |
 
 ## Containers
 
 | Target | Status | Notes | Issue |
 |--------|--------|-------|-------|
-| Dockerfile (local / CI build) | **assets-ready** | Root `Dockerfile` builds release `fyi-mcp` | #116 |
-| GHCR / Docker Hub / Quay multi-arch | **planned** | Wire publish job after release tagging | #116 |
+| Dockerfile (local / CI build) | **assets-ready** | Root `Dockerfile` builds release `fyi-mcp`; operator docs in [`docs/containers.md`](./containers.md) | #116 |
+| GHCR multi-arch publish | **assets-ready** | Workflow [`.github/workflows/container-publish.yml`](../.github/workflows/container-publish.yml) builds `linux/amd64`+`linux/arm64` → `ghcr.io/edithatogo/fyi-mcp` on `fyi-mcp-v*` / `v*` tags (or `workflow_dispatch`). **Not live** until a public pull is verified | #116 |
+| Docker Hub / Quay | **planned** | Optional mirrors after GHCR is proven | #116 |
+
+MCP catalog submission checklist (all catalogs + Awesome PR): [`packaging/mcp-catalogs/SUBMISSION_CHECKLIST.md`](../packaging/mcp-catalogs/SUBMISSION_CHECKLIST.md).
 
 ## Implementation notes
 
 1. Prefer **one release train** (GitHub Releases + cargo-dist) as the source of truth for hashes.
 2. MCPB assets (`fyi-mcp-*-win32.mcpb`) are valid for MCP installs; WinGet/Scoop UX is better with plain CLI zip/exe — track as a release packaging improvement if needed.
 3. Do not mark external catalog rows **live** without a public URL or API proof in this file.
-4. Conductor track: `.conductor/tracks/registry-distribution-expansion/` (epic #45).
+4. Catalog submission packages live under `packaging/mcp-catalogs/{pulsemcp,mcp-so,docker-mcp,mcp-get,opentools}/`.
+5. Conductor track: `.conductor/tracks/registry-distribution-expansion/` (epic #45).
 
 ## Verification commands (operator)
 

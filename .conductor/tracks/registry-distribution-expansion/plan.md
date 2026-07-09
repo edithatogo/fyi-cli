@@ -215,3 +215,11 @@
 ## Track History
 - **2026-07-08**: Track created for multi-jurisdictional expansion
 - **2026-07-09**: Expanded `docs/registry-distribution-matrix.md`; verified Glama live (#25 closed); Smithery listed with null score; Scoop/WinGet drafts + cargo-binstall metadata; Homebrew/Chocolatey publisher URLs corrected.
+
+## Implementation progress (2026-07-09)
+
+- [x] Packaging drafts: AUR, nix, snap, flatpak, asdf/mise, Debian, Fedora (`packaging/*`)
+- [x] MCP catalog packages: PulseMCP, mcp.so, Docker MCP, mcp-get, OpenTools (`packaging/mcp-catalogs/`)
+- [x] Container docs + hardened GHCR workflow (`docs/containers.md`, `container-publish.yml`)
+- [ ] External submissions / store publishes (still operator + external review)
+

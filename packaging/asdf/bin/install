@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+# asdf plugin: install
+# Installs fyi-cli (and fyi-mcp when present) for the requested version.
+#
+# Strategy:
+#   1. Prefer cargo-dist / GitHub Release prebuilt tarball when available
+#   2. Fall back to `cargo install` from the tagged source
+#
+# Env (asdf standard):
+#   ASDF_INSTALL_TYPE  version|ref
+#   ASDF_INSTALL_VERSION  e.g. 0.1.2
+#   ASDF_INSTALL_PATH  target prefix
+#
+# Homepage: https://github.com/edithatogo/fyi-cli
+# License: MIT
+# Publisher: edithatogo
+
+set -euo pipefail
+
+repo="edithatogo/fyi-cli"
+version="${ASDF_INSTALL_VERSION:?ASDF_INSTALL_VERSION is required}"
+install_path="${ASDF_INSTALL_PATH:?ASDF_INSTALL_PATH is required}"
+bin_dir="${install_path}/bin"
+
+mkdir -p "${bin_dir}"
+
+# Normalize tag: accept 0.1.2 or v0.1.2
+tag="v${version#v}"
+
+detect_target() {
+  local os arch
+  os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  arch="$(uname -m)"
+  case "${os}" in
+    linux) os="unknown-linux-gnu" ;;
+    darwin) os="apple-darwin" ;;
+    mingw*|msys*|cygwin*) os="pc-windows-msvc" ;;
+    *) os="unknown-linux-gnu" ;;
+  esac
+  case "${arch}" in
+    x86_64|amd64) arch="x86_64" ;;
+    aarch64|arm64) arch="aarch64" ;;
+    *) arch="x86_64" ;;
+  esac
+  echo "${arch}-${os}"
+}
+
+target="$(detect_target)"
+# cargo-binstall / cargo-dist style asset names (see packaging/cargo-binstall)
+asset_candidates=(
+  "https://github.com/${repo}/releases/download/fyi-cli-${tag}/fyi-cli-${version#v}-${target}.tar.gz"
+  "https://github.com/${repo}/releases/download/${tag}/fyi-cli-${version#v}-${target}.tar.gz"
+  "https://github.com/${repo}/releases/download/${tag}/fyi-cli-${target}.tar.gz"
+  "https://github.com/${repo}/releases/download/${tag}/fyi-cli-linux-amd64.tar.gz"
+)
+
+download_ok=0
+tmpdir="$(mktemp -d)"
+trap 'rm -rf "${tmpdir}"' EXIT
+
+for url in "${asset_candidates[@]}"; do
+  if curl -fsSL "${url}" -o "${tmpdir}/fyi-cli.tgz" 2>/dev/null; then
+    tar -xzf "${tmpdir}/fyi-cli.tgz" -C "${tmpdir}"
+    # Find binaries wherever they landed in the archive
+    if [[ -f "${tmpdir}/fyi-cli" ]]; then
+      install -m 755 "${tmpdir}/fyi-cli" "${bin_dir}/fyi-cli"
+      download_ok=1
+    elif found="$(find "${tmpdir}" -type f -name 'fyi-cli' | head -n1)" && [[ -n "${found}" ]]; then
+      install -m 755 "${found}" "${bin_dir}/fyi-cli"
+      download_ok=1
+    fi
+    if found_mcp="$(find "${tmpdir}" -type f -name 'fyi-mcp' | head -n1)" && [[ -n "${found_mcp}" ]]; then
+      install -m 755 "${found_mcp}" "${bin_dir}/fyi-mcp"
+    fi
+    if [[ "${download_ok}" -eq 1 ]]; then
+      break
+    fi
+  fi
+done
+
+if [[ "${download_ok}" -ne 1 ]]; then
+  if ! command -v cargo >/dev/null 2>&1; then
+    echo "asdf-fyi-cli: no prebuilt asset for ${version}/${target} and cargo not found" >&2
+    exit 1
+  fi
+  echo "asdf-fyi-cli: prebuilt asset not found; building from source ${tag}" >&2
+  cargo install fyi-cli --git "https://github.com/${repo}.git" --tag "${tag}" --root "${install_path}" --locked \
+    || cargo install --git "https://github.com/${repo}.git" --tag "${tag}" --root "${install_path}" --locked --path crates/fyi-cli
+  # Also try MCP server
+  cargo install fyi-mcp --git "https://github.com/${repo}.git" --tag "${tag}" --root "${install_path}" --locked 2>/dev/null || true
+fi
+
+if [[ ! -x "${bin_dir}/fyi-cli" ]]; then
+  # cargo install places bins under bin/
+  if [[ -x "${install_path}/bin/fyi-cli" ]]; then
+    :
+  else
+    echo "asdf-fyi-cli: install failed; fyi-cli binary missing under ${bin_dir}" >&2
+    exit 1
+  fi
+fi
+
+echo "asdf-fyi-cli: installed ${version} to ${install_path}"

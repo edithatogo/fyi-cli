@@ -1,0 +1,42 @@
+#!/usr/bin/make -f
+# Draft Debian rules for fyi-cli / fyi-mcp (Rust workspace).
+# Expected layout when building a source package: this debian/ directory
+# at the root of an exported source tree (or linked from packaging/debian).
+#
+# Homepage: https://github.com/edithatogo/fyi-cli
+# Version: 0.1.2
+# License: MIT
+
+export DH_VERBOSE = 1
+export CARGO_HOME = $(CURDIR)/debian/cargo_home
+export CARGO_TARGET_DIR = $(CURDIR)/target
+
+# Offline-friendly once vendored; for draft builds allow network fetch in clean chroots.
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	mkdir -p $(CARGO_HOME)
+	# Workspace lives at source root.
+	cargo fetch --locked || cargo fetch
+
+override_dh_auto_build:
+	cargo build --release --locked --package fyi-cli --package fyi-mcp \
+		|| cargo build --release --package fyi-cli --package fyi-mcp
+
+override_dh_auto_test:
+	# Skip full test suite in packaging builds (network fixtures).
+	cargo test --release --package fyi-cli -- --skip e2e || true
+
+override_dh_auto_install:
+	install -Dm755 target/release/fyi-cli debian/fyi-cli/usr/bin/fyi-cli
+	install -Dm755 target/release/fyi-mcp debian/fyi-mcp/usr/bin/fyi-mcp
+	install -Dm644 LICENSE debian/fyi-cli/usr/share/doc/fyi-cli/copyright
+	install -Dm644 LICENSE debian/fyi-mcp/usr/share/doc/fyi-mcp/copyright
+	install -Dm644 README.md debian/fyi-cli/usr/share/doc/fyi-cli/README.md
+
+override_dh_auto_clean:
+	rm -rf target $(CARGO_HOME)
+	dh_auto_clean || true

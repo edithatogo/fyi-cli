@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Draft AppStream metainfo for Flatpak / Flathub submission -->
+<component type="console-application">
+  <id>io.github.edithatogo.fyi-cli</id>
+  <name>fyi-cli</name>
+  <summary>Privacy-focused multi-jurisdiction FOI/OIA CLI for Alaveteli</summary>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <developer id="io.github.edithatogo">
+    <name>edithatogo</name>
+  </developer>
+  <description>
+    <p>
+      fyi-cli tracks and manages Freedom of Information / Official Information
+      requests against Alaveteli-based platforms (FYI.org.nz and other instances),
+      with a Rust CLI, MCP server (fyi-mcp), optional Tor support, and local
+      SQLite storage.
+    </p>
+  </description>
+  <url type="homepage">https://github.com/edithatogo/fyi-cli</url>
+  <url type="bugtracker">https://github.com/edithatogo/fyi-cli/issues</url>
+  <url type="vcs-browser">https://github.com/edithatogo/fyi-cli</url>
+  <provides>
+    <binary>fyi-cli</binary>
+    <binary>fyi-mcp</binary>
+  </provides>
+  <releases>
+    <release version="0.1.2" date="2026-07-01"/>
+  </releases>
+  <content_rating type="oars-1.1"/>
+  <categories>
+    <category>Utility</category>
+    <category>Office</category>
+  </categories>
+</component>

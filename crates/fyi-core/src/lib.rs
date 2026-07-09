@@ -1,8 +1,13 @@
+pub mod adapter;
 pub mod api;
 pub mod db;
+pub mod deadlines;
 pub mod drafting;
+pub mod federation;
 pub mod i18n;
 pub mod jurisdiction;
+pub mod provenance;
+pub mod search;
 pub mod security;
 pub mod sync;
 pub mod tor;
