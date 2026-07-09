@@ -108,6 +108,7 @@ Live listings and draft status: **[Where fyi-cli / fyi-mcp is listed](#where-fyi
 | [docs/cli-entrypoints-audit.md](docs/cli-entrypoints-audit.md) | Canonical cross-reference for Python CLI, Rust CLI, and Rust MCP surfaces |
 | [docs/upstream-relations.md](docs/upstream-relations.md) | Alaveteli/instance operator etiquette and outreach log |
 | [docs/registry-distribution-matrix.md](docs/registry-distribution-matrix.md) | MCP catalogs, package managers, containers status |
+| [docs/external-registry-followups.md](docs/external-registry-followups.md) | Smithery score + GitHub MCP onboarding playbook |
 | [docs/installation-package-managers.md](docs/installation-package-managers.md) | Draft package-manager install notes (Scoop, WinGet, brew, …) |
 | [docs/containers.md](docs/containers.md) | `fyi-mcp` container / GHCR |
 | [QUICKSTART.md](QUICKSTART.md) | 5-minute getting started guide |
