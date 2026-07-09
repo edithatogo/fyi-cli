@@ -237,10 +237,10 @@ fn enrich_tool_definitions(tools: &mut Value) {
         match name {
             "list_requests" => {
                 tool["description"] = json!(
-                    "List locally tracked FYI/Alaveteli official information requests, ordered newest first, for dashboards, audits, and follow-up triage."
+                    "List locally tracked FYI/Alaveteli official information requests, ordered newest first. Use for dashboards, triage, or finding an ID before retrieve_request; do not use when you already know the ID and need correspondence (use retrieve_request) or only need health metrics (use check_status). Read-only and idempotent; does not contact remote authorities."
                 );
                 tool["inputSchema"]["properties"]["limit"]["description"] = json!(
-                    "Maximum number of request records to return. Defaults to 100 when omitted."
+                    "Maximum number of request records to return (1-500). Defaults to 100 when omitted; raise only when the agent needs a broader scan."
                 );
                 tool["inputSchema"]["properties"]["limit"]["minimum"] = json!(1);
                 tool["inputSchema"]["properties"]["limit"]["maximum"] = json!(500);
@@ -250,10 +250,10 @@ fn enrich_tool_definitions(tools: &mut Value) {
             }
             "retrieve_request" => {
                 tool["description"] = json!(
-                    "Retrieve one locally tracked FYI/Alaveteli request and its stored correspondence by request ID."
+                    "Retrieve one locally tracked FYI/Alaveteli request and its stored correspondence by request ID. Use after list_requests when you need full text/history for a single request; do not use for bulk listing (list_requests) or database health (check_status). Read-only and idempotent; fails if the ID is missing; never contacts remote sites."
                 );
                 tool["inputSchema"]["properties"]["id"]["description"] = json!(
-                    "Stable local request ID to load, matching the ID returned by list_requests."
+                    "Stable local request ID to load (must already exist; typically from list_requests)."
                 );
                 tool["inputSchema"]["properties"]["id"]["minimum"] = json!(1);
                 tool["outputSchema"]["properties"]["request"] =
@@ -265,58 +265,90 @@ fn enrich_tool_definitions(tools: &mut Value) {
             }
             "create_request" => {
                 tool["description"] = json!(
-                    "Create a local draft or tracked FYI/Alaveteli official information request record without submitting it to a remote authority."
+                    "Create a new local FYI/Alaveteli request row (draft or tracked) in SQLite. Use only when starting a new request; use update_request to change an existing ID and delete_request to remove one. Mutating and not idempotent: each call allocates a new ID. Does not submit to a remote authority, send email, or require network access; title and body are required."
                 );
                 tool["inputSchema"]["properties"]["title"]["description"] =
-                    json!("Short public-facing request title.");
+                    json!("Short public-facing request title (required, non-empty).");
                 tool["inputSchema"]["properties"]["title"]["minLength"] = json!(1);
                 tool["inputSchema"]["properties"]["body"]["description"] =
-                    json!("Full request body or draft text to store locally.");
+                    json!("Full request body or draft text to store locally (required, non-empty).");
                 tool["inputSchema"]["properties"]["body"]["minLength"] = json!(1);
                 tool["inputSchema"]["properties"]["user_name"]["description"] =
-                    json!("Optional requester display name for local tracking.");
+                    json!("Optional requester display name for local tracking only.");
                 tool["inputSchema"]["properties"]["status"]["description"] = json!(
-                    "Optional initial local status such as draft, waiting_response, or successful."
+                    "Optional initial local lifecycle status. Prefer draft until the request is ready; does not trigger remote submission."
                 );
+                tool["inputSchema"]["properties"]["status"]["enum"] = json!([
+                    "draft",
+                    "submitted",
+                    "waiting_response",
+                    "successful",
+                    "partially_successful",
+                    "refused",
+                    "overdue",
+                    "clean",
+                    "dirty",
+                    "pending",
+                    "conflict"
+                ]);
                 tool["inputSchema"]["properties"]["url"]["description"] =
-                    json!("Optional FYI/Alaveteli URL if the request already exists online.");
+                    json!("Optional absolute FYI/Alaveteli URL when the request already exists online; omit for pure local drafts.");
                 tool["inputSchema"]["properties"]["url"]["format"] = json!("uri");
                 tool["inputSchema"]["properties"]["tags"]["description"] =
-                    json!("Optional local classification tags for filtering or reporting.");
+                    json!("Optional local classification tags for filtering/reporting; replace-not-merge semantics only apply on update_request.");
                 tool["outputSchema"]["properties"]["request"] =
                     request_schema("The newly created local request record.");
             }
             "update_request" => {
                 tool["description"] = json!(
-                    "Replace editable fields on an existing local FYI/Alaveteli request record and mark changed fields for offline sync."
+                    "Replace editable fields on an existing local FYI/Alaveteli request by ID and mark the record dirty for offline sync. Use when the request already exists and fields changed; use create_request for a new ID and delete_request to remove. Requires id, title, and body (full replacement for those fields, not a sparse patch). Mutating but non-destructive; safe to re-run with the same values; does not call remote APIs."
                 );
+                tool["annotations"] = json!({
+                    "readOnlyHint": false,
+                    "destructiveHint": false,
+                    "idempotentHint": true,
+                    "openWorldHint": false
+                });
                 tool["inputSchema"]["properties"]["id"]["description"] =
-                    json!("Stable local request ID to update.");
+                    json!("Existing local request ID to update (must already exist).");
                 tool["inputSchema"]["properties"]["id"]["minimum"] = json!(1);
                 tool["inputSchema"]["properties"]["title"]["description"] =
-                    json!("Replacement request title.");
+                    json!("Replacement request title (required; full replace, not merge).");
                 tool["inputSchema"]["properties"]["title"]["minLength"] = json!(1);
                 tool["inputSchema"]["properties"]["body"]["description"] =
-                    json!("Replacement request body or draft text.");
+                    json!("Replacement request body or draft text (required; full replace).");
                 tool["inputSchema"]["properties"]["body"]["minLength"] = json!(1);
                 tool["inputSchema"]["properties"]["user_name"]["description"] =
-                    json!("Optional replacement requester display name.");
+                    json!("Optional replacement requester display name; when omitted, existing local value is preserved.");
                 tool["inputSchema"]["properties"]["status"]["description"] =
-                    json!("Optional replacement local lifecycle status.");
+                    json!("Optional replacement local lifecycle status; changing status does not submit or withdraw a remote request.");
+                tool["inputSchema"]["properties"]["status"]["enum"] = json!([
+                    "draft",
+                    "submitted",
+                    "waiting_response",
+                    "successful",
+                    "partially_successful",
+                    "refused",
+                    "overdue",
+                    "clean",
+                    "dirty",
+                    "pending",
+                    "conflict"
+                ]);
                 tool["inputSchema"]["properties"]["url"]["description"] =
-                    json!("Optional replacement FYI/Alaveteli URL.");
+                    json!("Optional replacement absolute FYI/Alaveteli URL.");
                 tool["inputSchema"]["properties"]["url"]["format"] = json!("uri");
                 tool["inputSchema"]["properties"]["tags"]["description"] =
-                    json!("Optional replacement tag list.");
+                    json!("Optional full replacement tag list (not appended to existing tags).");
                 tool["outputSchema"]["properties"]["request"] =
                     request_schema("The updated local request record.");
             }
             "delete_request" => {
                 tool["description"] = json!(
-                    "Delete a local request record and its stored correspondence from the FYI database."
+                    "Permanently delete a local request and all of its stored correspondence from SQLite. Use only after the agent confirms the ID should be discarded; prefer update_request for status/text edits and list_requests/retrieve_request for inspection. Destructive and irreversible in this database; does not delete anything on remote FYI/Alaveteli sites."
                 );
                 tool["inputSchema"]["properties"]["id"]["description"] =
-                    json!("Stable local request ID to delete.");
+                    json!("Stable local request ID to delete permanently.");
                 tool["inputSchema"]["properties"]["id"]["minimum"] = json!(1);
                 tool["outputSchema"]["properties"]["deleted"]["description"] =
                     json!("True when the local delete operation completed.");
@@ -325,7 +357,7 @@ fn enrich_tool_definitions(tools: &mut Value) {
             }
             "list_authorities" => {
                 tool["description"] = json!(
-                    "List imported public authority records that can be used to route, classify, or validate FYI requests."
+                    "List imported public authority records (government/public bodies) used to route or classify FOI/OIA requests. Use to browse existing slugs/names before drafting; use import_authorities to add or upsert records, and list_requests for request data. Read-only and idempotent; returns the full local authority table (no pagination)."
                 );
                 tool["outputSchema"]["properties"]["authorities"]["description"] =
                     json!("Imported public authority records.");
@@ -333,17 +365,17 @@ fn enrich_tool_definitions(tools: &mut Value) {
             }
             "import_authorities" => {
                 tool["description"] = json!(
-                    "Import or update local public authority reference records by slug for request routing and discovery."
+                    "Upsert local public authority reference records by slug for request routing and discovery. Use after list_authorities when seeding or refreshing the catalog; do not use for FOI request CRUD (create_request/update_request). Mutating but non-destructive and idempotent: same slug re-import updates name/url without creating duplicates; does not contact remote authority directories."
                 );
                 tool["inputSchema"]["properties"]["authorities"]["description"] =
-                    json!("Authority records to upsert into the local reference table.");
+                    json!("Authority records to upsert; slug is the primary key, name is required, url is optional.");
                 tool["inputSchema"]["properties"]["authorities"]["items"] = authority_schema();
                 tool["outputSchema"]["properties"]["imported"]["description"] =
                     json!("Number of authority records accepted for import or update.");
             }
             "sync_monitor" => {
                 tool["description"] = json!(
-                    "Summarize offline synchronization health, including clean/dirty/conflicted request counts and outgoing queue depth."
+                    "Summarize offline synchronization health: clean/dirty/conflict request counts, outgoing queue depth, latest sync time, and offline degradation indicators. Use for an operations overview; prefer sync_status for one request, sync_conflicts to list conflicted rows, and check_status for database connectivity/record totals. Read-only and idempotent; does not start a sync job."
                 );
                 tool["outputSchema"]["properties"]["sync"]["description"] =
                     json!("Aggregate request sync counts and latest sync timestamp.");
@@ -432,10 +464,10 @@ fn enrich_tool_definitions(tools: &mut Value) {
             }
             "sync_conflicts" => {
                 tool["description"] = json!(
-                    "List locally tracked requests whose offline sync metadata is currently marked as conflicted."
+                    "List locally tracked requests whose offline sync metadata is marked conflict. Use after sync_monitor shows conflict>0 to obtain IDs for review; use sync_resolve_conflict to clear a conflict, list_requests for all requests regardless of sync state. Read-only and idempotent; does not resolve conflicts or start network sync."
                 );
                 tool["inputSchema"]["properties"]["limit"]["description"] = json!(
-                    "Maximum number of conflicted request records to return. Defaults to 100 when omitted."
+                    "Maximum number of conflicted request records to return (1-500). Defaults to 100 when omitted."
                 );
                 tool["inputSchema"]["properties"]["limit"]["minimum"] = json!(1);
                 tool["inputSchema"]["properties"]["limit"]["maximum"] = json!(500);
@@ -447,28 +479,34 @@ fn enrich_tool_definitions(tools: &mut Value) {
             }
             "sync_resolve_conflict" => {
                 tool["description"] = json!(
-                    "Resolve a local offline-sync conflict by marking the request clean after reconciliation or dirty for later push."
+                    "Resolve a local offline-sync conflict by updating only the request's sync metadata: mark_clean=true after the agent has reconciled local vs remote (status becomes clean); mark_clean=false keeps the row dirty for a later push. Prerequisite: the request should already appear in sync_conflicts. Side effects are local SQLite metadata only—no automatic merge of body text, no remote API calls, and no deletion of the request. Prefer sync_conflicts to list candidates and sync_status to inspect timestamps; do not use for ordinary field edits (update_request). Mutating, non-destructive, and idempotent for the same mark_clean value."
                 );
+                tool["annotations"] = json!({
+                    "readOnlyHint": false,
+                    "destructiveHint": false,
+                    "idempotentHint": true,
+                    "openWorldHint": false
+                });
                 tool["inputSchema"]["properties"]["request_id"]["description"] =
-                    json!("Stable local request ID whose conflict metadata should be updated.");
+                    json!("Local request ID currently in conflict (from sync_conflicts).");
                 tool["inputSchema"]["properties"]["request_id"]["minimum"] = json!(1);
                 tool["inputSchema"]["properties"]["mark_clean"]["description"] = json!(
-                    "Set true after manual reconciliation; set false to keep the request dirty for a later push."
+                    "true: mark reconciled/clean after manual review; false (default): leave dirty so a later offline push is expected. Does not rewrite title/body."
                 );
                 tool["inputSchema"]["properties"]["mark_clean"]["default"] = json!(false);
                 tool["outputSchema"]["properties"]["request_id"]["description"] =
                     json!("Request ID whose conflict state was updated.");
                 tool["outputSchema"]["properties"]["resolved"]["description"] =
-                    json!("True when the conflict metadata was changed.");
+                    json!("True when the conflict metadata was written successfully.");
                 tool["outputSchema"]["properties"]["sync_status"]["description"] =
-                    json!("Resulting sync status, usually clean or dirty.");
+                    json!("Resulting sync status string (typically clean or dirty).");
             }
             "sync_status" => {
                 tool["description"] = json!(
-                    "Read global offline-sync status or detailed sync metadata for one locally tracked FYI request."
+                    "Read offline-sync metadata either as aggregate counts (omit request_id) or for one request (provide request_id). Use when you need clean/dirty/pending/conflict numbers or per-request last_synced timestamps; use sync_monitor for queue depth + offline degradation, sync_conflicts for conflicted rows only, and check_status for database health. Read-only and idempotent; does not mutate state or trigger network sync."
                 );
                 tool["inputSchema"]["properties"]["request_id"]["description"] =
-                    json!("Optional local request ID. Omit it to return aggregate sync counts.");
+                    json!("Optional local request ID. Omit for aggregate counts; set to load that request's sync_status, last_synced_at, and conflict_version.");
                 tool["inputSchema"]["properties"]["request_id"]["minimum"] = json!(1);
                 tool["outputSchema"] = json!({
                     "type": "object",
@@ -551,7 +589,7 @@ fn enrich_tool_definitions(tools: &mut Value) {
             }
             "check_status" => {
                 tool["description"] = json!(
-                    "Check FYI MCP database readiness and return record-count metrics for requests, correspondence, and authorities."
+                    "Check FYI MCP SQLite readiness and return record-count metrics for requests, correspondence, and optional sync totals. Use as a first health probe or liveness check; prefer sync_monitor for queue/offline depth and list_requests for request content. Read-only, idempotent, and safe to call repeatedly; does not write data or contact remote services."
                 );
                 tool["outputSchema"]["properties"]["status"]["description"] = json!(
                     "Overall service health, reported as healthy when database queries succeed."
@@ -2014,7 +2052,7 @@ mod tests {
                 .and_then(|v| v.get("title"))
                 .and_then(|v| v.get("description"))
                 .and_then(|v| v.as_str()),
-            Some("Short public-facing request title.")
+            Some("Short public-facing request title (required, non-empty).")
         );
         assert_eq!(
             tool("list_requests")
@@ -2040,6 +2078,41 @@ mod tests {
             Some(true)
         );
         assert!(tool("sync_status").get("outputSchema").is_some());
+        // Glama TDQS: mutative tools must disclose usage + side effects in free text.
+        let resolve_desc = tool("sync_resolve_conflict")
+            .get("description")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        assert!(
+            resolve_desc.contains("sync_conflicts")
+                && resolve_desc.contains("local SQLite")
+                && resolve_desc.contains("mark_clean"),
+            "sync_resolve_conflict description should cover prerequisites, side effects, and mark_clean"
+        );
+        let update_desc = tool("update_request")
+            .get("description")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        assert!(
+            update_desc.contains("create_request")
+                && update_desc.contains("delete_request")
+                && update_desc.contains("full replacement"),
+            "update_request description should contrast siblings and document replacement semantics"
+        );
+        assert_eq!(
+            tool("update_request")
+                .get("annotations")
+                .and_then(|v| v.get("idempotentHint"))
+                .and_then(|v| v.as_bool()),
+            Some(true)
+        );
+        assert_eq!(
+            tool("sync_resolve_conflict")
+                .get("annotations")
+                .and_then(|v| v.get("idempotentHint"))
+                .and_then(|v| v.as_bool()),
+            Some(true)
+        );
     }
 
     #[tokio::test]
