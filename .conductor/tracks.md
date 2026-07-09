@@ -175,16 +175,16 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## Active Tracks
 
-The current implementation slice is tracked in GitHub issues. Each track below is linked to its epic issue so merge/close automation stays consistent.
-
-- [~] **Track: bleeding-edge-features**
-  *Issue: #46*
-  *Link: [./tracks/bleeding-edge-features/](./tracks/bleeding-edge-features/)*
-  *Description: Prioritized R&D backlog: AI request drafting, semantic search, deadline engine, federation, adapter SDK, signed provenance, MCP resources, offline PWA.*
-  *Dependencies: jurisdiction-abstraction-core*
-  *Progress (2026-07-09): foundations for deadlines, drafting LLM trait, search, federation, adapter SDK, provenance, MCP resources, PWA design.*
+- None
 
 ## Recently completed (2026-07-09)
+
+- [x] **Track: bleeding-edge-features** (COMPLETED 2026-07-09 — repo-side foundations)
+  *Issue: #46*
+  *Link: [./archive/bleeding-edge-features/](./archive/bleeding-edge-features/)*
+  *Description: Prioritized R&D backlog: AI request drafting, semantic search, deadline engine, federation, adapter SDK, signed provenance, MCP resources, offline PWA.*
+  *Results: Core modules + CLI/MCP experimental wiring + feature flags/notifications + bleeding-edge docs. Production LLM/OCR/sigstore/full PWA deferred.*
+  *Status: TARGET ACHIEVED (repo-side foundations)*
 
 - [x] **Track: registry-distribution-expansion** (COMPLETED 2026-07-09 — repo-side)
   *Issue: #45*

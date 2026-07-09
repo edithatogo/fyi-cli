@@ -3,8 +3,32 @@
 Status: design only (issue #125). This document describes how the Next.js
 `dashboard/` app can become a Progressive Web App with offline-first operator
 workflows. No full Next.js PWA implementation is required for the bleeding-edge
-foundation track; a minimal service-worker stub lives under
-`dashboard/public/sw-stub.js`.
+foundation track; a minimal service-worker stub and installability manifest live
+under `dashboard/public/`:
+
+| Asset | Path | Notes |
+|-------|------|--------|
+| Service worker stub | `dashboard/public/sw-stub.js` | Lifecycle + message bridge; no `fetch` intercept |
+| Web app manifest | `dashboard/public/manifest.webmanifest` | Minimal install metadata (`standalone`, theme colours) |
+
+**Link the manifest** from the document head when enabling installability
+(feature-flagged; not wired by default):
+
+```html
+<link rel="manifest" href="/manifest.webmanifest" />
+```
+
+In the App Router layout this is typically:
+
+```tsx
+// src/app/layout.tsx — only when NEXT_PUBLIC_ENABLE_PWA=1 (or similar)
+export const metadata = {
+  manifest: "/manifest.webmanifest",
+};
+```
+
+Icons referenced by the manifest (`/icon-192.png`, `/icon-512.png`) are
+placeholders until brand assets are added under `dashboard/public/`.
 
 ## Goals
 
@@ -77,8 +101,11 @@ foundation track; a minimal service-worker stub lives under
 ### Phase 0 — stub (current)
 
 `dashboard/public/sw-stub.js` registers optionally from a future layout effect.
-It only logs lifecycle events and does **not** intercept fetches. Safe for
-local dev; no offline behaviour.
+It logs lifecycle events, claims clients, and answers a small message protocol
+(`FYI_SW_PING` / `FYI_SW_SKIP_WAITING`). It does **not** intercept fetches.
+Safe for local dev; no offline behaviour. Companion
+`manifest.webmanifest` is present for installability prep but is not linked
+from the layout by default.
 
 ### Phase 1 — shell offline
 
@@ -94,7 +121,9 @@ local dev; no offline behaviour.
 
 ### Phase 3 — installability
 
-- `manifest.webmanifest` (name, icons, `display: standalone`, `start_url`).
+- `manifest.webmanifest` (name, icons, `display: standalone`, `start_url`) —
+  **minimal file already present** at `dashboard/public/manifest.webmanifest`;
+  still need real icons + `<link rel="manifest">` (see top of this doc).
 - HTTPS or localhost only.
 - Optional periodic background sync where supported.
 
@@ -109,8 +138,9 @@ Files of interest under `dashboard/`:
 | `src/lib/mcp-client.ts` | Online MCP transport; wrap with offline facade |
 | `src/lib/dashboard-summary.ts` | Shape of cached summary documents |
 | `src/components/DashboardSummary*.tsx` | UI that should tolerate stale data banners |
-| `public/sw-stub.js` | Phase 0 service worker stub |
-| `public/` (future) | `manifest.webmanifest`, icons, offline.html |
+| `public/sw-stub.js` | Phase 0 service worker stub (v0.2 message bridge) |
+| `public/manifest.webmanifest` | Minimal PWA manifest (link from layout when enabled) |
+| `public/` (future) | icons (`icon-192.png`, `icon-512.png`), offline.html |
 
 Suggested registration (not wired by default):
 

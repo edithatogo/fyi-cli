@@ -1782,6 +1782,7 @@ dependencies = [
 name = "fyi-cli"
 version = "0.1.2"
 dependencies = [
+ "chrono",
  "clap",
  "crossterm",
  "dhat",

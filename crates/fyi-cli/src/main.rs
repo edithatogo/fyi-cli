@@ -1,6 +1,13 @@
+use chrono::NaiveDate;
 use clap::{Parser, Subcommand, ValueEnum};
 use fyi_core::db::{DbPool, GlobalSyncStatus};
+use fyi_core::deadlines::{
+    calculate_deadline, evaluate_overdue, DeadlineInput, StatutoryDeadline, WorkingDayRule,
+};
+use fyi_core::federation::list_federated_summaries;
 use fyi_core::jurisdiction::InstanceRegistry;
+use fyi_core::provenance::{append_record, verify_chain, verify_chain_with_payloads};
+use fyi_core::search::{InMemorySearchIndex, SearchDocument, SearchIndex};
 use fyi_core::security::{
     build_provisioning_uri, generate_totp_secret, render_provisioning_qr_ascii, KeyringStore,
 };
@@ -356,10 +363,80 @@ pub enum Commands {
         #[command(subcommand)]
         command: SyncCommand,
     },
+    #[command(
+        about = "Experimental: compute and evaluate statutory FOI/OIA deadlines (bleeding-edge)"
+    )]
+    Deadline {
+        #[command(subcommand)]
+        command: DeadlineCommand,
+    },
+    #[command(about = "Experimental: full-text search demos (bleeding-edge)")]
+    Search {
+        #[command(subcommand)]
+        command: SearchCommand,
+    },
+    #[command(about = "Experimental: multi-jurisdiction federation catalog (bleeding-edge)")]
+    Federation {
+        #[command(subcommand)]
+        command: FederationCommand,
+    },
+    #[command(about = "Experimental: archive provenance hash-chain demos (bleeding-edge)")]
+    Provenance {
+        #[command(subcommand)]
+        command: ProvenanceCommand,
+    },
     #[command(about = "Run Model Context Protocol (MCP) server")]
     McpServer,
     #[command(about = "Launch Ratatui Dashboard TUI")]
     Tui,
+}
+
+#[derive(Subcommand, Debug, Clone, PartialEq, Eq)]
+pub enum DeadlineCommand {
+    #[command(about = "Compute a statutory deadline (JSON StatutoryDeadline)")]
+    Compute {
+        #[arg(long, help = "Start date YYYY-MM-DD")]
+        start: String,
+        #[arg(long, help = "Number of statutory days")]
+        days: u32,
+        #[arg(
+            long,
+            help = "Count calendar days instead of weekdays-only working days"
+        )]
+        calendar: bool,
+    },
+    #[command(about = "Evaluate overdue status for a due date (JSON OverdueStatus)")]
+    Evaluate {
+        #[arg(long, help = "Due date YYYY-MM-DD")]
+        due: String,
+        #[arg(long, help = "As-of date YYYY-MM-DD")]
+        as_of: String,
+    },
+}
+
+#[derive(Subcommand, Debug, Clone, PartialEq, Eq)]
+pub enum SearchCommand {
+    #[command(about = "Query built-in sample FOI documents via InMemorySearchIndex")]
+    Query {
+        #[arg(help = "Free-text search query")]
+        query: String,
+        #[arg(long, default_value_t = 10, help = "Maximum hits to return")]
+        limit: usize,
+    },
+}
+
+#[derive(Subcommand, Debug, Clone, PartialEq, Eq)]
+pub enum FederationCommand {
+    #[command(about = "List FederatedInstanceSummary rows from the default embedded catalog")]
+    List,
+}
+
+#[derive(Subcommand, Debug, Clone, PartialEq, Eq)]
+pub enum ProvenanceCommand {
+    #[command(about = "Verify a demo hash chain built from sample payloads (JSON result)")]
+    Verify,
+    #[command(about = "Append demo provenance records and print the chain + verify result")]
+    AppendDemo,
 }
 
 #[derive(Subcommand, Debug, Clone, PartialEq, Eq)]
@@ -762,6 +839,30 @@ fn main() {
                 std::process::exit(1);
             }
         }
+        Commands::Deadline { command } => {
+            if let Err(error) = handle_deadline_command(command) {
+                eprintln!("Deadline command failed: {error}");
+                std::process::exit(1);
+            }
+        }
+        Commands::Search { command } => {
+            if let Err(error) = handle_search_command(command) {
+                eprintln!("Search command failed: {error}");
+                std::process::exit(1);
+            }
+        }
+        Commands::Federation { command } => {
+            if let Err(error) = handle_federation_command(command) {
+                eprintln!("Federation command failed: {error}");
+                std::process::exit(1);
+            }
+        }
+        Commands::Provenance { command } => {
+            if let Err(error) = handle_provenance_command(command) {
+                eprintln!("Provenance command failed: {error}");
+                std::process::exit(1);
+            }
+        }
         Commands::McpServer => {
             println!("Starting MCP Server...");
             println!("Available tools: {}", mcp_tool_names().join(", "));
@@ -770,6 +871,140 @@ fn main() {
             println!("Starting TUI Dashboard...");
         }
     }
+}
+
+fn parse_ymd(value: &str) -> Result<NaiveDate, String> {
+    NaiveDate::parse_from_str(value, "%Y-%m-%d")
+        .map_err(|e| format!("invalid date '{value}' (expected YYYY-MM-DD): {e}"))
+}
+
+fn print_json_value(value: &impl serde::Serialize) -> Result<(), Box<dyn std::error::Error>> {
+    println!("{}", serde_json::to_string_pretty(value)?);
+    Ok(())
+}
+
+fn sample_search_index() -> InMemorySearchIndex {
+    let mut index = InMemorySearchIndex::new();
+    index.index_document(SearchDocument {
+        id: "1".into(),
+        title: "Budget procurement contracts".into(),
+        body: "Request for copies of all procurement contracts awarded in 2024.".into(),
+    });
+    index.index_document(SearchDocument {
+        id: "2".into(),
+        title: "Police body camera policy".into(),
+        body: "Please provide the operational policy for body-worn cameras.".into(),
+    });
+    index.index_document(SearchDocument {
+        id: "3".into(),
+        title: "Hospital waiting times".into(),
+        body: "Monthly waiting list statistics for elective surgery.".into(),
+    });
+    index
+}
+
+fn handle_deadline_command(command: &DeadlineCommand) -> Result<(), Box<dyn std::error::Error>> {
+    match command {
+        DeadlineCommand::Compute {
+            start,
+            days,
+            calendar,
+        } => {
+            let start_date = parse_ymd(start)?;
+            let rule = if *calendar {
+                WorkingDayRule::CalendarDays
+            } else {
+                WorkingDayRule::WeekdaysOnly
+            };
+            let input = DeadlineInput::new(start_date, *days).with_rule(rule);
+            let deadline = calculate_deadline(&input);
+            print_json_value(&deadline)?;
+        }
+        DeadlineCommand::Evaluate { due, as_of } => {
+            let due_date = parse_ymd(due)?;
+            let as_of_date = parse_ymd(as_of)?;
+            // Minimal deadline shell: evaluation only needs due_date + working-day rule.
+            let deadline = StatutoryDeadline {
+                start_date: due_date,
+                due_date,
+                statutory_deadline_days: 0,
+                working_day_rule: WorkingDayRule::WeekdaysOnly,
+                instance_id: None,
+            };
+            let status = evaluate_overdue(&deadline, as_of_date);
+            print_json_value(&status)?;
+        }
+    }
+    Ok(())
+}
+
+fn handle_search_command(command: &SearchCommand) -> Result<(), Box<dyn std::error::Error>> {
+    match command {
+        SearchCommand::Query { query, limit } => {
+            let index = sample_search_index();
+            let hits = index.search(query, *limit);
+            print_json_value(&serde_json::json!({
+                "query": query,
+                "document_count": index.document_count(),
+                "hits": hits,
+            }))?;
+        }
+    }
+    Ok(())
+}
+
+fn handle_federation_command(
+    command: &FederationCommand,
+) -> Result<(), Box<dyn std::error::Error>> {
+    match command {
+        FederationCommand::List => {
+            let summaries = list_federated_summaries()?;
+            print_json_value(&summaries)?;
+        }
+    }
+    Ok(())
+}
+
+fn handle_provenance_command(
+    command: &ProvenanceCommand,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let payloads: &[&[u8]] = &[b"sample-payload-a", b"sample-payload-b"];
+    let mut chain = Vec::new();
+    chain.push(append_record(
+        &chain,
+        "2026-07-01T00:00:00Z",
+        "demo/doc-a.pdf",
+        payloads[0],
+    ));
+    chain.push(append_record(
+        &chain,
+        "2026-07-02T00:00:00Z",
+        "demo/doc-b.pdf",
+        payloads[1],
+    ));
+
+    match command {
+        ProvenanceCommand::Verify => {
+            let chain_ok = verify_chain(&chain).is_ok();
+            let payloads_ok = verify_chain_with_payloads(&chain, payloads).is_ok();
+            print_json_value(&serde_json::json!({
+                "ok": chain_ok && payloads_ok,
+                "chain_ok": chain_ok,
+                "payloads_ok": payloads_ok,
+                "records": chain.len(),
+                "chain": chain,
+            }))?;
+        }
+        ProvenanceCommand::AppendDemo => {
+            let chain_ok = verify_chain(&chain).is_ok();
+            print_json_value(&serde_json::json!({
+                "ok": chain_ok,
+                "records": chain.len(),
+                "chain": chain,
+            }))?;
+        }
+    }
+    Ok(())
 }
 
 fn handle_mfa_command(command: &MfaCommand) -> Result<(), Box<dyn std::error::Error>> {
@@ -1384,5 +1619,115 @@ mod tests {
         assert!(tools.contains(&"mfa_status"));
         assert!(tools.contains(&"mfa_remove"));
         assert!(tools.contains(&"sync_status"));
+    }
+
+    #[test]
+    fn test_parse_deadline_compute() {
+        let args = Cli::try_parse_from([
+            "fyi-cli",
+            "deadline",
+            "compute",
+            "--start",
+            "2026-07-03",
+            "--days",
+            "20",
+            "--calendar",
+        ])
+        .unwrap();
+        assert_eq!(
+            args.command,
+            Commands::Deadline {
+                command: DeadlineCommand::Compute {
+                    start: "2026-07-03".to_string(),
+                    days: 20,
+                    calendar: true,
+                }
+            }
+        );
+    }
+
+    #[test]
+    fn test_parse_deadline_evaluate() {
+        let args = Cli::try_parse_from([
+            "fyi-cli",
+            "deadline",
+            "evaluate",
+            "--due",
+            "2026-07-31",
+            "--as-of",
+            "2026-08-05",
+        ])
+        .unwrap();
+        assert_eq!(
+            args.command,
+            Commands::Deadline {
+                command: DeadlineCommand::Evaluate {
+                    due: "2026-07-31".to_string(),
+                    as_of: "2026-08-05".to_string(),
+                }
+            }
+        );
+    }
+
+    #[test]
+    fn test_parse_search_query() {
+        let args =
+            Cli::try_parse_from(["fyi-cli", "search", "query", "procurement", "--limit", "5"])
+                .unwrap();
+        assert_eq!(
+            args.command,
+            Commands::Search {
+                command: SearchCommand::Query {
+                    query: "procurement".to_string(),
+                    limit: 5,
+                }
+            }
+        );
+    }
+
+    #[test]
+    fn test_parse_federation_list() {
+        let args = Cli::try_parse_from(["fyi-cli", "federation", "list"]).unwrap();
+        assert_eq!(
+            args.command,
+            Commands::Federation {
+                command: FederationCommand::List
+            }
+        );
+    }
+
+    #[test]
+    fn test_parse_provenance_commands() {
+        let args = Cli::try_parse_from(["fyi-cli", "provenance", "verify"]).unwrap();
+        assert_eq!(
+            args.command,
+            Commands::Provenance {
+                command: ProvenanceCommand::Verify
+            }
+        );
+        let args = Cli::try_parse_from(["fyi-cli", "provenance", "append-demo"]).unwrap();
+        assert_eq!(
+            args.command,
+            Commands::Provenance {
+                command: ProvenanceCommand::AppendDemo
+            }
+        );
+    }
+
+    #[test]
+    fn test_parse_ymd_accepts_iso() {
+        assert_eq!(
+            parse_ymd("2026-07-03").unwrap(),
+            NaiveDate::from_ymd_opt(2026, 7, 3).unwrap()
+        );
+        assert!(parse_ymd("not-a-date").is_err());
+    }
+
+    #[test]
+    fn test_sample_search_index_finds_procurement() {
+        let index = sample_search_index();
+        let hits = index.search("procurement", 5);
+        assert!(!hits.is_empty());
+        assert_eq!(hits[0].id, "1");
     }
 }

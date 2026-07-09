@@ -1,5 +1,8 @@
+use chrono::NaiveDate;
 use fyi_core::api::AlaveteliRequest;
 use fyi_core::db::DbPool;
+use fyi_core::deadlines::{calculate_deadline, DeadlineInput, WorkingDayRule};
+use fyi_core::search::{InMemorySearchIndex, SearchDocument, SearchIndex};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
@@ -588,6 +591,49 @@ fn enrich_tool_definitions(tools: &mut Value) {
                     "additionalProperties": false
                 });
             }
+            "compute_deadline" => {
+                tool["description"] = json!(
+                    "Compute a statutory FOI/OIA deadline from a start date and day count using the bleeding-edge fyi-core deadline engine. Use for local working-day or calendar-day deadline math; do not use for listing requests (list_requests) or sync health (sync_monitor). Read-only and idempotent; pure calculation with no database or network access. Returns a StatutoryDeadline JSON object (start_date, due_date, statutory_deadline_days, working_day_rule)."
+                );
+                tool["inputSchema"]["properties"]["start_date"]["description"] = json!(
+                    "Inclusive statutory period start date in YYYY-MM-DD (typically submission/receipt day)."
+                );
+                tool["inputSchema"]["properties"]["days"]["description"] = json!(
+                    "Number of statutory days to count after start_date (working days by default)."
+                );
+                tool["inputSchema"]["properties"]["days"]["minimum"] = json!(0);
+                tool["inputSchema"]["properties"]["calendar"]["description"] = json!(
+                    "When true, count calendar days including weekends; when false/omitted, count weekdays only (Mon–Fri)."
+                );
+                tool["inputSchema"]["properties"]["calendar"]["default"] = json!(false);
+                tool["outputSchema"]["properties"]["start_date"]["description"] =
+                    json!("Start date echoed from input (YYYY-MM-DD).");
+                tool["outputSchema"]["properties"]["due_date"]["description"] =
+                    json!("Computed due date (YYYY-MM-DD).");
+                tool["outputSchema"]["properties"]["statutory_deadline_days"]["description"] =
+                    json!("Day count used in the calculation.");
+                tool["outputSchema"]["properties"]["working_day_rule"]["description"] =
+                    json!("Rule applied: weekdays_only or calendar_days.");
+            }
+            "search_corpus" => {
+                tool["description"] = json!(
+                    "Search a built-in sample FOI document corpus with the bleeding-edge in-memory inverted index (demo). Use for experimental full-text search over sample titles/bodies; prefer list_requests/retrieve_request for real local SQLite requests. Read-only and idempotent; does not query the database or network. Returns ranked hits with id, score, and title."
+                );
+                tool["inputSchema"]["properties"]["query"]["description"] =
+                    json!("Free-text search query tokenized into alphanumeric terms.");
+                tool["inputSchema"]["properties"]["query"]["minLength"] = json!(1);
+                tool["inputSchema"]["properties"]["limit"]["description"] =
+                    json!("Maximum number of ranked hits to return (1-50). Defaults to 10.");
+                tool["inputSchema"]["properties"]["limit"]["minimum"] = json!(1);
+                tool["inputSchema"]["properties"]["limit"]["maximum"] = json!(50);
+                tool["inputSchema"]["properties"]["limit"]["default"] = json!(10);
+                tool["outputSchema"]["properties"]["query"]["description"] =
+                    json!("Echo of the search query.");
+                tool["outputSchema"]["properties"]["document_count"]["description"] =
+                    json!("Number of documents in the demo corpus.");
+                tool["outputSchema"]["properties"]["hits"]["description"] =
+                    json!("Ranked search hits (id, score, title).");
+            }
             "check_status" => {
                 tool["description"] = json!(
                     "Check FYI MCP SQLite readiness and return record-count metrics for requests, correspondence, and optional sync totals. Use as a first health probe or liveness check; prefer sync_monitor for queue/offline depth and list_requests for request content. Read-only, idempotent, and safe to call repeatedly; does not write data or contact remote services."
@@ -1084,6 +1130,105 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                                 "metrics": { "type": "object" }
                             },
                             "required": ["status", "database", "metrics"],
+                            "additionalProperties": false
+                        },
+                        "annotations": {
+                            "readOnlyHint": true,
+                            "destructiveHint": false,
+                            "idempotentHint": true,
+                            "openWorldHint": false
+                        }
+                    },
+                    {
+                        "name": "compute_deadline",
+                        "title": "Compute Deadline",
+                        "description": "Compute a statutory FOI/OIA deadline from start date and days.",
+                        "inputSchema": {
+                            "type": "object",
+                            "description": "Deadline calculation parameters.",
+                            "properties": {
+                                "start_date": {
+                                    "type": "string",
+                                    "description": "Start date YYYY-MM-DD."
+                                },
+                                "days": {
+                                    "type": "integer",
+                                    "description": "Statutory day count."
+                                },
+                                "calendar": {
+                                    "type": "boolean",
+                                    "description": "Use calendar days instead of weekdays only."
+                                }
+                            },
+                            "required": ["start_date", "days"],
+                            "additionalProperties": false
+                        },
+                        "outputSchema": {
+                            "type": "object",
+                            "description": "Computed StatutoryDeadline.",
+                            "properties": {
+                                "start_date": { "type": "string" },
+                                "due_date": { "type": "string" },
+                                "statutory_deadline_days": { "type": "integer" },
+                                "working_day_rule": { "type": "string" },
+                                "instance_id": { "type": ["string", "null"] }
+                            },
+                            "required": [
+                                "start_date",
+                                "due_date",
+                                "statutory_deadline_days",
+                                "working_day_rule"
+                            ],
+                            "additionalProperties": false
+                        },
+                        "annotations": {
+                            "readOnlyHint": true,
+                            "destructiveHint": false,
+                            "idempotentHint": true,
+                            "openWorldHint": false
+                        }
+                    },
+                    {
+                        "name": "search_corpus",
+                        "title": "Search Corpus",
+                        "description": "Search a built-in sample FOI document corpus (demo index).",
+                        "inputSchema": {
+                            "type": "object",
+                            "description": "Search parameters.",
+                            "properties": {
+                                "query": {
+                                    "type": "string",
+                                    "description": "Free-text query."
+                                },
+                                "limit": {
+                                    "type": "integer",
+                                    "description": "Maximum hits to return."
+                                }
+                            },
+                            "required": ["query"],
+                            "additionalProperties": false
+                        },
+                        "outputSchema": {
+                            "type": "object",
+                            "description": "Ranked search results over the demo corpus.",
+                            "properties": {
+                                "query": { "type": "string" },
+                                "document_count": { "type": "integer" },
+                                "hits": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "id": { "type": "string" },
+                                            "score": { "type": "number" },
+                                            "title": { "type": "string" }
+                                        },
+                                        "required": ["id", "score", "title"],
+                                        "additionalProperties": false
+                                    }
+                                }
+                            },
+                            "required": ["query", "document_count", "hits"],
                             "additionalProperties": false
                         },
                         "annotations": {
@@ -1825,6 +1970,102 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
 
                     Some(tool_success(req.id, status_info))
                 }
+                "compute_deadline" => {
+                    let start_raw = arguments
+                        .get("start_date")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("");
+                    let days = arguments.get("days").and_then(|v| v.as_u64());
+                    let calendar = arguments
+                        .get("calendar")
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(false);
+
+                    let start_date = match NaiveDate::parse_from_str(start_raw, "%Y-%m-%d") {
+                        Ok(d) => d,
+                        Err(e) => {
+                            return Some(JsonRpcResponse::success(
+                                req.id,
+                                json!({
+                                    "isError": true,
+                                    "content": [{
+                                        "type": "text",
+                                        "text": format!(
+                                            "Invalid start_date '{start_raw}' (expected YYYY-MM-DD): {e}"
+                                        )
+                                    }]
+                                }),
+                            ));
+                        }
+                    };
+                    let Some(days) = days else {
+                        return Some(JsonRpcResponse::success(
+                            req.id,
+                            json!({
+                                "isError": true,
+                                "content": [{
+                                    "type": "text",
+                                    "text": "Missing or invalid days (non-negative integer required)"
+                                }]
+                            }),
+                        ));
+                    };
+                    let days = days as u32;
+                    let rule = if calendar {
+                        WorkingDayRule::CalendarDays
+                    } else {
+                        WorkingDayRule::WeekdaysOnly
+                    };
+                    let deadline =
+                        calculate_deadline(&DeadlineInput::new(start_date, days).with_rule(rule));
+                    match serde_json::to_value(&deadline) {
+                        Ok(payload) => Some(tool_success(req.id, payload)),
+                        Err(e) => Some(JsonRpcResponse::success(
+                            req.id,
+                            json!({
+                                "isError": true,
+                                "content": [{
+                                    "type": "text",
+                                    "text": format!("Failed to serialize deadline: {e}")
+                                }]
+                            }),
+                        )),
+                    }
+                }
+                "search_corpus" => {
+                    let query = arguments
+                        .get("query")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .trim();
+                    if query.is_empty() {
+                        return Some(JsonRpcResponse::success(
+                            req.id,
+                            json!({
+                                "isError": true,
+                                "content": [{
+                                    "type": "text",
+                                    "text": "query is required and must be non-empty"
+                                }]
+                            }),
+                        ));
+                    }
+                    let limit = arguments
+                        .get("limit")
+                        .and_then(|v| v.as_u64())
+                        .unwrap_or(10)
+                        .clamp(1, 50) as usize;
+                    let index = sample_search_corpus();
+                    let hits = index.search(query, limit);
+                    Some(tool_success(
+                        req.id,
+                        json!({
+                            "query": query,
+                            "document_count": index.document_count(),
+                            "hits": hits,
+                        }),
+                    ))
+                }
                 _ => Some(JsonRpcResponse::error(
                     req.id,
                     -32601,
@@ -1838,6 +2079,27 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
             format!("Method '{}' not found", req.method),
         )),
     }
+}
+
+/// Built-in demo documents for the experimental `search_corpus` tool.
+fn sample_search_corpus() -> InMemorySearchIndex {
+    let mut index = InMemorySearchIndex::new();
+    index.index_document(SearchDocument {
+        id: "1".into(),
+        title: "Budget procurement contracts".into(),
+        body: "Request for copies of all procurement contracts awarded in 2024.".into(),
+    });
+    index.index_document(SearchDocument {
+        id: "2".into(),
+        title: "Police body camera policy".into(),
+        body: "Please provide the operational policy for body-worn cameras.".into(),
+    });
+    index.index_document(SearchDocument {
+        id: "3".into(),
+        title: "Hospital waiting times".into(),
+        body: "Monthly waiting list statistics for elective surgery.".into(),
+    });
+    index
 }
 
 /// Static + dynamic MCP resource catalog for corpus exposure.
@@ -2258,6 +2520,27 @@ mod tests {
         assert!(tools
             .iter()
             .any(|t| t.get("name").unwrap().as_str().unwrap() == "import_authorities"));
+        assert!(tools
+            .iter()
+            .any(|t| t.get("name").unwrap().as_str().unwrap() == "compute_deadline"));
+        assert!(tools
+            .iter()
+            .any(|t| t.get("name").unwrap().as_str().unwrap() == "search_corpus"));
+        assert_eq!(
+            tool("compute_deadline")
+                .get("title")
+                .and_then(|v| v.as_str()),
+            Some("Compute Deadline")
+        );
+        assert!(tool("compute_deadline")
+            .get("description")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .contains("statutory"));
+        assert_eq!(
+            tool("search_corpus").get("title").and_then(|v| v.as_str()),
+            Some("Search Corpus")
+        );
         assert_eq!(
             tool("list_requests").get("title").and_then(|v| v.as_str()),
             Some("List Requests")
@@ -2783,5 +3066,71 @@ mod tests {
                 .unwrap(),
             1
         );
+    }
+
+    #[tokio::test]
+    async fn test_compute_deadline_tool() {
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+
+        let req = JsonRpcRequest {
+            jsonrpc: "2.0".to_string(),
+            id: Some(json!(20)),
+            method: "tools/call".to_string(),
+            params: Some(json!({
+                "name": "compute_deadline",
+                "arguments": {
+                    "start_date": "2026-07-03",
+                    "days": 2,
+                    "calendar": false
+                }
+            })),
+        };
+
+        let resp = handle_jsonrpc_request(&db, req).await.unwrap();
+        assert!(resp.error.is_none());
+        let result = resp.result.unwrap();
+        let deadline = structured_content(&result);
+        assert_eq!(
+            deadline.get("due_date").and_then(|v| v.as_str()),
+            Some("2026-07-07")
+        );
+        assert_eq!(
+            deadline
+                .get("statutory_deadline_days")
+                .and_then(|v| v.as_u64()),
+            Some(2)
+        );
+    }
+
+    #[tokio::test]
+    async fn test_search_corpus_tool() {
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+
+        let req = JsonRpcRequest {
+            jsonrpc: "2.0".to_string(),
+            id: Some(json!(21)),
+            method: "tools/call".to_string(),
+            params: Some(json!({
+                "name": "search_corpus",
+                "arguments": {
+                    "query": "procurement contracts",
+                    "limit": 5
+                }
+            })),
+        };
+
+        let resp = handle_jsonrpc_request(&db, req).await.unwrap();
+        assert!(resp.error.is_none());
+        let result = resp.result.unwrap();
+        let payload = structured_content(&result);
+        assert_eq!(
+            payload.get("document_count").and_then(|v| v.as_u64()),
+            Some(3)
+        );
+        let hits = payload.get("hits").and_then(|v| v.as_array()).unwrap();
+        assert!(!hits.is_empty());
+        assert_eq!(hits[0].get("id").and_then(|v| v.as_str()), Some("1"));
     }
 }
