@@ -2,17 +2,17 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
   <metadata>
     <id>fyi-cli</id>
-    <version>0.1.0</version>
+    <version>0.1.2</version>
     <title>fyi-cli (Install)</title>
-    <authors>yourusername</authors>
-    <projectUrl>https://github.com/yourusername/fyi-cli</projectUrl>
-    <licenseUrl>https://github.com/yourusername/fyi-cli/blob/main/LICENSE</licenseUrl>
+    <authors>edithatogo</authors>
+    <projectUrl>https://github.com/edithatogo/fyi-cli</projectUrl>
+    <licenseUrl>https://github.com/edithatogo/fyi-cli/blob/master/LICENSE</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <projectSourceUrl>https://github.com/yourusername/fyi-cli</projectSourceUrl>
-    <bugTrackerUrl>https://github.com/yourusername/fyi-cli/issues</bugTrackerUrl>
-    <tags>fyi-cli rust privacy cli request-management</tags>
-    <summary>Privacy-focused CLI tool for managing FYI.org.nz official information requests</summary>
-    <description>FYI CLI is a privacy-focused information retrieval and request management system that leverages the FYI.org.nz API for official information requests, with comprehensive privacy features including proxy/TOR support, multi-account management, and public information aggregation.</description>
+    <projectSourceUrl>https://github.com/edithatogo/fyi-cli</projectSourceUrl>
+    <bugTrackerUrl>https://github.com/edithatogo/fyi-cli/issues</bugTrackerUrl>
+    <tags>fyi-cli rust privacy cli foi oia alaveteli mcp</tags>
+    <summary>Privacy-focused multi-jurisdiction FOI/OIA CLI for Alaveteli instances</summary>
+    <description>FYI CLI is a privacy-focused FOI/OIA request management system for Alaveteli-based platforms (FYI.org.nz and other instances), with local SQLite storage, optional Tor support, a Rust CLI/MCP surface, and multi-jurisdiction catalog support.</description>
   </metadata>
   <files>
     <file src="tools\**" target="tools" />

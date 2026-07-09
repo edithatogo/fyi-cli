@@ -20,3 +20,7 @@ dashboard/tsconfig.tsbuildinfo
 docs-site/node_modules/
 docs-site/dist/
 docs-site/.astro/
+
+# Local forks for external PRs
+awesome-mcp-servers/
+

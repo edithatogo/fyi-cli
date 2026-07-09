@@ -181,6 +181,7 @@ The current implementation slice is tracked in GitHub issues. Each track below i
   *Issue: #45*
   *Link: [./tracks/registry-distribution-expansion/](./tracks/registry-distribution-expansion/)*
   *Description: Registry matrix expansion (MCP catalogs, package managers, container registries) + submission automation.*
+  *Progress (2026-07-09): matrix doc expanded; Scoop/WinGet drafts + cargo-binstall metadata; Glama verified live; Smithery listed (score still null); GitHub curated MCP still blocked-external.*
 
 - [~] **Track: bleeding-edge-features**
   *Issue: #46*
@@ -188,9 +189,12 @@ The current implementation slice is tracked in GitHub issues. Each track below i
   *Description: Prioritized R&D backlog: AI request drafting, semantic search, deadline engine, federation, adapter SDK, signed provenance, MCP resources, offline PWA.*
   *Dependencies: jurisdiction-abstraction-core*
 
-- [~] **Track: upstream-alaveteli-engagement**
+## Recently completed (2026-07-09)
+
+- [x] **Track: upstream-alaveteli-engagement** (COMPLETED 2026-07-09)
   *Link: [./tracks/upstream-alaveteli-engagement/](./tracks/upstream-alaveteli-engagement/)*
-  *Description: Communicate and collaborate with the upstream Alaveteli/mySociety maintainers and individual instance operators; document etiquette norms and draft outreach.*
+  *Description: Document etiquette norms, capability findings, and ready-to-post Alaveteli outreach drafts.*
+  *Deliverables: `docs/upstream-relations.md`, `docs/outreach/alaveteli-project-intro.md`, CONTRIBUTING link.*
 
 ---
 

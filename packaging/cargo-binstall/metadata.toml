@@ -1,0 +1,16 @@
+# cargo-binstall hints for fyi-cli / fyi-mcp binaries.
+# Reference: https://github.com/cargo-bins/cargo-binstall
+#
+# Prefer publishing crates to crates.io with [[bin]] targets so
+# `cargo binstall fyi-cli` resolves automatically. Until then, point
+# binstall at GitHub release assets via package.metadata.binstall in
+# each crate Cargo.toml (copied here for documentation).
+
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/{ name }-v{ version }/{ name }-{ version }-{ target }{ archive-suffix }"
+bin-dir = "{ bin }{ binary-ext }"
+pkg-fmt = "tgz"
+
+[package.metadata.binstall.overrides.x86_64-pc-windows-msvc]
+pkg-url = "{ repo }/releases/download/fyi-mcp-v{ version }/fyi-mcp-{ version }-win32.mcpb"
+pkg-fmt = "bin"

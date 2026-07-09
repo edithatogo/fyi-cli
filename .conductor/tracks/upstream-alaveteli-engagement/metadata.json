@@ -1,6 +1,8 @@
 {
   "id": "upstream-alaveteli-engagement",
-  "title": "Upstream Alaveteli Engagement",
-  "description": "Communicate and collaborate with the upstream Alaveteli/mySociety maintainers and individual instance operators (FYI.org.nz, RightToKnow.org.au, WhatDoTheyKnow.com, etc.) about fyi-cli's multi-jurisdiction client work: introduce the project, share API-coverage/health-check findings discovered during the audit, propose upstream doc fixes, establish etiquette/rate-limit norms for bulk archival use, and explore an official client listing.",
-  "createdAt": "2026-07-08T15:37:38.907Z"
+  "updated_at": "2026-07-09T00:00:00Z",
+  "description": "Document etiquette norms, capability findings, and ready-to-post Alaveteli outreach drafts.",
+  "status": "completed",
+  "completed_at": "2026-07-09T00:00:00Z",
+  "title": "Upstream Alaveteli Engagement"
 }
