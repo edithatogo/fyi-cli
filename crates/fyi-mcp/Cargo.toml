@@ -7,6 +7,16 @@ license = "MIT"
 repository = "https://github.com/edithatogo/fyi-cli"
 readme = "README.md"
 
+# cargo-binstall resolution hints (see packaging/cargo-binstall/metadata.toml)
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/{ name }-v{ version }/{ name }-{ version }-{ target }{ archive-suffix }"
+bin-dir = "{ bin }{ binary-ext }"
+pkg-fmt = "tgz"
+
+[package.metadata.binstall.overrides.x86_64-pc-windows-msvc]
+pkg-url = "{ repo }/releases/download/fyi-mcp-v{ version }/fyi-mcp-{ version }-win32.mcpb"
+pkg-fmt = "bin"
+
 [dependencies]
 tokio = { version = "1.36", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }

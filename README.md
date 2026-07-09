@@ -72,6 +72,20 @@ Download from [Releases](https://github.com/edithatogo/fyi-cli/releases):
 - **macOS**: `fyi-cli-macos`
 - **Linux**: `fyi-cli-linux`
 
+### Package managers & registries (matrix)
+
+See the full status table in
+[`docs/registry-distribution-matrix.md`](docs/registry-distribution-matrix.md).
+
+| Channel | Status | Notes |
+|---------|--------|-------|
+| Official MCP Registry | Live | `io.github.edithatogo/fyi-mcp` @ `0.1.2` |
+| [Glama](https://glama.ai/mcp/servers/edithatogo/fyi-cli) | Live | Search `author:edithatogo` |
+| [Smithery](https://smithery.ai/server/@edithatogo/fyi-mcp) | Live (score pending) | Namespace `edithatogo/fyi-mcp` |
+| cargo-binstall | Metadata ready | See `[package.metadata.binstall]` in crates |
+| Scoop / WinGet | Draft manifests | `packaging/scoop`, `packaging/winget` |
+| GHCR | Workflow ready | `.github/workflows/container-publish.yml` |
+
 ### Legacy Python Package
 
 The original Python implementation (`fyi_system`) is still published to PyPI for existing users, but
@@ -91,6 +105,8 @@ pip install fyi-cli
 |----------|-------------|
 | [Docs site](https://edithatogo.github.io/fyi-cli/) | Full documentation (Astro + Starlight) |
 | [docs/cli-entrypoints-audit.md](docs/cli-entrypoints-audit.md) | Canonical cross-reference for Python CLI, Rust CLI, and Rust MCP surfaces |
+| [docs/upstream-relations.md](docs/upstream-relations.md) | Alaveteli/instance operator etiquette and outreach log |
+| [docs/registry-distribution-matrix.md](docs/registry-distribution-matrix.md) | MCP catalogs, package managers, containers status |
 | [QUICKSTART.md](QUICKSTART.md) | 5-minute getting started guide |
 | [USER_GUIDE.md](USER_GUIDE.md) | Comprehensive user documentation |
 | [INSTALL.md](INSTALL.md) | Installation guide (Windows/Mac/Linux) |

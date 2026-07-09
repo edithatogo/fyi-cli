@@ -1,16 +1,18 @@
 {
   "track_id": "jurisdiction-uk-whatdotheyknow",
   "type": "feature",
-  "status": "in_progress",
+  "status": "completed",
   "created_at": "2026-07-08T22:07:37+10:00",
-  "updated_at": "2026-07-08T13:59:00+10:00",
   "description": "Onboard whatdotheyknow.com (FOIA 2000); proves the pattern a second time; scale/rate-limit hardening for a large corpus.",
-  "dependencies": ["jurisdiction-au-righttoknow"],
+  "dependencies": [
+    "jurisdiction-au-righttoknow"
+  ],
   "priority": "high",
   "github_issue": 41,
   "github_pr": 126,
   "implementation_workflow": {
     "tracked_by": "github-issues-prs",
     "branch": "60217257-implement-foi-tracks"
-  }
+  },
+  "updated_at": "2026-07-09T00:00:00Z"
 }

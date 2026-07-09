@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.singleton.1.6.0.schema.json
+# Draft WinGet singleton-style manifest for review before submission to microsoft/winget-pkgs.
+# Update PackageVersion, InstallerUrl, and InstallerSha256 from the matching GitHub Release.
+
+PackageIdentifier: edithatogo.fyi-cli
+PackageVersion: 0.1.2
+PackageLocale: en-US
+Publisher: edithatogo
+PublisherUrl: https://github.com/edithatogo
+PublisherSupportUrl: https://github.com/edithatogo/fyi-cli/issues
+Author: edithatogo
+PackageName: fyi-cli
+PackageUrl: https://github.com/edithatogo/fyi-cli
+License: MIT
+LicenseUrl: https://github.com/edithatogo/fyi-cli/blob/master/LICENSE
+ShortDescription: Privacy-focused multi-jurisdiction FOI/OIA CLI and MCP server for Alaveteli
+Description: >-
+  fyi-cli tracks and manages Freedom of Information / Official Information requests against
+  Alaveteli-based platforms (FYI.org.nz and other instances), with a Rust CLI, MCP server,
+  optional Tor support, and local SQLite storage.
+Moniker: fyi-cli
+Tags:
+  - alaveteli
+  - cli
+  - foi
+  - mcp
+  - privacy
+  - rust
+Installers:
+  - Architecture: x64
+    InstallerType: portable
+    InstallerUrl: https://github.com/edithatogo/fyi-cli/releases/download/fyi-mcp-v0.1.2/fyi-mcp-0.1.2-win32.mcpb
+    InstallerSha256: 87EF957D9C4DBF30322E7872EA4F23F92F8640344CEAC2BB8A3B5FA22BC7FC2F
+    # NOTE: WinGet portable install for MCPB may require a follow-up release with a plain .exe/.zip.
+    # This draft captures metadata; submission should wait for a cargo-dist Windows CLI asset.
+ManifestType: singleton
+ManifestVersion: 1.6.0

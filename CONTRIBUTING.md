@@ -539,6 +539,14 @@ We use [Semantic Versioning](https://semver.org/):
 
 ---
 
+## Documentation pointers
+
+- User/install guides: [USER_GUIDE.md](USER_GUIDE.md), [INSTALL.md](INSTALL.md), [QUICKSTART.md](QUICKSTART.md)
+- CLI/MCP surface audit: [docs/cli-entrypoints-audit.md](docs/cli-entrypoints-audit.md)
+- **Upstream Alaveteli relations & etiquette:** [docs/upstream-relations.md](docs/upstream-relations.md)
+- Outreach draft (do not auto-post): [docs/outreach/alaveteli-project-intro.md](docs/outreach/alaveteli-project-intro.md)
+- Registry/distribution matrix: [docs/registry-distribution-matrix.md](docs/registry-distribution-matrix.md)
+
 ## Getting Help
 
 - **Documentation:** See docs/ directory

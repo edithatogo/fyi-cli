@@ -1,18 +1,20 @@
 class FyiCli < Formula
-  desc "Privacy-focused CLI tool for managing FYI.org.nz official information requests"
-  homepage "https://github.com/yourusername/fyi-cli"
-  version "0.1.0"
+  desc "Privacy-focused multi-jurisdiction FOI/OIA CLI for Alaveteli instances"
+  homepage "https://github.com/edithatogo/fyi-cli"
+  version "0.1.2"
+  license "MIT"
 
+  # Update url/sha256 from the matching GitHub Release (cargo-dist or manual).
   if OS.mac?
     if Hardware::CPU.intel?
-      url "https://github.com/yourusername/fyi-cli/releases/download/v#{version}/fyi-cli-macos-amd64.tar.gz"
+      url "https://github.com/edithatogo/fyi-cli/releases/download/v#{version}/fyi-cli-macos-amd64.tar.gz"
       sha256 "PLACEHOLDER_MAC_AMD64_SHA256"
     elsif Hardware::CPU.arm?
-      url "https://github.com/yourusername/fyi-cli/releases/download/v#{version}/fyi-cli-macos-arm64.tar.gz"
+      url "https://github.com/edithatogo/fyi-cli/releases/download/v#{version}/fyi-cli-macos-arm64.tar.gz"
       sha256 "PLACEHOLDER_MAC_ARM64_SHA256"
     end
   elsif OS.linux?
-    url "https://github.com/yourusername/fyi-cli/releases/download/v#{version}/fyi-cli-linux-amd64.tar.gz"
+    url "https://github.com/edithatogo/fyi-cli/releases/download/v#{version}/fyi-cli-linux-amd64.tar.gz"
     sha256 "PLACEHOLDER_LINUX_AMD64_SHA256"
   end
 

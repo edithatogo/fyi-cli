@@ -1,0 +1,28 @@
+{
+  "version": "0.1.2",
+  "description": "Privacy-focused multi-jurisdiction FOI/OIA CLI and MCP server for Alaveteli instances",
+  "homepage": "https://github.com/edithatogo/fyi-cli",
+  "license": "MIT",
+  "architecture": {
+    "64bit": {
+      "url": "https://github.com/edithatogo/fyi-cli/releases/download/fyi-mcp-v0.1.2/fyi-mcp-0.1.2-win32.mcpb",
+      "hash": "87ef957d9c4dbf30322e7872ea4f23f92f8640344ceac2bb8a3b5fa22bc7fc2f"
+    }
+  },
+  "bin": "fyi-mcp.exe",
+  "checkver": {
+    "github": "https://github.com/edithatogo/fyi-cli"
+  },
+  "autoupdate": {
+    "architecture": {
+      "64bit": {
+        "url": "https://github.com/edithatogo/fyi-cli/releases/download/fyi-mcp-v$version/fyi-mcp-$version-win32.mcpb"
+      }
+    }
+  },
+  "notes": [
+    "This Scoop manifest currently points at the published Windows MCPB asset.",
+    "Prefer cargo install / release binaries once cargo-dist Windows CLI assets are stable.",
+    "MCPB packages the fyi-mcp server; CLI install paths are documented in INSTALL.md."
+  ]
+}

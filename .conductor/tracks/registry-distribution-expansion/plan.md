@@ -44,14 +44,14 @@
 ## Phase 2: Windows Package Managers
 
 ### 2.1 Scoop Manifest
-- [ ] Task: Create Scoop manifest for fyi-cli
+- [x] Task: Create Scoop manifest for fyi-cli
 - [ ] Task: Submit to Scoop bucket
 - [ ] Task: Test installation: `scoop install fyi`
 - [ ] Task: Automate manifest updates in CI
 - [ ] Task: Conductor - User Manual Verification 'Phase 2.1: Scoop' (Protocol in workflow.md)
 
 ### 2.2 WinGet Package
-- [ ] Task: Create WinGet manifest
+- [x] Task: Create WinGet manifest
 - [ ] Task: Submit to microsoft/winget-pkgs
 - [ ] Task: Test installation: `winget install fyi-cli`
 - [ ] Task: Set up automated manifest updates
@@ -120,10 +120,10 @@
 ## Phase 5: Cargo Ecosystem
 
 ### 5.1 cargo-binstall Support
-- [ ] Task: Add cargo-binstall metadata to Cargo.toml
+- [x] Task: Add cargo-binstall metadata to Cargo.toml
 - [ ] Task: Test binary installation: `cargo binstall fyi-cli`
-- [ ] Task: Verify binary URLs in metadata
-- [ ] Task: Document cargo-binstall usage
+- [x] Task: Verify binary URLs in metadata
+- [x] Task: Document cargo-binstall usage
 - [ ] Task: Conductor - User Manual Verification 'Phase 5.1: cargo-binstall' (Protocol in workflow.md)
 
 ## Phase 6: Container Registries
@@ -160,10 +160,10 @@
 ## Phase 7: Automation & CI Integration
 
 ### 7.1 Submission Matrix
-- [ ] Task: Create submission matrix documentation
-- [ ] Task: List all 20+ distribution channels
-- [ ] Task: Document submission process for each
-- [ ] Task: Identify which have APIs for automation
+- [x] Task: Create submission matrix documentation
+- [x] Task: List all 20+ distribution channels
+- [x] Task: Document submission process for each
+- [x] Task: Identify which have APIs for automation
 - [ ] Task: Conductor - User Manual Verification 'Phase 7.1: Matrix' (Protocol in workflow.md)
 
 ### 7.2 CI Automation
@@ -214,3 +214,4 @@
 
 ## Track History
 - **2026-07-08**: Track created for multi-jurisdictional expansion
+- **2026-07-09**: Expanded `docs/registry-distribution-matrix.md`; verified Glama live (#25 closed); Smithery listed with null score; Scoop/WinGet drafts + cargo-binstall metadata; Homebrew/Chocolatey publisher URLs corrected.

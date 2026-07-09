@@ -1,16 +1,18 @@
 {
   "track_id": "i18n-localization-framework",
   "type": "feature",
-  "status": "in_progress",
+  "status": "completed",
   "created_at": "2026-07-08T22:07:37+10:00",
-  "updated_at": "2026-07-08T13:59:00+10:00",
   "description": "fluent-rs i18n, locale-aware templates, terminology map, working-day/deadline engine + holiday calendars.",
-  "dependencies": ["jurisdiction-abstraction-core"],
+  "dependencies": [
+    "jurisdiction-abstraction-core"
+  ],
   "priority": "high",
   "github_issue": 39,
   "github_pr": 126,
   "implementation_workflow": {
     "tracked_by": "github-issues-prs",
     "branch": "60217257-implement-foi-tracks"
-  }
+  },
+  "updated_at": "2026-07-09T00:00:00Z"
 }
