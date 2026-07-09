@@ -1,0 +1,21 @@
+{
+  "track_id": "bleeding-edge-features",
+  "type": "feature",
+  "status": "completed",
+  "created_at": "2026-07-08T22:07:37+10:00",
+  "updated_at": "2026-07-09T00:00:00Z",
+  "description": "Prioritized R&D backlog: AI request drafting, semantic search, deadline engine, federation, adapter SDK, signed provenance, MCP resources, offline PWA. Repo-side foundations complete; production integrations deferred.",
+  "dependencies": [
+    "jurisdiction-abstraction-core"
+  ],
+  "priority": "low",
+  "github_issue": 46,
+  "github_pr": [
+    126,
+    130
+  ],
+  "implementation_workflow": {
+    "tracked_by": "github-issues-prs",
+    "branch": "60217257-implement-foi-tracks"
+  }
+}
