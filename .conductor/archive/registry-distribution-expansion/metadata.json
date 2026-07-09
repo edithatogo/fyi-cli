@@ -1,0 +1,17 @@
+{
+  "track_id": "registry-distribution-expansion",
+  "type": "infrastructure",
+  "status": "completed",
+  "created_at": "2026-07-08T22:07:37+10:00",
+  "updated_at": "2026-07-09T00:00:00Z",
+  "description": "Registry matrix expansion (MCP catalogs, package managers, container registries) + submission automation. Repo-side complete (assets-ready); external live listings deferred to operator checklist + #26/#32.",
+  "dependencies": [],
+  "priority": "medium",
+  "github_issue": 45,
+  "github_pr": [127, 129, 130],
+  "github_pr_note": "Implementation PRs #127/#129/#130; forthcoming archive PR on conductor/archive-registry-distribution-expansion",
+  "implementation_workflow": {
+    "tracked_by": "github-issues-prs",
+    "branch": "conductor/archive-registry-distribution-expansion"
+  }
+}

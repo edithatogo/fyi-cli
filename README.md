@@ -75,51 +75,28 @@ fyi-cli list-requests
 
 ## 📦 Installation
 
-### From Source (Rust workspace, recommended)
+**Full guide (Rust-first, all channels):** **[INSTALL.md](INSTALL.md)** · version **0.1.2** · homepage [github.com/edithatogo/fyi-cli](https://github.com/edithatogo/fyi-cli)
+
+| Path | Command / location | Notes |
+|------|--------------------|--------|
+| **Cargo (clone)** | `cargo install --path crates/fyi-cli` | Recommended |
+| **Cargo (crates.io)** | `cargo install fyi-cli` | When published |
+| **cargo-binstall** | `cargo binstall fyi-cli` | **assets-ready** — needs matching release assets |
+| **GitHub Releases** | [Releases](https://github.com/edithatogo/fyi-cli/releases) | Prebuilt CLI / MCPB; check asset names per tag |
+| **PyPI (legacy)** | `pip install fyi-cli` | Python `fyi_system`; not extended |
+| **MCP binary** | `cargo install --path crates/fyi-mcp` | Or MCPB from Releases |
+| **MCP registries** | Official / Glama / Smithery | **live** — see table above |
+| **Containers** | `ghcr.io/edithatogo/fyi-mcp` | **assets-ready** — [docs/containers.md](docs/containers.md) |
+| **Scoop, WinGet, Homebrew, Chocolatey, AUR, nix, Snap, Flatpak, Debian, Fedora, asdf, mise** | Drafts under [`packaging/`](packaging/) | **Not claimed live** — [docs/installation-package-managers.md](docs/installation-package-managers.md) |
 
 ```bash
 git clone https://github.com/edithatogo/fyi-cli.git
 cd fyi-cli
-cargo build --workspace --release
-./target/release/fyi-cli --help
+cargo install --path crates/fyi-cli --locked
+fyi-cli --help
 ```
 
-### Standalone Executables
-
-Download from [Releases](https://github.com/edithatogo/fyi-cli/releases):
-- **Windows**: `fyi-cli-win.exe`
-- **macOS**: `fyi-cli-macos`
-- **Linux**: `fyi-cli-linux`
-
-### Package managers & MCP registries
-
-See **[Where fyi-cli / fyi-mcp is listed](#where-fyi-cli--fyi-mcp-is-listed)** above for every live
-listing, and [`docs/registry-distribution-matrix.md`](docs/registry-distribution-matrix.md) for the
-full submission matrix (drafts, planned package managers, containers).
-
-Install paths in-repo today:
-
-```bash
-# Rust CLI (from source)
-cargo install --path crates/fyi-cli
-
-# Legacy Python package
-pip install fyi-cli
-
-# MCP server binary (from source)
-cargo install --path crates/fyi-mcp
-```
-
-### Legacy Python Package
-
-The original Python implementation (`fyi_system`) is still published to PyPI for existing users, but
-is not being extended with new features:
-
-```bash
-pip install fyi-cli
-```
-
-**Full installation guide:** [INSTALL.md](INSTALL.md)
+Live listings and draft status: **[Where fyi-cli / fyi-mcp is listed](#where-fyi-cli--fyi-mcp-is-listed)** · full matrix: [`docs/registry-distribution-matrix.md`](docs/registry-distribution-matrix.md) · MCP catalog checklist: [`packaging/mcp-catalogs/SUBMISSION_CHECKLIST.md`](packaging/mcp-catalogs/SUBMISSION_CHECKLIST.md).
 
 ---
 
@@ -131,9 +108,11 @@ pip install fyi-cli
 | [docs/cli-entrypoints-audit.md](docs/cli-entrypoints-audit.md) | Canonical cross-reference for Python CLI, Rust CLI, and Rust MCP surfaces |
 | [docs/upstream-relations.md](docs/upstream-relations.md) | Alaveteli/instance operator etiquette and outreach log |
 | [docs/registry-distribution-matrix.md](docs/registry-distribution-matrix.md) | MCP catalogs, package managers, containers status |
+| [docs/installation-package-managers.md](docs/installation-package-managers.md) | Draft package-manager install notes (Scoop, WinGet, brew, …) |
+| [docs/containers.md](docs/containers.md) | `fyi-mcp` container / GHCR |
 | [QUICKSTART.md](QUICKSTART.md) | 5-minute getting started guide |
 | [USER_GUIDE.md](USER_GUIDE.md) | Comprehensive user documentation |
-| [INSTALL.md](INSTALL.md) | Installation guide (Windows/Mac/Linux) |
+| [INSTALL.md](INSTALL.md) | Installation guide (Rust-first; all channels) |
 | [API_KEY_SETUP.md](API_KEY_SETUP.md) | How to get and configure API key |
 | [CONFIGURATION.md](CONFIGURATION.md) | Configuration reference |
 | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Troubleshooting guide |
