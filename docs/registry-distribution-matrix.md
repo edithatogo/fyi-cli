@@ -5,7 +5,9 @@ Update this file when a submission lands or when release assets change.
 
 Last reviewed: **2026-07-09**
 
-Home-page listing (README): see **Where fyi-cli / fyi-mcp is listed** in [`README.md`](../README.md).
+Home-page listing (README): see **Where fyi-cli / fyi-mcp is listed** in [`README.md`](../README.md).  
+Release automation (tags, GHCR, external catalogs, version sync): [`release-multi-registry.md`](./release-multi-registry.md).  
+Packaging asset CI check: `python scripts/verify_packaging_assets.py`.
 
 ## Legend
 

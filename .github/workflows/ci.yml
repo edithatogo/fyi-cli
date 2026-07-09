@@ -178,3 +178,15 @@ jobs:
           fail_ci_if_error: true
           use_oidc: true
           verbose: true
+
+  # Lightweight guard for multi-registry packaging drafts (no Rust/cargo).
+  # See docs/release-multi-registry.md and scripts/verify_packaging_assets.py
+  packaging-assets:
+    name: Packaging Assets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Verify packaging assets
+        run: python3 scripts/verify_packaging_assets.py

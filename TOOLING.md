@@ -553,6 +553,24 @@ safety check --full-report
 
 ---
 
+## Packaging assets (multi-registry)
+
+Draft installers and MCP catalog packages live under `packaging/`.  
+CI job **`packaging-assets`** (`.github/workflows/ci.yml`) verifies they exist and mention the current crate version — pure Python, no cargo.
+
+```bash
+# From repo root
+python scripts/verify_packaging_assets.py
+python scripts/verify_packaging_assets.py --json
+python scripts/verify_packaging_assets.py --expected-version 0.1.2
+```
+
+Release orchestration (tags, GHCR, external catalogs, graceful failure):  
+[`docs/release-multi-registry.md`](docs/release-multi-registry.md)  
+Status matrix: [`docs/registry-distribution-matrix.md`](docs/registry-distribution-matrix.md)
+
+---
+
 ## Quick Reference
 
 ```bash
@@ -566,6 +584,9 @@ basedpyright --project pyproject.toml  # Type check
 pytest --cov=fyi_system           # Test with coverage
 scalene tests/                    # Profile performance
 pip-audit -r pyproject.toml       # Check dependencies
+
+# Packaging / multi-registry asset check (no cargo)
+python scripts/verify_packaging_assets.py
 
 # Build package
 python -m build

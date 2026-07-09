@@ -177,12 +177,6 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 The current implementation slice is tracked in GitHub issues. Each track below is linked to its epic issue so merge/close automation stays consistent.
 
-- [~] **Track: registry-distribution-expansion**
-  *Issue: #45*
-  *Link: [./tracks/registry-distribution-expansion/](./tracks/registry-distribution-expansion/)*
-  *Description: Registry matrix expansion (MCP catalogs, package managers, container registries) + submission automation.*
-  *Progress (2026-07-09): matrix + Scoop/WinGet/binstall; packaging drafts for AUR/nix/snap/flatpak/asdf/deb/rpm; MCP catalog packages; GHCR workflow+docs. Implementation wave 2026-07-09.*
-
 - [~] **Track: bleeding-edge-features**
   *Issue: #46*
   *Link: [./tracks/bleeding-edge-features/](./tracks/bleeding-edge-features/)*
@@ -191,6 +185,13 @@ The current implementation slice is tracked in GitHub issues. Each track below i
   *Progress (2026-07-09): foundations for deadlines, drafting LLM trait, search, federation, adapter SDK, provenance, MCP resources, PWA design.*
 
 ## Recently completed (2026-07-09)
+
+- [x] **Track: registry-distribution-expansion** (COMPLETED 2026-07-09 — repo-side)
+  *Issue: #45*
+  *Link: [./archive/registry-distribution-expansion/](./archive/registry-distribution-expansion/)*
+  *Description: Registry matrix expansion (MCP catalogs, package managers, container registries) + submission automation.*
+  *Results: Packaging drafts for major managers; MCP catalog packages; GHCR multi-arch workflow; matrix + INSTALL + release multi-registry docs; packaging asset CI gate. External live publishes + #26/#32 deferred.*
+  *Status: TARGET ACHIEVED (repo-side)*
 
 - [x] **Track: upstream-alaveteli-engagement** (COMPLETED 2026-07-09)
   *Link: [./tracks/upstream-alaveteli-engagement/](./tracks/upstream-alaveteli-engagement/)*

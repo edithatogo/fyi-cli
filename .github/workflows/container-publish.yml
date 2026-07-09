@@ -2,7 +2,14 @@ name: Container publish
 
 # Multi-arch fyi-mcp image → ghcr.io/<owner>/fyi-mcp
 # Docs: docs/containers.md
+# Release orchestration: docs/release-multi-registry.md
 # Catalog package: packaging/mcp-catalogs/docker-mcp/
+#
+# Optional Docker Hub mirror (not required; matrix row stays "planned" until enabled):
+#   Repository secrets: DOCKERHUB_USERNAME, DOCKERHUB_TOKEN
+#   Repository variable: ENABLE_DOCKERHUB_MIRROR=true
+# When those are set, job dockerhub-mirror re-tags/pushes the GHCR-built image.
+# Prefer proving GHCR public pull before enabling Hub.
 
 on:
   push:
@@ -34,6 +41,10 @@ jobs:
     name: Build and push multi-arch image
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    outputs:
+      image: ${{ steps.image.outputs.name }}
+      digest: ${{ steps.build.outputs.digest }}
+      tags: ${{ steps.meta.outputs.tags }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -105,3 +116,66 @@ jobs:
             echo ""
             echo "Do not mark GHCR **live** in the distribution matrix until a public pull succeeds."
           } >> "$GITHUB_STEP_SUMMARY"
+
+  # Optional: mirror to Docker Hub when explicitly enabled.
+  # Isolated job so Hub auth/quota failures never fail the GHCR publish (needs: + continue-on-error).
+  dockerhub-mirror:
+    name: Optional Docker Hub mirror
+    needs: build-and-push
+    if: ${{ vars.ENABLE_DOCKERHUB_MIRROR == 'true' }}
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    timeout-minutes: 60
+    steps:
+      - name: Require Docker Hub secrets
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          if [ -z "${DOCKERHUB_USERNAME}" ] || [ -z "${DOCKERHUB_TOKEN}" ]; then
+            echo "ENABLE_DOCKERHUB_MIRROR=true but DOCKERHUB_USERNAME/DOCKERHUB_TOKEN secrets are missing."
+            echo "Skipping mirror (non-fatal)."
+            exit 0
+          fi
+          echo "secrets_ok=true" >> "$GITHUB_ENV"
+
+      - name: Set up Docker Buildx
+        if: env.secrets_ok == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        if: env.secrets_ok == 'true'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Log in to GHCR (pull source)
+        if: env.secrets_ok == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Copy multi-arch image to Docker Hub
+        if: env.secrets_ok == 'true'
+        env:
+          SRC: ${{ needs.build-and-push.outputs.image }}
+          DIGEST: ${{ needs.build-and-push.outputs.digest }}
+          HUB_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+        run: |
+          set -euo pipefail
+          # Mirror by digest to preserve multi-arch index; tag as user/fyi-mcp:tag lines from GHCR meta.
+          # Primary: push :latest and the git tag when present.
+          dest_base="${HUB_USER}/${{ env.IMAGE_NAME }}"
+          src_ref="${SRC}@${DIGEST}"
+          echo "Mirroring ${src_ref} → ${dest_base}"
+          # Use buildx imagetools to copy without rebuild (low risk / no QEMU rebuild).
+          docker buildx imagetools create --tag "${dest_base}:latest" "${src_ref}"
+          # Also tag matching the Git ref when this is a version tag
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            tag_name="${GITHUB_REF#refs/tags/}"
+            docker buildx imagetools create --tag "${dest_base}:${tag_name}" "${src_ref}"
+          fi
+          echo "Docker Hub mirror attempted for ${dest_base}"
