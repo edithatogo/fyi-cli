@@ -3,8 +3,8 @@
   "name": "fyi-mcp",
   "display_name": "FYI MCP",
   "version": "0.1.2",
-  "description": "Model Context Protocol server for FYI request management, offline sync, and database operations",
-  "long_description": "A native MCP server for managing FYI official information requests. It exposes request lifecycle, authority import, correspondence lookup, offline sync monitoring, conflict resolution, and database health workflows through the standard MCP tool interface.",
+  "description": "Local-first MCP server for Freedom of Information / Official Information request tracking against Alaveteli platforms (FYI.org.nz and multi-jurisdiction catalog).",
+  "long_description": "Native Rust MCP server for managing FOI/OIA requests locally: request lifecycle, authority import, correspondence, offline sync monitoring, conflict resolution, statutory deadlines, hybrid search demo, and corpus resources (fyi://).",
   "author": {
     "name": "edithatogo"
   },
@@ -13,12 +13,14 @@
     "url": "https://github.com/edithatogo/fyi-cli"
   },
   "homepage": "https://github.com/edithatogo/fyi-cli",
+  "license": "MIT",
   "keywords": [
     "fyi",
     "mcp",
     "alaveteli",
-    "requests",
-    "correspondence",
+    "foi",
+    "oia",
+    "privacy",
     "sync"
   ],
   "server": {
@@ -32,422 +34,1571 @@
   },
   "tools": [
     {
-      "name": "list_requests",
-      "title": "List Requests",
-      "description": "List tracked Alaveteli requests from the database, newest first.",
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "List locally tracked FYI/Alaveteli official information requests, ordered newest first. Use for dashboards, triage, or finding an ID before retrieve_request; do not use when you already know the ID and need correspondence (use retrieve_request) or only need health metrics (use check_status). Read-only and idempotent; does not contact remote authorities.",
       "inputSchema": {
-        "type": "object",
+        "additionalProperties": false,
         "description": "Optional filters for the request list.",
         "properties": {
           "limit": {
-            "type": "integer",
-            "description": "Maximum number of requests to return."
+            "default": 100,
+            "description": "Maximum number of request records to return (1-500). Defaults to 100 when omitted; raise only when the agent needs a broader scan.",
+            "maximum": 500,
+            "minimum": 1,
+            "type": "integer"
           }
         },
-        "additionalProperties": false
+        "type": "object"
       },
+      "name": "list_requests",
       "outputSchema": {
-        "type": "object",
+        "additionalProperties": false,
         "description": "A request list payload.",
         "properties": {
           "requests": {
-            "type": "array",
             "description": "Requests ordered by most recently updated.",
-            "items": { "type": "object" }
+            "items": {
+              "additionalProperties": false,
+              "description": "One tracked FYI/Alaveteli request.",
+              "properties": {
+                "body": {
+                  "description": "Request body or draft correspondence text.",
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "created_at": {
+                  "description": "ISO-8601 creation timestamp when recorded.",
+                  "format": "date-time",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "id": {
+                  "description": "Stable local request identifier.",
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "status": {
+                  "description": "Current Alaveteli/FYI request lifecycle status.",
+                  "enum": [
+                    "draft",
+                    "submitted",
+                    "waiting_response",
+                    "successful",
+                    "partially_successful",
+                    "refused",
+                    "overdue",
+                    "clean",
+                    "dirty",
+                    "pending",
+                    "conflict",
+                    null
+                  ],
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "tags": {
+                  "description": "Optional local tags attached to the request.",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                },
+                "title": {
+                  "description": "Public title of the official information request.",
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "updated_at": {
+                  "description": "ISO-8601 update timestamp used for ordering and sync.",
+                  "format": "date-time",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "url": {
+                  "description": "Canonical public request URL when available.",
+                  "format": "uri",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "user_name": {
+                  "description": "Requester display name when known.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "body"
+              ],
+              "type": "object"
+            },
+            "type": "array"
           }
         },
-        "required": ["requests"],
-        "additionalProperties": false
+        "required": [
+          "requests"
+        ],
+        "type": "object"
       },
-      "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
-      }
+      "title": "List Requests"
     },
     {
-      "name": "retrieve_request",
-      "title": "Retrieve Request",
-      "description": "Retrieve an Alaveteli request and its correspondence by ID from the database.",
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Retrieve one locally tracked FYI/Alaveteli request and its stored correspondence by request ID. Use after list_requests when you need full text/history for a single request; do not use for bulk listing (list_requests) or database health (check_status). Read-only and idempotent; fails if the ID is missing; never contacts remote sites.",
       "inputSchema": {
-        "type": "object",
+        "additionalProperties": false,
         "description": "Request identifier to load.",
         "properties": {
           "id": {
-            "type": "integer",
-            "description": "The unique request ID."
+            "description": "Stable local request ID to load (must already exist; typically from list_requests).",
+            "minimum": 1,
+            "type": "integer"
           }
         },
-        "required": ["id"],
-        "additionalProperties": false
+        "required": [
+          "id"
+        ],
+        "type": "object"
       },
+      "name": "retrieve_request",
       "outputSchema": {
-        "type": "object",
+        "additionalProperties": false,
         "description": "A request payload with correspondence.",
         "properties": {
-          "request": { "type": "object" },
           "correspondence": {
-            "type": "array",
-            "items": { "type": "object" }
+            "description": "Stored correspondence items linked to the request, in database order.",
+            "items": {
+              "additionalProperties": false,
+              "description": "A correspondence item associated with an FYI request.",
+              "properties": {
+                "attachments": {
+                  "description": "Optional attachment URLs or identifiers linked to the correspondence.",
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                },
+                "body": {
+                  "description": "Message body or extracted correspondence text.",
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "direction": {
+                  "description": "Whether the correspondence was sent by the requester or received as an authority response.",
+                  "enum": [
+                    "request",
+                    "response"
+                  ],
+                  "type": "string"
+                },
+                "sent_at": {
+                  "description": "ISO-8601 sent timestamp when captured.",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "state": {
+                  "description": "Optional Alaveteli correspondence state when captured.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "direction",
+                "body",
+                "sent_at"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "request": {
+            "additionalProperties": false,
+            "description": "The requested FYI/Alaveteli request record.",
+            "properties": {
+              "body": {
+                "description": "Request body or draft correspondence text.",
+                "minLength": 1,
+                "type": "string"
+              },
+              "created_at": {
+                "description": "ISO-8601 creation timestamp when recorded.",
+                "format": "date-time",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "id": {
+                "description": "Stable local request identifier.",
+                "minimum": 1,
+                "type": "integer"
+              },
+              "status": {
+                "description": "Current Alaveteli/FYI request lifecycle status.",
+                "enum": [
+                  "draft",
+                  "submitted",
+                  "waiting_response",
+                  "successful",
+                  "partially_successful",
+                  "refused",
+                  "overdue",
+                  "clean",
+                  "dirty",
+                  "pending",
+                  "conflict",
+                  null
+                ],
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "tags": {
+                "description": "Optional local tags attached to the request.",
+                "items": {
+                  "type": "string"
+                },
+                "type": [
+                  "array",
+                  "null"
+                ]
+              },
+              "title": {
+                "description": "Public title of the official information request.",
+                "minLength": 1,
+                "type": "string"
+              },
+              "updated_at": {
+                "description": "ISO-8601 update timestamp used for ordering and sync.",
+                "format": "date-time",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "url": {
+                "description": "Canonical public request URL when available.",
+                "format": "uri",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "user_name": {
+                "description": "Requester display name when known.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "body"
+            ],
+            "type": "object"
           }
         },
-        "required": ["request", "correspondence"],
-        "additionalProperties": false
+        "required": [
+          "request",
+          "correspondence"
+        ],
+        "type": "object"
       },
-      "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
-      }
+      "title": "Retrieve Request"
     },
     {
-      "name": "create_request",
-      "title": "Create Request",
-      "description": "Create a new request in the database.",
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Create a new local FYI/Alaveteli request row (draft or tracked) in SQLite. Use only when starting a new request; use update_request to change an existing ID and delete_request to remove one. Mutating and not idempotent: each call allocates a new ID. Does not submit to a remote authority, send email, or require network access; title and body are required.",
       "inputSchema": {
-        "type": "object",
+        "additionalProperties": false,
         "description": "Fields for the request to create.",
         "properties": {
-          "title": { "type": "string", "description": "The request title." },
-          "body": { "type": "string", "description": "The request body." },
-          "user_name": { "type": "string", "description": "Name of the user." },
-          "status": { "type": "string", "description": "Status of the request." },
-          "url": { "type": "string", "description": "The URL on Alaveteli or FYI." },
+          "body": {
+            "description": "Full request body or draft text to store locally (required, non-empty).",
+            "minLength": 1,
+            "type": "string"
+          },
+          "status": {
+            "description": "Optional initial local lifecycle status. Prefer draft until the request is ready; does not trigger remote submission.",
+            "enum": [
+              "draft",
+              "submitted",
+              "waiting_response",
+              "successful",
+              "partially_successful",
+              "refused",
+              "overdue",
+              "clean",
+              "dirty",
+              "pending",
+              "conflict"
+            ],
+            "type": "string"
+          },
           "tags": {
-            "type": "array",
-            "items": { "type": "string" },
-            "description": "Optional list of tags."
+            "description": "Optional local classification tags for filtering/reporting; replace-not-merge semantics only apply on update_request.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": {
+            "description": "Short public-facing request title (required, non-empty).",
+            "minLength": 1,
+            "type": "string"
+          },
+          "url": {
+            "description": "Optional absolute FYI/Alaveteli URL when the request already exists online; omit for pure local drafts.",
+            "format": "uri",
+            "type": "string"
+          },
+          "user_name": {
+            "description": "Optional requester display name for local tracking only.",
+            "type": "string"
           }
         },
-        "required": ["title", "body"],
-        "additionalProperties": false
+        "required": [
+          "title",
+          "body"
+        ],
+        "type": "object"
       },
+      "name": "create_request",
       "outputSchema": {
-        "type": "object",
+        "additionalProperties": false,
         "description": "The created request.",
         "properties": {
-          "request": { "type": "object" }
-        },
-        "required": ["request"],
-        "additionalProperties": false
-      },
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": false,
-        "idempotentHint": false,
-        "openWorldHint": false
-      }
-    },
-    {
-      "name": "update_request",
-      "title": "Update Request",
-      "description": "Update an existing request in the database.",
-      "inputSchema": {
-        "type": "object",
-        "description": "Fields for the request update.",
-        "properties": {
-          "id": { "type": "integer", "description": "The request ID." },
-          "title": { "type": "string", "description": "The request title." },
-          "body": { "type": "string", "description": "The request body." },
-          "user_name": { "type": "string", "description": "Name of the user." },
-          "status": { "type": "string", "description": "Status of the request." },
-          "url": { "type": "string", "description": "The URL on Alaveteli or FYI." },
-          "tags": {
-            "type": "array",
-            "items": { "type": "string" },
-            "description": "Optional list of tags."
+          "request": {
+            "additionalProperties": false,
+            "description": "The newly created local request record.",
+            "properties": {
+              "body": {
+                "description": "Request body or draft correspondence text.",
+                "minLength": 1,
+                "type": "string"
+              },
+              "created_at": {
+                "description": "ISO-8601 creation timestamp when recorded.",
+                "format": "date-time",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "id": {
+                "description": "Stable local request identifier.",
+                "minimum": 1,
+                "type": "integer"
+              },
+              "status": {
+                "description": "Current Alaveteli/FYI request lifecycle status.",
+                "enum": [
+                  "draft",
+                  "submitted",
+                  "waiting_response",
+                  "successful",
+                  "partially_successful",
+                  "refused",
+                  "overdue",
+                  "clean",
+                  "dirty",
+                  "pending",
+                  "conflict",
+                  null
+                ],
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "tags": {
+                "description": "Optional local tags attached to the request.",
+                "items": {
+                  "type": "string"
+                },
+                "type": [
+                  "array",
+                  "null"
+                ]
+              },
+              "title": {
+                "description": "Public title of the official information request.",
+                "minLength": 1,
+                "type": "string"
+              },
+              "updated_at": {
+                "description": "ISO-8601 update timestamp used for ordering and sync.",
+                "format": "date-time",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "url": {
+                "description": "Canonical public request URL when available.",
+                "format": "uri",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "user_name": {
+                "description": "Requester display name when known.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "body"
+            ],
+            "type": "object"
           }
         },
-        "required": ["id", "title", "body"],
-        "additionalProperties": false
+        "required": [
+          "request"
+        ],
+        "type": "object"
       },
-      "outputSchema": {
-        "type": "object",
-        "description": "The updated request.",
-        "properties": {
-          "request": { "type": "object" }
-        },
-        "required": ["request"],
-        "additionalProperties": false
-      },
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": false,
-        "idempotentHint": false,
-        "openWorldHint": false
-      }
+      "title": "Create Request"
     },
     {
-      "name": "delete_request",
-      "title": "Delete Request",
-      "description": "Delete a request and its correspondence from the database.",
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Replace editable fields on an existing local FYI/Alaveteli request by ID and mark the record dirty for offline sync. Use when the request already exists and fields changed; use create_request for a new ID and delete_request to remove. Requires id, title, and body (full replacement for those fields, not a sparse patch). Mutating but non-destructive; safe to re-run with the same values; does not call remote APIs.",
       "inputSchema": {
-        "type": "object",
+        "additionalProperties": false,
+        "description": "Fields for the request update.",
+        "properties": {
+          "body": {
+            "description": "Replacement request body or draft text (required; full replace).",
+            "minLength": 1,
+            "type": "string"
+          },
+          "id": {
+            "description": "Existing local request ID to update (must already exist).",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "status": {
+            "description": "Optional replacement local lifecycle status; changing status does not submit or withdraw a remote request.",
+            "enum": [
+              "draft",
+              "submitted",
+              "waiting_response",
+              "successful",
+              "partially_successful",
+              "refused",
+              "overdue",
+              "clean",
+              "dirty",
+              "pending",
+              "conflict"
+            ],
+            "type": "string"
+          },
+          "tags": {
+            "description": "Optional full replacement tag list (not appended to existing tags).",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": {
+            "description": "Replacement request title (required; full replace, not merge).",
+            "minLength": 1,
+            "type": "string"
+          },
+          "url": {
+            "description": "Optional replacement absolute FYI/Alaveteli URL.",
+            "format": "uri",
+            "type": "string"
+          },
+          "user_name": {
+            "description": "Optional replacement requester display name; when omitted, existing local value is preserved.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "body"
+        ],
+        "type": "object"
+      },
+      "name": "update_request",
+      "outputSchema": {
+        "additionalProperties": false,
+        "description": "The updated request.",
+        "properties": {
+          "request": {
+            "additionalProperties": false,
+            "description": "The updated local request record.",
+            "properties": {
+              "body": {
+                "description": "Request body or draft correspondence text.",
+                "minLength": 1,
+                "type": "string"
+              },
+              "created_at": {
+                "description": "ISO-8601 creation timestamp when recorded.",
+                "format": "date-time",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "id": {
+                "description": "Stable local request identifier.",
+                "minimum": 1,
+                "type": "integer"
+              },
+              "status": {
+                "description": "Current Alaveteli/FYI request lifecycle status.",
+                "enum": [
+                  "draft",
+                  "submitted",
+                  "waiting_response",
+                  "successful",
+                  "partially_successful",
+                  "refused",
+                  "overdue",
+                  "clean",
+                  "dirty",
+                  "pending",
+                  "conflict",
+                  null
+                ],
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "tags": {
+                "description": "Optional local tags attached to the request.",
+                "items": {
+                  "type": "string"
+                },
+                "type": [
+                  "array",
+                  "null"
+                ]
+              },
+              "title": {
+                "description": "Public title of the official information request.",
+                "minLength": 1,
+                "type": "string"
+              },
+              "updated_at": {
+                "description": "ISO-8601 update timestamp used for ordering and sync.",
+                "format": "date-time",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "url": {
+                "description": "Canonical public request URL when available.",
+                "format": "uri",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "user_name": {
+                "description": "Requester display name when known.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "body"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "request"
+        ],
+        "type": "object"
+      },
+      "title": "Update Request"
+    },
+    {
+      "annotations": {
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Permanently delete a local request and all of its stored correspondence from SQLite. Use only after the agent confirms the ID should be discarded; prefer update_request for status/text edits and list_requests/retrieve_request for inspection. Destructive and irreversible in this database; does not delete anything on remote FYI/Alaveteli sites.",
+      "inputSchema": {
+        "additionalProperties": false,
         "description": "Request identifier to delete.",
         "properties": {
           "id": {
-            "type": "integer",
-            "description": "The request ID."
+            "description": "Stable local request ID to delete permanently.",
+            "minimum": 1,
+            "type": "integer"
           }
         },
-        "required": ["id"],
-        "additionalProperties": false
+        "required": [
+          "id"
+        ],
+        "type": "object"
       },
+      "name": "delete_request",
       "outputSchema": {
-        "type": "object",
+        "additionalProperties": false,
         "description": "Deletion result.",
         "properties": {
-          "deleted": { "type": "boolean" },
-          "request_id": { "type": "integer" }
+          "deleted": {
+            "description": "True when the local delete operation completed.",
+            "type": "boolean"
+          },
+          "request_id": {
+            "description": "Request ID that was targeted for deletion.",
+            "type": "integer"
+          }
         },
-        "required": ["deleted", "request_id"],
-        "additionalProperties": false
+        "required": [
+          "deleted",
+          "request_id"
+        ],
+        "type": "object"
       },
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": true,
-        "idempotentHint": false,
-        "openWorldHint": false
-      }
+      "title": "Delete Request"
     },
     {
-      "name": "list_authorities",
-      "title": "List Authorities",
-      "description": "List authorities stored in the database.",
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "List imported public authority records (government/public bodies) used to route or classify FOI/OIA requests. Use to browse existing slugs/names before drafting; use import_authorities to add or upsert records, and list_requests for request data. Read-only and idempotent; returns the full local authority table (no pagination).",
       "inputSchema": {
-        "type": "object",
+        "additionalProperties": false,
         "description": "No arguments are required.",
         "properties": {},
-        "additionalProperties": false
+        "type": "object"
       },
+      "name": "list_authorities",
       "outputSchema": {
-        "type": "object",
+        "additionalProperties": false,
         "description": "A list of authorities.",
         "properties": {
           "authorities": {
-            "type": "array",
-            "items": { "type": "object" }
+            "description": "Imported public authority records.",
+            "items": {
+              "additionalProperties": false,
+              "description": "Public authority record used to route or classify requests.",
+              "properties": {
+                "name": {
+                  "description": "Human-readable public authority name.",
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "slug": {
+                  "description": "Stable authority slug used as an import key.",
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "url": {
+                  "description": "Optional public authority URL.",
+                  "format": "uri",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "slug",
+                "name"
+              ],
+              "type": "object"
+            },
+            "type": "array"
           }
         },
-        "required": ["authorities"],
-        "additionalProperties": false
+        "required": [
+          "authorities"
+        ],
+        "type": "object"
       },
-      "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
-      }
+      "title": "List Authorities"
     },
     {
-      "name": "import_authorities",
-      "title": "Import Authorities",
-      "description": "Import or update authorities in the database.",
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Upsert local public authority reference records by slug for request routing and discovery. Use after list_authorities when seeding or refreshing the catalog; do not use for FOI request CRUD (create_request/update_request). Mutating but non-destructive and idempotent: same slug re-import updates name/url without creating duplicates; does not contact remote authority directories.",
       "inputSchema": {
-        "type": "object",
+        "additionalProperties": false,
         "description": "Authorities to import or update.",
         "properties": {
           "authorities": {
-            "type": "array",
-            "description": "Authority records to import.",
+            "description": "Authority records to upsert; slug is the primary key, name is required, url is optional.",
             "items": {
-              "type": "object",
+              "additionalProperties": false,
+              "description": "Public authority record used to route or classify requests.",
               "properties": {
-                "slug": { "type": "string", "description": "Authority slug." },
-                "name": { "type": "string", "description": "Authority name." },
-                "url": { "type": "string", "description": "Optional authority URL." }
+                "name": {
+                  "description": "Human-readable public authority name.",
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "slug": {
+                  "description": "Stable authority slug used as an import key.",
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "url": {
+                  "description": "Optional public authority URL.",
+                  "format": "uri",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
               },
-              "required": ["slug", "name"],
-              "additionalProperties": false
-            }
+              "required": [
+                "slug",
+                "name"
+              ],
+              "type": "object"
+            },
+            "type": "array"
           }
         },
-        "required": ["authorities"],
-        "additionalProperties": false
+        "required": [
+          "authorities"
+        ],
+        "type": "object"
       },
+      "name": "import_authorities",
       "outputSchema": {
-        "type": "object",
+        "additionalProperties": false,
         "description": "Import summary.",
         "properties": {
-          "imported": { "type": "integer" }
+          "imported": {
+            "description": "Number of authority records accepted for import or update.",
+            "type": "integer"
+          }
         },
-        "required": ["imported"],
-        "additionalProperties": false
+        "required": [
+          "imported"
+        ],
+        "type": "object"
       },
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
-      }
+      "title": "Import Authorities"
     },
     {
-      "name": "sync_monitor",
-      "title": "Sync Monitor",
-      "description": "Show sync status, queue depth, and latest sync time.",
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Summarize offline synchronization health: clean/dirty/conflict request counts, outgoing queue depth, latest sync time, and offline degradation indicators. Use for an operations overview; prefer sync_status for one request, sync_conflicts to list conflicted rows, and check_status for database connectivity/record totals. Read-only and idempotent; does not start a sync job.",
       "inputSchema": {
-        "type": "object",
+        "additionalProperties": false,
         "description": "No arguments are required.",
         "properties": {},
-        "additionalProperties": false
+        "type": "object"
       },
+      "name": "sync_monitor",
       "outputSchema": {
-        "type": "object",
+        "additionalProperties": false,
         "description": "Global synchronization monitor data.",
         "properties": {
-          "sync": { "type": "object" },
-          "queue": { "type": "object" },
-          "offline_degradation": { "type": "object" }
+          "offline_degradation": {
+            "additionalProperties": false,
+            "description": "Operational indicators showing queued local changes and dirty records.",
+            "properties": {
+              "dirty_records": {
+                "description": "Requests with unsynced local changes.",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "queued_changes": {
+                "description": "Pending plus failed outgoing queue entries.",
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "queued_changes",
+              "dirty_records"
+            ],
+            "type": "object"
+          },
+          "queue": {
+            "additionalProperties": false,
+            "description": "Outgoing offline queue counts by pending, submitted, and failed status.",
+            "properties": {
+              "failed": {
+                "description": "Outgoing queue entries that failed submission.",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "pending": {
+                "description": "Outgoing queue entries waiting to be submitted.",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "submitted": {
+                "description": "Outgoing queue entries already submitted.",
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "pending",
+              "submitted",
+              "failed"
+            ],
+            "type": "object"
+          },
+          "sync": {
+            "additionalProperties": false,
+            "description": "Aggregate request sync counts and latest sync timestamp.",
+            "properties": {
+              "clean": {
+                "description": "Requests known to be cleanly synchronized.",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "conflict": {
+                "description": "Requests with unresolved sync conflicts.",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "dirty": {
+                "description": "Requests with unsynced local changes.",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "latest_sync": {
+                "description": "Most recent successful synchronization timestamp.",
+                "format": "date-time",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "pending": {
+                "description": "Requests pending synchronization.",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "total": {
+                "description": "Total number of requests tracked by sync metadata.",
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "total",
+              "clean",
+              "dirty",
+              "pending",
+              "conflict",
+              "latest_sync"
+            ],
+            "type": "object"
+          }
         },
-        "required": ["sync", "queue", "offline_degradation"],
-        "additionalProperties": false
+        "required": [
+          "sync",
+          "queue",
+          "offline_degradation"
+        ],
+        "type": "object"
       },
-      "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
-      }
+      "title": "Sync Monitor"
     },
     {
-      "name": "sync_conflicts",
-      "title": "Sync Conflicts",
-      "description": "List requests currently marked as sync conflicts.",
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "List locally tracked requests whose offline sync metadata is marked conflict. Use after sync_monitor shows conflict>0 to obtain IDs for review; use sync_resolve_conflict to clear a conflict, list_requests for all requests regardless of sync state. Read-only and idempotent; does not resolve conflicts or start network sync.",
       "inputSchema": {
-        "type": "object",
+        "additionalProperties": false,
         "description": "Optional filters for the conflict list.",
         "properties": {
           "limit": {
-            "type": "integer",
-            "description": "Maximum number of conflicts to return."
+            "default": 100,
+            "description": "Maximum number of conflicted request records to return (1-500). Defaults to 100 when omitted.",
+            "maximum": 500,
+            "minimum": 1,
+            "type": "integer"
           }
         },
-        "additionalProperties": false
+        "type": "object"
       },
+      "name": "sync_conflicts",
       "outputSchema": {
-        "type": "object",
+        "additionalProperties": false,
         "description": "A conflict list payload.",
         "properties": {
           "conflicts": {
-            "type": "array",
-            "items": { "type": "object" }
+            "description": "Requests with sync_status set to conflict.",
+            "items": {
+              "additionalProperties": false,
+              "description": "A request currently marked as a sync conflict.",
+              "properties": {
+                "body": {
+                  "description": "Request body or draft correspondence text.",
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "created_at": {
+                  "description": "ISO-8601 creation timestamp when recorded.",
+                  "format": "date-time",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "id": {
+                  "description": "Stable local request identifier.",
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "status": {
+                  "description": "Current Alaveteli/FYI request lifecycle status.",
+                  "enum": [
+                    "draft",
+                    "submitted",
+                    "waiting_response",
+                    "successful",
+                    "partially_successful",
+                    "refused",
+                    "overdue",
+                    "clean",
+                    "dirty",
+                    "pending",
+                    "conflict",
+                    null
+                  ],
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "tags": {
+                  "description": "Optional local tags attached to the request.",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                },
+                "title": {
+                  "description": "Public title of the official information request.",
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "updated_at": {
+                  "description": "ISO-8601 update timestamp used for ordering and sync.",
+                  "format": "date-time",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "url": {
+                  "description": "Canonical public request URL when available.",
+                  "format": "uri",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "user_name": {
+                  "description": "Requester display name when known.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "body"
+              ],
+              "type": "object"
+            },
+            "type": "array"
           }
         },
-        "required": ["conflicts"],
-        "additionalProperties": false
+        "required": [
+          "conflicts"
+        ],
+        "type": "object"
       },
+      "title": "Sync Conflicts"
+    },
+    {
       "annotations": {
-        "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": true,
-        "openWorldHint": false
-      }
-    },
-    {
-      "name": "sync_resolve_conflict",
-      "title": "Resolve Sync Conflict",
-      "description": "Resolve a sync conflict as clean or dirty.",
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Resolve a local offline-sync conflict by updating only the request's sync metadata: mark_clean=true after the agent has reconciled local vs remote (status becomes clean); mark_clean=false keeps the row dirty for a later push. Prerequisite: the request should already appear in sync_conflicts. Side effects are local SQLite metadata only\u2014no automatic merge of body text, no remote API calls, and no deletion of the request. Prefer sync_conflicts to list candidates and sync_status to inspect timestamps; do not use for ordinary field edits (update_request). Mutating, non-destructive, and idempotent for the same mark_clean value.",
       "inputSchema": {
-        "type": "object",
+        "additionalProperties": false,
         "description": "Conflict resolution parameters.",
         "properties": {
-          "request_id": {
-            "type": "integer",
-            "description": "The request ID to resolve."
-          },
           "mark_clean": {
-            "type": "boolean",
-            "description": "Set true to mark the conflict clean; false keeps it dirty."
+            "default": false,
+            "description": "true: mark reconciled/clean after manual review; false (default): leave dirty so a later offline push is expected. Does not rewrite title/body.",
+            "type": "boolean"
+          },
+          "request_id": {
+            "description": "Local request ID currently in conflict (from sync_conflicts).",
+            "minimum": 1,
+            "type": "integer"
           }
         },
-        "required": ["request_id"],
-        "additionalProperties": false
+        "required": [
+          "request_id"
+        ],
+        "type": "object"
       },
+      "name": "sync_resolve_conflict",
       "outputSchema": {
-        "type": "object",
+        "additionalProperties": false,
         "description": "Conflict resolution result.",
         "properties": {
-          "request_id": { "type": "integer" },
-          "resolved": { "type": "boolean" },
-          "sync_status": { "type": "string" }
+          "request_id": {
+            "description": "Request ID whose conflict state was updated.",
+            "type": "integer"
+          },
+          "resolved": {
+            "description": "True when the conflict metadata was written successfully.",
+            "type": "boolean"
+          },
+          "sync_status": {
+            "description": "Resulting sync status string (typically clean or dirty).",
+            "type": "string"
+          }
         },
-        "required": ["request_id", "resolved", "sync_status"],
-        "additionalProperties": false
+        "required": [
+          "request_id",
+          "resolved",
+          "sync_status"
+        ],
+        "type": "object"
       },
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": false,
-        "idempotentHint": false,
-        "openWorldHint": false
-      }
+      "title": "Resolve Sync Conflict"
     },
     {
-      "name": "sync_status",
-      "title": "Sync Status",
-      "description": "Read offline synchronization status globally or for one request.",
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Read offline-sync metadata either as aggregate counts (omit request_id) or for one request (provide request_id). Use when you need clean/dirty/pending/conflict numbers or per-request last_synced timestamps; use sync_monitor for queue depth + offline degradation, sync_conflicts for conflicted rows only, and check_status for database health. Read-only and idempotent; does not mutate state or trigger network sync.",
       "inputSchema": {
-        "type": "object",
+        "additionalProperties": false,
         "description": "Optional request identifier for per-request sync metadata.",
         "properties": {
           "request_id": {
-            "type": "integer",
-            "description": "Optional request ID for per-request sync metadata."
+            "description": "Optional local request ID. Omit for aggregate counts; set to load that request's sync_status, last_synced_at, and conflict_version.",
+            "minimum": 1,
+            "type": "integer"
           }
         },
-        "additionalProperties": false
+        "type": "object"
       },
+      "name": "sync_status",
       "outputSchema": {
-        "type": "object",
-        "description": "Synchronization metadata.",
-        "properties": {
-          "request_id": { "type": "integer" },
-          "sync_status": { "type": ["string", "null"] }
-        },
-        "required": ["request_id", "sync_status"],
-        "additionalProperties": true
+        "additionalProperties": false,
+        "description": "Synchronization metadata. Aggregate counts are returned when request_id is omitted; per-request metadata is returned when request_id is provided.",
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "description": "Aggregate offline synchronization counts.",
+            "properties": {
+              "clean": {
+                "description": "Number of requests with clean sync metadata.",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "conflict": {
+                "description": "Number of requests currently in conflict.",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "dirty": {
+                "description": "Number of requests with unsynced local changes.",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "pending": {
+                "description": "Number of requests queued or pending sync.",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "total": {
+                "description": "Total number of requests represented in aggregate sync status.",
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "total",
+              "clean",
+              "dirty",
+              "pending",
+              "conflict"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "Per-request offline synchronization metadata.",
+            "properties": {
+              "conflict_version": {
+                "description": "Conflict version counter when a sync conflict has been detected.",
+                "minimum": 0,
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "last_synced_at": {
+                "description": "Last successful sync timestamp for this request.",
+                "format": "date-time",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "local_updated_at": {
+                "description": "Last local update timestamp known for this request.",
+                "format": "date-time",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "remote_updated_at": {
+                "description": "Last remote update timestamp known for this request.",
+                "format": "date-time",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "request_id": {
+                "description": "Request ID for the per-request sync lookup.",
+                "minimum": 1,
+                "type": "integer"
+              },
+              "sync_status": {
+                "description": "Per-request sync status, or null when that request has no sync metadata.",
+                "enum": [
+                  "clean",
+                  "dirty",
+                  "pending",
+                  "conflict",
+                  null
+                ],
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "request_id",
+              "sync_status"
+            ],
+            "type": "object"
+          }
+        ],
+        "type": "object"
       },
-      "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
-      }
+      "title": "Sync Status"
     },
     {
-      "name": "check_status",
-      "title": "Check Status",
-      "description": "Check database health and summarize record counts.",
-      "inputSchema": {
-        "type": "object",
-        "description": "No arguments are required.",
-        "properties": {},
-        "additionalProperties": false
-      },
-      "outputSchema": {
-        "type": "object",
-        "description": "Database health summary.",
-        "properties": {
-          "status": { "type": "string" },
-          "database": { "type": "string" },
-          "metrics": { "type": "object" }
-        },
-        "required": ["status", "database", "metrics"],
-        "additionalProperties": false
-      },
       "annotations": {
-        "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": true,
-        "openWorldHint": false
-      }
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Check FYI MCP SQLite readiness and return record-count metrics for requests, correspondence, and optional sync totals. Use as a first health probe or liveness check; prefer sync_monitor for queue/offline depth and list_requests for request content. Read-only, idempotent, and safe to call repeatedly; does not write data or contact remote services.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "description": "No arguments are required.",
+        "properties": {},
+        "type": "object"
+      },
+      "name": "check_status",
+      "outputSchema": {
+        "additionalProperties": false,
+        "description": "Database health summary.",
+        "properties": {
+          "database": {
+            "description": "Database connection state used by the MCP server.",
+            "type": "string"
+          },
+          "metrics": {
+            "additionalProperties": false,
+            "description": "Record-count metrics for core FYI tables.",
+            "properties": {
+              "sync": {
+                "additionalProperties": false,
+                "description": "Aggregate sync counts when sync metadata can be read.",
+                "properties": {
+                  "clean": {
+                    "description": "Number of clean synchronized requests.",
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "conflict": {
+                    "description": "Number of requests in sync conflict.",
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "dirty": {
+                    "description": "Number of requests with unsynced local changes.",
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "pending": {
+                    "description": "Number of requests pending sync.",
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "total": {
+                    "description": "Total number of requests represented in sync metadata.",
+                    "minimum": 0,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "total",
+                  "clean",
+                  "dirty",
+                  "pending",
+                  "conflict"
+                ],
+                "type": [
+                  "object",
+                  "null"
+                ]
+              },
+              "total_correspondence": {
+                "description": "Number of correspondence records in the database.",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "total_requests": {
+                "description": "Number of request records in the database.",
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "total_requests",
+              "total_correspondence",
+              "sync"
+            ],
+            "type": "object"
+          },
+          "status": {
+            "description": "Overall service health, reported as healthy when database queries succeed.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "database",
+          "metrics"
+        ],
+        "type": "object"
+      },
+      "title": "Check Status"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Compute a statutory FOI/OIA deadline from a start date and day count using the bleeding-edge fyi-core deadline engine. Use for local working-day or calendar-day deadline math; do not use for listing requests (list_requests) or sync health (sync_monitor). Read-only and idempotent; pure calculation with no database or network access. Returns a StatutoryDeadline JSON object (start_date, due_date, statutory_deadline_days, working_day_rule).",
+      "inputSchema": {
+        "additionalProperties": false,
+        "description": "Deadline calculation parameters.",
+        "properties": {
+          "calendar": {
+            "default": false,
+            "description": "When true, count calendar days including weekends; when false/omitted, count weekdays only (Mon\u2013Fri).",
+            "type": "boolean"
+          },
+          "days": {
+            "description": "Number of statutory days to count after start_date (working days by default).",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "start_date": {
+            "description": "Inclusive statutory period start date in YYYY-MM-DD (typically submission/receipt day).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start_date",
+          "days"
+        ],
+        "type": "object"
+      },
+      "name": "compute_deadline",
+      "outputSchema": {
+        "additionalProperties": false,
+        "description": "Computed StatutoryDeadline.",
+        "properties": {
+          "due_date": {
+            "description": "Computed due date (YYYY-MM-DD).",
+            "type": "string"
+          },
+          "instance_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "start_date": {
+            "description": "Start date echoed from input (YYYY-MM-DD).",
+            "type": "string"
+          },
+          "statutory_deadline_days": {
+            "description": "Day count used in the calculation.",
+            "type": "integer"
+          },
+          "working_day_rule": {
+            "description": "Rule applied: weekdays_only or calendar_days.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start_date",
+          "due_date",
+          "statutory_deadline_days",
+          "working_day_rule"
+        ],
+        "type": "object"
+      },
+      "title": "Compute Deadline"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Search a built-in sample FOI document corpus with the bleeding-edge in-memory inverted index (demo). Use for experimental full-text search over sample titles/bodies; prefer list_requests/retrieve_request for real local SQLite requests. Read-only and idempotent; does not query the database or network. Returns ranked hits with id, score, and title.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "description": "Search parameters.",
+        "properties": {
+          "limit": {
+            "default": 10,
+            "description": "Maximum number of ranked hits to return (1-50). Defaults to 10.",
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "query": {
+            "description": "Free-text search query tokenized into alphanumeric terms.",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "name": "search_corpus",
+      "outputSchema": {
+        "additionalProperties": false,
+        "description": "Ranked search results over the demo corpus.",
+        "properties": {
+          "document_count": {
+            "description": "Number of documents in the demo corpus.",
+            "type": "integer"
+          },
+          "hits": {
+            "description": "Ranked search hits (id, score, title).",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "score": {
+                  "type": "number"
+                },
+                "title": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "score",
+                "title"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "query": {
+            "description": "Echo of the search query.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query",
+          "document_count",
+          "hits"
+        ],
+        "type": "object"
+      },
+      "title": "Search Corpus"
     }
   ],
-  "resources": [],
-  "prompts": [],
-  "tools_generated": false,
+  "resources": [
+    {
+      "description": "Imported public authority records used for FOI routing.",
+      "mimeType": "application/json",
+      "name": "Public authorities",
+      "uri": "fyi://authorities"
+    },
+    {
+      "description": "Index of locally tracked FYI/Alaveteli requests.",
+      "mimeType": "application/json",
+      "name": "Request index",
+      "uri": "fyi://requests"
+    }
+  ],
+  "prompts": [
+    {
+      "arguments": [],
+      "description": "Triage local FOI/OIA requests: health check, list newest requests, flag conflicts, and propose next actions.",
+      "name": "operator_daily_triage",
+      "title": "Operator daily triage"
+    },
+    {
+      "arguments": [
+        {
+          "description": "Name of the public authority receiving the request.",
+          "name": "authority_name",
+          "required": true
+        },
+        {
+          "description": "Short subject or topic of the request.",
+          "name": "subject",
+          "required": true
+        }
+      ],
+      "description": "Help draft a local FOI/OIA request body for a public authority using jurisdiction-aware language.",
+      "name": "draft_foi_request",
+      "title": "Draft FOI/OIA request"
+    },
+    {
+      "arguments": [],
+      "description": "Review offline sync queue depth, conflicts, and degradation indicators before reconciling.",
+      "name": "sync_health_review",
+      "title": "Offline sync health review"
+    }
+  ],
+  "instructions": "Use fyi-mcp for local Freedom of Information / Official Information request tracking against Alaveteli instances (FYI.org.nz, RightToKnow, WhatDoTheyKnow, etc.). Preferred call order: (1) check_status to confirm the local SQLite DB is healthy; (2) list_requests or resources/list (fyi://requests) for triage; (3) retrieve_request for a single ID and correspondence; (4) create_request / update_request for local drafts (does not submit to remote authorities); (5) list_authorities / import_authorities for public-body reference data; (6) sync_monitor / sync_status / sync_conflicts for offline sync health; (7) sync_resolve_conflict only after manual reconciliation; (8) compute_deadline for statutory due dates; (9) search_corpus for demo hybrid search. Prefer resources (fyi://authorities, fyi://requests, fyi://requests/{id}) when the client wants browseable corpus context rather than tool calls. Never invent remote FOI submissions\u2014this server is local-first.",
+  "serverInfo": {
+    "description": "Local FOI/OIA request tracker and Alaveteli MCP server for FYI.org.nz and multi-jurisdiction instances.",
+    "name": "fyi-mcp",
+    "title": "FYI MCP",
+    "version": "0.1.2"
+  },
+  "capabilities": {
+    "prompts": {},
+    "resources": {
+      "listChanged": false,
+      "subscribe": false
+    },
+    "tools": {}
+  },
+  "tools_generated": true,
   "compatibility": {
-    "platforms": ["win32"]
+    "platforms": [
+      "win32"
+    ]
   }
 }

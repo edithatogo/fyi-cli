@@ -214,25 +214,23 @@ mod tests {
 
     #[test]
     fn tampered_payload_hash_fails() {
-        let mut chain = Vec::new();
-        chain.push(append_record(
-            &chain,
+        let chain = vec![append_record(
+            &[],
             "2026-07-01T00:00:00Z",
             "doc/a.pdf",
             b"payload-a",
-        ));
+        )];
         assert!(verify_chain_with_payloads(&chain, &[b"payload-TAMPERED"]).is_err());
     }
 
     #[test]
     fn tampered_record_breaks_chain() {
-        let mut chain = Vec::new();
-        chain.push(append_record(
-            &chain,
+        let mut chain = vec![append_record(
+            &[],
             "2026-07-01T00:00:00Z",
             "doc/a.pdf",
             b"payload-a",
-        ));
+        )];
         chain.push(append_record(
             &chain,
             "2026-07-02T00:00:00Z",
@@ -253,8 +251,7 @@ mod tests {
 
     #[test]
     fn serde_roundtrip() {
-        let mut chain = Vec::new();
-        chain.push(append_record(&chain, "t0", "id0", b"p0"));
+        let chain = vec![append_record(&[], "t0", "id0", b"p0")];
         let json = serde_json::to_string(&chain).unwrap();
         let restored: Vec<ProvenanceRecord> = serde_json::from_str(&json).unwrap();
         assert_eq!(chain, restored);
