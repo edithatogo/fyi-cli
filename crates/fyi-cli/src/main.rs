@@ -969,13 +969,12 @@ fn handle_provenance_command(
     command: &ProvenanceCommand,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let payloads: &[&[u8]] = &[b"sample-payload-a", b"sample-payload-b"];
-    let mut chain = Vec::new();
-    chain.push(append_record(
-        &chain,
+    let mut chain = vec![append_record(
+        &[],
         "2026-07-01T00:00:00Z",
         "demo/doc-a.pdf",
         payloads[0],
-    ));
+    )];
     chain.push(append_record(
         &chain,
         "2026-07-02T00:00:00Z",
