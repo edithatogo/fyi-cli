@@ -10,10 +10,29 @@ more), from a single privacy-focused CLI.
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/edithatogo/fyi-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/edithatogo/fyi-cli/actions/workflows/ci.yml)
 [![Codecov](https://codecov.io/gh/edithatogo/fyi-cli/branch/master/graph/badge.svg)](https://codecov.io/gh/edithatogo/fyi-cli)
-[![smithery badge](https://smithery.ai/badge/edithatogo/fyi-mcp)](https://smithery.ai/servers/edithatogo/fyi-mcp)
+[![smithery badge](https://smithery.ai/badge/edithatogo/fyi-mcp)](https://smithery.ai/server/@edithatogo/fyi-mcp)
+[![Glama](https://glama.ai/mcp/servers/edithatogo/fyi-cli/badges/score.svg)](https://glama.ai/mcp/servers/edithatogo/fyi-cli)
+[![MCP Registry](https://img.shields.io/badge/MCP_Registry-io.github.edithatogo%2Ffyi--mcp-blue)](https://registry.modelcontextprotocol.io/)
 
 The project's core is a **Rust workspace** (`fyi-core`, `fyi-cli`, `fyi-mcp`); a legacy Python
 package (`fyi_system`) remains available as a reference implementation but is no longer extended.
+
+### Where fyi-cli / fyi-mcp is listed
+
+| Registry / catalog | Package / server | Status | Link |
+|--------------------|------------------|--------|------|
+| **Official MCP Registry** | `io.github.edithatogo/fyi-mcp` @ `0.1.2` | Live | [registry.modelcontextprotocol.io](https://registry.modelcontextprotocol.io/) · [`server.json`](server.json) |
+| **Glama** | `edithatogo/fyi-cli` (`fyi-mcp`) | Live | [glama.ai/mcp/servers/edithatogo/fyi-cli](https://glama.ai/mcp/servers/edithatogo/fyi-cli) · [scores](https://glama.ai/mcp/servers/edithatogo/fyi-cli/score) |
+| **Smithery** | `edithatogo/fyi-mcp` | Live (score pending) | [smithery.ai/server/@edithatogo/fyi-mcp](https://smithery.ai/server/@edithatogo/fyi-mcp) |
+| **PyPI** | `fyi-cli` (legacy Python package) | Live | [pypi.org/project/fyi-cli](https://pypi.org/project/fyi-cli/) |
+| **Crates.io** | `fyi-cli` / workspace crates | Published / release flow | [crates.io/crates/fyi-cli](https://crates.io/crates/fyi-cli) |
+| **GitHub Releases** | CLI + MCPB assets | Live | [Releases](https://github.com/edithatogo/fyi-cli/releases) |
+| **Awesome-MCP-Servers** | Legal section entry | PR submitted | [PR #9693](https://github.com/punkpeye/awesome-mcp-servers/pull/9693) |
+| **GitHub curated MCP** (`github.com/mcp`) | — | Blocked external (manual onboarding) | Tracked in [#32](https://github.com/edithatogo/fyi-cli/issues/32) |
+
+**Draft / not yet submitted:** Scoop, WinGet, Homebrew, Chocolatey, cargo-binstall metadata, GHCR multi-arch workflow, PulseMCP, mcp.so, Docker MCP Catalog, mcp-get, OpenTools, AUR, nixpkgs, Snap, Flatpak, asdf/mise, Debian/PPA, Fedora/COPR.
+
+Full status matrix (including planned channels): [`docs/registry-distribution-matrix.md`](docs/registry-distribution-matrix.md).
 
 ---
 
@@ -72,19 +91,24 @@ Download from [Releases](https://github.com/edithatogo/fyi-cli/releases):
 - **macOS**: `fyi-cli-macos`
 - **Linux**: `fyi-cli-linux`
 
-### Package managers & registries (matrix)
+### Package managers & MCP registries
 
-See the full status table in
-[`docs/registry-distribution-matrix.md`](docs/registry-distribution-matrix.md).
+See **[Where fyi-cli / fyi-mcp is listed](#where-fyi-cli--fyi-mcp-is-listed)** above for every live
+listing, and [`docs/registry-distribution-matrix.md`](docs/registry-distribution-matrix.md) for the
+full submission matrix (drafts, planned package managers, containers).
 
-| Channel | Status | Notes |
-|---------|--------|-------|
-| Official MCP Registry | Live | `io.github.edithatogo/fyi-mcp` @ `0.1.2` |
-| [Glama](https://glama.ai/mcp/servers/edithatogo/fyi-cli) | Live | Search `author:edithatogo` |
-| [Smithery](https://smithery.ai/server/@edithatogo/fyi-mcp) | Live (score pending) | Namespace `edithatogo/fyi-mcp` |
-| cargo-binstall | Metadata ready | See `[package.metadata.binstall]` in crates |
-| Scoop / WinGet | Draft manifests | `packaging/scoop`, `packaging/winget` |
-| GHCR | Workflow ready | `.github/workflows/container-publish.yml` |
+Install paths in-repo today:
+
+```bash
+# Rust CLI (from source)
+cargo install --path crates/fyi-cli
+
+# Legacy Python package
+pip install fyi-cli
+
+# MCP server binary (from source)
+cargo install --path crates/fyi-mcp
+```
 
 ### Legacy Python Package
 

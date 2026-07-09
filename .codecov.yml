@@ -1,13 +1,25 @@
+# Codecov config for the Rust-first fyi-cli workspace.
+# Local/CI target: >=90% line coverage via cargo-llvm-cov (see PATH_TO_95_COVERAGE.md).
+
 coverage:
   status:
     project:
       default:
-        informational: true
+        # Enforce the documented 90% workspace target on the default branch.
+        target: 90%
+        threshold: 1%
+        informational: false
     patch:
       default:
-        informational: true
+        # New code should not land largely untested.
+        target: 80%
+        threshold: 2%
+        informational: false
 
 ignore:
   - "tests/**"
   - "crates/**/tests/**"
   - "**/examples/**"
+  - "dashboard/**"
+  - "docs-site/**"
+  - "src/fyi_system/**"  # legacy Python package; not the Rust release gate

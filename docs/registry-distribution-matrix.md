@@ -5,6 +5,8 @@ Update this file when a submission lands or when release assets change.
 
 Last reviewed: **2026-07-09**
 
+Home-page listing (README): see **Where fyi-cli / fyi-mcp is listed** in [`README.md`](../README.md).
+
 ## Legend
 
 | Status | Meaning |
