@@ -1,0 +1,45 @@
+# Draft mise backend / tool definition notes for fyi-cli.
+# mise can consume asdf plugins or a simple GitHub release backend.
+#
+# Homepage: https://github.com/edithatogo/fyi-cli
+# Version: 0.1.2
+# License: MIT
+# Publisher: edithatogo
+#
+# Option A — asdf plugin shim (recommended while drafts live in-tree):
+#   mise install asdf:fyi-cli@0.1.2
+#   (point asdf plugin path at packaging/asdf)
+#
+# Option B — mise GitHub backend (when release assets match pattern):
+#   In mise.toml or ~/.config/mise/config.toml:
+#
+#   [tools]
+#   "ubi:edithatogo/fyi-cli" = "0.1.2"
+#
+# Option C — cargo install via mise:
+#   mise use cargo:fyi-cli@0.1.2
+
+[tool]
+name = "fyi-cli"
+description = "Privacy-focused multi-jurisdiction FOI/OIA CLI and MCP server for Alaveteli"
+homepage = "https://github.com/edithatogo/fyi-cli"
+license = "MIT"
+backend = "asdf"
+# Prefer asdf plugin scripts under packaging/asdf until a published plugin exists.
+asdf_plugin_repository = "https://github.com/edithatogo/fyi-cli"
+# When a standalone asdf-fyi-cli repo is published, set:
+# asdf_plugin_repository = "https://github.com/edithatogo/asdf-fyi-cli"
+
+[tool.github]
+repo = "edithatogo/fyi-cli"
+# Asset name patterns (update to match cargo-dist output):
+#   fyi-cli-{version}-{target}.tar.gz
+#   fyi-cli-v{version}/...
+asset_patterns = [
+  "fyi-cli-{version}-{os}-{arch}.tar.gz",
+  "fyi-cli-{version}-{target}.tar.gz",
+]
+
+[tool.bins]
+fyi-cli = "fyi-cli"
+fyi-mcp = "fyi-mcp"

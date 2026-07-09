@@ -1,0 +1,89 @@
+{
+  "name": "fyi-mcp",
+  "display_name": "FYI MCP",
+  "official_registry_name": "io.github.edithatogo/fyi-mcp",
+  "version": "0.1.2",
+  "description": "FYI request management with tools for requests, authorities, correspondence, sync, and health. Multi-jurisdiction Freedom of Information / Official Information tracker for Alaveteli platforms (FYI.org.nz, WhatDoTheyKnow, RightToKnow, and more).",
+  "short_description": "Local FOI/OIA request tracker MCP server for Alaveteli platforms with offline SQLite storage.",
+  "repository": {
+    "url": "https://github.com/edithatogo/fyi-cli",
+    "source": "github",
+    "subdirectory": "crates/fyi-mcp"
+  },
+  "homepage": "https://github.com/edithatogo/fyi-cli",
+  "license": "MIT",
+  "author": {
+    "name": "edithatogo",
+    "url": "https://github.com/edithatogo"
+  },
+  "language": "Rust",
+  "transport": ["stdio"],
+  "keywords": [
+    "fyi",
+    "mcp",
+    "foi",
+    "oia",
+    "alaveteli",
+    "requests",
+    "correspondence",
+    "sync",
+    "sqlite",
+    "privacy"
+  ],
+  "categories": ["legal", "productivity", "data"],
+  "official_registry": {
+    "url": "https://registry.modelcontextprotocol.io/",
+    "name": "io.github.edithatogo/fyi-mcp",
+    "server_json": "https://github.com/edithatogo/fyi-cli/blob/master/server.json"
+  },
+  "existing_listings": {
+    "glama": "https://glama.ai/mcp/servers/edithatogo/fyi-cli",
+    "smithery": "https://smithery.ai/server/@edithatogo/fyi-mcp"
+  },
+  "install": {
+    "from_source": "cargo install --path crates/fyi-mcp",
+    "mcpb": "https://github.com/edithatogo/fyi-cli/releases/download/fyi-mcp-v0.1.2/fyi-mcp-0.1.2-win32.mcpb",
+    "container_planned": "ghcr.io/edithatogo/fyi-mcp"
+  },
+  "runtime": {
+    "command": "fyi-mcp",
+    "args": [],
+    "env": {
+      "DATABASE_URL": {
+        "description": "SQLite database URL for persistent local storage.",
+        "required": false,
+        "default": "sqlite:fyi_system.db"
+      },
+      "FYI_MCP_EPHEMERAL": {
+        "description": "When set to 1, use an in-memory SQLite database (good for demos / sandbox).",
+        "required": false,
+        "default": "0"
+      }
+    }
+  },
+  "tools_summary": [
+    "list_requests",
+    "retrieve_request",
+    "create_request",
+    "update_request",
+    "delete_request",
+    "list_authorities",
+    "import_authorities",
+    "sync_monitor",
+    "sync_conflicts",
+    "sync_resolve_conflict",
+    "sync_status",
+    "check_status"
+  ],
+  "submission": {
+    "status": "assets-ready",
+    "issue": 100,
+    "channels": [
+      "Official MCP Registry ingest (preferred; PulseMCP crawls weekly)",
+      "Manual URL submit at https://www.pulsemcp.com/submit",
+      "Email hello@pulsemcp.com for listing adjustments"
+    ],
+    "submit_url": "https://www.pulsemcp.com/submit",
+    "notes": "Do not mark live until a public PulseMCP server page URL is confirmed."
+  }
+}

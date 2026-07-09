@@ -1,0 +1,9 @@
+fyi-cli (0.1.2-1) UNRELEASED; urgency=medium
+
+  * Draft Debian package skeleton for fyi-cli / fyi-mcp 0.1.2.
+  * Source: https://github.com/edithatogo/fyi-cli
+  * License: MIT
+  * Binaries: fyi-cli, fyi-mcp (split binary packages).
+  * Not yet uploaded; update distribution and close bugs before release.
+
+ -- edithatogo <noreply@github.com>  Wed, 09 Jul 2026 00:00:00 +0000

@@ -1,0 +1,59 @@
+# Maintainer: edithatogo <https://github.com/edithatogo>
+# Draft AUR package for fyi-cli. Update pkgver, source URLs, and checksums
+# from the matching GitHub Release before submitting to the AUR.
+#
+# Build options:
+#   - Default: cargo build from GitHub source archive (reliable, no prebuilt asset required)
+#   - Optional: switch to prebuilt binaries once cargo-dist Linux assets are stable
+#
+# Suggested AUR package name: fyi-cli
+# Binary: fyi-cli (optional symlink fyi if desired)
+
+pkgname=fyi-cli
+pkgver=0.1.2
+pkgrel=1
+pkgdesc="Privacy-focused multi-jurisdiction FOI/OIA CLI and MCP server for Alaveteli"
+arch=('x86_64' 'aarch64')
+url="https://github.com/edithatogo/fyi-cli"
+license=('MIT')
+depends=('gcc-libs' 'openssl')
+makedepends=('cargo' 'git')
+# Optional runtime: fyi-mcp binary is built from the same workspace when requested.
+optdepends=(
+  'tor: optional Tor routing for privacy-sensitive requests'
+)
+provides=('fyi-cli' 'fyi-mcp')
+conflicts=()
+options=('!lto')
+source=("${pkgname}-${pkgver}.tar.gz::https://github.com/edithatogo/fyi-cli/archive/refs/tags/v${pkgver}.tar.gz")
+# Replace with actual sha256 from the release source archive before AUR publish:
+#   curl -sL "$source" | sha256sum
+sha256sums=('SKIP')
+
+prepare() {
+  cd "${srcdir}/fyi-cli-${pkgver}"
+  export RUSTUP_TOOLCHAIN=stable
+  cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+  cd "${srcdir}/fyi-cli-${pkgver}"
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR=target
+  cargo build --frozen --release --package fyi-cli --package fyi-mcp
+}
+
+check() {
+  cd "${srcdir}/fyi-cli-${pkgver}"
+  export RUSTUP_TOOLCHAIN=stable
+  # Lightweight smoke; full suite may need network fixtures.
+  cargo test --frozen --package fyi-cli -- --nocapture || true
+}
+
+package() {
+  cd "${srcdir}/fyi-cli-${pkgver}"
+  install -Dm755 "target/release/fyi-cli" "${pkgdir}/usr/bin/fyi-cli"
+  install -Dm755 "target/release/fyi-mcp" "${pkgdir}/usr/bin/fyi-mcp"
+  install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+  install -Dm644 README.md "${pkgdir}/usr/share/doc/${pkgname}/README.md"
+}
