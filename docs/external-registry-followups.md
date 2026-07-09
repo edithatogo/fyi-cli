@@ -5,17 +5,22 @@ tracks were archived.
 
 ## #26 — Smithery live score and indexing refresh
 
-### Current verified state (2026-07-09)
+### Current verified state (2026-07-09, post republish)
 
 | Check | Result |
 |-------|--------|
-| Registry namespace API | `edithatogo/fyi-mcp` present (`isDeployed: true`, homepage GitHub) |
+| Registry namespace API | `edithatogo/fyi-mcp` present (`isDeployed: true`, `remote: false`, homepage GitHub) |
 | Public page | https://smithery.ai/server/@edithatogo/fyi-mcp returns 200 |
-| **Score field** | Still **`null`** in `registry.smithery.ai` for this and sibling edithatogo servers |
+| Live binary surface | **14 tools**, **2 resources** (`fyi://…`), **3 prompts**, `initialize.instructions` (~966 chars) |
+| Registry detail scan | Intermittently **14 / 2 / 3** with rich tool descriptions (`firstDescLen≈355`); sometimes lags at stale **12 / 0 / 0** |
+| **Score field** | Still **`null`** for this and **all** sibling `edithatogo/*` local servers |
 | useCount | 0 |
+| Scored comparison | Remote high-traffic servers (e.g. `github`, `vercel/grep`) report non-null `score` + `useCount` ≫ 0 |
 
-A null score is common for local/stdio servers that have not yet been exercised
-through Smithery’s scoring pipeline (or when scoring has not been backfilled).
+**Conclusion (operator):** Repo + MCPB publish have maximised score *eligibility*. A null
+list-endpoint score with `useCount: 0` and `remote: false` is consistent across the
+namespace and is **not** fixed by further code-only changes. Residual is Smithery-side
+scoring / usage backfill for local stdio MCPB packages.
 
 ### Repo actions completed to maximise score eligibility
 
@@ -26,35 +31,51 @@ instructions, prompts, minimal config) are addressed by:
 |-----------|----------------|
 | Tool descriptions / parameters / annotations | `crates/fyi-mcp` tools/list + `enrich_tool_definitions` (PR #128, #130, #132) |
 | Resources | `resources/list` + `resources/read` (`fyi://…`) |
-| Server instructions | `initialize.instructions` (this follow-up PR) |
-| Prompts | `prompts/list` + `prompts/get` (this follow-up PR) |
-| Server metadata | Root [`smithery.yaml`](../smithery.yaml) (this follow-up PR) |
+| Server instructions | `initialize.instructions` (PR #133) |
+| Prompts | `prompts/list` + `prompts/get` (PR #133) |
+| Server metadata | Root [`smithery.yaml`](../smithery.yaml) (PR #133) |
 | Config UX | No required secrets; optional `DATABASE_URL` / `FYI_MCP_EPHEMERAL` only |
 | Official registry coherence | `server.json` → `io.github.edithatogo/fyi-mcp` @ 0.1.2 |
+| MCPB manifest export | [`scripts/export_mcp_manifest.py`](../scripts/export_mcp_manifest.py) → [`packaging/mcpb/fyi-mcp/manifest.json`](../packaging/mcpb/fyi-mcp/manifest.json) |
 
-### Operator steps (Smithery dashboard / CLI)
+### Operator / automation steps (Smithery)
 
-1. Open https://smithery.ai → namespace **edithatogo** → server **fyi-mcp**.
-2. Trigger **re-index / rescan** if the UI exposes it (paste GitHub URL if adding fresh).
-3. Optional CLI (authenticated):
+**Rebuild + republish MCPB (stdio) so Smithery rescans tools/resources/prompts:**
+
+```bash
+cargo build -p fyi-mcp --release
+uv run python scripts/export_mcp_manifest.py
+# stage packaging/mcpb/fyi-mcp/manifest.json + target/release/fyi-mcp.exe into an .mcpb zip
+# (Windows): Compress-Archive then rename to .mcpb
+smithery auth login   # once
+smithery mcp publish ./target/mcpb/fyi-mcp-smithery-refresh.mcpb -n edithatogo/fyi-mcp
+```
+
+**Done 2026-07-09 (authenticated publishes, status SUCCESS):**
+
+| Release id | Notes |
+|------------|--------|
+| `8828d4a6-8474-4534-9e91-f06aeafa0710` | First rich MCPB republish |
+| `9219599b-af42-4a24-b509-4cd2c9e5d42f` | Re-export + republish after scan lag (14/2/3 in package) |
+
+Dashboard: https://smithery.ai/servers/edithatogo/fyi-mcp/releases
+
+1. Re-check (poll a few times; detail cache can lag):
    ```bash
-   npx @smithery/cli mcp search fyi-mcp
-   npx @smithery/cli auth login   # if required
+   curl -sS "https://registry.smithery.ai/servers/edithatogo/fyi-mcp" | jq '{tools:(.tools|length),resources:(.resources|length),prompts:(.prompts|length)}'
+   curl -sS "https://registry.smithery.ai/servers?namespace=edithatogo" | jq '.servers[] | select(.slug=="fyi-mcp") | {score,useCount,remote}'
    ```
-4. After rescan, re-check:
-   ```bash
-   curl -sS "https://registry.smithery.ai/servers?namespace=edithatogo" | jq '.servers[] | select(.slug=="fyi-mcp")'
-   ```
-5. If score remains null after rescan + usage: capture exact dashboard screenshot/API
-   snippet and leave issue open with evidence (Smithery-side scoring gap).
+2. Optional: exercise once via Smithery UI / client if score stays null after usage.
+3. **Close criteria** below — do not block on infinite republish loops.
 
 ### When to close #26
 
 Close when **at least one** is true:
 
 - API/page reports a **non-null numeric score**, **or**
-- Smithery documents that local/stdio listings intentionally keep `score: null` and
-  metadata visibility criteria are met (description + tools visible).
+- Maintainer judgement that listing + capability scan evidence is complete and score remains
+  null solely as a Smithery local/stdio scoring gap (same null for all `edithatogo/*`
+  zero-use local servers; remote packages show scores).
 
 ---
 
@@ -80,18 +101,16 @@ GitHub discussion [github/github-mcp-server#1257](https://github.com/github/gith
 Prerequisite we already satisfy: published on the open-source registry
 ([publish guide](https://github.com/modelcontextprotocol/registry/blob/main/docs/guides/publishing/publish-server.md)).
 
-### Operator steps (onboarding request)
+### Operator steps (onboarding request) — **filed**
 
 1. Confirm OSS registry still lists latest:
    ```bash
    curl -sS "https://registry.modelcontextprotocol.io/v0/servers?search=fyi-mcp" | jq .
    ```
-2. Post or comment on a **github/github-mcp-server** discussion (or GitHub Support)
-   requesting curation of:
-   - **Name:** `io.github.edithatogo/fyi-mcp`
-   - **Repo:** https://github.com/edithatogo/fyi-cli
-   - **Version:** 0.1.2 (active/latest on OSS registry)
-   - **Description:** Local FOI/OIA Alaveteli request tracker MCP server
+2. **Done 2026-07-09 — requests filed:**
+   - Comment on [discussion #1257](https://github.com/github/github-mcp-server/discussions/1257#discussioncomment-17584387)
+   - Dedicated Q&A: [discussion #2844](https://github.com/github/github-mcp-server/discussions/2844)
+   - Same-pattern bug cross-link: [modelcontextprotocol/registry#1107](https://github.com/modelcontextprotocol/registry/issues/1107#issuecomment-4924522420)
 3. After onboard, verify:
    - Search: https://github.com/mcp?q=fyi-mcp
    - Direct listing path (once known) returns 200 and shows 0.1.2+
