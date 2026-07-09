@@ -150,7 +150,26 @@ jobs:
             ${{ runner.os }}-cargo-cov-
 
       - name: Run tests with coverage
-        run: cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info
+        # Produce LCOV for Codecov. Regression floor is 80% (hard fail).
+        # Project goal is 90%+ (PATH_TO_95_COVERAGE.md, run-coverage.ps1|sh, .codecov.yml).
+        # When Codecov reports >=90% sustainably, raise --fail-under-lines to 90.
+        run: |
+          set +e
+          cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info \
+            --fail-under-lines 80
+          status=$?
+          set -e
+          if [ ! -f lcov.info ]; then
+            echo "lcov.info was not produced" >&2
+            exit 1
+          fi
+          # Also print progress vs the 90% goal without failing the job on the goal alone.
+          cargo llvm-cov --workspace --all-features --summary-only --fail-under-lines 90 \
+            || echo "::notice::Workspace line coverage is below the 90% project goal (see PATH_TO_95_COVERAGE.md)."
+          if [ "$status" -ne 0 ]; then
+            echo "Coverage fell below the 80% CI regression floor." >&2
+            exit "$status"
+          fi
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4

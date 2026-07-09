@@ -270,8 +270,9 @@ fn enrich_tool_definitions(tools: &mut Value) {
                 tool["inputSchema"]["properties"]["title"]["description"] =
                     json!("Short public-facing request title (required, non-empty).");
                 tool["inputSchema"]["properties"]["title"]["minLength"] = json!(1);
-                tool["inputSchema"]["properties"]["body"]["description"] =
-                    json!("Full request body or draft text to store locally (required, non-empty).");
+                tool["inputSchema"]["properties"]["body"]["description"] = json!(
+                    "Full request body or draft text to store locally (required, non-empty)."
+                );
                 tool["inputSchema"]["properties"]["body"]["minLength"] = json!(1);
                 tool["inputSchema"]["properties"]["user_name"]["description"] =
                     json!("Optional requester display name for local tracking only.");
