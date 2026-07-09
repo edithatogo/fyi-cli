@@ -711,12 +711,17 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                     "resources": {
                         "subscribe": false,
                         "listChanged": false
-                    }
+                    },
+                    "prompts": {}
                 },
                 "serverInfo": {
                     "name": "fyi-mcp",
-                    "version": "0.1.2"
-                }
+                    "version": "0.1.2",
+                    "title": "FYI MCP",
+                    "description": "Local FOI/OIA request tracker and Alaveteli MCP server for FYI.org.nz and multi-jurisdiction instances."
+                },
+                // Smithery / client routing guide (server instructions).
+                "instructions": "Use fyi-mcp for local Freedom of Information / Official Information request tracking against Alaveteli instances (FYI.org.nz, RightToKnow, WhatDoTheyKnow, etc.). Preferred call order: (1) check_status to confirm the local SQLite DB is healthy; (2) list_requests or resources/list (fyi://requests) for triage; (3) retrieve_request for a single ID and correspondence; (4) create_request / update_request for local drafts (does not submit to remote authorities); (5) list_authorities / import_authorities for public-body reference data; (6) sync_monitor / sync_status / sync_conflicts for offline sync health; (7) sync_resolve_conflict only after manual reconciliation; (8) compute_deadline for statutory due dates; (9) search_corpus for demo hybrid search. Prefer resources (fyi://authorities, fyi://requests, fyi://requests/{id}) when the client wants browseable corpus context rather than tool calls. Never invent remote FOI submissions—this server is local-first."
             });
             Some(JsonRpcResponse::success(req.id, res))
         }
@@ -1268,6 +1273,115 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                 )),
                 Err(message) => Some(JsonRpcResponse::error(req.id, -32002, message)),
             }
+        }
+        "prompts/list" => Some(JsonRpcResponse::success(
+            req.id,
+            json!({
+                "prompts": [
+                    {
+                        "name": "operator_daily_triage",
+                        "title": "Operator daily triage",
+                        "description": "Triage local FOI/OIA requests: health check, list newest requests, flag conflicts, and propose next actions.",
+                        "arguments": []
+                    },
+                    {
+                        "name": "draft_foi_request",
+                        "title": "Draft FOI/OIA request",
+                        "description": "Help draft a local FOI/OIA request body for a public authority using jurisdiction-aware language.",
+                        "arguments": [
+                            {
+                                "name": "authority_name",
+                                "description": "Name of the public authority receiving the request.",
+                                "required": true
+                            },
+                            {
+                                "name": "subject",
+                                "description": "Short subject or topic of the request.",
+                                "required": true
+                            }
+                        ]
+                    },
+                    {
+                        "name": "sync_health_review",
+                        "title": "Offline sync health review",
+                        "description": "Review offline sync queue depth, conflicts, and degradation indicators before reconciling.",
+                        "arguments": []
+                    }
+                ]
+            }),
+        )),
+        "prompts/get" => {
+            let name = req
+                .params
+                .as_ref()
+                .and_then(|p| p.get("name"))
+                .and_then(|n| n.as_str())
+                .unwrap_or("");
+            let arguments = req
+                .params
+                .as_ref()
+                .and_then(|p| p.get("arguments"))
+                .cloned()
+                .unwrap_or(json!({}));
+            let prompt = match name {
+                "operator_daily_triage" => json!({
+                    "description": "Daily triage of the local FOI tracker database.",
+                    "messages": [{
+                        "role": "user",
+                        "content": {
+                            "type": "text",
+                            "text": "Run an operator daily triage on the local fyi-mcp database.\n1) Call check_status.\n2) Call list_requests (limit 25).\n3) Call sync_monitor and sync_conflicts if dirty/conflict counts are non-zero.\n4) Summarize overdue-looking statuses and recommend concrete next tools (retrieve_request, update_request, sync_resolve_conflict).\nDo not invent remote submissions."
+                        }
+                    }]
+                }),
+                "draft_foi_request" => {
+                    let authority = arguments
+                        .get("authority_name")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("the public authority");
+                    let subject = arguments
+                        .get("subject")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("the requested records");
+                    json!({
+                        "description": "Draft a clear FOI/OIA request for a named authority.",
+                        "messages": [{
+                            "role": "user",
+                            "content": {
+                                "type": "text",
+                                "text": format!(
+                                    "Draft a clear, specific FOI/OIA request to {} about {}.\nUse list_authorities if authority context is needed, then create_request with title and body only after the draft is ready.\nPrefer precise document descriptions, date ranges, and format preferences. Do not claim the request was submitted remotely.",
+                                    authority, subject
+                                )
+                            }
+                        }]
+                    })
+                }
+                "sync_health_review" => json!({
+                    "description": "Review offline synchronization health.",
+                    "messages": [{
+                        "role": "user",
+                        "content": {
+                            "type": "text",
+                            "text": "Review offline sync health for fyi-mcp.\n1) call sync_monitor\n2) if conflicts > 0, call sync_conflicts\n3) for each conflict, retrieve_request then decide mark_clean via sync_resolve_conflict only after reconciliation notes\n4) summarize queue pending/failed and dirty_records.\nDo not push remote changes from this prompt."
+                        }
+                    }]
+                }),
+                _ => {
+                    return Some(JsonRpcResponse::error(
+                        req.id,
+                        -32602,
+                        format!("Unknown prompt: {}", name),
+                    ));
+                }
+            };
+            Some(JsonRpcResponse::success(
+                req.id,
+                json!({
+                    "description": prompt.get("description").cloned().unwrap_or(json!("")),
+                    "messages": prompt.get("messages").cloned().unwrap_or(json!([]))
+                }),
+            ))
         }
         "tools/call" => {
             let params = match req.params.as_ref() {
@@ -2389,6 +2503,62 @@ mod tests {
             "2024-11-05"
         );
         assert!(result.pointer("/capabilities/resources").is_some());
+        assert!(result.pointer("/capabilities/prompts").is_some());
+        assert!(
+            result
+                .get("instructions")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .contains("check_status"),
+            "initialize should advertise server instructions for Smithery/client routing"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_prompts_list_and_get() {
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+
+        let list_req = JsonRpcRequest {
+            jsonrpc: "2.0".to_string(),
+            id: Some(json!(90)),
+            method: "prompts/list".to_string(),
+            params: None,
+        };
+        let list_resp = handle_jsonrpc_request(&db, list_req).await.unwrap();
+        let prompts = list_resp
+            .result
+            .as_ref()
+            .and_then(|r| r.get("prompts"))
+            .and_then(|p| p.as_array())
+            .expect("prompts array");
+        assert!(prompts.len() >= 3);
+
+        let get_req = JsonRpcRequest {
+            jsonrpc: "2.0".to_string(),
+            id: Some(json!(91)),
+            method: "prompts/get".to_string(),
+            params: Some(json!({
+                "name": "draft_foi_request",
+                "arguments": {
+                    "authority_name": "Ministry of Justice",
+                    "subject": "OIA policies"
+                }
+            })),
+        };
+        let get_resp = handle_jsonrpc_request(&db, get_req).await.unwrap();
+        let text = get_resp
+            .result
+            .as_ref()
+            .and_then(|r| r.get("messages"))
+            .and_then(|m| m.as_array())
+            .and_then(|a| a.first())
+            .and_then(|m| m.get("content"))
+            .and_then(|c| c.get("text"))
+            .and_then(|t| t.as_str())
+            .unwrap_or("");
+        assert!(text.contains("Ministry of Justice"));
+        assert!(text.contains("OIA policies"));
     }
 
     #[tokio::test]

@@ -1,0 +1,65 @@
+# Smithery MCP registry metadata for fyi-mcp
+# https://smithery.ai/server/@edithatogo/fyi-mcp
+#
+# Keep config surface minimal: local SQLite, no required API keys for core tools.
+
+name: fyi-mcp
+displayName: FYI MCP
+description: >
+  Local-first Model Context Protocol server for Freedom of Information /
+  Official Information request tracking against Alaveteli platforms
+  (FYI.org.nz, RightToKnow, WhatDoTheyKnow, and other catalog instances).
+  Tools cover request CRUD, authorities, offline sync, conflicts, deadlines,
+  and corpus resources.
+homepage: https://github.com/edithatogo/fyi-cli
+repository: https://github.com/edithatogo/fyi-cli
+license: MIT
+keywords:
+  - foi
+  - oia
+  - alaveteli
+  - fyi
+  - privacy
+  - rust
+  - mcp
+  - offline-sync
+categories:
+  - government
+  - research
+  - productivity
+  - databases
+
+# Local stdio binary — no required secrets for base operation.
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    additionalProperties: false
+    properties:
+      DATABASE_URL:
+        type: string
+        description: >
+          Optional SQLite URL (e.g. sqlite:fyi_system.db?mode=rwc).
+          Defaults to an on-disk or ephemeral path depending on environment.
+      FYI_MCP_EPHEMERAL:
+        type: string
+        description: >
+          Set to "1" to force an in-memory database (used by Glama inspection).
+    required: []
+  commandFunction: |
+    (config) => ({
+      command: "fyi-mcp",
+      args: [],
+      env: {
+        ...(config.DATABASE_URL ? { DATABASE_URL: config.DATABASE_URL } : {}),
+        ...(config.FYI_MCP_EPHEMERAL
+          ? { FYI_MCP_EPHEMERAL: config.FYI_MCP_EPHEMERAL }
+          : {}),
+      },
+    })
+
+metadata:
+  officialRegistry: io.github.edithatogo/fyi-mcp
+  officialRegistryVersion: "0.1.2"
+  glama: https://glama.ai/mcp/servers/edithatogo/fyi-cli
+  serverJson: server.json
