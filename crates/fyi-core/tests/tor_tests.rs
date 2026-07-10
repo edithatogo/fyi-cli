@@ -37,6 +37,32 @@ async fn test_start_proxy_and_reqwest_client_setup() {
 }
 
 #[tokio::test]
+async fn test_tor_reqwest_client_uses_traceable_identity() {
+    let mut manager = new_test_tor_manager("identity").expect("Failed to initialize TorManager");
+    manager.start_proxy().await.expect("Failed to start proxy");
+
+    let identity = fyi_core::agent_runtime::ClientIdentity::custom(
+        "fyi-test",
+        "9.9.9",
+        "https://example.test/fyi",
+        Some("ops@example.test".to_string()),
+    )
+    .expect("test identity should validate");
+    let client = manager
+        .create_reqwest_client_with_identity(&identity)
+        .expect("Tor client should build with identity");
+    let request = client
+        .get("https://example.test/health")
+        .build()
+        .expect("request should build");
+
+    assert_eq!(
+        request.headers().get(reqwest::header::USER_AGENT),
+        Some(&reqwest::header::HeaderValue::from_str(&identity.user_agent()).unwrap())
+    );
+}
+
+#[tokio::test]
 async fn test_socks_proxy_handshake_invalid_version() {
     let mut manager =
         new_test_tor_manager("invalid-version").expect("Failed to initialize TorManager");
