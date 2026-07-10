@@ -2,7 +2,7 @@
 
 **A multi-jurisdiction Freedom-of-Information (FOI) client for Alaveteli-based platforms** — track,
 submit, and archive official information requests across New Zealand, Australia, the UK, and any
-other [Alaveteli](https://alaveteli.org/) deployment (FYI.org.nz, WhatDoTheyKnow, FragDenStaat, and
+other [Alaveteli](https://alaveteli.org/) deployment (foi-repository, WhatDoTheyKnow, FragDenStaat, and
 more), from a single privacy-focused CLI.
 
 [![PyPI version](https://badge.fury.io/py/fyi-cli.svg)](https://badge.fury.io/py/fyi-cli)
@@ -59,7 +59,7 @@ fyi-cli list-requests
 
 ## ✨ Features
 
-- **🌐 Multi-Jurisdiction**: Works with any Alaveteli deployment — FYI.org.nz (NZ), WhatDoTheyKnow
+- **🌐 Multi-Jurisdiction**: Works with any Alaveteli deployment — foi-repository (NZ), WhatDoTheyKnow
   (UK), FragDenStaat (Germany), righttoknow.org.au (Australia), and more, with jurisdiction-aware
   metadata and localization on the way
 - **🔒 Privacy-First**: All data stored locally, optional encryption, Tor support
@@ -242,7 +242,7 @@ includes:
 
 | Platform | Region | URL |
 |----------|--------|-----|
-| **FYI.org.nz** | New Zealand | https://fyi.org.nz |
+| **foi-repository** | New Zealand | foi-repository |
 | **RightToKnow** | Australia | https://www.righttoknow.org.au |
 | **WhatDoTheyKnow** | United Kingdom | https://www.whatdotheyknow.com |
 | **MyRightToKnow** | Ireland | https://www.myrighttoknow.org |
@@ -398,7 +398,7 @@ fyi health-check               # System health verification
 │                        SQLite database                          │
 │      (requests, correspondence, authorities, sync_metadata)     │
 ├─────────────────────────────────────────────────────────────────┤
-│      Alaveteli instances: FYI.org.nz · WhatDoTheyKnow ·          │
+│      Alaveteli instances: foi-repository · WhatDoTheyKnow ·      │
 │      FragDenStaat · righttoknow.org.au · any self-hosted deploy  │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -414,7 +414,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - Built on the [Alaveteli](https://alaveteli.org/) platform by mySociety
-- Inspired by the transparency work of [FYI.org.nz](https://fyi.org.nz/)
+- Inspired by the transparency work of foi-repository
 - Uses [cryptography](https://cryptography.io/) for encryption
 
 ---
