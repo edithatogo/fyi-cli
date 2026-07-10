@@ -4,6 +4,7 @@ pub mod api;
 pub mod db;
 pub mod deadlines;
 pub mod drafting;
+pub mod endorsed_route;
 pub mod features;
 pub mod federation;
 pub mod i18n;
