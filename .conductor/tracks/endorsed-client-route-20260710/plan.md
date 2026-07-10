@@ -49,6 +49,20 @@
   maintainer-approved security/dependency/mutation gates; upstream submission
   remains disabled.
 
+### Repository-wide harness hardening (2026-07-10)
+
+- Added an executable 13-layer inventory at
+  `scripts/verify_test_harness.py`, with a regression test at
+  `tests/test_harness_contract.py`.
+- CI now treats Rust line coverage below 90% as a failure, and Codecov project
+  and patch statuses enforce the same zero-tolerance target.
+- Added weekly/manual Rust mutation analysis through
+  `.github/workflows/mutation.yml`; live smoke remains explicitly opt-in and
+  benchmark/mutation execution is exposed as an explicit expensive mode.
+- Harness contract, route tests, Ruff, and basedpyright pass locally. This
+  strengthens the local fyi-cli evidence but does not replace the missing
+  Ruby-enabled paired-server verification.
+
 ### Paired-server evidence gate (2026-07-10)
 
 - The sibling Alaveteli checkout contains the server-side contract track and

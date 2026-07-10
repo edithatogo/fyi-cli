@@ -156,3 +156,18 @@ the pre-existing dirty `agent_runtime.rs` change unless explicitly assigned.
 - Local harness, Ruff, basedpyright, validator/bulk, Tor executor, and
   back-pressure checks all pass. Paired Alaveteli server verification remains
   the only external Phase 4 dependency.
+
+## Repository-wide harness hardening (2026-07-10)
+
+- Added `scripts/verify_test_harness.py` and `tests/test_harness_contract.py`.
+- The checked-in inventory validates 13 layers: unit, integration, end-to-end,
+  smoke/system, mutation, property-based, edge, performance, security,
+  compatibility, usability, regression, and sanity.
+- CI now hard-fails Rust line coverage below 90%; Codecov project and patch
+  statuses use a zero-tolerance 90% target. The prior 80% hard floor and
+  informational 90% notice are removed.
+- Weekly/manual Rust mutation analysis is defined in
+  `.github/workflows/mutation.yml`; long-running local mutation and benchmark
+  runs are explicit `--run-expensive` harness modes.
+- Harness contract test, Ruff, and basedpyright pass. GNU `fyi-core` remains
+  128/128 passing after the gate changes.

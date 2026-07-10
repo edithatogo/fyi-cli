@@ -7,13 +7,13 @@ coverage:
       default:
         # Enforce the documented 90% workspace target on the default branch.
         target: 90%
-        threshold: 1%
+        threshold: 0%
         informational: false
     patch:
       default:
         # New code should not land largely untested.
-        target: 80%
-        threshold: 2%
+        target: 90%
+        threshold: 0%
         informational: false
 
 ignore:

@@ -1,0 +1,22 @@
+name: Mutation Analysis
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 2 * * 0"
+
+permissions:
+  contents: read
+
+jobs:
+  rust-mutants:
+    name: Rust mutation analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install cargo-mutants
+        run: cargo install cargo-mutants --locked
+      - name: Run mutation analysis
+        run: cargo mutants --workspace --all-features --timeout 60
