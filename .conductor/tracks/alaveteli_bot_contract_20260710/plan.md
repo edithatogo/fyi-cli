@@ -37,9 +37,9 @@
   guaranteed response closure — `68f2f53`.
 - [x] Ensure streamed bulk bodies are not written into the validator cache —
   `68f2f53`.
-- [ ] Complete Rust validator metadata, 304/stale/error behavior, and bounded
-  request/time/batch evidence.
-- [ ] Ensure unavailable or unauthorized bulk export cannot fall back to unbounded retrieval.
+- [x] Complete Rust validator metadata, 304/stale/error behavior, and bounded
+  request/time/batch evidence — `866add9`.
+- [x] Ensure unavailable or unauthorized bulk export cannot fall back to unbounded retrieval — `866add9`.
 
 ## Phase 4: Cross-repo verification
 
@@ -97,5 +97,13 @@ the pre-existing dirty `agent_runtime.rs` change unless explicitly assigned.
 - Paired Alaveteli fixture/control issue: https://github.com/edithatogo/alaveteli/issues/25
 - Python Alaveteli client tests: 34 passed, including item/byte trip and stream
   closure tests.
-- Remaining closure blocker: Rust validator metadata and complete bounded
-  fallback/304 evidence.
+- Resolved by the validator/bulk slice below; remaining closure work is
+  cross-path Tor/back-pressure evidence and fork-local reconciliation.
+
+## Validator/bulk slice verification
+
+- Fork-local implementation checkpoint: `866add9`.
+- Focused GNU Rust tests: conditional 304 reuse, stale/error preservation,
+  authenticated bounded NDJSON export, and unauthorized no-fallback — 4 passed.
+- The bulk route is explicitly opt-in and has no ordinary recursive retrieval
+  fallback; item, byte, and runtime limits are enforced before returning data.
