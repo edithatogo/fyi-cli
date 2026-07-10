@@ -1,0 +1,23 @@
+{
+  "protocol": "fyi-endorsed-client/v1",
+  "instance_id": "nz-fyi",
+  "enabled": true,
+  "kill_switch": false,
+  "revoked": false,
+  "expires_at": 1800000000,
+  "client_allowlist": ["fyi-cli-prod"],
+  "scopes": ["read", "bulk_export"],
+  "quotas": {
+    "max_requests": 1000,
+    "max_bytes": 52428800,
+    "max_runtime_seconds": 300,
+    "max_concurrency": 2,
+    "max_retries": 3
+  },
+  "bulk_export": {
+    "enabled": true,
+    "scope": "bulk_export",
+    "max_items": 1000,
+    "max_bytes": 52428800
+  }
+}
