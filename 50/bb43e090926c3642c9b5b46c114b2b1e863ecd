@@ -1,0 +1,1 @@
+Added HTTP-date Retry-After parsing and bounded retry delays across Python discovery and legacy Alaveteli clients; enforced contactable User-Agent identity; restored authority discovery helper; added offline dry-plan CLI command and tests. Commit: 50bb43e090926c3642c9b5b46c114b2b1e863ecd
