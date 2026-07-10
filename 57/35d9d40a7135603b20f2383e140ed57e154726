@@ -1,0 +1,1 @@
+Bot-contract Phase 1 Tor gap closed locally: added TorAgentClient/TorGuardedResponse using shared AgentNetworkMiddleware for identity, pacing, concurrency, response bytes, memory, traces, and 429 feedback. GNU Tor guarded-client test passed.
