@@ -8,7 +8,6 @@ from fyi_system.endorsed_route import (
     EndorsedRouteError,
 )
 
-
 FIXTURE = Path(__file__).parent / "fixtures" / "endorsed-client-route" / "enabled.json"
 
 
@@ -60,4 +59,29 @@ def test_unknown_client_and_bulk_scope_are_rejected():
             scopes=("read",),
             now_epoch=1_700_000_000,
             bulk_export=True,
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [("enabled", "false"), ("kill_switch", 1), ("expires_at", True)],
+)
+def test_malformed_types_and_unknown_fields_are_rejected(field, value):
+    payload = json.loads(FIXTURE.read_text())
+    payload[field] = value
+    with pytest.raises(EndorsedRouteError, match="malformed"):
+        CapabilityDocument.from_mapping(payload)
+
+    payload = json.loads(FIXTURE.read_text())
+    payload["unexpected"] = True
+    with pytest.raises(EndorsedRouteError, match="malformed"):
+        CapabilityDocument.from_mapping(payload)
+
+
+def test_empty_scope_is_rejected():
+    with pytest.raises(EndorsedRouteError, match="invalid"):
+        document().authorize(
+            client_id="fyi-cli-prod",
+            scopes=("",),
+            now_epoch=1_700_000_000,
         )

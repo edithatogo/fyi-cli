@@ -10,6 +10,7 @@ use thiserror::Error;
 pub const PROTOCOL_VERSION: &str = "fyi-endorsed-client/v1";
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct CapabilityDocument {
     pub protocol: String,
     pub instance_id: String,
@@ -24,6 +25,7 @@ pub struct CapabilityDocument {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct RouteQuotas {
     pub max_requests: u64,
     pub max_bytes: u64,
@@ -33,6 +35,7 @@ pub struct RouteQuotas {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct BulkExportCapability {
     pub enabled: bool,
     pub scope: String,
@@ -72,6 +75,8 @@ pub enum RouteError {
     ClientNotAllowed,
     #[error("requested scope is not authorized")]
     ScopeNotAllowed,
+    #[error("endorsed route capability document is invalid")]
+    InvalidDocument,
     #[error("endorsed route contains a non-positive quota")]
     InvalidQuota,
     #[error("bulk export is not enabled for this route")]
@@ -98,6 +103,16 @@ impl CapabilityDocument {
         }
         if self.expires_at <= request.now_epoch {
             return Err(RouteError::Expired);
+        }
+        if self.instance_id.trim().is_empty()
+            || self.client_allowlist.is_empty()
+            || self.scopes.is_empty()
+            || self.client_allowlist.iter().any(|id| id.trim().is_empty())
+            || self.scopes.iter().any(|scope| scope.trim().is_empty())
+            || request.scopes.is_empty()
+            || request.scopes.iter().any(|scope| scope.trim().is_empty())
+        {
+            return Err(RouteError::InvalidDocument);
         }
         if request.client_id.trim().is_empty()
             || !self
@@ -132,6 +147,9 @@ impl CapabilityDocument {
                 .any(|scope| *scope == self.bulk_export.scope)
             {
                 return Err(RouteError::BulkExportScopeNotAllowed);
+            }
+            if self.bulk_export.scope.trim().is_empty() {
+                return Err(RouteError::InvalidDocument);
             }
             if self.bulk_export.max_items == 0 || self.bulk_export.max_bytes == 0 {
                 return Err(RouteError::InvalidQuota);
@@ -242,6 +260,27 @@ mod tests {
                 bulk_export: true,
             }),
             Err(RouteError::BulkExportScopeNotAllowed)
+        );
+    }
+
+    #[test]
+    fn malformed_documents_and_empty_scopes_fail_closed() {
+        let mut payload: serde_json::Value = serde_json::from_str(include_str!(
+            "../../../tests/fixtures/endorsed-client-route/enabled.json"
+        ))
+        .unwrap();
+        payload["unexpected"] = serde_json::json!(true);
+        assert!(serde_json::from_value::<CapabilityDocument>(payload).is_err());
+
+        let doc = document();
+        assert_eq!(
+            doc.authorize(RouteRequest {
+                client_id: "fyi-cli-prod",
+                scopes: &[""],
+                now_epoch: 1_700_000_000,
+                bulk_export: false,
+            }),
+            Err(RouteError::InvalidDocument)
         );
     }
 }
