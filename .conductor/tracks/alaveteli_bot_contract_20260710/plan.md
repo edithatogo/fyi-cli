@@ -175,6 +175,9 @@ the pre-existing dirty `agent_runtime.rs` change unless explicitly assigned.
 - Full paired CI run `29074300108` contains unrelated preview/version,
   Brakeman, dependency, and baseline-suite failures; it is retained as a
   separate external signal and is not the contract acceptance gate.
+- Newer full PR run `29075192014` remains red for the same external
+  core/security baseline; the focused contract check in `29075190333` remains
+  green.
 - Added a deterministic paired workflow at
   `alaveteli/.github/workflows/fyi-contract.yml`; run `29074714893` executes
   only the bulk exporter, traffic-control, and contract-validation specs under

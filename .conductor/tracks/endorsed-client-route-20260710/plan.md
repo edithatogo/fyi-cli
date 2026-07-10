@@ -95,6 +95,8 @@
   dependency, and baseline-suite failures; the focused route-relevant sensor is
   the successful run `29075190333`. The endorsed route remains disabled by
   default and upstream submission remains disabled by policy.
+- Newer full PR run `29075192014` is also red on those external baseline gates;
+  it does not change the green focused contract result.
 - Focused paired workflow run `29074714893` now provides a bounded verification
   sensor for the contract specs without relying on the full Rails suite.
 - The first focused run failed before test execution because of its PostgreSQL
