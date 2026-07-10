@@ -31,23 +31,44 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
+        uses: github/codeql-action/init@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4
         with:
           languages: ${{ matrix.language }}
+          # Interpreted languages do not need a compiled build step. Keeping
+          # this explicit also prevents CodeQL from invoking repository tools.
+          build-mode: none
           queries: security-extended
 
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v4
-
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4
+        uses: github/codeql-action/analyze@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4
         with:
           category: "/language:${{ matrix.language }}"
 
       # Org-wide shared gate: fails the job when open high/critical alerts
       # exist for this commit. Pinned to a commit SHA (not a floating branch).
       - name: Fail on blocking code-scanning alerts
-        uses: edithatogo/.github/.github/actions/code-scanning-gate@90b399a731a17b792352d0c049834a22dbd32523
+        uses: edithatogo/.github/.github/actions/code-scanning-gate@90b399a731a17b792352d0c049834a22dbd32523 # pinned gate
+
+      - name: Fail on medium-or-higher code-scanning alerts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          alerts="$(gh api --paginate --slurp \
+            "repos/${GITHUB_REPOSITORY}/code-scanning/alerts?state=open&per_page=100")"
+          blocking="$(printf '%s' "$alerts" | jq '[.[][]
+            | select(.most_recent_instance.commit_sha == env.GITHUB_SHA)
+            | select((.rule.security_severity_level // .rule.severity)
+              | ascii_downcase | IN("medium", "high", "critical"))]')"
+          if [ "$(printf '%s' "$blocking" | jq 'length')" -ne 0 ]; then
+            echo "Open medium-or-higher code-scanning alerts found for ${GITHUB_SHA}:" >&2
+            printf '%s' "$blocking" | jq -r '.[] | "- #\(.number) \(.rule.id) [\(.rule.security_severity_level // .rule.severity)] \(.most_recent_instance.message.text) \(.html_url)"' >&2
+            exit 1
+          fi
+          echo "No open medium-or-higher code-scanning alerts found for ${GITHUB_SHA}."

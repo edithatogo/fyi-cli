@@ -163,8 +163,8 @@ def update_request_status(db_path: str | Path, request_id: int, status: str) -> 
     conn = connect(db_path)
     try:
         conn.execute(
-            "UPDATE tracked_requests SET status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
-            (status, request_id),
+            "UPDATE tracked_requests SET status=?, updated_at=? WHERE id=?",
+            (status, _utc_now_iso(), request_id),
         )
         conn.commit()
     finally:

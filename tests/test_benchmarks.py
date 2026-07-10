@@ -11,8 +11,8 @@ import tempfile
 
 from fyi_system.db import init_db, connect
 from fyi_system.monitor import ingest_feed
-from fyi_system.reporting import write_dashboard
-from fyi_system.security import redact_emails
+from fyi_system.dashboard import write_dashboard
+from fyi_system.security import redact_text
 
 
 class TestDatabaseBenchmarks:
@@ -113,17 +113,17 @@ class TestSecurityBenchmarks:
     def benchmark_email_redaction_simple(self, benchmark):
         """Benchmark simple email redaction."""
         text = "Contact test@example.com for more info"
-        benchmark(redact_emails, text)
+        benchmark(redact_text, text)
     
     def benchmark_email_redaction_multiple(self, benchmark):
         """Benchmark multiple email redaction."""
         text = "Email us at support@example.com or sales@example.org"
-        benchmark(redact_emails, text)
+        benchmark(redact_text, text)
     
     def benchmark_email_redaction_large(self, benchmark):
         """Benchmark redaction in large text."""
         text = "Contact " + "user@example.com, " * 100
-        benchmark(redact_emails, text)
+        benchmark(redact_text, text)
 
 
 class TestConcurrencyBenchmarks:

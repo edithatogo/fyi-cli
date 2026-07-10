@@ -196,3 +196,23 @@ class TestWriteDashboard:
         content = html_output.read_text()
         assert 'charset' in content
         assert 'utf-8' in content.lower()
+
+    def test_write_dashboard_escapes_untrusted_html(self, tmp_path):
+        """Dashboard fields must be HTML-escaped before rendering."""
+        db_path = tmp_path / "test.db"
+        from fyi_system.db import init_db, insert_tracked_request
+
+        init_db(str(db_path))
+        insert_tracked_request(
+            db_path=str(db_path),
+            authority_slug="<img src=x onerror=alert(1)>",
+            title="<script>alert(1)</script>",
+            body="test",
+        )
+
+        html_output = tmp_path / "dashboard.html"
+        write_dashboard(html_output, str(db_path))
+        content = html_output.read_text()
+
+        assert "<script>alert(1)</script>" not in content
+        assert "&lt;script&gt;alert(1)&lt;/script&gt;" in content
