@@ -20,9 +20,14 @@
 
 ## Phase 2: Back-pressure parity
 
-- [ ] Issue #142: Parse and honor Alaveteli rate and advisory headers.
-- [ ] Cover Rust primary paths and Python discovery/client paths.
-- [ ] Test 429 halt, delta-seconds and HTTP-date Retry-After, bounded jitter fallback, malformed headers, and instance isolation.
+- [~] Issue #142: Parse and honor Alaveteli rate and advisory headers; stacked
+  fork-local PR #150 depends on PR #147.
+- [x] Align Rust and Python snapshots for standard rate-limit fields and
+  `X-Advisory-Status`, including degraded pacing — `37677ca`.
+- [x] Add shared offline fixtures and parity tests for valid and malformed
+  headers; reject negative unsigned values consistently — `37677ca`.
+- [ ] Complete cross-path 429 halt, HTTP-date, bounded-jitter, and instance
+  isolation evidence against the full client contract.
 
 ## Phase 3: Cache and bounded bulk mode
 
@@ -70,3 +75,12 @@ the pre-existing dirty `agent_runtime.rs` change unless explicitly assigned.
 - Scoped check: `cargo check --locked -p fyi-core` completed successfully.
 - Remaining closure blocker: Tor/proxy-assisted send integration and its
   deterministic boundary tests are intentionally still open.
+
+## Back-pressure slice verification
+
+- Fork-local draft PR: https://github.com/edithatogo/fyi-cli/pull/150
+- Paired Alaveteli fixture issue: https://github.com/edithatogo/alaveteli/issues/25
+- Scoped Rust library result: 117 passed, 0 failed.
+- Python full result: 604 passed, 1 opt-in live smoke skipped.
+- Repository Ruff still reports pre-existing baseline findings; this slice did
+  not broaden that unrelated lint debt.
