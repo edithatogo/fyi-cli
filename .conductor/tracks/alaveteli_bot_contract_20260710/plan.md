@@ -179,6 +179,9 @@ the pre-existing dirty `agent_runtime.rs` change unless explicitly assigned.
   `alaveteli/.github/workflows/fyi-contract.yml`; run `29074714893` executes
   only the bulk exporter, traffic-control, and contract-validation specs under
   Ruby 3.4/PostgreSQL 13.5.
+- Run `29074714893` failed during database bootstrap before specs; commit
+  `ccd83b35a` corrected the connection command and rerun `29074804463` is now
+  in progress.
 
 ## Final local verification record
 

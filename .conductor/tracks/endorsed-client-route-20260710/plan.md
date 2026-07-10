@@ -96,6 +96,9 @@
   is green and the evidence gate is signed off.
 - Focused paired workflow run `29074714893` now provides a bounded verification
   sensor for the contract specs without relying on the full Rails suite.
+- The first focused run failed before test execution because of its PostgreSQL
+  bootstrap command; paired commit `ccd83b35a` fixes that and rerun
+  `29074804463` is in progress.
 
 ## Closure gate
 
