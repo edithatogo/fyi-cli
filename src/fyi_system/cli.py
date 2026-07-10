@@ -8,7 +8,7 @@ from .archive_diff import run_diff
 from .archive_health import build_archive_health, write_archive_health
 from .db import init_db, query_all, connect, get_tracked_request, export_tracked_requests, import_tracked_requests, request_timeline, update_request_status
 from .discovery import backfill_ids, discover_feed, reconcile_discovery_files, shared_rate_limit_status, write_jsonl
-from .agent_runtime import RetrievalPlan, reflect_plan
+from .agent_runtime import RetrievalPlan, agent_status_report, reflect_plan
 from .fyi import build_prefilled_url
 from .importers import (
     DEFAULT_AUTHORITIES_URL,
@@ -160,6 +160,9 @@ def cmd_discover_reconcile(args):
 
 def cmd_rate_limit_status(args):
     payload = shared_rate_limit_status(args.db, name=args.name)
+    if args.agent_memory:
+        payload = payload or {}
+        payload["agent"] = agent_status_report(args.agent_memory)
     if args.output:
         Path(args.output).write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         print(args.output)
@@ -472,6 +475,7 @@ def build_parser():
     sp.add_argument('--db', default='fyi_system.db')
     sp.add_argument('--name', default='archive-discovery')
     sp.add_argument('--output')
+    sp.add_argument('--agent-memory')
     sp.set_defaults(func=cmd_rate_limit_status)
 
     # Command: dry-plan (offline plan-and-solve reflection)
