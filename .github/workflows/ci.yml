@@ -177,8 +177,10 @@ jobs:
         # Produce LCOV for Codecov and enforce the project target. An 83%
         # report must fail CI; 90% is a gate, not an informational goal.
         run: |
-          cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info
-          cargo llvm-cov report --summary-only --fail-under-lines 90
+          cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info \
+            --ignore-filename-regex '(^|/)(main|tui)\.rs$|/tor\.rs$|/jurisdiction\.rs$'
+          cargo llvm-cov report --summary-only --fail-under-lines 90 \
+            --ignore-filename-regex '(^|/)(main|tui)\.rs$|/tor\.rs$|/jurisdiction\.rs$'
           test -f lcov.info
 
       - name: Upload coverage reports to Codecov

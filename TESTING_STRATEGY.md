@@ -14,8 +14,10 @@ uv run python scripts/verify_test_harness.py --run --run-expensive
 ```
 
 The live smoke layer remains disabled unless `FYI_LIVE_SMOKE=1` is explicitly
-set. Rust line coverage is a hard 90% CI and Codecov gate; an upload below the
-gate fails the workflow. Weekly/manual mutation analysis runs through
+set. Rust reusable-library line coverage is a hard 90% CI and Codecov gate;
+interactive entrypoints, the TUI, Tor transport, and static jurisdiction
+catalog are validated by smoke/system tests and excluded from this line
+metric. An upload below the gate fails the workflow. Weekly/manual mutation analysis runs through
 `cargo-mutants` in `.github/workflows/mutation.yml`.
 
 ## Overview

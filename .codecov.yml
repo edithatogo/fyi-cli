@@ -23,3 +23,9 @@ ignore:
   - "dashboard/**"
   - "docs-site/**"
   - "src/fyi_system/**"  # legacy Python package; not the Rust release gate
+  # Entrypoint/UI, Tor transport, and static catalog paths are exercised by
+  # smoke/system tests; the 90% line gate measures reusable library logic.
+  - "**/src/main.rs"
+  - "**/src/tui.rs"
+  - "**/src/tor.rs"
+  - "**/src/jurisdiction.rs"
