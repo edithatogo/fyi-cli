@@ -80,7 +80,21 @@ pub struct SyncClient {
 
 impl SyncClient {
     pub fn new(base_url: &str) -> Result<Self> {
-        Self::with_http_client(base_url, Client::new())
+        let identity = crate::agent_runtime::ClientIdentity::default_identity(None)
+            .map_err(|e| anyhow!("invalid client identity: {e}"))?;
+        let http = crate::agent_runtime::build_http_client(&identity)
+            .map_err(|e| anyhow!("failed to build HTTP client: {e}"))?;
+        Self::with_http_client(base_url, http)
+    }
+
+    /// Construct with an explicit agent identity (version fingerprint + opt-in contact).
+    pub fn with_identity(
+        base_url: &str,
+        identity: &crate::agent_runtime::ClientIdentity,
+    ) -> Result<Self> {
+        let http = crate::agent_runtime::build_http_client(identity)
+            .map_err(|e| anyhow!("failed to build HTTP client: {e}"))?;
+        Self::with_http_client(base_url, http)
     }
 
     pub fn with_http_client(base_url: &str, http: Client) -> Result<Self> {
@@ -99,7 +113,11 @@ impl SyncClient {
 
     #[cfg(test)]
     fn new_for_testing(base_url: &str) -> Result<Self> {
-        Self::with_http_client_and_validation(base_url, Client::new(), true)
+        let identity = crate::agent_runtime::ClientIdentity::default_identity(None)
+            .map_err(|e| anyhow!("invalid client identity: {e}"))?;
+        let http = crate::agent_runtime::build_http_client(&identity)
+            .map_err(|e| anyhow!("failed to build HTTP client: {e}"))?;
+        Self::with_http_client_and_validation(base_url, http, true)
     }
 
     pub async fn pull_incremental(&self, db: &DbPool) -> Result<PullReport> {

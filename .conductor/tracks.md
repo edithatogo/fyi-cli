@@ -175,7 +175,18 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## Active Tracks
 
-- None
+- [~] **Track: resource-aware-autonomous-agent** (IN PROGRESS)
+  *Link: [./tracks/resource-aware-autonomous-agent/](./tracks/resource-aware-autonomous-agent/)*
+  *Description: Refactor fyi-cli from a passive scraper into a production-grade, resource-aware autonomous agent: RateLimit-* / Retry-After header interception, adaptive bandwidth scaling, local load memory, plan-and-solve reflection, framework-ready core loop, and mandatory contactable User-Agent hygiene for sustainable use of volunteer Alaveteli instances (FYI.org.nz and peers).*
+  *Priority: high*
+  *Dependencies: upstream-alaveteli-engagement, jurisdiction-abstraction-core, api-contract-hardening-20260630, multi-jurisdiction-security-hardening*
+
+- [~] **Track: alaveteli-bot-contract** (IN PROGRESS)
+  *GitHub parent: [#140](https://github.com/edithatogo/fyi-cli/issues/140)*
+  *Paired Alaveteli parent: [#23](https://github.com/edithatogo/alaveteli/issues/23)*
+  *Link: [./tracks/alaveteli_bot_contract_20260710/](./tracks/alaveteli_bot_contract_20260710/)*
+  *Description: Deliver the fyi-cli side of traceable identity, back-pressure handling, conditional caching, and bounded bulk-export interoperability with the fork-local Alaveteli sustainability contract.*
+  *Dependencies: resource-aware-autonomous-agent, api-contract-hardening-20260630*
 
 ## Recently completed (2026-07-09)
 

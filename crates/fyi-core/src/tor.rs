@@ -1,4 +1,5 @@
 use arti_client::{config::TorClientConfigBuilder, TorClient, TorClientConfig};
+use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
 use std::net::IpAddr;
 use std::net::SocketAddr;
 use std::path::Path;
@@ -116,6 +117,19 @@ impl TorManager {
     }
 
     pub fn create_reqwest_client(&self) -> Result<reqwest::Client, TorError> {
+        let identity = crate::agent_runtime::ClientIdentity::default_identity(None)
+            .map_err(|e| TorError::Runtime(format!("Invalid client identity: {e}")))?;
+        self.create_reqwest_client_with_identity(&identity)
+    }
+
+    /// Build the Tor-routed client with the mandatory traceable User-Agent.
+    pub fn create_reqwest_client_with_identity(
+        &self,
+        identity: &crate::agent_runtime::ClientIdentity,
+    ) -> Result<reqwest::Client, TorError> {
+        identity
+            .validate()
+            .map_err(|e| TorError::Runtime(format!("Invalid client identity: {e}")))?;
         let proxy_addr = self.proxy_addr.ok_or_else(|| {
             TorError::Runtime("Proxy has not been started yet. Call start_proxy first.".to_string())
         })?;
@@ -124,13 +138,28 @@ impl TorManager {
         let proxy = reqwest::Proxy::all(&proxy_url)
             .map_err(|e| TorError::Runtime(format!("Failed to parse proxy URL: {}", e)))?;
 
+        let default_headers = identity_headers(identity)?;
         let client = reqwest::Client::builder()
             .proxy(proxy)
+            .default_headers(default_headers)
             .build()
             .map_err(|e| TorError::Runtime(format!("Failed to build reqwest Client: {}", e)))?;
 
         Ok(client)
     }
+}
+
+fn identity_headers(
+    identity: &crate::agent_runtime::ClientIdentity,
+) -> Result<HeaderMap, TorError> {
+    let user_agent = identity.user_agent();
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        USER_AGENT,
+        HeaderValue::from_str(&user_agent)
+            .map_err(|e| TorError::Runtime(format!("Invalid User-Agent: {e}")))?,
+    );
+    Ok(headers)
 }
 
 async fn handle_socks_connection(
@@ -239,4 +268,26 @@ async fn handle_socks_connection(
     tokio::try_join!(client_to_tor, tor_to_client)?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::identity_headers;
+
+    #[test]
+    fn identity_headers_include_traceable_user_agent() {
+        let identity = crate::agent_runtime::ClientIdentity::custom(
+            "fyi-test",
+            "9.9.9",
+            "https://example.test/fyi",
+            Some("ops@example.test".to_string()),
+        )
+        .expect("test identity should validate");
+
+        let headers = identity_headers(&identity).expect("identity headers should build");
+        assert_eq!(
+            headers.get(reqwest::header::USER_AGENT),
+            Some(&reqwest::header::HeaderValue::from_str(&identity.user_agent()).unwrap())
+        );
+    }
 }

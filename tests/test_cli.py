@@ -1,6 +1,6 @@
 """Tests for CLI argument parsing and commands."""
 import pytest
-from fyi_system.cli import build_parser, cmd_list_authorities, cmd_list_requests
+from fyi_system.cli import build_parser, cmd_dry_plan, cmd_list_authorities, cmd_list_requests
 
 
 class TestBuildParser:
@@ -23,6 +23,28 @@ class TestBuildParser:
         args = parser.parse_args(['init-db', '--db', 'test.db'])
         assert args.cmd == 'init-db'
         assert args.db == 'test.db'
+
+    def test_dry_plan_command_parsing(self):
+        args = build_parser().parse_args([
+            'dry-plan', '--instance-id', 'nz-fyi', '--recursive-unbounded',
+            '--date-from', '2026-01-01', '--date-to', '2026-01-31',
+        ])
+        assert args.cmd == 'dry-plan'
+        assert args.instance_id == 'nz-fyi'
+        assert args.recursive_unbounded is True
+
+    def test_dry_plan_rejects_unbounded_without_network(self, capsys):
+        args = build_parser().parse_args([
+            'dry-plan', '--instance-id', 'nz-fyi', '--recursive-unbounded',
+        ])
+        cmd_dry_plan(args)
+        assert 'reject' in capsys.readouterr().out
+
+    def test_rate_limit_status_accepts_agent_memory(self):
+        args = build_parser().parse_args([
+            'rate-limit-status', '--agent-memory', 'agent-memory.json',
+        ])
+        assert args.agent_memory == 'agent-memory.json'
     
     def test_init_db_default_db(self):
         """Test init-db command uses default database."""

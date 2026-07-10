@@ -155,6 +155,17 @@ The legacy implementation uses Python for rapid development and deployment.
 - Easy to test and maintain
 - API adapters for FYI.org.nz and other sources
 
+### Agent network middleware (2026-07-09)
+
+**Rust:** `crates/fyi-core/src/agent_runtime.rs` — identity (SHA-256 fingerprint UA),
+RateLimit-*/Retry-After parsing, adaptive pacing, guardrails, plan reflection, filesystem
+cache, load memory, JSONL traces. Uses existing deps only (`sha2`, `serde`, `reqwest`,
+`chrono`, `thiserror`).
+
+**Python parity:** `src/fyi_system/agent_runtime.py` for discovery/importer live paths.
+
+**Docs:** `docs/agent-network-middleware.md`
+
 ### Project Structure (Rust)
 ```
 .
@@ -233,3 +244,32 @@ This allows:
 4. **Phase 4**: Implement MCP server in Rust
 5. **Phase 5**: Add TOR/proxy support with arti
 6. **Phase 6**: Full migration and deprecation of Python version
+# Portable Windows Build Toolchain
+
+The repository supports a non-admin, user-scoped MSVC build environment for
+Windows verification. It must never modify system environment variables,
+registry state, or `Program Files`.
+
+- `Toolchain_Type`: Non-Admin MSVC Portable
+- `Installation_Path`: `%USERPROFILE%\msvc_portable`
+- `Binary_Paths`: `%USERPROFILE%\msvc_portable\installed\...\Contents\VC\Tools\MSVC\14.44.35207\bin\Hostx86\x64`
+- `SDK_Paths`: `%USERPROFILE%\msvc_portable\xwin-cache\unpack\Win11SDK_10.0.26100_headers.msi\include`, `%USERPROFILE%\msvc_portable\xwin-cache\unpack\Win11SDK_10.0.26100_libs_x86_64.msi\lib\um\x64`, `%USERPROFILE%\msvc_portable\xwin-cache\unpack\Win11SDK_10.0.26100_store_libs.msi\lib\um\x64`, `%USERPROFILE%\msvc_portable\xwin-cache\unpack\Microsoft.VC.14.44.17.14.CRT.x64.Store.base.vsix\lib\x64`, and `%USERPROFILE%\msvc_portable\xwin-cache\unpack\ucrt.msi\include\ucrt` / `lib\ucrt\x64`
+
+The environment is applied only to a child process through
+`scripts/Invoke-MsvcPortable.ps1`. The deterministic verification command is:
+
+```powershell
+pwsh -NoProfile -File scripts/verify_msvc_portable.ps1
+```
+
+This must print the MSVC compiler version and exit zero. Build commands use the
+same launcher, for example:
+
+```powershell
+pwsh -NoProfile -File scripts/Invoke-MsvcPortable.ps1 cargo test --target x86_64-pc-windows-msvc -p fyi-core --test tor_tests
+```
+
+The portable payload is generated from Microsoft-signed Visual Studio Build
+Tools layout content and the Rust `xwin` SDK/CRT downloader. The extracted
+toolchain is local machine state, not a repository dependency and must not be
+committed.

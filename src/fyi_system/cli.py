@@ -8,8 +8,14 @@ from .archive_diff import run_diff
 from .archive_health import build_archive_health, write_archive_health
 from .db import init_db, query_all, connect, get_tracked_request, export_tracked_requests, import_tracked_requests, request_timeline, update_request_status
 from .discovery import backfill_ids, discover_feed, reconcile_discovery_files, shared_rate_limit_status, write_jsonl
+from .agent_runtime import RetrievalPlan, agent_status_report, reflect_plan
 from .fyi import build_prefilled_url
-from .importers import DEFAULT_AUTHORITIES_URL, discover_bodies, import_authorities_csv, import_authorities_url
+from .importers import (
+    DEFAULT_AUTHORITIES_URL,
+    discover_bodies,
+    import_authorities_csv,
+    import_authorities_url,
+)
 from .monitor import ingest_feed, reconcile_events
 from .fetch import fetch_request_page, summarize_request_json, latest_snapshot_summary
 from .reporting import (
@@ -62,6 +68,7 @@ def cmd_discover_bodies(args):
         base_url=args.base_url,
         delay_seconds=args.delay_seconds,
         shared_rate_limit_db_path=args.db,
+        transport=None,
     )
     payload = {"base_url": args.base_url.rstrip("/"), "count": len(rows), "bodies": rows}
     _write_json_or_print(payload, args.output)
@@ -153,11 +160,30 @@ def cmd_discover_reconcile(args):
 
 def cmd_rate_limit_status(args):
     payload = shared_rate_limit_status(args.db, name=args.name)
+    if args.agent_memory:
+        payload = payload or {}
+        payload["agent"] = agent_status_report(args.agent_memory)
     if args.output:
         Path(args.output).write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         print(args.output)
     else:
         print(json.dumps(payload, indent=2, sort_keys=True))
+
+
+def cmd_dry_plan(args):
+    """Reflect a bounded retrieval plan without making network calls."""
+    plan = RetrievalPlan(
+        instance_id=args.instance_id,
+        description=args.description,
+        estimated_requests=args.estimated_requests,
+        date_from=args.date_from,
+        date_to=args.date_to,
+        max_pages=args.max_pages,
+        recursive_unbounded=args.recursive_unbounded,
+        is_heavy=args.heavy,
+        force_schedule=args.force_schedule,
+    )
+    _write_json_or_print(reflect_plan(plan), args.output)
 
 
 def cmd_archive_health(args):
@@ -449,7 +475,22 @@ def build_parser():
     sp.add_argument('--db', default='fyi_system.db')
     sp.add_argument('--name', default='archive-discovery')
     sp.add_argument('--output')
+    sp.add_argument('--agent-memory')
     sp.set_defaults(func=cmd_rate_limit_status)
+
+    # Command: dry-plan (offline plan-and-solve reflection)
+    sp = sub.add_parser('dry-plan')
+    sp.add_argument('--instance-id', required=True)
+    sp.add_argument('--description', default='retrieval')
+    sp.add_argument('--estimated-requests', type=int, default=0)
+    sp.add_argument('--date-from')
+    sp.add_argument('--date-to')
+    sp.add_argument('--max-pages', type=int)
+    sp.add_argument('--recursive-unbounded', action='store_true')
+    sp.add_argument('--heavy', action='store_true')
+    sp.add_argument('--force-schedule', action='store_true')
+    sp.add_argument('--output')
+    sp.set_defaults(func=cmd_dry_plan)
 
     # Command: discover-reconcile
     sp = sub.add_parser('discover-reconcile')

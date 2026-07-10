@@ -7,7 +7,10 @@
 3. **Test-Driven Development:** Write unit tests before implementing functionality
 4. **High Code Coverage:** Aim for >80% code coverage for all modules
 5. **User Experience First:** Every decision should prioritize user experience
-6. **Non-Interactive & CI-Aware:** Prefer non-interactive commands. Use `CI=true` for watch-mode tools (tests, linters) to ensure single execution.
+6. **No Accepted Known Risk:** No known security, privacy, availability, correctness, data-integrity, or quality risk may be accepted as low risk. Every finding must be fixed, verified false positive, mitigated with a deterministic sensor, or converted into a dated disabled blocking follow-up.
+7. **Harness Engineering First:** Treat the repository as a human- and agent-operable harness. Every meaningful change must improve feedforward guides and feedback sensors such as specs, plans, style guides, tests, type checks, linters, scanners, benchmarks, observability, and runbooks.
+8. **Keep Quality Left:** Run fast deterministic sensors before implementation and in pre-merge CI. Expensive mutation, E2E, profiling, and architecture checks must have explicit execution points and cannot be silently skipped.
+9. **Non-Interactive & CI-Aware:** Prefer non-interactive commands. Use `CI=true` for watch-mode tools (tests, linters) to ensure single execution.
 
 ## Conductor Lifecycle
 
@@ -25,6 +28,15 @@
 4. When the PR merges, GitHub closes the referenced issues automatically.
 5. Conductor track metadata (`.conductor/tracks/<slug>/metadata.json` and `tracks.md`) must be updated to record the issue number, pull request number, and current status after merge or on progress updates.
 6. Completed tracks are archived from the active list and moved under `.conductor/archive/` when the corresponding work is merged.
+
+### Issue decomposition and PR controls
+
+- Strategic work begins with one fork-local parent issue in GitHub and one paired parent issue when another repository is involved.
+- Parent issues must have small child issues. Each child normally maps to one focused PR with one behavior or one harness improvement.
+- Cross-repository children must link their paired issue and share a contract version or fixture identifier.
+- A child issue cannot close while any known security, privacy, availability, correctness, data-integrity, or quality risk remains unresolved.
+- Every PR must show red/green tests, verification commands, rollback impact, and the feedforward guide and feedback sensors it changes.
+- Default CI remains offline; live smoke is opt-in, bounded, and auditable.
 
 ## Task Workflow
 
@@ -151,6 +163,20 @@ Before marking any task complete, verify:
 - [ ] No linting or static analysis errors
 - [ ] Documentation updated if needed
 - [ ] No security vulnerabilities introduced
+
+### Windows MSVC verification
+
+When Rust verification requires the Windows MSVC linker, use the user-scoped
+portable toolchain rather than requesting elevation:
+
+```powershell
+pwsh -NoProfile -File scripts/verify_msvc_portable.ps1
+pwsh -NoProfile -File scripts/Invoke-MsvcPortable.ps1 cargo test --target x86_64-pc-windows-msvc -p fyi-core --test tor_tests
+```
+
+The launcher must set `PATH`, `INCLUDE`, and `LIB` only in its child process.
+No system-wide environment variables, registry keys, or `Program Files`
+locations may be modified.
 
 ## Development Commands
 
