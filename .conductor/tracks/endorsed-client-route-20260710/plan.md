@@ -99,6 +99,9 @@
 - The first focused run failed before test execution because of its PostgreSQL
   bootstrap command; paired commit `ccd83b35a` fixes that and rerun
   `29074804463` is in progress.
+- That rerun reached the specs and exposed only a bulk-fixture locale mismatch;
+  paired commit `92ff6d9fd` pins the fixture locale and rerun `29075027867` is
+  now in progress.
 
 ## Closure gate
 

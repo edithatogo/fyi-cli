@@ -182,6 +182,9 @@ the pre-existing dirty `agent_runtime.rs` change unless explicitly assigned.
 - Run `29074714893` failed during database bootstrap before specs; commit
   `ccd83b35a` corrected the connection command and rerun `29074804463` is now
   in progress.
+- Run `29074804463` reached the specs but exposed a locale mismatch in the
+  bulk fixtures; paired commit `92ff6d9fd` pins that spec to the configured
+  default locale and rerun `29075027867` is in progress.
 
 ## Final local verification record
 
