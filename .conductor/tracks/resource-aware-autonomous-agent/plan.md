@@ -110,9 +110,9 @@
 
 - [ ] All acceptance criteria in `spec.md` satisfied
 - [ ] Rust primary path is header-aware, adaptive, memory-backed, UA-safe
-- [ ] Python live paths used for discovery/capture have documented parity or intentional gaps filed
-- [ ] No CI live network; secrets never in rate-limit errors
-- [ ] Docs aligned with behaviour
+- [x] Python live paths used for discovery/capture have documented parity or intentional gaps filed — 40008b3; 604 passed
+- [x] No CI live network; secrets never in rate-limit errors — workflow audit + existing redaction tests
+- [x] Docs aligned with behaviour — 40008b3
 
 ## Track History
 
@@ -125,6 +125,15 @@
 - **2026-07-10**: Added framework-neutral perception/reason/action/reflection
   traits, a thin adapter, cache no-stale-write coverage, and aligned Rust,
   Python, README, and operator documentation. Checkpoint: `40008b3`.
+
+- **2026-07-10**: Hardened best-effort Python feed monitoring so socket
+  timeouts still initialize/query the local database; full Python suite reached
+  604 passed and focused new-module coverage reached 90% overall (agent runtime
+  88%). Checkpoint: `47b767e`.
+
+- **2026-07-10**: Fresh GNU Rust rebuild is pending because a concurrent rustup
+  component update removed shared standard-library artifacts (`E0463`); prior
+  clean GNU direct-binary verification remains 152 passed.
 
 - **2026-07-10**: Phase 0 inventory and policy baseline completed in `docs/agent-network-middleware.md`; Rust and Python live paths now share header-aware retry and identity policy. Checkpoint: `413d8b2`.
 - **2026-07-10**: Added offline `dry-plan` CLI reflection and completed the plan-model/reflection subsection. Checkpoint: `50bb43e`.
