@@ -94,6 +94,8 @@
 - CI run `29074300108` is currently in progress. The endorsed route remains
   disabled and upstream submission remains blocked until this paired evidence
   is green and the evidence gate is signed off.
+- Focused paired workflow run `29074714893` now provides a bounded verification
+  sensor for the contract specs without relying on the full Rails suite.
 
 ## Closure gate
 

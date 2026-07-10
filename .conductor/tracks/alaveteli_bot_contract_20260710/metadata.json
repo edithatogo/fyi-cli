@@ -21,6 +21,7 @@
   "paired_evidence_status": "correction-ci-in-progress",
   "paired_fix_commit": "297f09380",
   "paired_ci_run_latest": 29074300108,
+  "paired_focused_ci_run": 29074714893,
   "local_route_coverage": "100% (21 tests)",
   "risk_policy": "no-known-risk-accepted",
   "delivery_model": "one-child-issue-one-focused-pr",

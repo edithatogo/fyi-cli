@@ -175,6 +175,10 @@ the pre-existing dirty `agent_runtime.rs` change unless explicitly assigned.
 - New paired CI run `29074300108` is in progress across the Ruby/PostgreSQL
   matrix. Closure remains contingent on its focused contract examples and
   required security gates completing successfully.
+- Added a deterministic paired workflow at
+  `alaveteli/.github/workflows/fyi-contract.yml`; run `29074714893` executes
+  only the bulk exporter, traffic-control, and contract-validation specs under
+  Ruby 3.4/PostgreSQL 13.5.
 
 ## Final local verification record
 
