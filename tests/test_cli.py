@@ -39,6 +39,12 @@ class TestBuildParser:
         ])
         cmd_dry_plan(args)
         assert 'reject' in capsys.readouterr().out
+
+    def test_rate_limit_status_accepts_agent_memory(self):
+        args = build_parser().parse_args([
+            'rate-limit-status', '--agent-memory', 'agent-memory.json',
+        ])
+        assert args.agent_memory == 'agent-memory.json'
     
     def test_init_db_default_db(self):
         """Test init-db command uses default database."""
