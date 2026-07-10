@@ -19,9 +19,9 @@
 
 - [~] Create shared offline fixtures and conformance tests in the fork repositories — fyi-cli fixture/tests complete; paired server fixture remains external.
 - [x] Implement or verify fyi-cli Rust, Python, and MCP behavior against the contract — `356e470`, `a02512a`.
-- [ ] Implement the fork-local Alaveteli server-side controls through separate child issues and focused PRs.
+- [x] Implement the fork-local Alaveteli server-side controls through separate child issues and focused PRs — paired checkout evidence `1c81bdeaa`, Conductor checkpoint `6bfc7e4ac`.
 - [x] Add operator status, audit, disablement, rollback, and bounded-smoke evidence — `3e984f0`, `a02512a`.
-- [ ] Run security, dependency, lint, type, property, mutation, and coverage gates appropriate to changed code.
+- [~] Run security, dependency, lint, type, property, mutation, and coverage gates appropriate to changed code — fyi-cli Rust/Python/MCP and Python quality gates pass; paired Rails gates await Ruby-enabled CI.
 
 ## Phase 3: Maintainer package
 
@@ -43,6 +43,8 @@
 - Rust `fyi-core`: 128 passed; Rust `fyi-mcp`: 19 passed.
 - Endorsed-route Python coverage: 88%; Ruff and basedpyright pass for changed
   Python route/harness files.
+- Workspace GNU compile check: `cargo check --workspace --target
+  x86_64-pc-windows-gnu --locked` passed.
 - Remaining quality-gate work is the paired server-side suite plus any
   maintainer-approved security/dependency/mutation gates; upstream submission
   remains disabled.
