@@ -1,0 +1,1 @@
+Hardened endorsed-route parsing with strict unknown-field/type validation and fail-closed empty identifier/scope/quota checks. Verification: Python 10 route tests and GNU Rust 4 route tests passed.
