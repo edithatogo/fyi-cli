@@ -20,18 +20,18 @@
 
 ## Phase 2: Back-pressure parity
 
-- [~] Issue #142: Parse and honor Alaveteli rate and advisory headers; stacked
+- [x] Issue #142: Parse and honor Alaveteli rate and advisory headers; stacked
   fork-local PR #150 depends on PR #147.
 - [x] Align Rust and Python snapshots for standard rate-limit fields and
   `X-Advisory-Status`, including degraded pacing — `37677ca`.
 - [x] Add shared offline fixtures and parity tests for valid and malformed
   headers; reject negative unsigned values consistently — `37677ca`.
-- [ ] Complete cross-path 429 halt, HTTP-date, bounded-jitter, and instance
-  isolation evidence against the full client contract.
+- [x] Complete cross-path 429 halt, HTTP-date, bounded-jitter, and instance
+  isolation evidence against the full client contract — `08ef89a`.
 
 ## Phase 3: Cache and bounded bulk mode
 
-- [~] Issue #143: Add conditional caching and bounded bulk export mode; stacked
+- [x] Issue #143: Add conditional caching and bounded bulk export mode; stacked
   fork-local PR #152 depends on PR #150.
 - [x] Add bounded streamed Python bulk export with item/byte ceilings and
   guaranteed response closure — `68f2f53`.
@@ -115,3 +115,12 @@ the pre-existing dirty `agent_runtime.rs` change unless explicitly assigned.
   identity and routes requests through `AgentNetworkMiddleware` for pacing,
   concurrency, response-byte guardrails, load memory, traces, and 429 feedback.
 - GNU Tor integration test: `test_tor_guarded_client_uses_shared_agent_identity_contract` passed.
+
+## Back-pressure verification
+
+- Checkpoint: `08ef89a`.
+- Full GNU `fyi-core` suite: 128 passed, including HTTP-date Retry-After,
+  deterministic bounded jitter, instance/route memory isolation, and 429
+  BackingOff state.
+- The remaining Phase 4 work is fork-local Alaveteli verification and shared
+  server-side reconciliation, not an untested client-side behavior.
