@@ -41,8 +41,8 @@
 
 - Python repository suite: 616 passed, 1 opt-in live smoke skipped.
 - Rust `fyi-core`: 128 passed; Rust `fyi-mcp`: 19 passed.
-- Endorsed-route Python coverage: 88%; Ruff and basedpyright pass for changed
-  Python route/harness files.
+- Endorsed-route Python coverage: 100% (21 tests); Ruff and basedpyright pass
+  for changed Python route/harness files.
 - Workspace GNU compile check: `cargo check --workspace --target
   x86_64-pc-windows-gnu --locked` passed.
 - Remaining quality-gate work is the paired server-side suite plus any

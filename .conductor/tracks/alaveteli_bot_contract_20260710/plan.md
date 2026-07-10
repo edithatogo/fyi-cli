@@ -131,7 +131,7 @@ the pre-existing dirty `agent_runtime.rs` change unless explicitly assigned.
 - Runtime result: `mode=offline`, two shared back-pressure cases, bounded route
   bulk ceiling reported, and live smoke explicitly disabled.
 - Quality gates: Ruff and basedpyright pass for the changed Python harness and
-  route module; targeted route coverage is 88%.
+  route module; targeted route coverage is now 100% (21 tests).
 - External follow-up: run the paired Alaveteli server fixture/conformance suite
   under issue #144 before evidence-gate closure.
 
