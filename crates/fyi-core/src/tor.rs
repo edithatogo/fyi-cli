@@ -281,28 +281,6 @@ fn identity_headers(
     Ok(headers)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::identity_headers;
-
-    #[test]
-    fn identity_headers_include_traceable_user_agent() {
-        let identity = crate::agent_runtime::ClientIdentity::custom(
-            "fyi-test",
-            "9.9.9",
-            "https://example.test/fyi",
-            Some("ops@example.test".to_string()),
-        )
-        .expect("test identity should validate");
-
-        let headers = identity_headers(&identity).expect("identity headers should build");
-        assert_eq!(
-            headers.get(reqwest::header::USER_AGENT),
-            Some(&reqwest::header::HeaderValue::from_str(&identity.user_agent()).unwrap())
-        );
-    }
-}
-
 async fn handle_socks_connection(
     mut client_stream: TcpStream,
     tor_client: TorClient<PreferredRuntime>,
@@ -409,4 +387,26 @@ async fn handle_socks_connection(
     tokio::try_join!(client_to_tor, tor_to_client)?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::identity_headers;
+
+    #[test]
+    fn identity_headers_include_traceable_user_agent() {
+        let identity = crate::agent_runtime::ClientIdentity::custom(
+            "fyi-test",
+            "9.9.9",
+            "https://example.test/fyi",
+            Some("ops@example.test".to_string()),
+        )
+        .expect("test identity should validate");
+
+        let headers = identity_headers(&identity).expect("identity headers should build");
+        assert_eq!(
+            headers.get(reqwest::header::USER_AGENT),
+            Some(&reqwest::header::HeaderValue::from_str(&identity.user_agent()).unwrap())
+        );
+    }
 }
