@@ -1,0 +1,17 @@
+{
+  "track_id": "endorsed-client-route-20260710",
+  "type": "upstream-engagement-preparation",
+  "status": "planned",
+  "created_at": "2026-07-10T06:00:00Z",
+  "updated_at": "2026-07-10T06:00:00Z",
+  "description": "Prepare an evidence-backed, opt-in, sysadmin-controlled CLI/MCP route intended to reduce accidental Alaveteli overload before seeking maintainer agreement upstream.",
+  "github_issue": 148,
+  "parent_client_issue": 140,
+  "paired_server_issue": "https://github.com/edithatogo/alaveteli/issues/23",
+  "upstream_issue": null,
+  "upstream_pull_request": null,
+  "risk_policy": "no-known-risk-accepted",
+  "delivery_model": "one-child-issue-one-focused-pr",
+  "upstream_submission": "disabled-until-evidence-gate"
+}
+
