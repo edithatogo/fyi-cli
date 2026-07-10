@@ -37,6 +37,9 @@ does not make anonymous privileged access possible.
 - Rust and Python authorize the same shared JSON fixture and fail closed for
   disabled, killed, revoked, expired, unknown-client, unknown-scope, and
   unauthorized-bulk cases.
+- `scripts/verify_alaveteli_bot_contract.py` is the reproducible offline
+  fyi-cli-side harness. `FYI_ALAVETELI_CONTRACT_LIVE=1` only labels an
+  explicitly authorized bounded smoke request and never supplies credentials.
 - MCP exposes only local read-only evaluation; it cannot fetch, enable, or
   mutate a remote capability document.
 - Fork-local Alaveteli server controls, real operator metrics, and maintainer
