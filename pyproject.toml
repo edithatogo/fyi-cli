@@ -53,6 +53,7 @@ dev = [
   "pytest-cov>=5.0.0",
   "pytest-benchmark>=4.0.0",
   "hypothesis>=6.100.0",
+  "keyrings.alt>=5.0.0",
   "ruff>=0.6.0",
   "basedpyright>=1.13.0",
   "pip-audit>=2.0.0",
