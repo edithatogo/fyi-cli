@@ -499,6 +499,12 @@ impl GuardrailTracker {
                 self.config.max_requests
             )));
         }
+        if self.response_bytes >= self.config.max_response_bytes {
+            return Err(AgentRuntimeError::Guardrail(format!(
+                "maximum response bytes reached ({})",
+                self.config.max_response_bytes
+            )));
+        }
         if self.started.elapsed() >= self.config.max_runtime {
             return Err(AgentRuntimeError::Guardrail(format!(
                 "maximum runtime exceeded ({:?})",
@@ -1230,6 +1236,21 @@ impl AgentNetworkMiddleware {
         }
 
         Ok(wait)
+    }
+
+    /// Account for a response chunk while it is being read, so callers can
+    /// stop buffering before an oversized body exhausts memory.
+    pub fn record_response_chunk(&mut self, bytes: u64) -> Result<(), AgentRuntimeError> {
+        if let Err(error) = self.guardrails.record_response_bytes(bytes) {
+            self.emit(
+                "guardrail.trip",
+                "event",
+                None,
+                serde_json::json!({ "error": error.to_string() }),
+            );
+            return Err(error);
+        }
+        Ok(())
     }
 
     pub fn user_agent(&self) -> String {
