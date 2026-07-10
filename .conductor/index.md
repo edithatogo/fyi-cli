@@ -25,7 +25,7 @@ This directory contains the canonical Conductor project context and management f
 - [Tracks Directory](./tracks/) - Individual track specifications and plans
 
 ### Active Tracks
-- None
+- **resource-aware-autonomous-agent** - Header-aware adaptive pacing, load memory, plan reflection, and identity hygiene for sustainable Alaveteli access
 
 ### Completed Tracks
 - **research-grade-quality** - >95% test coverage, >90% mutation score, and load/performance testing baseline

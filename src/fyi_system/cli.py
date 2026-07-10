@@ -9,7 +9,12 @@ from .archive_health import build_archive_health, write_archive_health
 from .db import init_db, query_all, connect, get_tracked_request, export_tracked_requests, import_tracked_requests, request_timeline, update_request_status
 from .discovery import backfill_ids, discover_feed, reconcile_discovery_files, shared_rate_limit_status, write_jsonl
 from .fyi import build_prefilled_url
-from .importers import DEFAULT_AUTHORITIES_URL, discover_bodies, import_authorities_csv, import_authorities_url
+from .importers import (
+    DEFAULT_AUTHORITIES_URL,
+    discover_bodies,
+    import_authorities_csv,
+    import_authorities_url,
+)
 from .monitor import ingest_feed, reconcile_events
 from .fetch import fetch_request_page, summarize_request_json, latest_snapshot_summary
 from .reporting import (
@@ -62,6 +67,7 @@ def cmd_discover_bodies(args):
         base_url=args.base_url,
         delay_seconds=args.delay_seconds,
         shared_rate_limit_db_path=args.db,
+        transport=None,
     )
     payload = {"base_url": args.base_url.rstrip("/"), "count": len(rows), "bodies": rows}
     _write_json_or_print(payload, args.output)

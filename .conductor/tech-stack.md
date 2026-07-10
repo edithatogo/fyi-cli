@@ -155,6 +155,17 @@ The legacy implementation uses Python for rapid development and deployment.
 - Easy to test and maintain
 - API adapters for FYI.org.nz and other sources
 
+### Agent network middleware (2026-07-09)
+
+**Rust:** `crates/fyi-core/src/agent_runtime.rs` — identity (SHA-256 fingerprint UA),
+RateLimit-*/Retry-After parsing, adaptive pacing, guardrails, plan reflection, filesystem
+cache, load memory, JSONL traces. Uses existing deps only (`sha2`, `serde`, `reqwest`,
+`chrono`, `thiserror`).
+
+**Python parity:** `src/fyi_system/agent_runtime.py` for discovery/importer live paths.
+
+**Docs:** `docs/agent-network-middleware.md`
+
 ### Project Structure (Rust)
 ```
 .
