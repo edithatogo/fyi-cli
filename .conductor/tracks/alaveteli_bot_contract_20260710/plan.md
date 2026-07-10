@@ -65,6 +65,8 @@ the pre-existing dirty `agent_runtime.rs` change unless explicitly assigned.
 - Fork-local draft PR: https://github.com/edithatogo/fyi-cli/pull/147
 - Scoped command: `pwsh -NoProfile -File scripts/Invoke-MsvcPortable.ps1 cargo test --locked -p fyi-core sync::tests --lib`.
 - Result: 28 passed, 0 failed.
+- Full scoped core library command: `pwsh -NoProfile -File scripts/Invoke-MsvcPortable.ps1 cargo test --locked -p fyi-core --lib`.
+- Full result: 115 passed, 0 failed.
 - Scoped check: `cargo check --locked -p fyi-core` completed successfully.
 - Remaining closure blocker: Tor/proxy-assisted send integration and its
   deterministic boundary tests are intentionally still open.
