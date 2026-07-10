@@ -627,7 +627,7 @@ impl EndpointMemory {
             .enumerate()
             .map(|(i, c)| (i, *c))
             .collect();
-        ranked.sort_by(|a, b| b.1.cmp(&a.1));
+        ranked.sort_by_key(|b| std::cmp::Reverse(b.1));
         ranked
             .iter()
             .take(3)
@@ -693,7 +693,7 @@ impl LoadMemoryStore {
                 )
             })
             .collect();
-        ranked.sort_by(|a, b| b.1.cmp(&a.1));
+        ranked.sort_by_key(|b| std::cmp::Reverse(b.1));
         let keep: std::collections::HashSet<String> = ranked
             .into_iter()
             .take(max_endpoints)
@@ -1295,10 +1295,8 @@ pub fn redact_secrets(mut value: serde_json::Value) -> serde_json::Value {
                     walk(item);
                 }
             }
-            serde_json::Value::String(s) => {
-                if s.contains("api_key=") || s.contains("Bearer ") {
-                    *s = "[redacted]".into();
-                }
+            serde_json::Value::String(s) if s.contains("api_key=") || s.contains("Bearer ") => {
+                *s = "[redacted]".into();
             }
             _ => {}
         }
