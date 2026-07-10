@@ -2,9 +2,9 @@
 
 ## Phase 1: Rust identity and guardrails
 
-- [~] Issue #141: Enforce traceable identity across Rust HTTP constructors.
-- [~] Add validated identity wiring to the Tor-routed reqwest client and preserve the safe default constructor — `45f7e15`.
-- [~] Add a deterministic no-network test asserting the Tor client User-Agent; execution is blocked by the missing Windows SDK linker libraries — `45f7e15`.
+- [x] Issue #141: Enforce traceable identity across Rust HTTP constructors.
+- [x] Add validated identity wiring to the Tor-routed reqwest client and preserve the safe default constructor — `45f7e15`.
+- [x] Add deterministic identity-header and Tor-client construction tests — `be9604d`; verified with the user-scoped MSVC toolchain.
 - [ ] Issue #145: Enforce resource guardrails at every Rust send boundary.
 - [ ] Audit every remaining Rust HTTP constructor and send path for guardrail coverage.
 - [ ] Add red/green tests for guardrail trips, clean halt, and secret-free errors.
@@ -37,7 +37,17 @@ the pre-existing dirty `agent_runtime.rs` change unless explicitly assigned.
 
 ## Verification blockers
 
-- 2026-07-10: `cargo test -p fyi-core --test tor_tests` cannot link on this
-  workstation because the MSVC Windows SDK libraries are unavailable to
-  `rust-lld`. The identity slice remains open until the focused test passes in
-  a provisioned local or CI environment.
+- [x] Provision a non-admin MSVC/Windows SDK toolchain under
+  `%USERPROFILE%\msvc_portable` and verify it through
+  `scripts/verify_msvc_portable.ps1`.
+- [x] Re-run the focused identity test through
+  `scripts/Invoke-MsvcPortable.ps1` and remove this blocker only after it
+  passes: 5 passed, 0 failed on 2026-07-10.
+
+## Verification record
+
+- `cl.exe`: Microsoft C/C++ Optimizing Compiler `19.44.35228` for x64.
+- Command: `pwsh -NoProfile -File scripts/verify_msvc_portable.ps1`.
+- Command: `pwsh -NoProfile -File scripts/Invoke-MsvcPortable.ps1 cargo test --target x86_64-pc-windows-msvc -p fyi-core --test tor_tests`.
+- Result: 5 passed, 0 failed; no elevation, registry, system environment, or
+  `Program Files` writes were used.
