@@ -2,6 +2,7 @@
 import pytest
 import time
 from pathlib import Path
+from unittest.mock import patch
 from fyi_system.scheduler import run_scheduler, run_cycle
 
 
@@ -41,16 +42,14 @@ class TestRunScheduler:
         db_path = tmp_path / "test.db"
         
         start_time = time.time()
-        try:
+        with patch("fyi_system.scheduler.run_cycle"):
             run_scheduler(
                 feed_url=feed_url,
                 interval_seconds=1,
                 outputs_dir=str(outputs_dir),
                 db_path=str(db_path),
-                once=True
+                once=True,
             )
-        except Exception:
-            pass
         
         # Should return quickly in once mode (not wait for interval)
         elapsed = time.time() - start_time

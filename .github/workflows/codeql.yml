@@ -51,3 +51,24 @@ jobs:
       # exist for this commit. Pinned to a commit SHA (not a floating branch).
       - name: Fail on blocking code-scanning alerts
         uses: edithatogo/.github/.github/actions/code-scanning-gate@90b399a731a17b792352d0c049834a22dbd32523 # pinned gate
+
+      - name: Fail on medium-or-higher code-scanning alerts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          alerts="$(gh api --paginate --slurp \
+            "repos/${GITHUB_REPOSITORY}/code-scanning/alerts?state=open&per_page=100")"
+          blocking="$(printf '%s' "$alerts" | jq '[.[][]
+            | select(.most_recent_instance.commit_sha == env.GITHUB_SHA)
+            | select((.rule.security_severity_level // .rule.severity)
+              | ascii_downcase | IN("medium", "high", "critical"))]')"
+          if [ "$(printf '%s' "$blocking" | jq 'length')" -ne 0 ]; then
+            echo "Open medium-or-higher code-scanning alerts found for ${GITHUB_SHA}:" >&2
+            printf '%s' "$blocking" | jq -r '.[] | "- #\(.number) \(.rule.id) [\(.rule.security_severity_level // .rule.severity)] \(.most_recent_instance.message.text) \(.html_url)"' >&2
+            exit 1
+          fi
+          echo "No open medium-or-higher code-scanning alerts found for ${GITHUB_SHA}."

@@ -22,6 +22,7 @@ URL_RE = re.compile(r"https?://[^\s\]\)\>\"']+")
 EMAIL_RE = re.compile(r'''[^@\s]+@[^@\s]+\.[A-Za-z]{2,}''')
 BEARER_RE = re.compile(r'(?i)(authorization\s*:\s*bearer\s+)[^\s]+')
 SECRET_RE = re.compile(r'(?i)(?<![?&])((?:api[_-]?key|token|signature|sig|auth)\s*[=:]\s*)([^\s,;]+)')
+ENCODED_SECRET_RE = re.compile(r'(?i)((?:api[_-]?key|token|signature|sig|auth)%3[dD])([^%&\s]+)')
 
 
 @dataclass
@@ -99,6 +100,7 @@ def redact_text(value: str, *, profile: str = 'standard') -> str:
     redacted = BEARER_RE.sub(r'\1[redacted-token]', redacted)
     redacted = _redact_url_query_secrets(redacted)
     redacted = SECRET_RE.sub(r'\1[redacted-secret]', redacted)
+    redacted = ENCODED_SECRET_RE.sub(r'\1[redacted-secret]', redacted)
     if profile == 'strict' and len(redacted) > 240:
         digest = hashlib.sha256(redacted.encode('utf-8')).hexdigest()[:12]
         return f'[redacted-long-text sha256:{digest}]'

@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
+from collections.abc import Mapping
 from . import db
 
 
@@ -139,18 +140,20 @@ class AlaveteliClient:
             try:
                 response = self.session.get(url, headers=headers, timeout=self.timeout, **kwargs)
                 
+                response_headers = response.headers if isinstance(response.headers, Mapping) else {}
+
                 # Capture Rate Limits
-                if 'RateLimit-Limit' in response.headers:
+                if 'RateLimit-Limit' in response_headers:
                     self.last_rate_limit = {
-                        'limit': response.headers.get('RateLimit-Limit'),
-                        'remaining': response.headers.get('RateLimit-Remaining'),
-                        'reset': response.headers.get('RateLimit-Reset'),
-                        'advisory_status': response.headers.get('X-Advisory-Status', 'nominal')
+                        'limit': response_headers.get('RateLimit-Limit'),
+                        'remaining': response_headers.get('RateLimit-Remaining'),
+                        'reset': response_headers.get('RateLimit-Reset'),
+                        'advisory_status': response_headers.get('X-Advisory-Status', 'nominal')
                     }
 
                 # Handle 429 Too Many Requests
                 if response.status_code == 429:
-                    retry_after = int(response.headers.get('Retry-After', 5))
+                    retry_after = int(response_headers.get('Retry-After', 5))
                     time.sleep(retry_after)
                     retries += 1
                     continue
@@ -160,14 +163,14 @@ class AlaveteliClient:
                     mock_response = requests.Response()
                     mock_response.status_code = 200
                     mock_response._content = cached['response_body'].encode('utf-8')
-                    mock_response.headers = response.headers
+                    mock_response.headers = response_headers
                     return mock_response
 
                 response.raise_for_status()
 
                 # Cache successful GET responses containing ETags or Last-Modified
-                etag = response.headers.get('ETag')
-                last_modified = response.headers.get('Last-Modified')
+                etag = response_headers.get('ETag')
+                last_modified = response_headers.get('Last-Modified')
                 if response.status_code == 200 and (etag or last_modified):
                     try:
                         db.set_cached_response(self.db_path, url, etag, last_modified, response.text)
