@@ -286,6 +286,8 @@ pub struct PacingPolicy {
     pub max_backoff_seconds: u64,
     pub baseline_concurrency: u32,
     pub degraded_concurrency: u32,
+    pub baseline_batch_size: u32,
+    pub degraded_batch_size: u32,
 }
 
 impl Default for PacingPolicy {
@@ -300,6 +302,8 @@ impl Default for PacingPolicy {
             max_backoff_seconds: 300,
             baseline_concurrency: 2,
             degraded_concurrency: 1,
+            baseline_batch_size: 50,
+            degraded_batch_size: 10,
         }
     }
 }
@@ -310,6 +314,7 @@ pub struct PacingEngine {
     pub state: PacingState,
     pub current_delay: Duration,
     pub concurrency: u32,
+    pub batch_size: u32,
     consecutive_good: u32,
     attempt: u32,
 }
@@ -320,6 +325,7 @@ impl Default for PacingEngine {
         Self {
             current_delay: policy.baseline_delay,
             concurrency: policy.baseline_concurrency,
+            batch_size: policy.baseline_batch_size,
             policy,
             state: PacingState::Baseline,
             consecutive_good: 0,
@@ -333,6 +339,7 @@ impl PacingEngine {
         Self {
             current_delay: policy.baseline_delay,
             concurrency: policy.baseline_concurrency,
+            batch_size: policy.baseline_batch_size,
             policy,
             state: PacingState::Baseline,
             consecutive_good: 0,
@@ -360,6 +367,7 @@ impl PacingEngine {
         if low_remaining || slow {
             self.state = PacingState::Degraded;
             self.concurrency = self.policy.degraded_concurrency;
+            self.batch_size = self.policy.degraded_batch_size;
             self.current_delay = (self.current_delay.saturating_mul(2)).min(self.policy.max_delay);
             self.consecutive_good = 0;
             return self.current_delay;
@@ -384,11 +392,17 @@ impl PacingEngine {
                         .degraded_concurrency
                         .max(1)
                         .min(self.policy.baseline_concurrency);
+                    self.batch_size = self
+                        .policy
+                        .degraded_batch_size
+                        .max(1)
+                        .min(self.policy.baseline_batch_size);
                 }
             }
             PacingState::Baseline => {
                 self.current_delay = self.policy.baseline_delay;
                 self.concurrency = self.policy.baseline_concurrency;
+                self.batch_size = self.policy.baseline_batch_size;
             }
         }
         self.current_delay
@@ -397,6 +411,7 @@ impl PacingEngine {
     pub fn enter_backoff(&mut self, retry_after: Option<u64>) -> Duration {
         self.state = PacingState::BackingOff;
         self.concurrency = 1;
+        self.batch_size = self.policy.degraded_batch_size.max(1);
         self.consecutive_good = 0;
         self.attempt = self.attempt.saturating_add(1);
         let exp =
@@ -409,6 +424,7 @@ impl PacingEngine {
         self.state = PacingState::Baseline;
         self.current_delay = self.policy.baseline_delay;
         self.concurrency = self.policy.baseline_concurrency;
+        self.batch_size = self.policy.baseline_batch_size;
         self.attempt = 0;
         self.consecutive_good = 0;
     }
@@ -643,6 +659,7 @@ impl LoadMemoryStore {
         } else {
             entry.observe_success(latency);
         }
+        self.prune(512);
     }
 
     pub fn get(&self, instance_id: &str, route_class: &str) -> Option<&EndpointMemory> {
@@ -657,6 +674,32 @@ impl LoadMemoryStore {
                     || m.rate_limit_hits > 0 && m.ewma_latency_ms > 1500.0
             })
             .unwrap_or(false)
+    }
+
+    /// Keep durable memory bounded by retaining the most informative endpoints.
+    pub fn prune(&mut self, max_endpoints: usize) {
+        if self.endpoints.len() <= max_endpoints {
+            return;
+        }
+        let mut ranked: Vec<(String, u64)> = self
+            .endpoints
+            .iter()
+            .map(|(key, value)| {
+                (
+                    key.clone(),
+                    value
+                        .samples
+                        .saturating_add(value.rate_limit_hits.saturating_mul(4)),
+                )
+            })
+            .collect();
+        ranked.sort_by(|a, b| b.1.cmp(&a.1));
+        let keep: std::collections::HashSet<String> = ranked
+            .into_iter()
+            .take(max_endpoints)
+            .map(|(key, _)| key)
+            .collect();
+        self.endpoints.retain(|key, _| keep.contains(key));
     }
 
     pub fn save_to_path(&self, path: &Path) -> Result<(), AgentRuntimeError> {
@@ -953,6 +996,7 @@ pub struct PreRequestDecision {
     pub user_agent: String,
     pub wait: Duration,
     pub concurrency: u32,
+    pub batch_size: u32,
     /// When set, caller should serve body from cache and skip the network.
     pub cache_hit: Option<Vec<u8>>,
 }
@@ -1078,6 +1122,7 @@ impl AgentNetworkMiddleware {
                         user_agent: self.identity.user_agent(),
                         wait: Duration::ZERO,
                         concurrency: self.pacing.concurrency,
+                        batch_size: self.pacing.batch_size,
                         cache_hit: Some(body),
                     });
                 }
@@ -1118,6 +1163,7 @@ impl AgentNetworkMiddleware {
             user_agent: self.identity.user_agent(),
             wait,
             concurrency: self.pacing.concurrency,
+            batch_size: self.pacing.batch_size,
             cache_hit: None,
         })
     }
@@ -1198,7 +1244,9 @@ impl AgentNetworkMiddleware {
                 "state": self.pacing.state,
                 "delay_ms": self.pacing.current_delay.as_millis() as u64,
                 "concurrency": self.pacing.concurrency,
+                "batch_size": self.pacing.batch_size,
             },
+            "memory_endpoints": self.memory.endpoints.len(),
             "guardrails": self.guardrails.snapshot(),
         })
     }
@@ -1591,6 +1639,22 @@ mod tests {
         assert!(mem.rate_limit_hits >= 1);
         assert!(mem.samples >= 1);
         let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn load_memory_prunes_low_signal_endpoints() {
+        let mut memory = LoadMemoryStore::default();
+        for index in 0..4 {
+            memory.observe(
+                "nz-fyi",
+                &format!("route-{index}"),
+                Duration::from_millis(10),
+                index == 3,
+            );
+        }
+        memory.prune(2);
+        assert_eq!(memory.endpoints.len(), 2);
+        assert!(memory.get("nz-fyi", "route-3").is_some());
     }
 
     #[test]
