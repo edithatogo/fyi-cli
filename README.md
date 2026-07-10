@@ -287,6 +287,12 @@ transient `429`/`5xx` responses. Keep live runs polite: use small date windows,
 resume with checkpoints, and coordinate archive work with the ethics guidance in
 the sibling `fyi-archive` repo at `docs/ethics-and-compliance.md`.
 
+The Rust `fyi-core` network path is the primary resource-aware implementation:
+it parses `RateLimit-*`/`Retry-After`, adapts pacing, enforces request/bytes/time
+guardrails, persists load memory, caches safe GETs, and can emit secret-redacted
+JSONL traces. Python remains a deliberately compatible discovery/capture path
+and follows the same identity and retry etiquette.
+
 For concurrent workers, point `discover` and `backfill` at the same SQLite
 database with `--db`. That enables the shared cross-worker limiter, which
 reserves one aggregate request slot across processes and records both normal

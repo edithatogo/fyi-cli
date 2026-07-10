@@ -1024,6 +1024,33 @@ pub struct OutboundRequestMeta {
     pub url: String,
 }
 
+/// Framework-neutral perception boundary: turn response metadata into policy input.
+pub trait Perception {
+    fn perceive(&self, status: u16, headers: &[(&str, &str)]) -> RateLimitSnapshot;
+}
+
+/// Framework-neutral reasoning boundary: evaluate a bounded retrieval plan.
+pub trait Reason {
+    fn reason(&self, plan: &RetrievalPlan) -> PlanDecision;
+}
+
+/// Framework-neutral action boundary: prepare a bounded outbound operation.
+pub trait Action {
+    fn act(&mut self, meta: &OutboundRequestMeta) -> Result<PreRequestDecision, AgentRuntimeError>;
+}
+
+/// Framework-neutral reflection boundary: account for the completed operation.
+pub trait Reflection {
+    fn reflect(
+        &mut self,
+        meta: &OutboundRequestMeta,
+        status: u16,
+        headers: &[(&str, &str)],
+        latency: Duration,
+        body: Option<&[u8]>,
+    ) -> Result<Duration, AgentRuntimeError>;
+}
+
 /// Resource-aware middleware coordinating identity, pacing, guardrails, cache,
 /// memory, plan reflection, and traces.
 pub struct AgentNetworkMiddleware {
@@ -1278,6 +1305,74 @@ impl AgentNetworkMiddleware {
             "memory_endpoints": self.memory.endpoints.len(),
             "guardrails": self.guardrails.snapshot(),
         })
+    }
+}
+
+impl Perception for AgentNetworkMiddleware {
+    fn perceive(&self, status: u16, headers: &[(&str, &str)]) -> RateLimitSnapshot {
+        let mut snapshot = RateLimitSnapshot::from_headers(headers.iter().copied());
+        snapshot.http_status = Some(status);
+        snapshot
+    }
+}
+
+impl Reason for AgentNetworkMiddleware {
+    fn reason(&self, plan: &RetrievalPlan) -> PlanDecision {
+        self.reflect_and_trace(plan)
+    }
+}
+
+impl Action for AgentNetworkMiddleware {
+    fn act(&mut self, meta: &OutboundRequestMeta) -> Result<PreRequestDecision, AgentRuntimeError> {
+        self.before_request(meta)
+    }
+}
+
+impl Reflection for AgentNetworkMiddleware {
+    fn reflect(
+        &mut self,
+        meta: &OutboundRequestMeta,
+        status: u16,
+        headers: &[(&str, &str)],
+        latency: Duration,
+        body: Option<&[u8]>,
+    ) -> Result<Duration, AgentRuntimeError> {
+        self.after_response(meta, status, headers, latency, body)
+    }
+}
+
+/// Minimal in-repository adapter showing how a graph/tool runtime can compose
+/// the four boundaries without depending on an agent framework.
+pub struct ThinAgentAdapter {
+    pub middleware: AgentNetworkMiddleware,
+}
+
+impl ThinAgentAdapter {
+    pub fn new(middleware: AgentNetworkMiddleware) -> Self {
+        Self { middleware }
+    }
+
+    pub fn plan(&self, plan: &RetrievalPlan) -> PlanDecision {
+        self.middleware.reason(plan)
+    }
+
+    pub fn prepare(
+        &mut self,
+        request: &OutboundRequestMeta,
+    ) -> Result<PreRequestDecision, AgentRuntimeError> {
+        self.middleware.act(request)
+    }
+
+    pub fn complete(
+        &mut self,
+        request: &OutboundRequestMeta,
+        status: u16,
+        headers: &[(&str, &str)],
+        latency: Duration,
+        body: Option<&[u8]>,
+    ) -> Result<Duration, AgentRuntimeError> {
+        self.middleware
+            .reflect(request, status, headers, latency, body)
     }
 }
 
@@ -1772,6 +1867,40 @@ mod tests {
         .unwrap();
         let pre = mw.before_request(&meta).unwrap();
         assert_eq!(pre.cache_hit.as_deref(), Some(b"hello-cache".as_ref()));
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn cache_does_not_store_non_get_or_error_responses() {
+        let dir = std::env::temp_dir().join(format!(
+            "fyi-agent-cache3-{}",
+            Utc::now().timestamp_nanos_opt().unwrap_or(3)
+        ));
+        let mut mw = AgentNetworkMiddleware::with_defaults(None)
+            .unwrap()
+            .with_cache_dir(&dir)
+            .unwrap();
+        for (method, status, url) in [
+            ("POST", 200, "https://fyi.org.nz/write"),
+            ("GET", 500, "https://fyi.org.nz/error"),
+        ] {
+            let meta = OutboundRequestMeta {
+                instance_id: "nz-fyi".into(),
+                route_class: "request".into(),
+                method: method.into(),
+                url: url.into(),
+            };
+            mw.before_request(&meta).unwrap();
+            mw.after_response(
+                &meta,
+                status,
+                &[],
+                Duration::from_millis(1),
+                Some(b"no-cache"),
+            )
+            .unwrap();
+            assert!(mw.before_request(&meta).unwrap().cache_hit.is_none());
+        }
         let _ = fs::remove_dir_all(dir);
     }
 

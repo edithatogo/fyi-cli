@@ -390,14 +390,15 @@ if creds:
 
 ### 2. Rate Limiting
 
-```python
-import time
+The client sends the fyi-cli identity User-Agent on every request and captures
+`RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`, and
+`Retry-After` response headers. A `429` honours `Retry-After` (delta seconds or
+HTTP date) when present and otherwise uses bounded exponential backoff. Keep
+bulk work paginated, checkpointed, and explicitly scoped to small windows.
 
-# Add delay between requests
-for request_id in range(1, 100):
-    request = client.get_request(request_id)
-    time.sleep(0.5)  # 500ms delay
-```
+The Rust `fyi-core` path additionally provides adaptive pacing, per-instance
+load memory, guardrails, a filesystem GET cache, and JSONL traces; the Python
+client is retained as a compatibility path for legacy discovery/capture.
 
 ### 3. Error Recovery
 
