@@ -19,6 +19,7 @@ from .db import (
 from .fetch import latest_snapshot_summary
 from .fyi import build_prefilled_url
 from .importers import import_authorities_csv
+from .security import redact_text
 from .reporting import (
     correspondence_pack,
     export_request_bundle,
@@ -179,7 +180,7 @@ def _render_request_form(db_path: str, request_row=None, flash: str = "") -> str
     preview = ""
     if authority_slug and title and body_val:
         preview_url = build_prefilled_url(authority_slug, title, body_val, tags=[t.strip() for t in tags.split(",") if t.strip()])
-        preview = f"<p><a href='{_escape(preview_url)}' target='_blank' rel='noreferrer'>Open FYI prefilled draft</a></p>"
+        preview = f"<p><a href='{_escape(redact_text(preview_url))}' target='_blank' rel='noreferrer'>Open FYI prefilled draft</a></p>"
     body = f"""
     <h1>{legend}</h1>
     {flash_html}
@@ -244,7 +245,7 @@ def _render_request_detail(db_path: str, request_id: int, flash: str = "") -> st
     preview = ""
     if row["authority_slug"] and row["title"] and row["body"]:
         preview_url = build_prefilled_url(row["authority_slug"], row["title"], row["body"], tags=[t.strip() for t in (row["tags"] or "").split(",") if t.strip()])
-        preview = f"<a href='{_escape(preview_url)}' target='_blank' rel='noreferrer'>Open FYI prefilled draft</a>"
+        preview = f"<a href='{_escape(redact_text(preview_url))}' target='_blank' rel='noreferrer'>Open FYI prefilled draft</a>"
     fyi_link = f"<a href='{_escape(row['fyi_url'])}' target='_blank' rel='noreferrer'>Open tracked FYI URL</a>" if row["fyi_url"] else ""
     snapshot_html = "<p class='muted'>No FYI request snapshot stored yet.</p>"
     attachments_html = "<li class='muted'>No attachments detected.</li>"
@@ -427,7 +428,7 @@ def _render_timeline(db_path: str, request_id: int, flash: str = "") -> str:
     body = f"""
     <h1>Timeline for request #{request_id}</h1>
     {flash_html}
-    <div class='card'><p><strong>{_escape(row['title'])}</strong><br><span class='muted'>{_escape(row['authority_slug'])}</span></p><p><a href='/requests/{request_id}'>Back to request</a></p></div>
+    <div class='card'><p><strong>{_escape(row['title'])}</strong><br><span class='muted'>{_escape(row['authority_slug'])}</span></p><p><strong>Status:</strong> {_escape(row['status'])}</p><p><a href='/requests/{request_id}'>Back to request</a></p></div>
     <div class='card'><table><thead><tr><th>When</th><th>Kind</th><th>Title</th><th>Detail</th></tr></thead><tbody>{rows}</tbody></table></div>
     """
     return _layout(f"Timeline #{request_id}", body)
@@ -463,8 +464,8 @@ def _redirect(handler: BaseHTTPRequestHandler, location: str):
 
 def _parse_post_fields(handler: BaseHTTPRequestHandler) -> dict[str, str]:
     content_type = handler.headers.get("Content-Type", "")
-    length = int(handler.headers.get("Content-Length", "0") or "0")
-    body = handler.rfile.read(length) if length else handler.rfile.read()
+    raw_length = handler.headers.get("Content-Length")
+    body = handler.rfile.read(int(raw_length)) if raw_length else handler.rfile.read()
     if content_type.startswith("application/json"):
         return json.loads(body.decode("utf-8")) if body else {}
     if content_type.startswith("multipart/form-data"):

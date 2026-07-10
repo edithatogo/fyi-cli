@@ -1,12 +1,24 @@
 from __future__ import annotations
 import json
+import socket
 from pathlib import Path
+from types import SimpleNamespace
 import feedparser  # type: ignore[import-untyped]
 from .db import connect
 from .fyi import extract_request_id
 
 def ingest_feed(feed_url: str, db_path: str | Path = 'fyi_system.db') -> int:
-    parsed = feedparser.parse(feed_url)
+    previous_timeout = socket.getdefaulttimeout()
+    socket.setdefaulttimeout(2.0)
+    try:
+        try:
+            parsed = feedparser.parse(feed_url)
+        except (OSError, TimeoutError):
+            # Monitoring is best-effort: an unavailable feed must not prevent
+            # the local database from being created or queried.
+            parsed = SimpleNamespace(entries=[])
+    finally:
+        socket.setdefaulttimeout(previous_timeout)
     conn = connect(db_path)
     count = 0
     try:

@@ -1,5 +1,25 @@
 # FYI Request System - Testing Strategy
 
+## Executable harness contract
+
+The repository maintains an explicit 13-layer harness inventory covering unit,
+integration, end-to-end, smoke/system, mutation, property-based, edge,
+performance, security, compatibility, usability, regression, and sanity tests.
+Validate the inventory with:
+
+```bash
+uv run python scripts/verify_test_harness.py
+uv run python scripts/verify_test_harness.py --run
+uv run python scripts/verify_test_harness.py --run --run-expensive
+```
+
+The live smoke layer remains disabled unless `FYI_LIVE_SMOKE=1` is explicitly
+set. Rust reusable-library line coverage is a hard 90% CI and Codecov gate;
+interactive entrypoints, the TUI, Tor transport, and static jurisdiction
+catalog are validated by smoke/system tests and excluded from this line
+metric. An upload below the gate fails the workflow. Weekly/manual mutation analysis runs through
+`cargo-mutants` in `.github/workflows/mutation.yml`.
+
 ## Overview
 
 This document describes the comprehensive testing strategy for the FYI Request System, a research-grade tool for managing official information requests.

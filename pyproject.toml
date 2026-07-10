@@ -52,8 +52,8 @@ dev = [
   "pytest>=8.0.0",
   "pytest-cov>=5.0.0",
   "pytest-benchmark>=4.0.0",
-  "hypothesis>=6.100.0",
   "keyrings.alt>=5.0.0",
+  "hypothesis>=6.100.0",
   "ruff>=0.6.0",
   "basedpyright>=1.13.0",
   "pip-audit>=2.0.0",
@@ -86,6 +86,17 @@ testpaths = ["tests"]
 addopts = "-v --tb=short"
 markers = [
   "smoke: opt-in live smoke tests that contact FYI.org.nz",
+  "unit: fast isolated tests",
+  "integration: tests spanning multiple local components",
+  "e2e: end-to-end CLI or workflow tests",
+  "property: property-based or generative tests",
+  "edge: malformed, boundary, and adversarial input tests",
+  "performance: benchmark and load tests",
+  "security: security and privacy tests",
+  "compatibility: external/API compatibility tests",
+  "usability: operator-facing behavior tests",
+  "regression: tests for previously fixed defects",
+  "sanity: release and basic health checks",
 ]
 
 [tool.ruff]

@@ -372,11 +372,11 @@ def build_parser():
     sp.set_defaults(func=cmd_import_authorities)
 
     # Command: discover-bodies
-    sp = sub.add_parser("discover-bodies")
-    sp.add_argument("--base-url", default="https://fyi.org.nz")
-    sp.add_argument("--delay-seconds", type=float, default=1.0)
-    sp.add_argument("--db", default="fyi_system.db")
-    sp.add_argument("--output")
+    sp = sub.add_parser('discover-bodies')
+    sp.add_argument('--base-url', default='https://fyi.org.nz')
+    sp.add_argument('--delay-seconds', type=float, default=1.0)
+    sp.add_argument('--db', default='fyi_system.db')
+    sp.add_argument('--output')
     sp.set_defaults(func=cmd_discover_bodies)
     
     # Command: list-authorities

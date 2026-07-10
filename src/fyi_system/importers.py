@@ -4,7 +4,6 @@ import csv
 import io
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import httpx
 
@@ -18,9 +17,6 @@ from .discovery import (
     load_robots_disallow,
 )
 
-if TYPE_CHECKING:
-    from collections.abc import Mapping
-
 DEFAULT_AUTHORITIES_URL = "https://fyi.org.nz/body/all-authorities.csv"
 
 # Cryptographic-aligned identity; set FYI_ADMIN_CONTACT for opt-in operator contact.
@@ -29,7 +25,12 @@ USER_AGENT = build_user_agent(
 )
 
 
-def _value(row: Mapping[str, object], *keys: str) -> str:
+def authorities_url(base_url: str) -> str:
+    """Build the public Alaveteli authorities CSV URL."""
+    return f"{base_url.rstrip('/')}/body/all-authorities.csv"
+
+
+def _value(row: dict, *keys: str) -> str:
     for key in keys:
         value = row.get(key)
         if value is not None:
@@ -37,11 +38,6 @@ def _value(row: Mapping[str, object], *keys: str) -> str:
             if value:
                 return value
     return ""
-
-
-def authorities_url(base_url: str) -> str:
-    """Build the public Alaveteli authority catalogue URL."""
-    return f"{base_url.rstrip('/')}/body/all-authorities.csv"
 
 
 def import_authorities_rows(
@@ -107,24 +103,23 @@ def discover_bodies(
     base_url: str = "https://fyi.org.nz",
     delay_seconds: float = 1.0,
     shared_rate_limit_db_path: str | Path | None = None,
-    shared_rate_limit_name: str = "archive-discovery",
+    shared_rate_limit_name: str = "authority-discovery",
     transport: httpx.BaseTransport | None = None,
 ) -> list[dict[str, str]]:
-    """Discover public bodies without mutating the local database."""
+    """Discover public authorities without mutating the local database."""
     with client(base_url, transport=transport) as http:
         disallows = load_robots_disallow(http)
-        shared_rate_limiter = (
+        shared_limiter = (
             SharedRateLimiter(shared_rate_limit_db_path, name=shared_rate_limit_name)
             if shared_rate_limit_db_path is not None
             else None
         )
-        rate_limiter = PoliteRateLimiter(delay_seconds)
         response = get_with_backoff(
             http,
             authorities_url(base_url),
             disallows=disallows,
-            shared_rate_limiter=shared_rate_limiter,
-            rate_limiter=rate_limiter,
+            shared_rate_limiter=shared_limiter,
+            rate_limiter=PoliteRateLimiter(delay_seconds),
             backoff_seconds=delay_seconds,
         )
         response.raise_for_status()

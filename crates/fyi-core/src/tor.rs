@@ -1,12 +1,19 @@
+use crate::agent_runtime::{
+    AgentNetworkMiddleware, AgentRuntimeError, ClientIdentity, GuardrailConfig,
+    OutboundRequestMeta, PacingPolicy,
+};
 use arti_client::{config::TorClientConfigBuilder, TorClient, TorClientConfig};
 use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
+use reqwest::{Client, RequestBuilder, StatusCode};
 use std::net::IpAddr;
 use std::net::SocketAddr;
 use std::path::Path;
+use std::sync::Arc;
+use std::time::Instant;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 use tokio::net::TcpStream;
-use tokio::sync::oneshot;
+use tokio::sync::{oneshot, Mutex, Semaphore};
 use tor_rtcompat::PreferredRuntime;
 
 #[derive(thiserror::Error, Debug)]
@@ -20,6 +27,9 @@ pub enum TorError {
     #[error("Tor runtime error: {0}")]
     Runtime(String),
 
+    #[error("Tor agent request blocked: {0}")]
+    Agent(String),
+
     #[error("SOCKS handshake protocol error: {0}")]
     Protocol(String),
 }
@@ -28,6 +38,94 @@ pub enum TorError {
 pub struct TorBootstrapStatus {
     pub ready: bool,
     pub progress: f32,
+}
+
+/// Response returned by the Tor-routed resource-aware executor.
+#[derive(Debug, Clone)]
+pub struct TorGuardedResponse {
+    pub status: StatusCode,
+    pub headers: HeaderMap,
+    pub body: Vec<u8>,
+}
+
+/// Tor transport paired with the same identity, pacing, guardrail, memory,
+/// cache, and trace middleware used by the ordinary Rust sync client.
+pub struct TorAgentClient {
+    client: Client,
+    middleware: Arc<Mutex<AgentNetworkMiddleware>>,
+    concurrency: Arc<Semaphore>,
+    instance_id: String,
+}
+
+impl TorAgentClient {
+    pub async fn user_agent(&self) -> String {
+        self.middleware.lock().await.user_agent()
+    }
+
+    pub async fn execute(&self, request: RequestBuilder) -> Result<TorGuardedResponse, TorError> {
+        let request = request
+            .build()
+            .map_err(|error| TorError::Agent(format!("failed to build request: {error}")))?;
+        let meta = OutboundRequestMeta {
+            instance_id: self.instance_id.clone(),
+            route_class: "tor_alaveteli_api".to_string(),
+            method: request.method().to_string(),
+            url: request.url().to_string(),
+        };
+        let decision = self
+            .middleware
+            .lock()
+            .await
+            .before_request(&meta)
+            .map_err(|error| TorError::Agent(error.to_string()))?;
+        if !decision.wait.is_zero() {
+            tokio::time::sleep(decision.wait).await;
+        }
+        let _permit = self
+            .concurrency
+            .clone()
+            .acquire_owned()
+            .await
+            .map_err(|_| TorError::Agent("concurrency guard unavailable".to_string()))?;
+        let started = Instant::now();
+        let response = self
+            .client
+            .execute(request)
+            .await
+            .map_err(|error| TorError::Agent(format!("Tor request failed: {error}")))?;
+        let status = response.status();
+        let headers = response.headers().clone();
+        let body = response
+            .bytes()
+            .await
+            .map_err(|error| TorError::Agent(format!("Tor response read failed: {error}")))?
+            .to_vec();
+        let header_values = headers
+            .iter()
+            .filter_map(|(name, value)| value.to_str().ok().map(|value| (name.as_str(), value)))
+            .collect::<Vec<_>>();
+        self.middleware
+            .lock()
+            .await
+            .after_response(
+                &meta,
+                status.as_u16(),
+                &header_values,
+                started.elapsed(),
+                Some(&body),
+            )
+            .map_err(|error| match error {
+                AgentRuntimeError::RateLimited(seconds) => {
+                    TorError::Agent(format!("rate limited; retry after {seconds} seconds"))
+                }
+                other => TorError::Agent(other.to_string()),
+            })?;
+        Ok(TorGuardedResponse {
+            status,
+            headers,
+            body,
+        })
+    }
 }
 
 pub struct TorManager {
@@ -146,6 +244,27 @@ impl TorManager {
             .map_err(|e| TorError::Runtime(format!("Failed to build reqwest Client: {}", e)))?;
 
         Ok(client)
+    }
+
+    /// Build the Tor client together with the shared resource-aware executor.
+    pub fn create_guarded_client(
+        &self,
+        identity: &ClientIdentity,
+    ) -> Result<TorAgentClient, TorError> {
+        let client = self.create_reqwest_client_with_identity(identity)?;
+        let guardrails = GuardrailConfig::default();
+        Ok(TorAgentClient {
+            client,
+            middleware: Arc::new(Mutex::new(AgentNetworkMiddleware::new(
+                identity.clone(),
+                guardrails.clone(),
+                PacingPolicy::default(),
+                Box::new(crate::agent_runtime::NullTraceSink),
+                "tor-agent".to_string(),
+            ))),
+            concurrency: Arc::new(Semaphore::new(guardrails.max_concurrency as usize)),
+            instance_id: "tor-instance".to_string(),
+        })
     }
 }
 

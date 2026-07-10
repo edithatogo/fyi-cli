@@ -22,6 +22,17 @@ Plan reflect → Guardrails → Pacing wait → Cache lookup
     → HTTP (RateLimit-* / Retry-After) → Memory update → Trace → Cache store
 ```
 
+The Rust facade exposes `Perception`, `Reason`, `Action`, and `Reflection`
+traits. An MCP tool maps to the `Action` boundary: validate the instance and
+retrieval plan, call `act` before the tool's bounded HTTP operation, then pass
+status/headers/body to `reflect`. MCP resources can expose `status_report()`;
+neither boundary requires an MCP or agent-framework dependency.
+
+`ThinAgentAdapter` is the in-repository example adapter. A LangGraph/OpenClaw-
+style node can call `plan`, `prepare`, and `complete`, while the actual HTTP
+transport remains the caller's responsibility and still passes through the
+same identity, pacing, guardrail, cache, memory, and trace policy.
+
 ## Phase 0 implementation inventory
 
 The live outbound paths are deliberately split between the Rust primary client

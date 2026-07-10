@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -84,4 +85,79 @@ def test_empty_scope_is_rejected():
             client_id="fyi-cli-prod",
             scopes=("",),
             now_epoch=1_700_000_000,
+        )
+
+
+@pytest.mark.parametrize(
+    ("path", "value"),
+    [
+        ("quotas", None),
+        ("quotas.max_bytes", -1),
+        ("bulk_export.extra", True),
+        ("protocol", 1),
+        ("expires_at", -1),
+        ("client_allowlist", [1]),
+        ("scopes", [1]),
+        ("bulk_export.enabled", "yes"),
+    ],
+)
+def test_capability_parser_rejects_malformed_nested_values(path: str, value: Any):
+    payload = json.loads(FIXTURE.read_text())
+    target: dict[str, Any] = payload
+    parts = path.split(".")
+    for part in parts[:-1]:
+        target = target[part]
+    target[parts[-1]] = value
+    with pytest.raises(EndorsedRouteError, match="malformed"):
+        CapabilityDocument.from_mapping(payload)
+
+
+def test_unsupported_protocol_is_rejected():
+    payload = json.loads(FIXTURE.read_text())
+    payload["protocol"] = "other/v1"
+    with pytest.raises(EndorsedRouteError, match="unsupported"):
+        CapabilityDocument.from_mapping(payload).authorize(
+            client_id="fyi-cli-prod",
+            scopes=("read",),
+            now_epoch=1_700_000_000,
+        )
+
+
+def test_unknown_scope_and_non_positive_quota_are_rejected():
+    with pytest.raises(EndorsedRouteError, match="scope"):
+        document().authorize(
+            client_id="fyi-cli-prod",
+            scopes=("write",),
+            now_epoch=1_700_000_000,
+        )
+
+    payload = json.loads(FIXTURE.read_text())
+    payload["quotas"]["max_requests"] = 0
+    with pytest.raises(EndorsedRouteError, match="non-positive"):
+        CapabilityDocument.from_mapping(payload).authorize(
+            client_id="fyi-cli-prod",
+            scopes=("read",),
+            now_epoch=1_700_000_000,
+        )
+
+
+def test_disabled_and_unbounded_bulk_capabilities_are_rejected():
+    payload = json.loads(FIXTURE.read_text())
+    payload["bulk_export"]["enabled"] = False
+    with pytest.raises(EndorsedRouteError, match="not enabled"):
+        CapabilityDocument.from_mapping(payload).authorize(
+            client_id="fyi-cli-prod",
+            scopes=("read", "bulk_export"),
+            now_epoch=1_700_000_000,
+            bulk_export=True,
+        )
+
+    payload = json.loads(FIXTURE.read_text())
+    payload["bulk_export"]["max_items"] = 0
+    with pytest.raises(EndorsedRouteError, match="non-positive"):
+        CapabilityDocument.from_mapping(payload).authorize(
+            client_id="fyi-cli-prod",
+            scopes=("read", "bulk_export"),
+            now_epoch=1_700_000_000,
+            bulk_export=True,
         )

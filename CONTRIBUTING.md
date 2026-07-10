@@ -544,6 +544,7 @@ We use [Semantic Versioning](https://semver.org/):
 - User/install guides: [USER_GUIDE.md](USER_GUIDE.md), [INSTALL.md](INSTALL.md), [QUICKSTART.md](QUICKSTART.md)
 - CLI/MCP surface audit: [docs/cli-entrypoints-audit.md](docs/cli-entrypoints-audit.md)
 - **Upstream Alaveteli relations & etiquette:** [docs/upstream-relations.md](docs/upstream-relations.md)
+- **Resource-aware agent network middleware:** [docs/agent-network-middleware.md](docs/agent-network-middleware.md)
 - Outreach draft (do not auto-post): [docs/outreach/alaveteli-project-intro.md](docs/outreach/alaveteli-project-intro.md)
 - Registry/distribution matrix: [docs/registry-distribution-matrix.md](docs/registry-distribution-matrix.md)
 

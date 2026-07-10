@@ -10,6 +10,17 @@ from .fetch import latest_snapshot_summary
 from .security import ensure_private_path, sanitize_payload, secure_write_text
 
 
+def write_dashboard(
+    html_output: str | Path,
+    db_path: str | Path = "fyi_system.db",
+    json_output: str | Path | None = None,
+) -> Path:
+    """Compatibility export for benchmark and legacy reporting callers."""
+    from .dashboard import write_dashboard as _write_dashboard
+
+    return _write_dashboard(html_output, db_path=db_path, json_output=json_output)
+
+
 def normalize_snapshot_state(raw_state: str | None) -> str:
     state = (raw_state or '').strip().lower()
     mapping = {
