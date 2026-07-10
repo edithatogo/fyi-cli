@@ -464,7 +464,7 @@ def _redirect(handler: BaseHTTPRequestHandler, location: str):
 def _parse_post_fields(handler: BaseHTTPRequestHandler) -> dict[str, str]:
     content_type = handler.headers.get("Content-Type", "")
     length = int(handler.headers.get("Content-Length", "0") or "0")
-    body = handler.rfile.read(length)
+    body = handler.rfile.read(length) if length else handler.rfile.read()
     if content_type.startswith("application/json"):
         return json.loads(body.decode("utf-8")) if body else {}
     if content_type.startswith("multipart/form-data"):

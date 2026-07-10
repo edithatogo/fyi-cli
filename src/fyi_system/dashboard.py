@@ -1,11 +1,17 @@
 from __future__ import annotations
+
 import json
 from pathlib import Path
-from jinja2 import Template
-from .reporting import attention_report, triage_report
-from .db import query_all
+from typing import Any
 
-HTML_TEMPLATE = Template("""
+from jinja2 import Environment, select_autoescape
+
+from .db import query_all
+from .reporting import attention_report, triage_report
+
+HTML_TEMPLATE = Environment(
+    autoescape=select_autoescape(enabled_extensions=("html", "xml")),
+).from_string("""
 <!doctype html>
 <html>
 <head>
@@ -73,7 +79,7 @@ HTML_TEMPLATE = Template("""
 """)
 
 
-def dashboard_payload(db_path: str | Path = 'fyi_system.db') -> dict:
+def dashboard_payload(db_path: str | Path = "fyi_system.db") -> dict[str, Any]:
     report = attention_report(db_path)
     triage = triage_report(db_path)
     authorities = query_all(db_path, 'SELECT COUNT(*) AS c FROM authorities')[0]['c']
