@@ -31,8 +31,14 @@
 
 ## Phase 3: Cache and bounded bulk mode
 
-- [ ] Issue #143: Add conditional caching and bounded bulk export mode.
-- [ ] Test 304 cache hits, stale/error behavior, no stale writes, and bounded request/byte/time/batch controls.
+- [~] Issue #143: Add conditional caching and bounded bulk export mode; stacked
+  fork-local PR #152 depends on PR #150.
+- [x] Add bounded streamed Python bulk export with item/byte ceilings and
+  guaranteed response closure — `68f2f53`.
+- [x] Ensure streamed bulk bodies are not written into the validator cache —
+  `68f2f53`.
+- [ ] Complete Rust validator metadata, 304/stale/error behavior, and bounded
+  request/time/batch evidence.
 - [ ] Ensure unavailable or unauthorized bulk export cannot fall back to unbounded retrieval.
 
 ## Phase 4: Cross-repo verification
@@ -84,3 +90,12 @@ the pre-existing dirty `agent_runtime.rs` change unless explicitly assigned.
 - Python full result: 604 passed, 1 opt-in live smoke skipped.
 - Repository Ruff still reports pre-existing baseline findings; this slice did
   not broaden that unrelated lint debt.
+
+## Cache/bulk slice verification
+
+- Fork-local draft PR: https://github.com/edithatogo/fyi-cli/pull/152
+- Paired Alaveteli fixture/control issue: https://github.com/edithatogo/alaveteli/issues/25
+- Python Alaveteli client tests: 34 passed, including item/byte trip and stream
+  closure tests.
+- Remaining closure blocker: Rust validator metadata and complete bounded
+  fallback/304 evidence.
