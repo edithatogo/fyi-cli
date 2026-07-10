@@ -1,0 +1,1 @@
+Recorded Issue #141 implementation commit 45f7e15 and the current deterministic verification blocker: the workstation lacks the Windows SDK libraries required by rust-lld. The task remains in progress until CI or a provisioned environment passes the focused test.
