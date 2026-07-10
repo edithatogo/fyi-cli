@@ -13,6 +13,7 @@ from .fyi import build_prefilled_url
 from .importers import (
     DEFAULT_AUTHORITIES_URL,
     discover_bodies,
+    discover_bodies_with_provenance,
     import_authorities_csv,
     import_authorities_url,
 )
@@ -64,13 +65,20 @@ def cmd_import_authorities(args):
 
 
 def cmd_discover_bodies(args):
-    rows = discover_bodies(
+    rows, provenance = discover_bodies_with_provenance(
         base_url=args.base_url,
+        catalog_url=args.catalog_url,
         delay_seconds=args.delay_seconds,
         shared_rate_limit_db_path=args.db,
         transport=None,
     )
-    payload = {"base_url": args.base_url.rstrip("/"), "count": len(rows), "bodies": rows}
+    payload = {
+        "base_url": args.base_url.rstrip("/"),
+        "catalog_url": provenance["catalog_url"],
+        "count": len(rows),
+        "bodies": rows,
+        "provenance": provenance,
+    }
     _write_json_or_print(payload, args.output)
 
 
@@ -374,6 +382,7 @@ def build_parser():
     # Command: discover-bodies
     sp = sub.add_parser('discover-bodies')
     sp.add_argument('--base-url', default='https://fyi.org.nz')
+    sp.add_argument('--catalog-url', default=None)
     sp.add_argument('--delay-seconds', type=float, default=1.0)
     sp.add_argument('--db', default='fyi_system.db')
     sp.add_argument('--output')

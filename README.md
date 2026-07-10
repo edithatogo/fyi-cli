@@ -282,6 +282,25 @@ fyi discover-reconcile \
   --output data/_state/discovery-reconciliation.json
 ```
 
+## Read-only authority discovery
+
+`discover-bodies` keeps `--base-url` as the instance/capture URL. Use the
+separate `--catalog-url` option only when the authority CSV is hosted at an
+explicit alternate URL:
+
+```bash
+fyi discover-bodies --base-url https://www.righttoknow.org.au \
+  --catalog-url https://catalog.example/au-authorities.csv --output bodies.json
+```
+
+The JSON output includes the effective catalog URL, whether the default or an
+override was used, retrieval time, HTTP status, row count, and a SHA-256 of the
+raw CSV payload. The override is read-only and still uses the catalog host's
+robots policy, contactable User-Agent, retry backoff, and shared rate limiter.
+Treat an override URL as trusted configuration: it can redirect discovery to a
+different authority set and should be reviewed and recorded alongside archive
+provenance.
+
 Discovery uses a contactable User-Agent, checks `robots.txt`, and backs off on
 transient `429`/`5xx` responses. Keep live runs polite: use small date windows,
 resume with checkpoints, and coordinate archive work with the ethics guidance in
