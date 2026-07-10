@@ -116,6 +116,19 @@ impl TorManager {
     }
 
     pub fn create_reqwest_client(&self) -> Result<reqwest::Client, TorError> {
+        let identity = crate::agent_runtime::ClientIdentity::default_identity(None)
+            .map_err(|e| TorError::Runtime(format!("Invalid client identity: {e}")))?;
+        self.create_reqwest_client_with_identity(&identity)
+    }
+
+    /// Build the Tor-routed client with the mandatory traceable User-Agent.
+    pub fn create_reqwest_client_with_identity(
+        &self,
+        identity: &crate::agent_runtime::ClientIdentity,
+    ) -> Result<reqwest::Client, TorError> {
+        identity
+            .validate()
+            .map_err(|e| TorError::Runtime(format!("Invalid client identity: {e}")))?;
         let proxy_addr = self.proxy_addr.ok_or_else(|| {
             TorError::Runtime("Proxy has not been started yet. Call start_proxy first.".to_string())
         })?;
@@ -126,6 +139,7 @@ impl TorManager {
 
         let client = reqwest::Client::builder()
             .proxy(proxy)
+            .user_agent(identity.user_agent())
             .build()
             .map_err(|e| TorError::Runtime(format!("Failed to build reqwest Client: {}", e)))?;
 
