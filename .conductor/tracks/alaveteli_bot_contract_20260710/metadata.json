@@ -19,6 +19,8 @@
   "paired_github_parent_issue": 23,
   "paired_ci_run": 29072076457,
   "paired_evidence_status": "failed-contract-specs",
+  "paired_fix_commit": "297f09380",
+  "paired_ci_run_latest": 29074300108,
   "local_route_coverage": "100% (21 tests)",
   "risk_policy": "no-known-risk-accepted",
   "delivery_model": "one-child-issue-one-focused-pr",

@@ -86,6 +86,15 @@
 - No upstream issue or PR has been opened; the route remains explicitly
   disabled pending a clean paired contract run and Conductor sign-off.
 
+### Paired contract correction (2026-07-10)
+
+- Paired PR #29 now contains `297f09380`, correcting translated authority
+  selection, deterministic bulk fixture windows, and the reset-header
+  expectation.
+- CI run `29074300108` is currently in progress. The endorsed route remains
+  disabled and upstream submission remains blocked until this paired evidence
+  is green and the evidence gate is signed off.
+
 ## Closure gate
 
 This track cannot close while the evidence gate is incomplete, while a known

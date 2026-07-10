@@ -166,6 +166,16 @@ the pre-existing dirty `agent_runtime.rs` change unless explicitly assigned.
   contract failures, with the exact CI run retained as the deterministic
   sensor.
 
+### Paired contract correction (2026-07-10)
+
+- Paired PR #29 received commit `297f09380`, which changes the bulk streamer
+  to join locale-scoped `public_body_translations` rather than the removed
+  `public_bodies.name` columns, makes fixtures use a deterministic future
+  window, and corrects the `RateLimit-Reset` expectation to `42`.
+- New paired CI run `29074300108` is in progress across the Ruby/PostgreSQL
+  matrix. Closure remains contingent on its focused contract examples and
+  required security gates completing successfully.
+
 ## Final local verification record
 
 - Python repository suite after contract additions: 616 passed, 1 opt-in live
