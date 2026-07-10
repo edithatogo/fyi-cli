@@ -79,27 +79,27 @@
 ## Phase 6: Framework Integration, Cache, Trace Facade
 
 ### 6.1 Core loop boundaries
-- [ ] Task: Expose perception / reason / act / reflect traits or modules with docs mapping to LangGraph/OpenClaw concepts
-- [ ] Task: Provide one thin example adapter (in-repo, no mandatory external runtime dependency)
-- [ ] Task: Document how MCP tools map to the Action boundary
+- [x] Task: Expose perception / reason / act / reflect traits or modules with docs mapping to LangGraph/OpenClaw concepts — 40008b3
+- [x] Task: Provide one thin example adapter (in-repo, no mandatory external runtime dependency) — 40008b3
+- [x] Task: Document how MCP tools map to the Action boundary — 40008b3
 
 ### 6.2 Filesystem response cache
-- [ ] Task: URL/ETag or content-hash keyed local cache; skip redundant remote GETs when safe
-- [ ] Task: Tests for cache hit/miss and no-stale-write on non-GET/error
+- [x] Task: URL/ETag or content-hash keyed local cache; skip redundant remote GETs when safe — 9333935
+- [x] Task: Tests for cache hit/miss and no-stale-write on non-GET/error — 40008b3
 
 ### 6.3 Trace-capture infrastructure
-- [ ] Task: Define FOSS-friendly span/event schema (Langfuse/Braintrust-compatible fields where practical)
-- [ ] Task: Default JSONL file sink; trait for optional export adapters (no proprietary hard deps)
-- [ ] Task: Emit plan/pacing/http/guardrail/cache events; redact secrets
+- [x] Task: Define FOSS-friendly span/event schema (Langfuse/Braintrust-compatible fields where practical) — 413d8b2
+- [x] Task: Default JSONL file sink; trait for optional export adapters (no proprietary hard deps) — 413d8b2
+- [x] Task: Emit plan/pacing/http/guardrail/cache events; redact secrets — 413d8b2
 - [ ] Task: Conductor - User Manual Verification 'Phase 6: Facade/Cache/Trace' (Protocol in workflow.md)
 
 ## Phase 7: Documentation & Registry
 
 ### 7.1 Docs
-- [ ] Task: Update `docs/upstream-relations.md` etiquette section to match implemented RateLimit-* + adaptive pacing behaviour
-- [ ] Task: Update `docs/ALAVETELI_CLIENT.md` and README good-citizen / rate-limit sections
-- [ ] Task: Add short architecture note under `docs/` for agent network middleware
-- [ ] Task: Cross-link this track from CONTRIBUTING / tracks registry as completed when done
+- [x] Task: Update `docs/upstream-relations.md` etiquette section to match implemented RateLimit-* + adaptive pacing behaviour — 414e109
+- [x] Task: Update `docs/ALAVETELI_CLIENT.md` and README good-citizen / rate-limit sections — 40008b3
+- [x] Task: Add short architecture note under `docs/` for agent network middleware — 413d8b2, 40008b3
+- [x] Task: Cross-link this track from CONTRIBUTING / tracks registry as completed when done — 40008b3
 
 ### 7.2 Close-out
 - [ ] Task: Full test suite green; coverage gate for new modules
@@ -121,6 +121,10 @@
   rejection of negative unsigned rate-limit values. Scoped Rust core suite:
   117 passed; Python suite: 604 passed, 1 opt-in live smoke skipped. Checkpoint:
   `37677ca` / PR #150.
+
+- **2026-07-10**: Added framework-neutral perception/reason/action/reflection
+  traits, a thin adapter, cache no-stale-write coverage, and aligned Rust,
+  Python, README, and operator documentation. Checkpoint: `40008b3`.
 
 - **2026-07-10**: Phase 0 inventory and policy baseline completed in `docs/agent-network-middleware.md`; Rust and Python live paths now share header-aware retry and identity policy. Checkpoint: `413d8b2`.
 - **2026-07-10**: Added offline `dry-plan` CLI reflection and completed the plan-model/reflection subsection. Checkpoint: `50bb43e`.
