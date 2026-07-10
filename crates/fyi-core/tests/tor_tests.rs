@@ -58,6 +58,24 @@ async fn test_tor_reqwest_client_accepts_traceable_identity() {
 }
 
 #[tokio::test]
+async fn test_tor_guarded_client_uses_shared_agent_identity_contract() {
+    let mut manager = new_test_tor_manager("guarded-agent").expect("Tor manager should build");
+    manager.start_proxy().await.expect("proxy should start");
+    let identity = fyi_core::agent_runtime::ClientIdentity::custom(
+        "fyi-test",
+        "9.9.9",
+        "https://example.test/fyi",
+        None,
+    )
+    .expect("test identity should validate");
+
+    let guarded = manager
+        .create_guarded_client(&identity)
+        .expect("guarded Tor client should build");
+    assert_eq!(guarded.user_agent().await, identity.user_agent());
+}
+
+#[tokio::test]
 async fn test_socks_proxy_handshake_invalid_version() {
     let mut manager =
         new_test_tor_manager("invalid-version").expect("Failed to initialize TorManager");
