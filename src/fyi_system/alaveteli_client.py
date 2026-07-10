@@ -18,7 +18,7 @@ import requests
 from .agent_runtime import build_user_agent, retry_delay_seconds
 import time
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Mapping
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 from . import db
