@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fyi-cli"
-version = "1.1.0"
+version = "1.2.0"
 description = "Privacy-focused CLI tool for managing FYI.org.nz official information requests"
 readme = "README.md"
 requires-python = ">=3.10"

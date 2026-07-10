@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import io
 import os
+from datetime import UTC, datetime
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import httpx
 
@@ -21,7 +24,7 @@ DEFAULT_AUTHORITIES_URL = "https://fyi.org.nz/body/all-authorities.csv"
 
 # Cryptographic-aligned identity; set FYI_ADMIN_CONTACT for opt-in operator contact.
 USER_AGENT = build_user_agent(
-    os.environ.get("FYI_ADMIN_CONTACT"), component="authority-import"
+    os.environ.get("FYI_ADMIN_CONTACT"), component="authority-import",
 )
 
 
@@ -107,7 +110,38 @@ def discover_bodies(
     transport: httpx.BaseTransport | None = None,
 ) -> list[dict[str, str]]:
     """Discover public authorities without mutating the local database."""
-    with client(base_url, transport=transport) as http:
+    rows, _ = discover_bodies_with_provenance(
+        base_url=base_url,
+        catalog_url=None,
+        delay_seconds=delay_seconds,
+        shared_rate_limit_db_path=shared_rate_limit_db_path,
+        shared_rate_limit_name=shared_rate_limit_name,
+        transport=transport,
+    )
+    return rows
+
+
+def discover_bodies_with_provenance(
+    *,
+    base_url: str = "https://fyi.org.nz",
+    catalog_url: str | None = None,
+    delay_seconds: float = 1.0,
+    shared_rate_limit_db_path: str | Path | None = None,
+    shared_rate_limit_name: str = "authority-discovery",
+    transport: httpx.BaseTransport | None = None,
+) -> tuple[list[dict[str, str]], dict[str, str | int]]:
+    """Discover bodies and return auditable HTTP/payload provenance.
+
+    ``base_url`` remains the capture/instance URL.  ``catalog_url`` is an exact
+    URL override and therefore uses its own origin for robots and rate limiting.
+    """
+    effective_catalog_url = catalog_url or authorities_url(base_url)
+    parsed = urlsplit(effective_catalog_url)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        message = "catalog_url must be an absolute http(s) URL"
+        raise ValueError(message)
+    catalog_origin = f"{parsed.scheme}://{parsed.netloc}"
+    with client(catalog_origin, transport=transport) as http:
         disallows = load_robots_disallow(http)
         shared_limiter = (
             SharedRateLimiter(shared_rate_limit_db_path, name=shared_rate_limit_name)
@@ -116,11 +150,21 @@ def discover_bodies(
         )
         response = get_with_backoff(
             http,
-            authorities_url(base_url),
+            effective_catalog_url,
             disallows=disallows,
             shared_rate_limiter=shared_limiter,
             rate_limiter=PoliteRateLimiter(delay_seconds),
             backoff_seconds=delay_seconds,
         )
         response.raise_for_status()
-        return parse_authorities_csv(response.text)
+        payload = response.content
+        rows = parse_authorities_csv(payload.decode("utf-8-sig"))
+        provenance: dict[str, str | int] = {
+            "catalog_url": effective_catalog_url,
+            "retrieval_mode": "override" if catalog_url else "default",
+            "retrieved_at": datetime.now(UTC).isoformat(),
+            "response_status": response.status_code,
+            "payload_sha256": hashlib.sha256(payload).hexdigest(),
+            "row_count": len(rows),
+        }
+        return rows, provenance

@@ -10,6 +10,7 @@ from fyi_system.db import init_db, query_all
 from fyi_system.importers import (
     authorities_url,
     discover_bodies,
+    discover_bodies_with_provenance,
     import_authorities_csv,
     import_authorities_rows,
     import_authorities_url,
@@ -145,4 +146,38 @@ def test_discover_bodies_is_read_only_and_parameterized() -> None:
     assert [request.url.path for request in requests] == [
         "/robots.txt",
         "/body/all-authorities.csv",
+    ]
+
+
+def test_discover_bodies_override_uses_catalog_host_and_provenance() -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if request.url.path == "/robots.txt":
+            return httpx.Response(200, text="User-agent: *\n", request=request)
+        return httpx.Response(
+            200,
+            content=b"url_name,name,url\nfoo,Foo,https://foo.example\n",
+            request=request,
+        )
+
+    rows, provenance = discover_bodies_with_provenance(
+        base_url="https://capture.example",
+        catalog_url="https://catalog.example/custom.csv?rev=7",
+        delay_seconds=0,
+        transport=httpx.MockTransport(handler),
+    )
+
+    assert len(rows) == 1
+    assert provenance["catalog_url"] == "https://catalog.example/custom.csv?rev=7"
+    assert provenance["retrieval_mode"] == "override"
+    assert provenance["response_status"] == 200
+    assert provenance["row_count"] == 1
+    assert provenance["payload_sha256"] == __import__("hashlib").sha256(
+        b"url_name,name,url\nfoo,Foo,https://foo.example\n",
+    ).hexdigest()
+    assert [str(request.url) for request in requests] == [
+        "https://catalog.example/robots.txt",
+        "https://catalog.example/custom.csv?rev=7",
     ]
