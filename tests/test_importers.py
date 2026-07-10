@@ -8,6 +8,8 @@ import httpx
 
 from fyi_system.db import init_db, query_all
 from fyi_system.importers import (
+    authorities_url,
+    discover_bodies,
     import_authorities_csv,
     import_authorities_rows,
     import_authorities_url,
@@ -108,3 +110,39 @@ def test_import_authorities_url_fetches_official_csv(tmp_path: Path) -> None:
     rows = query_all(db, "SELECT slug, name, url FROM authorities")
     assert count == 1
     assert rows[0]["name"] == "Remote Agency"
+
+
+def test_discover_bodies_is_read_only_and_parameterized() -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if request.url.path == "/robots.txt":
+            return httpx.Response(200, text="User-agent: *\nDisallow: /private\n", request=request)
+        assert request.url == "https://righttoknow.example/body/all-authorities.csv"
+        return httpx.Response(
+            200,
+            text="url_name,name,url\nnsw-agency,NSW Agency,https://righttoknow.example/body/nsw-agency\n",
+            request=request,
+        )
+
+    rows = discover_bodies(
+        base_url="https://righttoknow.example",
+        delay_seconds=0,
+        transport=httpx.MockTransport(handler),
+    )
+
+    assert authorities_url("https://righttoknow.example") == (
+        "https://righttoknow.example/body/all-authorities.csv"
+    )
+    assert rows == [
+        {
+            "url_name": "nsw-agency",
+            "name": "NSW Agency",
+            "url": "https://righttoknow.example/body/nsw-agency",
+        },
+    ]
+    assert [request.url.path for request in requests] == [
+        "/robots.txt",
+        "/body/all-authorities.csv",
+    ]

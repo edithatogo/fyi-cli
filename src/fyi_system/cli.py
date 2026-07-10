@@ -9,7 +9,7 @@ from .archive_health import build_archive_health, write_archive_health
 from .db import init_db, query_all, connect, get_tracked_request, export_tracked_requests, import_tracked_requests, request_timeline, update_request_status
 from .discovery import backfill_ids, discover_feed, reconcile_discovery_files, shared_rate_limit_status, write_jsonl
 from .fyi import build_prefilled_url
-from .importers import DEFAULT_AUTHORITIES_URL, import_authorities_csv, import_authorities_url
+from .importers import DEFAULT_AUTHORITIES_URL, discover_bodies, import_authorities_csv, import_authorities_url
 from .monitor import ingest_feed, reconcile_events
 from .fetch import fetch_request_page, summarize_request_json, latest_snapshot_summary
 from .reporting import (
@@ -55,6 +55,16 @@ def cmd_import_authorities(args):
     else:
         n = import_authorities_url(args.source_url, db_path=args.db)
     print(f"Imported {n} authorities")
+
+
+def cmd_discover_bodies(args):
+    rows = discover_bodies(
+        base_url=args.base_url,
+        delay_seconds=args.delay_seconds,
+        shared_rate_limit_db_path=args.db,
+    )
+    payload = {"base_url": args.base_url.rstrip("/"), "count": len(rows), "bodies": rows}
+    _write_json_or_print(payload, args.output)
 
 
 def cmd_list_authorities(args):
@@ -334,6 +344,14 @@ def build_parser():
     sp.add_argument('--source-url', default=DEFAULT_AUTHORITIES_URL)
     sp.add_argument('--db', default='fyi_system.db')
     sp.set_defaults(func=cmd_import_authorities)
+
+    # Command: discover-bodies
+    sp = sub.add_parser("discover-bodies")
+    sp.add_argument("--base-url", default="https://fyi.org.nz")
+    sp.add_argument("--delay-seconds", type=float, default=1.0)
+    sp.add_argument("--db", default="fyi_system.db")
+    sp.add_argument("--output")
+    sp.set_defaults(func=cmd_discover_bodies)
     
     # Command: list-authorities
     sp = sub.add_parser('list-authorities')
