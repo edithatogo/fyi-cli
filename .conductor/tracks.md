@@ -175,11 +175,12 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## Active Tracks
 
-- [~] **Track: resource-aware-autonomous-agent** (IN PROGRESS)
+- [x] **Track: resource-aware-autonomous-agent** (COMPLETED 2026-07-10)
   *Link: [./tracks/resource-aware-autonomous-agent/](./tracks/resource-aware-autonomous-agent/)*
   *Description: Refactor fyi-cli from a passive scraper into a production-grade, resource-aware autonomous agent: RateLimit-* / Retry-After header interception, adaptive bandwidth scaling, local load memory, plan-and-solve reflection, framework-ready core loop, and mandatory contactable User-Agent hygiene for sustainable use of volunteer Alaveteli instances (FYI.org.nz and peers).*
   *Priority: high*
   *Dependencies: upstream-alaveteli-engagement, jurisdiction-abstraction-core, api-contract-hardening-20260630, multi-jurisdiction-security-hardening*
+  *Results: Rust GNU suite 152 passed; Python suite 604 passed with 1 opt-in smoke skipped; focused Python coverage 90%; identity, guardrails, RateLimit/Retry-After, adaptive pacing, load memory, plan reflection, cache, trace, and documentation close-out verified.*
 
 - [~] **Track: alaveteli-bot-contract** (IN PROGRESS)
   *GitHub parent: [#140](https://github.com/edithatogo/fyi-cli/issues/140)*

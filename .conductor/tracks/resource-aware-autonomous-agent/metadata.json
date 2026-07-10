@@ -2,9 +2,9 @@
   "id": "resource-aware-autonomous-agent",
   "title": "Resource-Aware Autonomous Agent",
   "description": "Refactor fyi-cli from a passive scraper into a production-grade, resource-aware autonomous agent: RateLimit-*/Retry-After, adaptive pacing, load memory, plan reflection, cryptographic-aligned User-Agent + opt-in contact, behavioral guardrails, filesystem cache, and Langfuse/Braintrust-compatible local traces.",
-  "status": "active",
+  "status": "completed",
   "created_at": "2026-07-09T00:00:00Z",
-  "updated_at": "2026-07-09T12:00:00Z",
+  "updated_at": "2026-07-10T06:00:00Z",
   "type": "architecture",
   "priority": "high",
   "dependencies": [
