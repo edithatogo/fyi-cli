@@ -504,10 +504,45 @@ class TestSustainabilityExtensions:
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.raise_for_status = Mock()
-        mock_response.text = '{"id": 1, "title": "Req 1"}\n{"id": 2, "title": "Req 2"}\n'
+        mock_response.iter_lines.return_value = [
+            '{"id": 1, "title": "Req 1"}',
+            '{"id": 2, "title": "Req 2"}',
+        ]
         mock_get.return_value = mock_response
 
         results = client.get_bulk_export()
         assert len(results) == 2
         assert results[0]['id'] == 1
         assert results[1]['title'] == 'Req 2'
+        mock_get.assert_called_once_with(
+            'https://test.alaveteli.org/api/v1/bulk_export',
+            headers={},
+            timeout=10,
+            stream=True,
+        )
+        mock_response.close.assert_called_once()
+
+    @patch('fyi_system.alaveteli_client.requests.Session.get')
+    def test_bulk_export_enforces_item_limit_before_unbounded_growth(self, mock_get, client):
+        mock_response = Mock(status_code=200)
+        mock_response.raise_for_status = Mock()
+        mock_response.iter_lines.return_value = [
+            '{"id": 1}',
+            '{"id": 2}',
+        ]
+        mock_get.return_value = mock_response
+
+        with pytest.raises(AlaveteliAPIError, match='item limit'):
+            client.get_bulk_export(max_items=1)
+        mock_response.close.assert_called_once()
+
+    @patch('fyi_system.alaveteli_client.requests.Session.get')
+    def test_bulk_export_enforces_byte_limit_and_closes_stream(self, mock_get, client):
+        mock_response = Mock(status_code=200)
+        mock_response.raise_for_status = Mock()
+        mock_response.iter_lines.return_value = ['{"id": 12345}']
+        mock_get.return_value = mock_response
+
+        with pytest.raises(AlaveteliAPIError, match='response-byte limit'):
+            client.get_bulk_export(max_bytes=3)
+        mock_response.close.assert_called_once()

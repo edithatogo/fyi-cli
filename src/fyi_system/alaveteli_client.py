@@ -124,6 +124,7 @@ class AlaveteliClient:
         """
         url = f"{self.base_url}{endpoint}"
         headers = kwargs.pop('headers', {})
+        streaming = bool(kwargs.get('stream', False))
 
         # Load cached ETag/Last-Modified details
         cached = None
@@ -181,7 +182,7 @@ class AlaveteliClient:
                 # Cache successful GET responses containing ETags or Last-Modified
                 etag = response_headers.get('ETag')
                 last_modified = response_headers.get('Last-Modified')
-                if response.status_code == 200 and (etag or last_modified):
+                if response.status_code == 200 and (etag or last_modified) and not streaming:
                     try:
                         db.set_cached_response(self.db_path, url, etag, last_modified, response.text)
                     except Exception:
@@ -324,7 +325,12 @@ class AlaveteliClient:
         response = self._get('/search.json', params=params)
         return response.json()
     
-    def get_bulk_export(self) -> List[Dict[str, Any]]:
+    def get_bulk_export(
+        self,
+        *,
+        max_items: int = 1000,
+        max_bytes: int = 50 * 1024 * 1024,
+    ) -> List[Dict[str, Any]]:
         """Fetch bulk request metadata stream from Alaveteli.
         
         Endpoint: GET /api/v1/bulk_export
@@ -332,12 +338,35 @@ class AlaveteliClient:
         Returns:
             List of request metadata dictionaries
         """
-        response = self._get('/api/v1/bulk_export')
+        if max_items <= 0:
+            raise ValueError('max_items must be positive')
+        if max_bytes <= 0:
+            raise ValueError('max_bytes must be positive')
+
+        response = self._get('/api/v1/bulk_export', stream=True)
         results = []
-        for line in response.text.strip().split("\n"):
-            if line:
-                results.append(json.loads(line))
-        return results
+        bytes_seen = 0
+        try:
+            for raw_line in response.iter_lines(decode_unicode=True):
+                if not raw_line:
+                    continue
+                line = raw_line if isinstance(raw_line, str) else raw_line.decode('utf-8')
+                bytes_seen += len(line.encode('utf-8')) + 1
+                if bytes_seen > max_bytes:
+                    raise AlaveteliAPIError(
+                        'bulk export exceeded the configured response-byte limit', 413
+                    )
+                if len(results) >= max_items:
+                    raise AlaveteliAPIError(
+                        'bulk export exceeded the configured item limit', 413
+                    )
+                try:
+                    results.append(json.loads(line))
+                except json.JSONDecodeError as exc:
+                    raise AlaveteliAPIError('bulk export contained invalid JSON', 502) from exc
+            return results
+        finally:
+            response.close()
 
     # ========== Write API Methods ==========
     
