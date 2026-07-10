@@ -14,6 +14,7 @@ from urllib.parse import urlencode
 
 import httpx
 
+from .agent_runtime import build_user_agent, retry_delay_seconds
 from .db import (
     acquire_shared_rate_limit,
     read_shared_rate_limit_events,
@@ -26,7 +27,8 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-USER_AGENT = "fyi-cli archive-discovery/1.0 (+https://github.com/edithatogo/fyi-cli)"
+# Cryptographic-aligned, contactable identity (opt-in admin contact via FYI_ADMIN_CONTACT).
+USER_AGENT = build_user_agent(os.environ.get("FYI_ADMIN_CONTACT"))
 REQUEST_RE = re.compile(r"/request/(?P<id>\d+|[a-z0-9_-]+)", re.IGNORECASE)
 
 
@@ -308,13 +310,16 @@ def get_with_backoff(
             return response
         if attempt == retries:
             return response
+        delay = retry_delay_seconds(
+            response.headers, attempt=attempt, max_seconds=max(1, int(backoff_seconds * 256))
+        )
         _record_shared_backoff(
             shared_rate_limiter,
-            delay_seconds=backoff_seconds * (attempt + 1),
+            delay_seconds=delay,
             status_code=response.status_code,
         )
-        if backoff_seconds > 0:
-            sleeper(backoff_seconds * (attempt + 1))
+        if delay > 0:
+            sleeper(delay)
     return response
 
 

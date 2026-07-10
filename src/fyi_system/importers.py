@@ -2,14 +2,20 @@ from __future__ import annotations
 
 import csv
 import io
+import os
 from pathlib import Path
 
 import httpx
 
+from .agent_runtime import build_user_agent
 from .db import connect
 
 DEFAULT_AUTHORITIES_URL = "https://fyi.org.nz/body/all-authorities.csv"
-USER_AGENT = "fyi-cli authority-import/1.0 (+https://github.com/edithatogo/fyi-cli)"
+
+# Cryptographic-aligned identity; set FYI_ADMIN_CONTACT for opt-in operator contact.
+USER_AGENT = build_user_agent(
+    os.environ.get("FYI_ADMIN_CONTACT"), component="authority-import"
+)
 
 
 def _value(row: dict, *keys: str) -> str:

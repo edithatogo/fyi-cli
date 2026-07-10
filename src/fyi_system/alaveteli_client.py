@@ -13,7 +13,11 @@ API Documentation: https://alaveteli.org/docs/developers/api/
 """
 from __future__ import annotations
 import json
+import os
 import requests
+from collections.abc import Mapping
+
+from .agent_runtime import build_user_agent, retry_delay_seconds
 import time
 from pathlib import Path
 from typing import Optional, Dict, Any, List
@@ -97,6 +101,9 @@ class AlaveteliClient:
         self.timeout = timeout
         self.db_path = db_path
         self.session = requests.Session()
+        self.session.headers["User-Agent"] = build_user_agent(
+            os.environ.get("FYI_ADMIN_CONTACT")
+        )
         self.last_rate_limit = {}
         
         if api_key:
@@ -140,17 +147,28 @@ class AlaveteliClient:
                 response = self.session.get(url, headers=headers, timeout=self.timeout, **kwargs)
                 
                 # Capture Rate Limits
-                if 'RateLimit-Limit' in response.headers:
+                response_headers = response.headers
+                header_names = (
+                    {str(name).lower() for name in response_headers}
+                    if isinstance(response_headers, Mapping)
+                    else set()
+                )
+                if any(key.lower() in header_names for key in (
+                    'RateLimit-Limit', 'RateLimit-Remaining', 'RateLimit-Reset', 'Retry-After'
+                )):
                     self.last_rate_limit = {
                         'limit': response.headers.get('RateLimit-Limit'),
                         'remaining': response.headers.get('RateLimit-Remaining'),
                         'reset': response.headers.get('RateLimit-Reset'),
+                        'retry_after': response.headers.get('Retry-After'),
                         'advisory_status': response.headers.get('X-Advisory-Status', 'nominal')
                     }
 
                 # Handle 429 Too Many Requests
                 if response.status_code == 429:
-                    retry_after = int(response.headers.get('Retry-After', 5))
+                    retry_after = retry_delay_seconds(
+                        response.headers, attempt=retries, max_seconds=300
+                    )
                     time.sleep(retry_after)
                     retries += 1
                     continue
