@@ -164,6 +164,20 @@ Before marking any task complete, verify:
 - [ ] Documentation updated if needed
 - [ ] No security vulnerabilities introduced
 
+### Windows MSVC verification
+
+When Rust verification requires the Windows MSVC linker, use the user-scoped
+portable toolchain rather than requesting elevation:
+
+```powershell
+pwsh -NoProfile -File scripts/verify_msvc_portable.ps1
+pwsh -NoProfile -File scripts/Invoke-MsvcPortable.ps1 cargo test --target x86_64-pc-windows-msvc -p fyi-core --test tor_tests
+```
+
+The launcher must set `PATH`, `INCLUDE`, and `LIB` only in its child process.
+No system-wide environment variables, registry keys, or `Program Files`
+locations may be modified.
+
 ## Development Commands
 
 ### Python Setup
