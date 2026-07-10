@@ -34,7 +34,7 @@
 ### 3.1 Remote Authorities
 - [x] Task: Write failing tests for authority list endpoints — WireMock verifies wrapped authority response parsing
 - [x] Task: Implement authority discovery endpoints
-- [ ] Task: Add authority filtering support
+- [x] Task: Add authority filtering support — client-side case-insensitive matching across authority identifiers and labels
 - [ ] Task: Conductor - User Manual Verification 'Phase 3.1: Authorities' (Protocol in workflow.md)
 
 ### 3.2 Prefilled URL Builder
@@ -83,3 +83,4 @@
 - **2026-07-08**: Track created for multi-jurisdictional expansion
 - **2026-07-11**: Added Rust `search.rss` request-ID discovery with deduplication and query propagation; local execution is blocked by the absent MSVC Windows SDK, so CI remains the execution gate.
 - **2026-07-11**: Added WireMock contract coverage for correspondence, state, authority, health, and object-shaped version APIs; local Rust execution remains blocked by the absent MSVC Windows SDK.
+- **2026-07-11**: Added deterministic client-side authority filtering with WireMock coverage; remote filter query semantics remain intentionally unspecified.
