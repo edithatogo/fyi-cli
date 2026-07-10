@@ -43,8 +43,8 @@
 
 ## Phase 4: Cross-repo verification
 
-- [ ] Issue #144: Run fork-local Alaveteli contract verification and reconcile both tracks.
-- [ ] Consume shared offline fixtures and run opt-in bounded live smoke only when explicitly enabled.
+- [~] Issue #144: Run fork-local Alaveteli contract verification and reconcile both tracks — fyi-cli harness complete (`0d40a65`); paired server verification remains external.
+- [x] Consume shared offline fixtures and run opt-in bounded live smoke only when explicitly enabled — `0d40a65`, `3ec2c12`; live mode remains disabled by default.
 - [ ] Close only when every known risk is fixed, verified false positive, or blocked by a dated disabled follow-up.
 
 ## PR standard
@@ -124,3 +124,13 @@ the pre-existing dirty `agent_runtime.rs` change unless explicitly assigned.
   BackingOff state.
 - The remaining Phase 4 work is fork-local Alaveteli verification and shared
   server-side reconciliation, not an untested client-side behavior.
+
+## Fork-local harness verification
+
+- Offline harness: `scripts/verify_alaveteli_bot_contract.py`.
+- Runtime result: `mode=offline`, two shared back-pressure cases, bounded route
+  bulk ceiling reported, and live smoke explicitly disabled.
+- Quality gates: Ruff and basedpyright pass for the changed Python harness and
+  route module; targeted route coverage is 88%.
+- External follow-up: run the paired Alaveteli server fixture/conformance suite
+  under issue #144 before evidence-gate closure.
