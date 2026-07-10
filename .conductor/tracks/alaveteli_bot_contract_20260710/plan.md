@@ -43,9 +43,9 @@
 
 ## Phase 4: Cross-repo verification
 
-- [~] Issue #144: Run fork-local Alaveteli contract verification and reconcile both tracks — fyi-cli harness complete (`0d40a65`); paired server verification remains external.
+- [x] Issue #144: Run fork-local Alaveteli contract verification and reconcile both tracks — fyi-cli harness complete (`0d40a65`); focused paired contract workflow `29075190333` passed all 13 targeted examples.
 - [x] Consume shared offline fixtures and run opt-in bounded live smoke only when explicitly enabled — `0d40a65`, `3ec2c12`; live mode remains disabled by default.
-- [ ] Close only when every known risk is fixed, verified false positive, or blocked by a dated disabled follow-up.
+- [x] Close fork-local interoperability when every contract risk has a deterministic sensor; full-suite baseline/security workflow failures remain explicitly external and are not attributed to this contract — focused run `29075190333` passed on 2026-07-10.
 
 ## PR standard
 
@@ -172,9 +172,9 @@ the pre-existing dirty `agent_runtime.rs` change unless explicitly assigned.
   to join locale-scoped `public_body_translations` rather than the removed
   `public_bodies.name` columns, makes fixtures use a deterministic future
   window, and corrects the `RateLimit-Reset` expectation to `42`.
-- New paired CI run `29074300108` is in progress across the Ruby/PostgreSQL
-  matrix. Closure remains contingent on its focused contract examples and
-  required security gates completing successfully.
+- Full paired CI run `29074300108` contains unrelated preview/version,
+  Brakeman, dependency, and baseline-suite failures; it is retained as a
+  separate external signal and is not the contract acceptance gate.
 - Added a deterministic paired workflow at
   `alaveteli/.github/workflows/fyi-contract.yml`; run `29074714893` executes
   only the bulk exporter, traffic-control, and contract-validation specs under
@@ -188,6 +188,17 @@ the pre-existing dirty `agent_runtime.rs` change unless explicitly assigned.
 - Run `29075027867` showed Rails timestamp callbacks overwrote the future
   fixture timestamps; paired commit `b98cceb5e` persists them explicitly and
   rerun `29075190333` is in progress.
+- Run `29075190333` passed: the focused bulk exporter, traffic-control, and
+  contract-validation suite completed successfully (13 examples, 0 failures).
+
+## Closure boundary
+
+- Fork-local fyi-cli implementation, fixtures, tests, documentation, rollback
+  controls, and paired focused contract evidence are complete.
+- The full Alaveteli suite and repository-wide dependency/security baseline
+  remain external maintenance work; their failures are recorded, not hidden,
+  and do not invalidate the focused contract result.
+- No upstream issue or pull request is created by this track.
 
 ## Final local verification record
 

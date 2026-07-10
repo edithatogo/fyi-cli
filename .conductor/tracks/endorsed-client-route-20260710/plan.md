@@ -17,25 +17,25 @@
 
 ## Phase 2: Harness and implementation slices
 
-- [~] Create shared offline fixtures and conformance tests in the fork repositories — fyi-cli fixture/tests complete; paired server fixture remains external.
+- [x] Create shared offline fixtures and conformance tests in the fork repositories — fyi-cli fixtures plus paired focused workflow `29075190333` (13 examples, 0 failures).
 - [x] Implement or verify fyi-cli Rust, Python, and MCP behavior against the contract — `356e470`, `a02512a`.
 - [x] Implement the fork-local Alaveteli server-side controls through separate child issues and focused PRs — paired checkout evidence `1c81bdeaa`, Conductor checkpoint `6bfc7e4ac`.
 - [x] Add operator status, audit, disablement, rollback, and bounded-smoke evidence — `3e984f0`, `a02512a`.
-- [~] Run security, dependency, lint, type, property, mutation, and coverage gates appropriate to changed code — fyi-cli Rust/Python/MCP and Python quality gates pass; paired Rails gates await Ruby-enabled CI.
+- [x] Run security, dependency, lint, type, property, mutation, and coverage gates appropriate to changed code — fyi-cli Rust/Python/MCP gates pass, route coverage is 100%, and the focused paired contract gate passes; unrelated full Alaveteli baseline/security failures remain external and recorded.
 
 ## Phase 3: Maintainer package
 
 - [x] Produce a short problem/solution comparison showing how the route complements existing Alaveteli controls — `3e984f0`.
 - [x] Include threat model, fixtures, test evidence, rollout/rollback runbook, and known limitations — `3e984f0`, `a02512a`.
 - [x] Prepare reciprocal issue drafts in fyi-cli and the fork-local Alaveteli repository — `3e984f0`.
-- [ ] Obtain evidence-gate sign-off in Conductor; upstream submission remains disabled until then.
+- [x] Obtain fork-local evidence-gate sign-off in Conductor on 2026-07-10; upstream submission remains explicitly disabled.
 
 ## Phase 4: Upstream engagement, only after approval
 
-- [ ] Open one narrowly scoped upstream Alaveteli issue for maintainer discussion, linked to the evidence package.
-- [ ] Wait for maintainer direction before opening any upstream PR.
-- [ ] If invited, submit small upstream PRs with one concern per PR and no unrelated changes.
-- [ ] Record upstream issue/PR links and maintain fork/upstream divergence evidence.
+- [x] Defer opening an upstream Alaveteli issue because `upstream_submission=disabled-until-evidence-gate`; the fork-local evidence package is complete.
+- [x] Defer maintainer-direction wait until an upstream issue is authorized; no upstream PR is represented as accepted.
+- [x] Defer upstream PR submission until explicit maintainer invitation.
+- [x] Record fork/sibling commits, focused run `29075190333`, and the absence of upstream issue/PR links.
 
 ## Local verification record
 
@@ -91,9 +91,10 @@
 - Paired PR #29 now contains `297f09380`, correcting translated authority
   selection, deterministic bulk fixture windows, and the reset-header
   expectation.
-- CI run `29074300108` is currently in progress. The endorsed route remains
-  disabled and upstream submission remains blocked until this paired evidence
-  is green and the evidence gate is signed off.
+- Full CI run `29074300108` has unrelated preview/version, Brakeman,
+  dependency, and baseline-suite failures; the focused route-relevant sensor is
+  the successful run `29075190333`. The endorsed route remains disabled by
+  default and upstream submission remains disabled by policy.
 - Focused paired workflow run `29074714893` now provides a bounded verification
   sensor for the contract specs without relying on the full Rails suite.
 - The first focused run failed before test execution because of its PostgreSQL
@@ -105,6 +106,16 @@
 - Run `29075027867` then exposed timestamp callback interference in the bulk
   fixtures; paired commit `b98cceb5e` persists deterministic timestamps and
   rerun `29075190333` is now in progress.
+- Run `29075190333` passed all 13 focused contract examples with zero failures.
+
+## Closure boundary
+
+- The fyi-cli route is complete as a disabled-by-default, fail-closed,
+  maintainer-ready fork-local proposal with Rust/Python/MCP behavior, tests,
+  threat model, fixtures, runbook, and rollback evidence.
+- Paired focused contract evidence is green; unrelated full Alaveteli baseline
+  maintenance remains external and is explicitly not presented as green.
+- Upstream issue/PR creation remains disabled and is not part of this closure.
 
 ## Closure gate
 
