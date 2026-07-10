@@ -134,3 +134,12 @@ the pre-existing dirty `agent_runtime.rs` change unless explicitly assigned.
   route module; targeted route coverage is 88%.
 - External follow-up: run the paired Alaveteli server fixture/conformance suite
   under issue #144 before evidence-gate closure.
+
+## Final local verification record
+
+- Python repository suite after contract additions: 616 passed, 1 opt-in live
+  smoke skipped.
+- GNU Rust `fyi-core`: 128 passed; GNU Rust `fyi-mcp`: 19 passed.
+- Local harness, Ruff, basedpyright, validator/bulk, Tor executor, and
+  back-pressure checks all pass. Paired Alaveteli server verification remains
+  the only external Phase 4 dependency.

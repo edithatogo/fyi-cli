@@ -37,6 +37,16 @@
 - [ ] If invited, submit small upstream PRs with one concern per PR and no unrelated changes.
 - [ ] Record upstream issue/PR links and maintain fork/upstream divergence evidence.
 
+## Local verification record
+
+- Python repository suite: 616 passed, 1 opt-in live smoke skipped.
+- Rust `fyi-core`: 128 passed; Rust `fyi-mcp`: 19 passed.
+- Endorsed-route Python coverage: 88%; Ruff and basedpyright pass for changed
+  Python route/harness files.
+- Remaining quality-gate work is the paired server-side suite plus any
+  maintainer-approved security/dependency/mutation gates; upstream submission
+  remains disabled.
+
 ## Closure gate
 
 This track cannot close while the evidence gate is incomplete, while a known
