@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from pathlib import Path
 
 from fyi_system.agent_runtime import RateLimitSnapshot
@@ -12,9 +13,17 @@ from fyi_system.endorsed_route import CapabilityDocument, EndorsedRouteError
 ROOT = Path(__file__).resolve().parents[1]
 
 
+class ContractVerificationError(RuntimeError):
+    """Raised when an offline contract assertion fails."""
+
+
+def fail(message: str) -> None:
+    raise ContractVerificationError(message)
+
+
 def main() -> int:
     route_payload = json.loads(
-        (ROOT / "tests/fixtures/endorsed-client-route/enabled.json").read_text()
+        (ROOT / "tests/fixtures/endorsed-client-route/enabled.json").read_text(),
     )
     route = CapabilityDocument.from_mapping(route_payload)
     authorized = route.authorize(
@@ -33,14 +42,16 @@ def main() -> int:
     except EndorsedRouteError:
         pass
     else:
-        raise AssertionError("disabled endorsed route did not fail closed")
+        fail("disabled endorsed route did not fail closed")
 
     headers = json.loads((ROOT / "tests/fixtures/backpressure_headers.json").read_text())
     for case in headers.values():
         snapshot = RateLimitSnapshot.from_headers(case["headers"])
         expected = case["expected"]
-        assert snapshot.remaining == expected["remaining"]
-        assert snapshot.advisory_status == expected["advisory_status"]
+        if snapshot.remaining != expected["remaining"]:
+            fail("shared remaining header fixture diverged")
+        if snapshot.advisory_status != expected["advisory_status"]:
+            fail("shared advisory header fixture diverged")
 
     live = os.environ.get("FYI_ALAVETELI_CONTRACT_LIVE") == "1"
     report = {
@@ -52,7 +63,7 @@ def main() -> int:
         if live
         else "disabled by default",
     }
-    print(json.dumps(report, indent=2, sort_keys=True))
+    sys.stdout.write(json.dumps(report, indent=2, sort_keys=True) + "\n")
     return 0
 
 
