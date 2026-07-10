@@ -181,6 +181,13 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Priority: high*
   *Dependencies: upstream-alaveteli-engagement, jurisdiction-abstraction-core, api-contract-hardening-20260630, multi-jurisdiction-security-hardening*
 
+- [~] **Track: alaveteli-bot-contract** (IN PROGRESS)
+  *GitHub parent: [#140](https://github.com/edithatogo/fyi-cli/issues/140)*
+  *Paired Alaveteli parent: [#23](https://github.com/edithatogo/alaveteli/issues/23)*
+  *Link: [./tracks/alaveteli_bot_contract_20260710/](./tracks/alaveteli_bot_contract_20260710/)*
+  *Description: Deliver the fyi-cli side of traceable identity, back-pressure handling, conditional caching, and bounded bulk-export interoperability with the fork-local Alaveteli sustainability contract.*
+  *Dependencies: resource-aware-autonomous-agent, api-contract-hardening-20260630*
+
 ## Recently completed (2026-07-09)
 
 - [x] **Track: bleeding-edge-features** (COMPLETED 2026-07-09 — repo-side foundations)
