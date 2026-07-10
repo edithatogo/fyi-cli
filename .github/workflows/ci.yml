@@ -178,7 +178,7 @@ jobs:
         # report must fail CI; 90% is a gate, not an informational goal.
         run: |
           cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info
-          cargo llvm-cov report --text --summary-only --fail-under-lines 90
+          cargo llvm-cov report --summary-only --fail-under-lines 90
           test -f lcov.info
 
       - name: Upload coverage reports to Codecov
