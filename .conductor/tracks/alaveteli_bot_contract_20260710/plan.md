@@ -79,8 +79,8 @@ the pre-existing dirty `agent_runtime.rs` change unless explicitly assigned.
 - Full scoped core library command: `pwsh -NoProfile -File scripts/Invoke-MsvcPortable.ps1 cargo test --locked -p fyi-core --lib`.
 - Full result: 115 passed, 0 failed.
 - Scoped check: `cargo check --locked -p fyi-core` completed successfully.
-- Remaining closure blocker: Tor/proxy-assisted send integration and its
-  deterministic boundary tests are intentionally still open.
+- Tor/proxy-assisted send integration and deterministic boundary tests are
+  covered by `5735d9d`; the former closure blocker is resolved.
 
 ## Back-pressure slice verification
 
@@ -97,8 +97,8 @@ the pre-existing dirty `agent_runtime.rs` change unless explicitly assigned.
 - Paired Alaveteli fixture/control issue: https://github.com/edithatogo/alaveteli/issues/25
 - Python Alaveteli client tests: 34 passed, including item/byte trip and stream
   closure tests.
-- Resolved by the validator/bulk slice below; remaining closure work is
-  cross-path back-pressure evidence and fork-local reconciliation.
+- Resolved by the validator/bulk slice below; remaining closure work is the
+  fork-local Alaveteli reconciliation in Phase 4.
 
 ## Validator/bulk slice verification
 
