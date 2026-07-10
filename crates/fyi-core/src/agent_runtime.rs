@@ -431,7 +431,7 @@ pub fn exponential_backoff_seconds(
     }
     // Soft jitter: deterministic mix (no RNG dependency); ± up to 12.5%.
     let jitter = (wait / 8).max(1);
-    let mixed = wait.saturating_add((attempt as u64 % (jitter + 1)));
+    let mixed = wait.saturating_add(attempt as u64 % (jitter + 1));
     mixed.min(max_seconds.max(retry_after.unwrap_or(0)))
 }
 
@@ -763,6 +763,32 @@ pub fn reflect_plan(plan: &RetrievalPlan, memory: &LoadMemoryStore) -> PlanDecis
 
     PlanDecision::Accept {
         rationale: "plan is bounded and within safety policy".into(),
+    }
+}
+
+/// Rewrite a plan after a throttle so a resumed run has a smaller footprint.
+/// The rewrite is deterministic and keeps the operator's instance/window scope.
+pub fn rewrite_after_throttle(plan: &RetrievalPlan) -> PlanDecision {
+    if plan.force_schedule {
+        return PlanDecision::Accept {
+            rationale: "throttle observed but force_schedule preserves the explicit operator plan"
+                .into(),
+        };
+    }
+    if plan.recursive_unbounded && plan.date_from.is_none() {
+        return PlanDecision::Reject {
+            rationale: "throttle observed; unbounded plan without a date window remains rejected"
+                .into(),
+        };
+    }
+    let mut rewritten = plan.clone();
+    rewritten.recursive_unbounded = false;
+    rewritten.estimated_requests = (plan.estimated_requests / 2).max(1);
+    rewritten.max_pages = Some((plan.max_pages.unwrap_or(50).max(1) / 2).max(1));
+    rewritten.description = format!("{} [rewritten after throttle]", plan.description);
+    PlanDecision::Rewrite {
+        rationale: "throttle observed; halved estimated work and page bound before resume".into(),
+        rewritten,
     }
 }
 
@@ -1393,6 +1419,49 @@ mod tests {
             }
             other => panic!("expected rewrite, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn throttle_rewrites_plan_before_resume() {
+        let plan = RetrievalPlan {
+            instance_id: "nz-fyi".into(),
+            description: "bulk discovery".into(),
+            estimated_requests: 100,
+            date_from: Some("2026-01-01".into()),
+            date_to: Some("2026-01-31".into()),
+            max_pages: Some(20),
+            recursive_unbounded: false,
+            is_heavy: true,
+            force_schedule: false,
+        };
+        let decision = rewrite_after_throttle(&plan);
+        match decision {
+            PlanDecision::Rewrite { rewritten, .. } => {
+                assert_eq!(rewritten.estimated_requests, 50);
+                assert_eq!(rewritten.max_pages, Some(10));
+                assert!(rewritten.description.contains("after throttle"));
+            }
+            other => panic!("expected rewrite, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn throttle_keeps_unbounded_plan_rejected_without_window() {
+        let plan = RetrievalPlan {
+            instance_id: "nz-fyi".into(),
+            description: "unbounded".into(),
+            estimated_requests: 0,
+            date_from: None,
+            date_to: None,
+            max_pages: None,
+            recursive_unbounded: true,
+            is_heavy: true,
+            force_schedule: false,
+        };
+        assert!(matches!(
+            rewrite_after_throttle(&plan),
+            PlanDecision::Reject { .. }
+        ));
     }
 
     #[test]
