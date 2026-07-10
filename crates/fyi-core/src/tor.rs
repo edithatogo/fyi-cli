@@ -1,4 +1,5 @@
 use arti_client::{config::TorClientConfigBuilder, TorClient, TorClientConfig};
+use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
 use std::net::IpAddr;
 use std::net::SocketAddr;
 use std::path::Path;
@@ -137,13 +138,49 @@ impl TorManager {
         let proxy = reqwest::Proxy::all(&proxy_url)
             .map_err(|e| TorError::Runtime(format!("Failed to parse proxy URL: {}", e)))?;
 
+        let default_headers = identity_headers(identity)?;
         let client = reqwest::Client::builder()
             .proxy(proxy)
-            .user_agent(identity.user_agent())
+            .default_headers(default_headers)
             .build()
             .map_err(|e| TorError::Runtime(format!("Failed to build reqwest Client: {}", e)))?;
 
         Ok(client)
+    }
+}
+
+fn identity_headers(
+    identity: &crate::agent_runtime::ClientIdentity,
+) -> Result<HeaderMap, TorError> {
+    let user_agent = identity.user_agent();
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        USER_AGENT,
+        HeaderValue::from_str(&user_agent)
+            .map_err(|e| TorError::Runtime(format!("Invalid User-Agent: {e}")))?,
+    );
+    Ok(headers)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::identity_headers;
+
+    #[test]
+    fn identity_headers_include_traceable_user_agent() {
+        let identity = crate::agent_runtime::ClientIdentity::custom(
+            "fyi-test",
+            "9.9.9",
+            "https://example.test/fyi",
+            Some("ops@example.test".to_string()),
+        )
+        .expect("test identity should validate");
+
+        let headers = identity_headers(&identity).expect("identity headers should build");
+        assert_eq!(
+            headers.get(reqwest::header::USER_AGENT),
+            Some(&reqwest::header::HeaderValue::from_str(&identity.user_agent()).unwrap())
+        );
     }
 }
 
