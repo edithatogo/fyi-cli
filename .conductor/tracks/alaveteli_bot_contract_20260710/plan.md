@@ -5,7 +5,7 @@
 - [x] Issue #141: Enforce traceable identity across Rust HTTP constructors.
 - [x] Add validated identity wiring to the Tor-routed reqwest client and preserve the safe default constructor — `45f7e15`.
 - [x] Add deterministic identity-header and Tor-client construction tests — `be9604d`; verified with the user-scoped MSVC toolchain.
-- [~] Issue #145: Enforce resource guardrails at every Rust send boundary; stacked
+- [x] Issue #145: Enforce resource guardrails at every Rust send boundary; stacked
   fork-local PR #147 depends on identity PR #146.
 - [x] Route all `SyncClient` request, health-check, and retry send paths through
   one guarded executor — `c30b9f4`.
@@ -13,8 +13,8 @@
   response-byte, runtime, and concurrency limits at that boundary — `c30b9f4`.
 - [x] Add red/green wiremock tests proving request-count and response-byte trips
   block the next remote call without exposing response content — `c30b9f4`.
-- [ ] Integrate and test the same executor contract for Tor/proxy-assisted Rust
-  sends and complete the all-constructor audit.
+- [x] Integrate and test the same executor contract for Tor/proxy-assisted Rust
+  sends and complete the all-constructor audit — `5735d9d`.
 - [x] Working tree was clean before the guardrail slice; no unrelated changes
   were included.
 
@@ -98,7 +98,7 @@ the pre-existing dirty `agent_runtime.rs` change unless explicitly assigned.
 - Python Alaveteli client tests: 34 passed, including item/byte trip and stream
   closure tests.
 - Resolved by the validator/bulk slice below; remaining closure work is
-  cross-path Tor/back-pressure evidence and fork-local reconciliation.
+  cross-path back-pressure evidence and fork-local reconciliation.
 
 ## Validator/bulk slice verification
 
@@ -107,3 +107,11 @@ the pre-existing dirty `agent_runtime.rs` change unless explicitly assigned.
   authenticated bounded NDJSON export, and unauthorized no-fallback — 4 passed.
 - The bulk route is explicitly opt-in and has no ordinary recursive retrieval
   fallback; item, byte, and runtime limits are enforced before returning data.
+
+## Tor executor verification
+
+- Checkpoint: `5735d9d`.
+- `TorAgentClient` constructs the proxy client with the supplied traceable
+  identity and routes requests through `AgentNetworkMiddleware` for pacing,
+  concurrency, response-byte guardrails, load memory, traces, and 429 feedback.
+- GNU Tor integration test: `test_tor_guarded_client_uses_shared_agent_identity_contract` passed.
