@@ -9,6 +9,13 @@ import httpx
 
 from .agent_runtime import build_user_agent
 from .db import connect
+from .discovery import (
+    PoliteRateLimiter,
+    SharedRateLimiter,
+    client,
+    get_with_backoff,
+    load_robots_disallow,
+)
 
 DEFAULT_AUTHORITIES_URL = "https://fyi.org.nz/body/all-authorities.csv"
 
@@ -16,6 +23,11 @@ DEFAULT_AUTHORITIES_URL = "https://fyi.org.nz/body/all-authorities.csv"
 USER_AGENT = build_user_agent(
     os.environ.get("FYI_ADMIN_CONTACT"), component="authority-import"
 )
+
+
+def authorities_url(base_url: str) -> str:
+    """Build the public Alaveteli authorities CSV URL."""
+    return f"{base_url.rstrip('/')}/body/all-authorities.csv"
 
 
 def _value(row: dict, *keys: str) -> str:
@@ -84,3 +96,31 @@ def import_authorities_url(
         response = client.get(source_url)
         response.raise_for_status()
     return import_authorities_rows(parse_authorities_csv(response.text), db_path=db_path)
+
+
+def discover_bodies(
+    *,
+    base_url: str = "https://fyi.org.nz",
+    delay_seconds: float = 1.0,
+    shared_rate_limit_db_path: str | Path | None = None,
+    shared_rate_limit_name: str = "authority-discovery",
+    transport: httpx.BaseTransport | None = None,
+) -> list[dict[str, str]]:
+    """Discover public authorities without mutating the local database."""
+    with client(base_url, transport=transport) as http:
+        disallows = load_robots_disallow(http)
+        shared_limiter = (
+            SharedRateLimiter(shared_rate_limit_db_path, name=shared_rate_limit_name)
+            if shared_rate_limit_db_path is not None
+            else None
+        )
+        response = get_with_backoff(
+            http,
+            authorities_url(base_url),
+            disallows=disallows,
+            shared_rate_limiter=shared_limiter,
+            rate_limiter=PoliteRateLimiter(delay_seconds),
+            backoff_seconds=delay_seconds,
+        )
+        response.raise_for_status()
+        return parse_authorities_csv(response.text)
