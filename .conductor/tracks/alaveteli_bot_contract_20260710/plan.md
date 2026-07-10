@@ -5,10 +5,18 @@
 - [x] Issue #141: Enforce traceable identity across Rust HTTP constructors.
 - [x] Add validated identity wiring to the Tor-routed reqwest client and preserve the safe default constructor — `45f7e15`.
 - [x] Add deterministic identity-header and Tor-client construction tests — `be9604d`; verified with the user-scoped MSVC toolchain.
-- [ ] Issue #145: Enforce resource guardrails at every Rust send boundary.
-- [ ] Audit every remaining Rust HTTP constructor and send path for guardrail coverage.
-- [ ] Add red/green tests for guardrail trips, clean halt, and secret-free errors.
-- [ ] Preserve and separately account for any pre-existing working-tree change.
+- [~] Issue #145: Enforce resource guardrails at every Rust send boundary; stacked
+  fork-local PR #147 depends on identity PR #146.
+- [x] Route all `SyncClient` request, health-check, and retry send paths through
+  one guarded executor — `c30b9f4`.
+- [x] Bound response buffering before accounting bytes and enforce request-count,
+  response-byte, runtime, and concurrency limits at that boundary — `c30b9f4`.
+- [x] Add red/green wiremock tests proving request-count and response-byte trips
+  block the next remote call without exposing response content — `c30b9f4`.
+- [ ] Integrate and test the same executor contract for Tor/proxy-assisted Rust
+  sends and complete the all-constructor audit.
+- [x] Working tree was clean before the guardrail slice; no unrelated changes
+  were included.
 
 ## Phase 2: Back-pressure parity
 
@@ -51,3 +59,12 @@ the pre-existing dirty `agent_runtime.rs` change unless explicitly assigned.
 - Command: `pwsh -NoProfile -File scripts/Invoke-MsvcPortable.ps1 cargo test --target x86_64-pc-windows-msvc -p fyi-core --test tor_tests`.
 - Result: 5 passed, 0 failed; no elevation, registry, system environment, or
   `Program Files` writes were used.
+
+## Guardrail slice verification
+
+- Fork-local draft PR: https://github.com/edithatogo/fyi-cli/pull/147
+- Scoped command: `pwsh -NoProfile -File scripts/Invoke-MsvcPortable.ps1 cargo test --locked -p fyi-core sync::tests --lib`.
+- Result: 28 passed, 0 failed.
+- Scoped check: `cargo check --locked -p fyi-core` completed successfully.
+- Remaining closure blocker: Tor/proxy-assisted send integration and its
+  deterministic boundary tests are intentionally still open.
