@@ -10,7 +10,7 @@
   "paired_server_issue": "https://github.com/edithatogo/alaveteli/issues/28",
   "existing_server_contract_parent": "https://github.com/edithatogo/alaveteli/issues/23",
   "paired_ci_run": 29072076457,
-  "paired_evidence_status": "failed-contract-specs",
+  "paired_evidence_status": "correction-ci-in-progress",
   "paired_fix_commit": "297f09380",
   "paired_ci_run_latest": 29074300108,
   "local_route_coverage": "100% (21 tests)",
