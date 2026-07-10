@@ -144,9 +144,9 @@ the pre-existing dirty `agent_runtime.rs` change unless explicitly assigned.
   spec/controllers/api/v1/sustainability_controller_spec.rb
   spec/controllers/concerns/traffic_control_spec.rb
   spec/requests/contracts_validation_spec.rb`.
-- Result: cannot execute on this workstation because Ruby/Bundler/RSpec are not
-  installed. This is a dated disabled follow-up; rerun the exact command in a
-  Ruby-enabled fork CI environment before closure.
+- Local result: cannot execute on this workstation because Ruby/Bundler/RSpec
+  are not installed. The follow-up was subsequently exercised in paired PR #29
+  CI; see the current CI evidence below.
 
 ### Paired-server CI evidence (2026-07-10)
 

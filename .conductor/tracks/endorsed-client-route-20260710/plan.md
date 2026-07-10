@@ -67,9 +67,9 @@
 
 - The sibling Alaveteli checkout contains the server-side contract track and
   validator implementation (`1c81bdeaa`, evidence checkpoint `6bfc7e4ac`).
-- Focused Rails verification could not run because Ruby/Bundler/RSpec are not
-  installed on this workstation. The exact command and required specs are
-  recorded in the bot-contract plan as a dated disabled follow-up.
+- Focused Rails verification could not run locally because Ruby/Bundler/RSpec
+  are not installed on this workstation. Paired PR #29 CI subsequently ran the
+  server suite; its failing contract results are recorded below.
 - This track remains in progress; no upstream issue or PR has been opened.
 
 ### Paired-server CI result (2026-07-10)
