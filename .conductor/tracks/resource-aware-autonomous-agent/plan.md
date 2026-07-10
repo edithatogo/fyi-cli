@@ -56,7 +56,7 @@
 - [x] Task: Design SQLite tables/events for endpoint latency EWMA and rate-limit occurrences (per `instance_id` + route class) — 413d8b2
 - [x] Task: Implement write path on each response (success and throttle) — 413d8b2
 - [x] Task: Implement prune/retention so memory stays lightweight — 9333935
-- [ ] Task: Extend or complement `fyi rate-limit-status` (CLI) with load-memory summary; MCP status if natural fit
+- [x] Task: Extend or complement `fyi rate-limit-status` (CLI) with load-memory summary; MCP status if natural fit — 36c1e54
 
 ### 4.2 Rescheduling heavy work
 - [x] Task: Classify jobs as light vs heavy (e.g. single request fetch vs historical seed / bulk backfill) — 413d8b2
@@ -120,5 +120,6 @@
 - **2026-07-10**: Added offline `dry-plan` CLI reflection and completed the plan-model/reflection subsection. Checkpoint: `50bb43e`.
 - **2026-07-10**: Added deterministic post-throttle plan rewrite/rejection hooks and tests; GNU-target Rust suite reached 111 passing tests. Checkpoint: `8267e31`.
 - **2026-07-10**: Added explicit adaptive batch sizing and bounded load-memory pruning/status reporting; GNU-target Rust suite reached 112 passing tests. Checkpoint: `9333935`.
+- **2026-07-10**: Extended `rate-limit-status --agent-memory` with secret-free persisted memory and identity reporting; Python suite reached 106 passing tests. Checkpoint: `36c1e54`.
 - **2026-07-09**: Track created via `/conductor-newtrack` from architectural brief (agentic reflection, load memory, framework integration, RateLimit-* headers, dynamic bandwidth scaling, 429/Retry-After, User-Agent zero-trust hygiene). Active registry entry added.
 - **2026-07-09**: Spec/plan extended with cryptographic-aligned UA + opt-in admin contact, continuous behavioral guardrails, Langfuse/Braintrust-compatible trace hooks, FOSS/local-cache constraints, and network middleware deliverable. Implementation of `fyi-core::agent_runtime` begun.
