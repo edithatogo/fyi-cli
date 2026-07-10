@@ -1,0 +1,1 @@
+Alaveteli bot-contract Phase 3 slice: added conditional GET validators with ETag/Last-Modified, safe 304 reuse, stale/error protection, opt-in X-FYI-Bot-Token, bounded NDJSON bulk_export limits, and fail-closed no-fallback behavior. Focused GNU tests: 4 passed.
