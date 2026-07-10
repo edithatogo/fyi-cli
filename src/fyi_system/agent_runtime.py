@@ -114,6 +114,7 @@ class RateLimitSnapshot:
     remaining: int | None = None
     reset_seconds: int | None = None
     retry_after_seconds: int | None = None
+    advisory_status: str | None = None
     http_status: int | None = None
 
     @classmethod
@@ -130,6 +131,9 @@ class RateLimitSnapshot:
         ra = normalized.get("retry-after")
         if ra is not None:
             snap.retry_after_seconds = _parse_delay(ra)
+        advisory = normalized.get("x-advisory-status")
+        if advisory and advisory.strip():
+            snap.advisory_status = advisory.strip().lower()
         return snap
 
 
@@ -137,7 +141,8 @@ def _parse_int(value: str | None) -> int | None:
     if value is None:
         return None
     try:
-        return int(float(value.strip().split(".", 1)[0]))
+        parsed = int(float(value.strip().split(".", 1)[0]))
+        return parsed if parsed >= 0 else None
     except (TypeError, ValueError):
         return None
 

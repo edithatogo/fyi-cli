@@ -188,6 +188,12 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Description: Deliver the fyi-cli side of traceable identity, back-pressure handling, conditional caching, and bounded bulk-export interoperability with the fork-local Alaveteli sustainability contract.*
   *Dependencies: resource-aware-autonomous-agent, api-contract-hardening-20260630*
 
+- [ ] **Track: endorsed-client-route** (PLANNED; upstream submission disabled)
+  *GitHub issue: [#148](https://github.com/edithatogo/fyi-cli/issues/148)*
+  *Link: [./tracks/endorsed-client-route-20260710/](./tracks/endorsed-client-route-20260710/)*
+  *Description: Prepare an evidence-backed, opt-in, sysadmin-controlled CLI/MCP route intended to reduce accidental Alaveteli overload before any upstream issue or PR is opened.*
+  *Dependencies: alaveteli-bot-contract, resource-aware-autonomous-agent*
+
 ## Recently completed (2026-07-09)
 
 - [x] **Track: bleeding-edge-features** (COMPLETED 2026-07-09 — repo-side foundations)

@@ -26,6 +26,8 @@ This directory contains the canonical Conductor project context and management f
 
 ### Active Tracks
 - **resource-aware-autonomous-agent** - Header-aware adaptive pacing, load memory, plan reflection, and identity hygiene for sustainable Alaveteli access
+- **alaveteli-bot-contract** - Fork-local client/server contract for bounded, observable Alaveteli traffic
+- **endorsed-client-route-20260710** - Evidence-gated preparation for a future opt-in, sysadmin-controlled upstream proposal
 
 ### Completed Tracks
 - **research-grade-quality** - >95% test coverage, >90% mutation score, and load/performance testing baseline

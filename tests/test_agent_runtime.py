@@ -59,6 +59,19 @@ def test_rate_limit_headers():
     assert snap.retry_after_seconds == 15
 
 
+def test_shared_backpressure_fixture_parity():
+    fixture_path = Path(__file__).parent / "fixtures" / "backpressure_headers.json"
+    fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+    for case in fixture.values():
+        snapshot = RateLimitSnapshot.from_headers(case["headers"])
+        expected = case["expected"]
+        assert snapshot.limit == expected["limit"]
+        assert snapshot.remaining == expected["remaining"]
+        assert snapshot.reset_seconds == expected["reset_seconds"]
+        assert snapshot.retry_after_seconds == expected["retry_after_seconds"]
+        assert snapshot.advisory_status == expected["advisory_status"]
+
+
 def test_retry_after_http_date_is_parsed_as_delay():
     retry_at = datetime.now(timezone.utc) + timedelta(seconds=20)
     snap = RateLimitSnapshot.from_headers({"Retry-After": format_datetime(retry_at, usegmt=True)})

@@ -5,12 +5,13 @@ use crate::api::{
 };
 use crate::db::{DbPool, FieldChange, SyncStatus};
 use anyhow::{anyhow, Context, Result};
-use reqwest::{header, Client, Response, StatusCode, Url};
+use reqwest::{header, Client, RequestBuilder, StatusCode, Url};
 use serde_json::Value;
 use std::collections::BTreeSet;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
-use std::time::Duration;
-use tokio::sync::oneshot;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+use tokio::sync::{oneshot, Mutex, OwnedSemaphorePermit, Semaphore};
 use tokio::task::JoinHandle;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -72,10 +73,29 @@ pub struct SearchOptions {
     pub filter: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct SyncClient {
     base_url: Url,
     http: Client,
+    middleware: Arc<Mutex<crate::agent_runtime::AgentNetworkMiddleware>>,
+    concurrency: Arc<Semaphore>,
+}
+
+struct GuardedResponse {
+    status: StatusCode,
+    headers: reqwest::header::HeaderMap,
+    body: Vec<u8>,
+    _permit: OwnedSemaphorePermit,
+}
+
+impl GuardedResponse {
+    async fn json<T: serde::de::DeserializeOwned>(self) -> Result<T> {
+        serde_json::from_slice(&self.body).context("failed to parse response JSON")
+    }
+
+    async fn text(self) -> Result<String> {
+        String::from_utf8(self.body).context("response body was not valid UTF-8")
+    }
 }
 
 impl SyncClient {
@@ -84,7 +104,7 @@ impl SyncClient {
             .map_err(|e| anyhow!("invalid client identity: {e}"))?;
         let http = crate::agent_runtime::build_http_client(&identity)
             .map_err(|e| anyhow!("failed to build HTTP client: {e}"))?;
-        Self::with_http_client(base_url, http)
+        Self::with_http_client_and_identity(base_url, http, identity)
     }
 
     /// Construct with an explicit agent identity (version fingerprint + opt-in contact).
@@ -94,13 +114,43 @@ impl SyncClient {
     ) -> Result<Self> {
         let http = crate::agent_runtime::build_http_client(identity)
             .map_err(|e| anyhow!("failed to build HTTP client: {e}"))?;
-        Self::with_http_client(base_url, http)
+        Self::with_http_client_and_identity(base_url, http, identity.clone())
     }
 
     pub fn with_http_client(base_url: &str, http: Client) -> Result<Self> {
-        Self::with_http_client_and_validation(base_url, http, false)
+        let identity = crate::agent_runtime::ClientIdentity::default_identity(None)
+            .map_err(|e| anyhow!("invalid client identity: {e}"))?;
+        Self::with_http_client_and_identity(base_url, http, identity)
     }
 
+    fn with_http_client_and_identity(
+        base_url: &str,
+        http: Client,
+        identity: crate::agent_runtime::ClientIdentity,
+    ) -> Result<Self> {
+        let guardrails = crate::agent_runtime::GuardrailConfig::default();
+        let concurrency = Arc::new(Semaphore::new(guardrails.max_concurrency as usize));
+        let middleware = crate::agent_runtime::AgentNetworkMiddleware::new(
+            identity,
+            guardrails,
+            crate::agent_runtime::PacingPolicy::default(),
+            Box::new(crate::agent_runtime::NullTraceSink),
+            format!(
+                "sync-{}",
+                chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default()
+            ),
+        );
+        let base_url = Url::parse(base_url).context("invalid FYI base URL")?;
+        validate_instance_url(&base_url, false)?;
+        Ok(Self {
+            base_url,
+            http,
+            middleware: Arc::new(Mutex::new(middleware)),
+            concurrency,
+        })
+    }
+
+    #[cfg(test)]
     fn with_http_client_and_validation(
         base_url: &str,
         http: Client,
@@ -108,7 +158,23 @@ impl SyncClient {
     ) -> Result<Self> {
         let base_url = Url::parse(base_url).context("invalid FYI base URL")?;
         validate_instance_url(&base_url, allow_loopback)?;
-        Ok(Self { base_url, http })
+        let identity = crate::agent_runtime::ClientIdentity::default_identity(None)
+            .map_err(|e| anyhow!("invalid client identity: {e}"))?;
+        let guardrails = crate::agent_runtime::GuardrailConfig::default();
+        Ok(Self {
+            base_url,
+            http,
+            middleware: Arc::new(Mutex::new(
+                crate::agent_runtime::AgentNetworkMiddleware::new(
+                    identity,
+                    guardrails.clone(),
+                    crate::agent_runtime::PacingPolicy::default(),
+                    Box::new(crate::agent_runtime::NullTraceSink),
+                    "sync-test",
+                ),
+            )),
+            concurrency: Arc::new(Semaphore::new(guardrails.max_concurrency as usize)),
+        })
     }
 
     #[cfg(test)]
@@ -132,11 +198,105 @@ impl SyncClient {
         })
     }
 
+    async fn send_guarded(&self, request: RequestBuilder) -> Result<GuardedResponse> {
+        let request = request
+            .build()
+            .context("failed to build outbound request")?;
+        let meta = crate::agent_runtime::OutboundRequestMeta {
+            instance_id: self.base_url.host_str().unwrap_or("unknown").to_string(),
+            route_class: "alaveteli_api".to_string(),
+            method: request.method().to_string(),
+            url: request.url().to_string(),
+        };
+        let wait = {
+            let mut middleware = self.middleware.lock().await;
+            middleware
+                .before_request(&meta)
+                .map_err(|error| anyhow!("outbound request blocked: {error}"))?
+        };
+        if !wait.wait.is_zero() {
+            tokio::time::sleep(wait.wait).await;
+        }
+
+        let permit = self
+            .concurrency
+            .clone()
+            .acquire_owned()
+            .await
+            .map_err(|_| anyhow!("outbound request concurrency guard unavailable"))?;
+        let started = Instant::now();
+        let mut response = self
+            .http
+            .execute(request)
+            .await
+            .context("outbound request failed")?;
+        let status = response.status();
+        let headers = response.headers().clone();
+        let max_response_bytes = self
+            .middleware
+            .lock()
+            .await
+            .guardrails
+            .config
+            .max_response_bytes;
+        let mut body = Vec::new();
+        while let Some(chunk) = response
+            .chunk()
+            .await
+            .context("failed to read outbound response")?
+        {
+            let next_size = body.len() as u64 + chunk.len() as u64;
+            if next_size > max_response_bytes {
+                let _ = self
+                    .middleware
+                    .lock()
+                    .await
+                    .record_response_chunk(chunk.len() as u64);
+                let error = anyhow!(
+                    "outbound response blocked: maximum response bytes exceeded ({next_size} > {max_response_bytes})"
+                );
+                return Err(error);
+            }
+            self.middleware
+                .lock()
+                .await
+                .record_response_chunk(chunk.len() as u64)
+                .map_err(|error| anyhow!("outbound response blocked: {error}"))?;
+            body.extend_from_slice(&chunk);
+        }
+        let header_values = headers
+            .iter()
+            .filter_map(|(name, value)| value.to_str().ok().map(|value| (name.as_str(), value)))
+            .collect::<Vec<_>>();
+        let feedback = self.middleware.lock().await.after_response(
+            &meta,
+            status.as_u16(),
+            &header_values,
+            started.elapsed(),
+            None,
+        );
+        if let Err(error) = feedback {
+            if !(status == StatusCode::TOO_MANY_REQUESTS
+                && matches!(
+                    error,
+                    crate::agent_runtime::AgentRuntimeError::RateLimited(_)
+                ))
+            {
+                return Err(anyhow!("outbound response blocked: {error}"));
+            }
+        }
+
+        Ok(GuardedResponse {
+            status,
+            headers,
+            body,
+            _permit: permit,
+        })
+    }
+
     pub async fn pull_feed(&self, db: &DbPool, feed_url: &str) -> Result<PullReport> {
         let response = self
-            .http
-            .get(feed_url)
-            .send()
+            .send_guarded(self.http.get(feed_url))
             .await
             .context("failed to fetch watched request feed")?;
         let feed = ensure_success(response, "watched request feed")
@@ -169,9 +329,7 @@ impl SyncClient {
         }
 
         let response = self
-            .http
-            .get(url)
-            .send()
+            .send_guarded(self.http.get(url))
             .await
             .context("failed to fetch updated requests")?;
         let value = ensure_success(response, "updated requests endpoint")
@@ -190,9 +348,7 @@ impl SyncClient {
             .context("failed to build request URL")?;
 
         let response = self
-            .http
-            .get(url)
-            .send()
+            .send_guarded(self.http.get(url))
             .await
             .context("failed to fetch request")?;
 
@@ -249,9 +405,7 @@ impl SyncClient {
         }
 
         let response = self
-            .http
-            .get(url)
-            .send()
+            .send_guarded(self.http.get(url))
             .await
             .context("failed to search requests")?;
         let value = ensure_success(response, "search endpoint")
@@ -273,10 +427,7 @@ impl SyncClient {
             .context("failed to build request submission URL")?;
 
         let response = self
-            .http
-            .post(url)
-            .json(payload)
-            .send()
+            .send_guarded(self.http.post(url).json(payload))
             .await
             .context("failed to submit request")?;
 
@@ -298,10 +449,7 @@ impl SyncClient {
             .context("failed to build correspondence URL")?;
 
         let response = self
-            .http
-            .post(url)
-            .json(payload)
-            .send()
+            .send_guarded(self.http.post(url).json(payload))
             .await
             .context("failed to add correspondence")?;
 
@@ -323,10 +471,7 @@ impl SyncClient {
             .context("failed to build request state URL")?;
 
         let response = self
-            .http
-            .put(url)
-            .json(payload)
-            .send()
+            .send_guarded(self.http.put(url).json(payload))
             .await
             .context("failed to update request state")?;
 
@@ -344,9 +489,7 @@ impl SyncClient {
             .context("failed to build authorities URL")?;
 
         let response = self
-            .http
-            .get(url)
-            .send()
+            .send_guarded(self.http.get(url))
             .await
             .context("failed to list authorities")?;
         let value = ensure_success(response, "authorities endpoint")
@@ -365,9 +508,7 @@ impl SyncClient {
             .context("failed to build API version URL")?;
 
         let response = self
-            .http
-            .get(url)
-            .send()
+            .send_guarded(self.http.get(url))
             .await
             .context("failed to get API version")?;
         let value = ensure_success(response, "version endpoint")
@@ -417,10 +558,10 @@ impl SyncClient {
             }
         };
 
-        match self.http.get(url).send().await {
+        match self.send_guarded(self.http.get(url)).await {
             Ok(response) => SyncHealth {
                 network_reachable: true,
-                api_reachable: response.status().is_success(),
+                api_reachable: response.status.is_success(),
             },
             Err(_) => SyncHealth {
                 network_reachable: false,
@@ -479,10 +620,7 @@ impl SyncClient {
             .context("failed to build request submission URL")?;
 
         let response = self
-            .http
-            .post(url)
-            .json(request)
-            .send()
+            .send_guarded(self.http.post(url).json(request))
             .await
             .context("failed to submit request")?;
 
@@ -963,14 +1101,14 @@ fn parse_authorities(value: Value) -> Result<Vec<Authority>> {
     ))
 }
 
-async fn ensure_success(response: Response, endpoint: &str) -> Result<Response> {
-    if response.status().is_success() {
+async fn ensure_success(response: GuardedResponse, endpoint: &str) -> Result<GuardedResponse> {
+    if response.status.is_success() {
         return Ok(response);
     }
 
-    let status = response.status();
+    let status = response.status;
     let retry_after = response
-        .headers()
+        .headers
         .get(header::RETRY_AFTER)
         .and_then(|value| value.to_str().ok())
         .map(str::to_owned);
@@ -1103,6 +1241,61 @@ mod tests {
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].id, 77);
         assert_eq!(requests[0].title, "Search result");
+    }
+
+    #[tokio::test]
+    async fn response_byte_guardrail_blocks_the_next_remote_call() {
+        let server = MockServer::start().await;
+        let mock = Mock::given(method("GET"))
+            .and(path("/api/v2/version.json"))
+            .respond_with(ResponseTemplate::new(200).set_body_string("12345"));
+        let mock_guard = mock.expect(1).mount_as_scoped(&server).await;
+
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+        client
+            .middleware
+            .lock()
+            .await
+            .guardrails
+            .config
+            .max_response_bytes = 3;
+
+        let first = client.get_api_version().await;
+        assert!(first.is_err());
+        let second = client.get_api_version().await;
+        let error = second.expect_err("tripped response guardrail must halt the next call");
+        let error_text = format!("{error:#}");
+        assert!(error_text.contains("outbound request blocked"));
+        assert!(error_text.contains("maximum response bytes reached"));
+        assert_eq!(mock_guard.received_requests().await.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn request_count_guardrail_blocks_the_next_remote_call() {
+        let server = MockServer::start().await;
+        let mock = Mock::given(method("GET"))
+            .and(path("/api/v2/version.json"))
+            .respond_with(ResponseTemplate::new(200).set_body_string("\"1.0\""));
+        let mock_guard = mock.expect(1).mount_as_scoped(&server).await;
+
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+        client
+            .middleware
+            .lock()
+            .await
+            .guardrails
+            .config
+            .max_requests = 1;
+
+        assert_eq!(client.get_api_version().await.unwrap(), "1.0");
+        let error = client
+            .get_api_version()
+            .await
+            .expect_err("request count guardrail must halt the next call");
+        let error_text = format!("{error:#}");
+        assert!(error_text.contains("outbound request blocked"));
+        assert!(error_text.contains("maximum request count reached"));
+        assert_eq!(mock_guard.received_requests().await.len(), 1);
     }
 
     #[tokio::test]

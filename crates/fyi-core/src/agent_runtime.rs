@@ -202,6 +202,7 @@ pub struct RateLimitSnapshot {
     pub remaining: Option<u64>,
     pub reset_seconds: Option<u64>,
     pub retry_after_seconds: Option<u64>,
+    pub advisory_status: Option<String>,
     pub http_status: Option<u16>,
 }
 
@@ -226,6 +227,12 @@ impl RateLimitSnapshot {
                 }
                 "retry-after" => {
                     snap.retry_after_seconds = parse_retry_after(value);
+                }
+                "x-advisory-status" => {
+                    let status = value.trim();
+                    if !status.is_empty() {
+                        snap.advisory_status = Some(status.to_ascii_lowercase());
+                    }
                 }
                 _ => {}
             }
@@ -357,10 +364,11 @@ impl PacingEngine {
             return self.enter_backoff(snap.retry_after_seconds);
         }
 
+        let advisory_degraded = snap.advisory_status.as_deref() == Some("degraded");
         let low_remaining = match (snap.remaining, snap.limit) {
             (Some(rem), _) if rem <= self.policy.remaining_degraded_threshold => true,
             (Some(rem), Some(limit)) if limit > 0 && rem * 10 <= limit => true,
-            _ => false,
+            _ => advisory_degraded,
         };
         let slow = latency.as_millis() as u64 >= self.policy.latency_high_ms;
 
@@ -497,6 +505,12 @@ impl GuardrailTracker {
             return Err(AgentRuntimeError::Guardrail(format!(
                 "maximum request count reached ({})",
                 self.config.max_requests
+            )));
+        }
+        if self.response_bytes >= self.config.max_response_bytes {
+            return Err(AgentRuntimeError::Guardrail(format!(
+                "maximum response bytes reached ({})",
+                self.config.max_response_bytes
             )));
         }
         if self.started.elapsed() >= self.config.max_runtime {
@@ -1232,6 +1246,21 @@ impl AgentNetworkMiddleware {
         Ok(wait)
     }
 
+    /// Account for a response chunk while it is being read, so callers can
+    /// stop buffering before an oversized body exhausts memory.
+    pub fn record_response_chunk(&mut self, bytes: u64) -> Result<(), AgentRuntimeError> {
+        if let Err(error) = self.guardrails.record_response_bytes(bytes) {
+            self.emit(
+                "guardrail.trip",
+                "event",
+                None,
+                serde_json::json!({ "error": error.to_string() }),
+            );
+            return Err(error);
+        }
+        Ok(())
+    }
+
     pub fn user_agent(&self) -> String {
         self.identity.user_agent()
     }
@@ -1350,11 +1379,70 @@ mod tests {
             ("RateLimit-Remaining", "3"),
             ("RateLimit-Reset", "30"),
             ("Retry-After", "12"),
+            ("X-Advisory-Status", "DEGRADED"),
         ]);
         assert_eq!(snap.limit, Some(100));
         assert_eq!(snap.remaining, Some(3));
         assert_eq!(snap.reset_seconds, Some(30));
         assert_eq!(snap.retry_after_seconds, Some(12));
+        assert_eq!(snap.advisory_status.as_deref(), Some("degraded"));
+    }
+
+    #[test]
+    fn shared_backpressure_fixture_parity() {
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../../../tests/fixtures/backpressure_headers.json"
+        ))
+        .expect("shared back-pressure fixture should be valid JSON");
+
+        for case in fixture
+            .as_object()
+            .expect("fixture cases should be an object")
+            .values()
+        {
+            let pairs = case["headers"]
+                .as_object()
+                .expect("fixture headers should be an object")
+                .iter()
+                .map(|(name, value)| {
+                    (
+                        name.as_str().to_string(),
+                        value
+                            .as_str()
+                            .expect("header values should be strings")
+                            .to_string(),
+                    )
+                })
+                .collect::<Vec<_>>();
+            let headers = pairs
+                .iter()
+                .map(|(name, value)| (name.as_str(), value.as_str()));
+            let snapshot = RateLimitSnapshot::from_headers(headers);
+            let expected = &case["expected"];
+            assert_eq!(snapshot.limit, expected["limit"].as_u64());
+            assert_eq!(snapshot.remaining, expected["remaining"].as_u64());
+            assert_eq!(snapshot.reset_seconds, expected["reset_seconds"].as_u64());
+            assert_eq!(
+                snapshot.retry_after_seconds,
+                expected["retry_after_seconds"].as_u64()
+            );
+            assert_eq!(
+                snapshot.advisory_status.as_deref(),
+                expected["advisory_status"].as_str()
+            );
+        }
+    }
+
+    #[test]
+    fn degraded_advisory_enters_degraded_pacing() {
+        let mut engine = PacingEngine::default();
+        let snapshot = RateLimitSnapshot {
+            advisory_status: Some("degraded".to_string()),
+            ..Default::default()
+        };
+        engine.observe(&snapshot, Duration::from_millis(10));
+        assert_eq!(engine.state, PacingState::Degraded);
+        assert_eq!(engine.concurrency, 1);
     }
 
     #[test]
