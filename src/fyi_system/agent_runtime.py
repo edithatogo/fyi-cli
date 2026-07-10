@@ -330,3 +330,23 @@ def redact_secrets(value: Any) -> Any:
     if isinstance(value, str) and ("api_key=" in value or "Bearer " in value):
         return "[redacted]"
     return value
+
+
+def agent_status_report(
+    memory_path: str | Path, *, admin_contact: str | None = None
+) -> dict[str, Any]:
+    """Return a secret-free operator view of persisted agent load memory."""
+    path = Path(memory_path)
+    endpoints = 0
+    if path.exists():
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            endpoints = len(payload.get("endpoints", {}))
+        except (OSError, TypeError, ValueError):
+            endpoints = 0
+    return {
+        "user_agent": build_user_agent(admin_contact),
+        "memory_path": str(path),
+        "memory_exists": path.exists(),
+        "memory_endpoints": endpoints,
+    }
