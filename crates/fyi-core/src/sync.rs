@@ -1744,6 +1744,38 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn rate_limit_feedback_enters_instance_scoped_backoff() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/api/v2/version.json"))
+            .respond_with(
+                ResponseTemplate::new(429)
+                    .insert_header("Retry-After", "0")
+                    .insert_header("RateLimit-Remaining", "0")
+                    .set_body_string("token=do-not-expose"),
+            )
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+        let error = client.get_api_version().await.unwrap_err().to_string();
+        assert!(error.contains("rate limited"));
+        assert!(!error.contains("do-not-expose"));
+        let middleware = client.middleware.lock().await;
+        assert_eq!(
+            middleware.pacing.state,
+            crate::agent_runtime::PacingState::BackingOff
+        );
+        assert!(middleware
+            .memory
+            .get(
+                Url::parse(&server.uri()).unwrap().host_str().unwrap(),
+                "alaveteli_api"
+            )
+            .is_some());
+    }
+
+    #[tokio::test]
     async fn fetch_request_returns_auth_and_not_found_context() {
         for (status, expected) in [
             (StatusCode::UNAUTHORIZED, "authentication failed"),

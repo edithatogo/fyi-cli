@@ -1486,6 +1486,13 @@ mod tests {
     }
 
     #[test]
+    fn parses_http_date_retry_after_without_leaking_body_data() {
+        let future = (Utc::now() + chrono::Duration::seconds(30)).to_rfc2822();
+        let snap = RateLimitSnapshot::from_headers([("Retry-After", future.as_str())]);
+        assert!(snap.retry_after_seconds.is_some_and(|seconds| seconds > 0));
+    }
+
+    #[test]
     fn shared_backpressure_fixture_parity() {
         let fixture: serde_json::Value = serde_json::from_str(include_str!(
             "../../../tests/fixtures/backpressure_headers.json"
