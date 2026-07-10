@@ -3,15 +3,15 @@
 ## Phase 0: Inventory & Policy Design
 
 ### 0.1 Current behaviour audit
-- [ ] Task: Inventory Rust HTTP call sites (sync, API, discovery-related) for 429, headers, User-Agent, concurrency
-- [ ] Task: Inventory Python discovery/capture/client paths for shared rate limit, Retry-After, User-Agent
-- [ ] Task: Document gap matrix (headers, adaptive pacing, memory, plan reflection, agent loop) in this plan's Track History when done
-- [ ] Task: Propose module layout under `crates/fyi-core` (and Python parity touchpoints) without hard LangGraph dependency
+- [x] Task: Inventory Rust HTTP call sites (sync, API, discovery-related) for 429, headers, User-Agent, concurrency — 413d8b2
+- [x] Task: Inventory Python discovery/capture/client paths for shared rate limit, Retry-After, User-Agent — 413d8b2
+- [x] Task: Document gap matrix (headers, adaptive pacing, memory, plan reflection, agent loop) in this plan's Track History when done — 413d8b2
+- [x] Task: Propose module layout under `crates/fyi-core` (and Python parity touchpoints) without hard LangGraph dependency — 413d8b2
 
 ### 0.2 Policy constants
-- [ ] Task: Define baseline concurrency, min interval, degraded thresholds (`RateLimit-Remaining` bands), recovery window, backoff ceiling
-- [ ] Task: Define mandatory User-Agent format and validation rules
-- [ ] Task: Update `.conductor/tech-stack.md` if new crates/modules or dependencies are required **before** implementation
+- [x] Task: Define baseline concurrency, min interval, degraded thresholds (`RateLimit-Remaining` bands), recovery window, backoff ceiling — 413d8b2
+- [x] Task: Define mandatory User-Agent format and validation rules — 413d8b2
+- [x] Task: Update `.conductor/tech-stack.md` if new crates/modules or dependencies are required **before** implementation — 413d8b2
 
 ## Phase 1: Identity Hygiene (Zero Trust UA)
 
@@ -116,5 +116,6 @@
 
 ## Track History
 
+- **2026-07-10**: Phase 0 inventory and policy baseline completed in `docs/agent-network-middleware.md`; Rust and Python live paths now share header-aware retry and identity policy. Checkpoint: `413d8b2`.
 - **2026-07-09**: Track created via `/conductor-newtrack` from architectural brief (agentic reflection, load memory, framework integration, RateLimit-* headers, dynamic bandwidth scaling, 429/Retry-After, User-Agent zero-trust hygiene). Active registry entry added.
 - **2026-07-09**: Spec/plan extended with cryptographic-aligned UA + opt-in admin contact, continuous behavioral guardrails, Langfuse/Braintrust-compatible trace hooks, FOSS/local-cache constraints, and network middleware deliverable. Implementation of `fyi-core::agent_runtime` begun.
