@@ -7,7 +7,7 @@ use crate::db::{DbPool, FieldChange, SyncStatus};
 use anyhow::{anyhow, Context, Result};
 use reqwest::{header, Client, RequestBuilder, StatusCode, Url};
 use serde_json::Value;
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -79,6 +79,33 @@ pub struct SyncClient {
     http: Client,
     middleware: Arc<Mutex<crate::agent_runtime::AgentNetworkMiddleware>>,
     concurrency: Arc<Semaphore>,
+    validator_cache: Arc<Mutex<HashMap<String, ValidatorCacheEntry>>>,
+    bot_token: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+struct ValidatorCacheEntry {
+    etag: Option<String>,
+    last_modified: Option<String>,
+    body: Vec<u8>,
+}
+
+/// Limits for the opt-in `/api/v1/bulk_export` route.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BulkExportLimits {
+    pub max_items: usize,
+    pub max_bytes: u64,
+    pub max_duration: Duration,
+}
+
+impl Default for BulkExportLimits {
+    fn default() -> Self {
+        Self {
+            max_items: 1_000,
+            max_bytes: 50 * 1024 * 1024,
+            max_duration: Duration::from_secs(300),
+        }
+    }
 }
 
 struct GuardedResponse {
@@ -147,7 +174,16 @@ impl SyncClient {
             http,
             middleware: Arc::new(Mutex::new(middleware)),
             concurrency,
+            validator_cache: Arc::new(Mutex::new(HashMap::new())),
+            bot_token: None,
         })
+    }
+
+    /// Configure the opt-in fork-local bot token without placing it in errors
+    /// or traces. Empty values disable the header.
+    pub fn with_bot_token(mut self, token: Option<String>) -> Self {
+        self.bot_token = token.filter(|value| !value.trim().is_empty());
+        self
     }
 
     #[cfg(test)]
@@ -174,6 +210,8 @@ impl SyncClient {
                 ),
             )),
             concurrency: Arc::new(Semaphore::new(guardrails.max_concurrency as usize)),
+            validator_cache: Arc::new(Mutex::new(HashMap::new())),
+            bot_token: None,
         })
     }
 
@@ -199,9 +237,37 @@ impl SyncClient {
     }
 
     async fn send_guarded(&self, request: RequestBuilder) -> Result<GuardedResponse> {
-        let request = request
+        let mut request = request
             .build()
             .context("failed to build outbound request")?;
+        let cache_key = request.url().to_string();
+        let cacheable_get =
+            request.method() == reqwest::Method::GET && !is_bulk_export_url(request.url());
+        if let Some(token) = &self.bot_token {
+            let value = header::HeaderValue::from_str(token)
+                .map_err(|_| anyhow!("configured bot token is not a valid header value"))?;
+            request
+                .headers_mut()
+                .insert(header::HeaderName::from_static("x-fyi-bot-token"), value);
+        }
+        if cacheable_get {
+            if let Some(cached) = self.validator_cache.lock().await.get(&cache_key).cloned() {
+                if let Some(etag) = cached.etag {
+                    request.headers_mut().insert(
+                        header::IF_NONE_MATCH,
+                        header::HeaderValue::from_str(&etag)
+                            .context("cached ETag was not a valid header value")?,
+                    );
+                }
+                if let Some(last_modified) = cached.last_modified {
+                    request.headers_mut().insert(
+                        header::IF_MODIFIED_SINCE,
+                        header::HeaderValue::from_str(&last_modified)
+                            .context("cached Last-Modified was not a valid header value")?,
+                    );
+                }
+            }
+        }
         let meta = crate::agent_runtime::OutboundRequestMeta {
             instance_id: self.base_url.host_str().unwrap_or("unknown").to_string(),
             route_class: "alaveteli_api".to_string(),
@@ -264,6 +330,37 @@ impl SyncClient {
                 .map_err(|error| anyhow!("outbound response blocked: {error}"))?;
             body.extend_from_slice(&chunk);
         }
+        if status == StatusCode::NOT_MODIFIED {
+            let cached = self.validator_cache.lock().await.get(&cache_key).cloned();
+            let Some(cached) = cached else {
+                return Err(anyhow!(
+                    "validator response returned HTTP 304 without a cached representation"
+                ));
+            };
+            body = cached.body;
+        }
+
+        if status == StatusCode::OK && cacheable_get {
+            let etag = headers
+                .get(header::ETAG)
+                .and_then(|value| value.to_str().ok())
+                .map(str::to_owned);
+            let last_modified = headers
+                .get(header::LAST_MODIFIED)
+                .and_then(|value| value.to_str().ok())
+                .map(str::to_owned);
+            if etag.is_some() || last_modified.is_some() {
+                self.validator_cache.lock().await.insert(
+                    cache_key.clone(),
+                    ValidatorCacheEntry {
+                        etag,
+                        last_modified,
+                        body: body.clone(),
+                    },
+                );
+            }
+        }
+
         let header_values = headers
             .iter()
             .filter_map(|(name, value)| value.to_str().ok().map(|value| (name.as_str(), value)))
@@ -287,11 +384,55 @@ impl SyncClient {
         }
 
         Ok(GuardedResponse {
-            status,
+            status: if status == StatusCode::NOT_MODIFIED {
+                StatusCode::OK
+            } else {
+                status
+            },
             headers,
             body,
             _permit: permit,
         })
+    }
+
+    /// Fetch bounded NDJSON from the explicitly-authorized bulk-export route.
+    /// This method has no fallback to ordinary recursive retrieval.
+    pub async fn bulk_export(&self, limits: BulkExportLimits) -> Result<Vec<Value>> {
+        if limits.max_items == 0 || limits.max_bytes == 0 || limits.max_duration.is_zero() {
+            return Err(anyhow!("bulk export limits must all be positive"));
+        }
+        let url = self
+            .base_url
+            .join("api/v1/bulk_export")
+            .context("failed to build bulk export URL")?;
+        let started = Instant::now();
+        let response = self
+            .send_guarded(self.http.get(url))
+            .await
+            .context("failed to fetch bounded bulk export")?;
+        let response = ensure_success(response, "bulk export endpoint").await?;
+        if started.elapsed() > limits.max_duration {
+            return Err(anyhow!("bulk export exceeded the configured runtime limit"));
+        }
+        let body = response.body;
+        if body.len() as u64 > limits.max_bytes {
+            return Err(anyhow!(
+                "bulk export exceeded the configured response-byte limit"
+            ));
+        }
+        let mut items = Vec::new();
+        for line in body.split(|byte| *byte == b'\n') {
+            if line.is_empty() {
+                continue;
+            }
+            if items.len() >= limits.max_items {
+                return Err(anyhow!("bulk export exceeded the configured item limit"));
+            }
+            let item =
+                serde_json::from_slice(line).context("bulk export contained invalid JSON")?;
+            items.push(item);
+        }
+        Ok(items)
     }
 
     pub async fn pull_feed(&self, db: &DbPool, feed_url: &str) -> Result<PullReport> {
@@ -1120,6 +1261,10 @@ async fn ensure_success(response: GuardedResponse, endpoint: &str) -> Result<Gua
     )))
 }
 
+fn is_bulk_export_url(url: &Url) -> bool {
+    url.path().trim_end_matches('/') == "/api/v1/bulk_export"
+}
+
 fn api_status_error(endpoint: &str, status: StatusCode, retry_after: Option<&str>) -> String {
     let reason = match status {
         StatusCode::UNAUTHORIZED => "authentication failed; check the FYI API key",
@@ -1161,7 +1306,7 @@ fn request_ids_from_feed(feed: &str) -> Vec<i64> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wiremock::matchers::{method, path, query_param};
+    use wiremock::matchers::{header, method, path, query_param};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     fn request(id: i64, title: &str, updated_at: &str) -> AlaveteliRequest {
@@ -1268,6 +1413,115 @@ mod tests {
         assert!(error_text.contains("outbound request blocked"));
         assert!(error_text.contains("maximum response bytes reached"));
         assert_eq!(mock_guard.received_requests().await.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn conditional_get_reuses_cached_body_after_not_modified() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/api/v2/version.json"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .insert_header("ETag", "\"version-1\"")
+                    .set_body_string("\"1.0\""),
+            )
+            .up_to_n_times(1)
+            .mount(&server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/api/v2/version.json"))
+            .and(header("If-None-Match", "\"version-1\""))
+            .respond_with(ResponseTemplate::new(304))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+        assert_eq!(client.get_api_version().await.unwrap(), "1.0");
+        assert_eq!(client.get_api_version().await.unwrap(), "1.0");
+    }
+
+    #[tokio::test]
+    async fn validator_cache_is_not_replaced_by_error_response() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/api/v2/version.json"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .insert_header("ETag", "\"stable\"")
+                    .set_body_string("\"1.0\""),
+            )
+            .up_to_n_times(1)
+            .mount(&server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/api/v2/version.json"))
+            .and(header("If-None-Match", "\"stable\""))
+            .respond_with(ResponseTemplate::new(500).set_body_string("temporary"))
+            .up_to_n_times(1)
+            .mount(&server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/api/v2/version.json"))
+            .and(header("If-None-Match", "\"stable\""))
+            .respond_with(ResponseTemplate::new(304))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+        assert_eq!(client.get_api_version().await.unwrap(), "1.0");
+        assert!(client.get_api_version().await.is_err());
+        assert_eq!(client.get_api_version().await.unwrap(), "1.0");
+    }
+
+    #[tokio::test]
+    async fn bot_token_is_opt_in_and_bulk_export_is_bounded() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/api/v1/bulk_export"))
+            .and(header("X-FYI-Bot-Token", "bot-secret"))
+            .respond_with(ResponseTemplate::new(200).set_body_string("{\"id\":1}\n{\"id\":2}\n"))
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new_for_testing(&server.uri())
+            .unwrap()
+            .with_bot_token(Some("bot-secret".to_string()));
+        let items = client
+            .bulk_export(BulkExportLimits {
+                max_items: 2,
+                max_bytes: 64,
+                max_duration: Duration::from_secs(5),
+            })
+            .await
+            .unwrap();
+        assert_eq!(items.len(), 2);
+        assert_eq!(items[0]["id"], 1);
+    }
+
+    #[tokio::test]
+    async fn unauthorized_bulk_export_does_not_fallback_to_unbounded_api() {
+        let server = MockServer::start().await;
+        let bulk = Mock::given(method("GET"))
+            .and(path("/api/v1/bulk_export"))
+            .respond_with(ResponseTemplate::new(403))
+            .expect(1)
+            .mount_as_scoped(&server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/api/v2/request.json"))
+            .respond_with(ResponseTemplate::new(500))
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+        let error = client
+            .bulk_export(BulkExportLimits::default())
+            .await
+            .expect_err("unauthorized export must fail closed");
+        assert!(error.to_string().contains("HTTP 403"));
+        assert_eq!(bulk.received_requests().await.len(), 1);
     }
 
     #[tokio::test]
