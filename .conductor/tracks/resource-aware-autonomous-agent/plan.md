@@ -72,8 +72,8 @@
 - [x] Task: CLI/agent dry-run output (`--dry-plan` or equivalent) showing accept/rewrite/reject rationale — 50bb43e
 
 ### 5.2 Self-correction loop hook
-- [ ] Task: After throttle events, allow plan rewrite (smaller windows, lower concurrency) before resume
-- [ ] Task: Unit tests for reject/rewrite cases
+- [x] Task: After throttle events, allow plan rewrite (smaller windows, lower concurrency) before resume — 8267e31
+- [x] Task: Unit tests for reject/rewrite cases — 8267e31
 - [ ] Task: Conductor - User Manual Verification 'Phase 5: Plan Reflection' (Protocol in workflow.md)
 
 ## Phase 6: Framework Integration, Cache, Trace Facade
@@ -118,5 +118,6 @@
 
 - **2026-07-10**: Phase 0 inventory and policy baseline completed in `docs/agent-network-middleware.md`; Rust and Python live paths now share header-aware retry and identity policy. Checkpoint: `413d8b2`.
 - **2026-07-10**: Added offline `dry-plan` CLI reflection and completed the plan-model/reflection subsection. Checkpoint: `50bb43e`.
+- **2026-07-10**: Added deterministic post-throttle plan rewrite/rejection hooks and tests; GNU-target Rust suite reached 111 passing tests. Checkpoint: `8267e31`.
 - **2026-07-09**: Track created via `/conductor-newtrack` from architectural brief (agentic reflection, load memory, framework integration, RateLimit-* headers, dynamic bandwidth scaling, 429/Retry-After, User-Agent zero-trust hygiene). Active registry entry added.
 - **2026-07-09**: Spec/plan extended with cryptographic-aligned UA + opt-in admin contact, continuous behavioral guardrails, Langfuse/Braintrust-compatible trace hooks, FOSS/local-cache constraints, and network middleware deliverable. Implementation of `fyi-core::agent_runtime` begun.
