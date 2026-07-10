@@ -72,6 +72,20 @@
   recorded in the bot-contract plan as a dated disabled follow-up.
 - This track remains in progress; no upstream issue or PR has been opened.
 
+### Paired-server CI result (2026-07-10)
+
+- Alaveteli PR #29 CI run `29072076457` did execute the Ruby 3.4 core suite,
+  but it is not a passing evidence gate: 9,465 examples produced 41 failures.
+- The relevant contract failures include six `BulkExportStreamer` examples
+  and the `TrafficControl` `RateLimit-Reset` assertion. The paired security
+  workflow separately reports dependency-review configuration absence and
+  existing gem advisories.
+- fyi-cli draft PR #153 has successful Rustfmt, Clippy, workspace tests,
+  security audit, Code Coverage, CodeQL, packaging, and Codecov patch checks,
+  but that does not substitute for the failed paired-server evidence gate.
+- No upstream issue or PR has been opened; the route remains explicitly
+  disabled pending a clean paired contract run and Conductor sign-off.
+
 ## Closure gate
 
 This track cannot close while the evidence gate is incomplete, while a known

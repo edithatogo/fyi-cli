@@ -3,7 +3,7 @@
   "type": "cross-repo",
   "status": "active",
   "created_at": "2026-07-10T00:00:00Z",
-  "updated_at": "2026-07-10T08:00:00Z",
+  "updated_at": "2026-07-10T06:30:00Z",
   "description": "Implement and verify the fork-local fyi-cli client contract for sustainable Alaveteli bot and archival traffic.",
   "github_parent_issue": 140,
   "github_issue": 141,
@@ -17,6 +17,8 @@
   "cache_bulk_pull_request_status": "draft",
   "paired_repository": "edithatogo/alaveteli",
   "paired_github_parent_issue": 23,
+  "paired_ci_run": 29072076457,
+  "paired_evidence_status": "failed-contract-specs",
   "risk_policy": "no-known-risk-accepted",
   "delivery_model": "one-child-issue-one-focused-pr",
   "depends_on": ["resource-aware-autonomous-agent", "api-contract-hardening-20260630"]

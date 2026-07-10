@@ -148,6 +148,24 @@ the pre-existing dirty `agent_runtime.rs` change unless explicitly assigned.
   installed. This is a dated disabled follow-up; rerun the exact command in a
   Ruby-enabled fork CI environment before closure.
 
+### Paired-server CI evidence (2026-07-10)
+
+- The paired implementation was exercised by Alaveteli PR #29 CI run
+  `29072076457`; the Ruby 3.4 core job completed with 9,465 examples, 41
+  failures.
+- Contract-relevant failures are not yet a clean pass: six
+  `BulkExportStreamer` examples fail (filtering, deterministic ordering,
+  bounded row count, public-body join, and calculated status), and the
+  `TrafficControl` rate-limit reset assertion returns `42` where the fixture
+  expects `18`.
+- Additional failures are unrelated baseline/environment suites (admin notes,
+  multipart/TNEF, route/cache and other existing Rails behavior). The paired
+  security workflow also reports dependency-review unavailable and existing
+  vulnerable gems; these are not silently attributed to fyi-cli.
+- Closure remains open pending a focused paired-server fix/re-run of the
+  contract failures, with the exact CI run retained as the deterministic
+  sensor.
+
 ## Final local verification record
 
 - Python repository suite after contract additions: 616 passed, 1 opt-in live
