@@ -175,7 +175,11 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## Active Tracks
 
-- None
+- [~] **Track: resource-aware-autonomous-agent** (IN PROGRESS)
+  *Link: [./tracks/resource-aware-autonomous-agent/](./tracks/resource-aware-autonomous-agent/)*
+  *Description: Refactor fyi-cli from a passive scraper into a production-grade, resource-aware autonomous agent: RateLimit-* / Retry-After header interception, adaptive bandwidth scaling, local load memory, plan-and-solve reflection, framework-ready core loop, and mandatory contactable User-Agent hygiene for sustainable use of volunteer Alaveteli instances (FYI.org.nz and peers).*
+  *Priority: high*
+  *Dependencies: upstream-alaveteli-engagement, jurisdiction-abstraction-core, api-contract-hardening-20260630, multi-jurisdiction-security-hardening*
 
 ## Recently completed (2026-07-09)
 

@@ -48,19 +48,28 @@ the maintainer):
 
 These norms are expected of bulk discovery, capture, and sync workloads:
 
-1. **Identify yourself** — Send a contactable `User-Agent` that names the tool and a way to
-   reach the operator (see discovery/capture paths in the Python archive tooling and README).
+1. **Identify yourself** — Send a cryptographic-aligned `User-Agent` that names the tool,
+   version, and build fingerprint, plus an **opt-in** administrative contact when provided
+   (`FYI_ADMIN_CONTACT` / Rust `ClientIdentity`). See
+   [`docs/agent-network-middleware.md`](agent-network-middleware.md).
 2. **Respect robots.txt** — Discovery paths check robots rules before walking public feeds.
-3. **Back off on pressure** — Treat `429` and transient `5xx` as backoff signals; prefer
-   checkpoints and small date windows over long uninterruptible crawls.
-4. **Shared rate limiting** — When multiple workers share a DB, use the cross-worker limiter
+3. **Back off on pressure** — Parse `RateLimit-*` and `Retry-After` when present; treat `429`
+   and transient `5xx` as backoff signals with exponential backoff; prefer checkpoints and
+   small date windows over long uninterruptible crawls.
+4. **Adaptive pacing & guardrails** — Throttle concurrency/velocity under low remaining quota
+   or latency spikes; enforce max requests / bytes / runtime per run to prevent runaway loops.
+5. **Shared rate limiting** — When multiple workers share a DB, use the cross-worker limiter
    (`fyi rate-limit-status`) so aggregate load stays polite.
-5. **Opt-in live tests only** — Live smoke tests require explicit environment flags
+6. **Local cache first** — Filesystem response cache avoids redundant remote GETs for unchanged
+   resources.
+7. **Opt-in live tests only** — Live smoke tests require explicit environment flags
    (e.g. `FYI_LIVE_SMOKE=1`); CI and default developer workflows stay offline-safe.
-6. **Tor transparency** — If traffic is routed via Tor/proxy, operators should still be able
+8. **Tor transparency** — If traffic is routed via Tor/proxy, operators should still be able
    to identify the tool via User-Agent; do not use Tor to hide abusive load.
-7. **No silent bulk archiving at scale** — Large historical seeds should be coordinated with
+9. **No silent bulk archiving at scale** — Large historical seeds should be coordinated with
    instance operators and the ethics guidance in sibling archive work.
+10. **Auditable agent decisions** — Bulk runs can emit local JSONL traces (Langfuse/Braintrust-
+    compatible schema) without shipping secrets.
 
 ## Official third-party client listing
 
