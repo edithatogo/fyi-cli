@@ -666,6 +666,31 @@ impl SyncClient {
         parse_authorities(value)
     }
 
+    /// List authorities whose identifying fields contain `filter`, ignoring case.
+    /// An empty filter returns the complete remote authority list.
+    pub async fn list_authorities_matching(&self, filter: &str) -> Result<Vec<Authority>> {
+        let authorities = self.list_authorities().await?;
+        let filter = filter.trim().to_lowercase();
+        if filter.is_empty() {
+            return Ok(authorities);
+        }
+
+        Ok(authorities
+            .into_iter()
+            .filter(|authority| {
+                [
+                    authority.id.as_deref(),
+                    authority.slug.as_deref(),
+                    authority.name.as_deref(),
+                    authority.url.as_deref(),
+                ]
+                .into_iter()
+                .flatten()
+                .any(|value| value.to_lowercase().contains(&filter))
+            })
+            .collect())
+    }
+
     pub async fn get_api_version(&self) -> Result<String> {
         let url = self
             .base_url
@@ -1706,6 +1731,27 @@ mod tests {
         assert_eq!(authorities.len(), 1);
         assert_eq!(authorities[0].slug.as_deref(), Some("example-ministry"));
         assert_eq!(authorities[0].name.as_deref(), Some("Example Ministry"));
+    }
+
+    #[tokio::test]
+    async fn list_authorities_matching_filters_case_insensitively() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/api/v2/authority.json"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "authorities": [
+                    {"id": "1", "slug": "health-ministry", "name": "Health Ministry"},
+                    {"id": "2", "slug": "transport-agency", "name": "Transport Agency"}
+                ]
+            })))
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+        let authorities = client.list_authorities_matching("  HEALTH ").await.unwrap();
+
+        assert_eq!(authorities.len(), 1);
+        assert_eq!(authorities[0].id.as_deref(), Some("1"));
     }
 
     #[tokio::test]
