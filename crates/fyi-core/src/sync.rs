@@ -508,6 +508,30 @@ impl SyncClient {
         .await
     }
 
+    /// Fetch request IDs from Alaveteli's RSS search feed.
+    ///
+    /// The feed is intentionally an ID-discovery surface; callers should use
+    /// `fetch_request` for authoritative request representations.
+    pub async fn search_request_ids_from_feed(&self, query: &str) -> Result<Vec<i64>> {
+        let mut url = self
+            .base_url
+            .join("search.rss")
+            .context("failed to build search feed URL")?;
+        if !query.trim().is_empty() {
+            url.query_pairs_mut().append_pair("q", query);
+        }
+        let response = self
+            .send_guarded(self.http.get(url))
+            .await
+            .context("failed to fetch search feed")?;
+        let feed = ensure_success(response, "search feed")
+            .await?
+            .text()
+            .await
+            .context("failed to read search feed")?;
+        Ok(request_ids_from_feed(&feed))
+    }
+
     pub async fn search_requests_with_options(
         &self,
         options: &SearchOptions,
@@ -1386,6 +1410,28 @@ mod tests {
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].id, 77);
         assert_eq!(requests[0].title, "Search result");
+    }
+
+    #[tokio::test]
+    async fn search_request_ids_from_feed_propagates_query_and_deduplicates_ids() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/search.rss"))
+            .and(query_param("q", "open data"))
+            .respond_with(ResponseTemplate::new(200).set_body_string(
+                r#"<rss><item><link>https://fyi.org.nz/request/77/a</link></item><item><link>https://fyi.org.nz/requests/77/b</link></item><item><link>https://fyi.org.nz/request/88/c</link></item></rss>"#,
+            ))
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+        assert_eq!(
+            client
+                .search_request_ids_from_feed("open data")
+                .await
+                .unwrap(),
+            vec![77, 88]
+        );
     }
 
     #[tokio::test]

@@ -10,8 +10,8 @@
 - [ ] Task: Conductor - User Manual Verification 'Phase 1.1: Search API' (Protocol in workflow.md)
 
 ### 1.2 Search Result Feeds
-- [ ] Task: Write failing tests for search result RSS feeds
-- [ ] Task: Implement RSS feed parsing for search results
+- [x] Task: Write failing tests for search result RSS feeds — `search_request_ids_from_feed` WireMock contract
+- [x] Task: Implement RSS feed parsing for search results — bounded ID-discovery method with query propagation
 - [ ] Task: Conductor - User Manual Verification 'Phase 1.2: Search Feeds' (Protocol in workflow.md)
 
 ## Phase 2: Correspondence & Request Management
@@ -81,3 +81,4 @@
 
 ## Track History
 - **2026-07-08**: Track created for multi-jurisdictional expansion
+- **2026-07-11**: Added Rust `search.rss` request-ID discovery with deduplication and query propagation; local execution is blocked by the absent MSVC Windows SDK, so CI remains the execution gate.
