@@ -1,11 +1,13 @@
 from __future__ import annotations
 import json
 from pathlib import Path
-from jinja2 import Template
+from jinja2 import Environment, select_autoescape
 from .reporting import attention_report, triage_report
 from .db import query_all
 
-HTML_TEMPLATE = Template("""
+HTML_TEMPLATE = Environment(
+    autoescape=select_autoescape(enabled_extensions=("html", "xml")),
+).from_string("""
 <!doctype html>
 <html>
 <head>
