@@ -1,0 +1,1 @@
+Added deterministic post-throttle plan rewrite/rejection hooks with unit coverage; GNU-target fyi-core suite verified at 111 passing tests. Commit: 8267e319b553a9023bb100447784dc673fc40ca9
