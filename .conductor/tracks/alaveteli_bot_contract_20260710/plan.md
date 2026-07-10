@@ -135,6 +135,19 @@ the pre-existing dirty `agent_runtime.rs` change unless explicitly assigned.
 - External follow-up: run the paired Alaveteli server fixture/conformance suite
   under issue #144 before evidence-gate closure.
 
+### Paired-server verification blocker (2026-07-10)
+
+- Server implementation evidence exists in sibling checkout
+  `edithatogo/alaveteli` at `1c81bdeaa` (validator controller/spec) and
+  `6bfc7e4ac` (Conductor evidence checkpoint).
+- Focused command attempted: `bundle exec rspec
+  spec/controllers/api/v1/sustainability_controller_spec.rb
+  spec/controllers/concerns/traffic_control_spec.rb
+  spec/requests/contracts_validation_spec.rb`.
+- Result: cannot execute on this workstation because Ruby/Bundler/RSpec are not
+  installed. This is a dated disabled follow-up; rerun the exact command in a
+  Ruby-enabled fork CI environment before closure.
+
 ## Final local verification record
 
 - Python repository suite after contract additions: 616 passed, 1 opt-in live

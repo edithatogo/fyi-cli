@@ -47,6 +47,15 @@
   maintainer-approved security/dependency/mutation gates; upstream submission
   remains disabled.
 
+### Paired-server evidence gate (2026-07-10)
+
+- The sibling Alaveteli checkout contains the server-side contract track and
+  validator implementation (`1c81bdeaa`, evidence checkpoint `6bfc7e4ac`).
+- Focused Rails verification could not run because Ruby/Bundler/RSpec are not
+  installed on this workstation. The exact command and required specs are
+  recorded in the bot-contract plan as a dated disabled follow-up.
+- This track remains in progress; no upstream issue or PR has been opened.
+
 ## Closure gate
 
 This track cannot close while the evidence gate is incomplete, while a known
