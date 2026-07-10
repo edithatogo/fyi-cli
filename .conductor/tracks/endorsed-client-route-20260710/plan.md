@@ -102,6 +102,9 @@
 - That rerun reached the specs and exposed only a bulk-fixture locale mismatch;
   paired commit `92ff6d9fd` pins the fixture locale and rerun `29075027867` is
   now in progress.
+- Run `29075027867` then exposed timestamp callback interference in the bulk
+  fixtures; paired commit `b98cceb5e` persists deterministic timestamps and
+  rerun `29075190333` is now in progress.
 
 ## Closure gate
 

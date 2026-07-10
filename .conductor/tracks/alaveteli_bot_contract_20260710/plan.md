@@ -185,6 +185,9 @@ the pre-existing dirty `agent_runtime.rs` change unless explicitly assigned.
 - Run `29074804463` reached the specs but exposed a locale mismatch in the
   bulk fixtures; paired commit `92ff6d9fd` pins that spec to the configured
   default locale and rerun `29075027867` is in progress.
+- Run `29075027867` showed Rails timestamp callbacks overwrote the future
+  fixture timestamps; paired commit `b98cceb5e` persists them explicitly and
+  rerun `29075190333` is in progress.
 
 ## Final local verification record
 
