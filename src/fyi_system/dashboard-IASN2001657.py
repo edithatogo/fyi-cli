@@ -1,6 +1,7 @@
 from __future__ import annotations
 import json
 from pathlib import Path
+from typing import Any
 from jinja2 import Environment, select_autoescape
 from .reporting import attention_report, triage_report
 from .db import query_all
@@ -75,7 +76,7 @@ HTML_TEMPLATE = Environment(
 """)
 
 
-def dashboard_payload(db_path: str | Path = 'fyi_system.db') -> dict:
+def dashboard_payload(db_path: str | Path = "fyi_system.db") -> dict[str, Any]:
     report = attention_report(db_path)
     triage = triage_report(db_path)
     authorities = query_all(db_path, 'SELECT COUNT(*) AS c FROM authorities')[0]['c']
