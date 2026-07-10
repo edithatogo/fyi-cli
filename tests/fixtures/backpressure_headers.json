@@ -1,0 +1,34 @@
+{
+  "standard_degraded": {
+    "headers": {
+      "RateLimit-Limit": "100",
+      "RateLimit-Remaining": "2",
+      "RateLimit-Reset": "30",
+      "Retry-After": "15",
+      "X-Advisory-Status": "DEGRADED"
+    },
+    "expected": {
+      "limit": 100,
+      "remaining": 2,
+      "reset_seconds": 30,
+      "retry_after_seconds": 15,
+      "advisory_status": "degraded"
+    }
+  },
+  "malformed_is_ignored": {
+    "headers": {
+      "RateLimit-Limit": "not-a-number",
+      "RateLimit-Remaining": "-1",
+      "RateLimit-Reset": "invalid",
+      "Retry-After": "invalid",
+      "X-Advisory-Status": "   "
+    },
+    "expected": {
+      "limit": null,
+      "remaining": null,
+      "reset_seconds": null,
+      "retry_after_seconds": null,
+      "advisory_status": null
+    }
+  }
+}
