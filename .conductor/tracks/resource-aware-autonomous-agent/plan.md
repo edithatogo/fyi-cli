@@ -102,14 +102,14 @@
 - [x] Task: Cross-link this track from CONTRIBUTING / tracks registry as completed when done — 40008b3
 
 ### 7.2 Close-out
-- [ ] Task: Full test suite green; coverage gate for new modules
+- [x] Task: Full test suite green; coverage gate for new modules — Python 604 passed; GNU Rust 152 passed; focused Python coverage 90% overall / 88% agent runtime
 - [ ] Task: Mark track complete in `metadata.json` and `.conductor/tracks.md`
 - [ ] Task: Conductor - User Manual Verification 'Phase 7: Docs & Close-out' (Protocol in workflow.md)
 
 ## Completion Criteria
 
-- [ ] All acceptance criteria in `spec.md` satisfied
-- [ ] Rust primary path is header-aware, adaptive, memory-backed, UA-safe
+- [x] All acceptance criteria in `spec.md` satisfied — automated acceptance matrix and live-safe workflow audit complete
+- [x] Rust primary path is header-aware, adaptive, memory-backed, UA-safe — GNU direct binaries 152 passed
 - [x] Python live paths used for discovery/capture have documented parity or intentional gaps filed — 40008b3; 604 passed
 - [x] No CI live network; secrets never in rate-limit errors — workflow audit + existing redaction tests
 - [x] Docs aligned with behaviour — 40008b3
@@ -134,6 +134,10 @@
 - **2026-07-10**: Fresh GNU Rust rebuild is pending because a concurrent rustup
   component update removed shared standard-library artifacts (`E0463`); prior
   clean GNU direct-binary verification remains 152 passed.
+
+- **2026-07-10**: Rebuilt the GNU target from a clean generated target tree with
+  explicit user-local GNU rustc/rustdoc paths; all five direct test binaries
+  passed (152 total), including the framework adapter and cache regression.
 
 - **2026-07-10**: Phase 0 inventory and policy baseline completed in `docs/agent-network-middleware.md`; Rust and Python live paths now share header-aware retry and identity policy. Checkpoint: `413d8b2`.
 - **2026-07-10**: Added offline `dry-plan` CLI reflection and completed the plan-model/reflection subsection. Checkpoint: `50bb43e`.
