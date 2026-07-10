@@ -116,6 +116,12 @@
 
 ## Track History
 
+- **2026-07-10**: Back-pressure parity checkpoint added standards-aligned
+  `X-Advisory-Status` handling, shared Rust/Python fixtures, and consistent
+  rejection of negative unsigned rate-limit values. Scoped Rust core suite:
+  117 passed; Python suite: 604 passed, 1 opt-in live smoke skipped. Checkpoint:
+  `37677ca` / PR #150.
+
 - **2026-07-10**: Phase 0 inventory and policy baseline completed in `docs/agent-network-middleware.md`; Rust and Python live paths now share header-aware retry and identity policy. Checkpoint: `413d8b2`.
 - **2026-07-10**: Added offline `dry-plan` CLI reflection and completed the plan-model/reflection subsection. Checkpoint: `50bb43e`.
 - **2026-07-10**: Added deterministic post-throttle plan rewrite/rejection hooks and tests; GNU-target Rust suite reached 111 passing tests. Checkpoint: `8267e31`.
