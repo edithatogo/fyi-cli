@@ -2,6 +2,7 @@ use chrono::NaiveDate;
 use fyi_core::api::AlaveteliRequest;
 use fyi_core::db::DbPool;
 use fyi_core::deadlines::{calculate_deadline, DeadlineInput, WorkingDayRule};
+use fyi_core::endorsed_route::{CapabilityDocument, RouteRequest};
 use fyi_core::search::{InMemorySearchIndex, SearchDocument, SearchIndex};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -84,6 +85,58 @@ fn tool_success(id: Option<Value>, payload: Value) -> JsonRpcResponse {
             ]
         }),
     )
+}
+
+fn endorsed_route_status(arguments: &Value) -> Result<Value, String> {
+    let document: CapabilityDocument = serde_json::from_value(
+        arguments
+            .get("capabilities")
+            .cloned()
+            .ok_or_else(|| "capabilities is required".to_string())?,
+    )
+    .map_err(|_| "capabilities document is malformed".to_string())?;
+    let client_id = arguments
+        .get("client_id")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "client_id is required".to_string())?;
+    let scope_values = arguments
+        .get("scopes")
+        .and_then(Value::as_array)
+        .ok_or_else(|| "scopes is required".to_string())?;
+    let scope_strings = scope_values
+        .iter()
+        .map(|value| value.as_str().map(str::to_owned))
+        .collect::<Option<Vec<_>>>()
+        .ok_or_else(|| "scopes must contain strings".to_string())?;
+    let scope_refs = scope_strings.iter().map(String::as_str).collect::<Vec<_>>();
+    let now_epoch = arguments
+        .get("now_epoch")
+        .and_then(Value::as_u64)
+        .ok_or_else(|| "now_epoch is required".to_string())?;
+    let bulk_export = arguments
+        .get("bulk_export")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+
+    match document.authorize(RouteRequest {
+        client_id,
+        scopes: &scope_refs,
+        now_epoch,
+        bulk_export,
+    }) {
+        Ok(route) => serde_json::to_value(json!({
+            "status": "authorized",
+            "instance_id": route.instance_id,
+            "scopes": route.scopes,
+            "quotas": route.quotas,
+            "bulk_export": route.bulk_export,
+        }))
+        .map_err(|error| error.to_string()),
+        Err(error) => Ok(json!({
+            "status": "denied",
+            "reason": error.to_string(),
+        })),
+    }
 }
 
 /// Helper function to generate the next auto-incremented ID for Alaveteli requests in SQLite.
@@ -1245,6 +1298,42 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                     }
                 ]
             });
+            tools["tools"].as_array_mut().unwrap().push(json!({
+                "name": "endorsed_route_status",
+                "title": "Endorsed Route Status",
+                "description": "Evaluate an operator-published endorsed-client capability document locally. Read-only, fail-closed, and never enables a route or contacts a remote service.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "capabilities": { "type": "object" },
+                        "client_id": { "type": "string", "minLength": 1 },
+                        "scopes": { "type": "array", "items": { "type": "string" } },
+                        "now_epoch": { "type": "integer", "minimum": 0 },
+                        "bulk_export": { "type": "boolean", "default": false }
+                    },
+                    "required": ["capabilities", "client_id", "scopes", "now_epoch"],
+                    "additionalProperties": false
+                },
+                "outputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "status": { "type": "string", "enum": ["authorized", "denied"] },
+                        "reason": { "type": "string" },
+                        "instance_id": { "type": "string" },
+                        "scopes": { "type": "array", "items": { "type": "string" } },
+                        "quotas": { "type": "object" },
+                        "bulk_export": { "type": ["object", "null"] }
+                    },
+                    "required": ["status"],
+                    "additionalProperties": false
+                },
+                "annotations": {
+                    "readOnlyHint": true,
+                    "destructiveHint": false,
+                    "idempotentHint": true,
+                    "openWorldHint": false
+                }
+            }));
             enrich_tool_definitions(&mut tools);
             Some(JsonRpcResponse::success(req.id, tools))
         }
@@ -1436,6 +1525,10 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                         )),
                     }
                 }
+                "endorsed_route_status" => match endorsed_route_status(&arguments) {
+                    Ok(payload) => Some(tool_success(req.id, payload)),
+                    Err(error) => Some(JsonRpcResponse::error(req.id, -32602, error)),
+                },
                 "sync_status" => {
                     if let Some(request_id) = arguments.get("request_id").and_then(|id| id.as_i64())
                     {
@@ -2683,6 +2776,9 @@ mod tests {
             .any(|t| t.get("name").unwrap().as_str().unwrap() == "update_request"));
         assert!(tools
             .iter()
+            .any(|t| t.get("name").unwrap().as_str().unwrap() == "endorsed_route_status"));
+        assert!(tools
+            .iter()
             .any(|t| t.get("name").unwrap().as_str().unwrap() == "delete_request"));
         assert!(tools
             .iter()
@@ -2791,6 +2887,66 @@ mod tests {
                 .and_then(|v| v.as_bool()),
             Some(true)
         );
+    }
+
+    #[tokio::test]
+    async fn test_endorsed_route_status_is_read_only_and_fail_closed() {
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+        let capabilities: Value = serde_json::from_str(include_str!(
+            "../../../tests/fixtures/endorsed-client-route/enabled.json"
+        ))
+        .unwrap();
+        let request = JsonRpcRequest {
+            jsonrpc: "2.0".to_string(),
+            id: Some(json!(44)),
+            method: "tools/call".to_string(),
+            params: Some(json!({
+                "name": "endorsed_route_status",
+                "arguments": {
+                    "capabilities": capabilities,
+                    "client_id": "fyi-cli-prod",
+                    "scopes": ["read", "bulk_export"],
+                    "now_epoch": 1700000000,
+                    "bulk_export": true
+                }
+            })),
+        };
+        let response = handle_jsonrpc_request(&db, request).await.unwrap();
+        let payload = structured_content(response.result.as_ref().unwrap());
+        assert_eq!(payload["status"], "authorized");
+
+        let disabled = serde_json::json!({
+            "protocol": "fyi-endorsed-client/v1",
+            "instance_id": "nz-fyi",
+            "enabled": false,
+            "kill_switch": false,
+            "revoked": false,
+            "expires_at": 1800000000,
+            "client_allowlist": ["fyi-cli-prod"],
+            "scopes": ["read"],
+            "quotas": {
+                "max_requests": 1,
+                "max_bytes": 1,
+                "max_runtime_seconds": 1,
+                "max_concurrency": 1,
+                "max_retries": 0
+            },
+            "bulk_export": {
+                "enabled": false,
+                "scope": "bulk_export",
+                "max_items": 1,
+                "max_bytes": 1
+            }
+        });
+        let denied = endorsed_route_status(&json!({
+            "capabilities": disabled,
+            "client_id": "fyi-cli-prod",
+            "scopes": ["read"],
+            "now_epoch": 1700000000
+        }))
+        .unwrap();
+        assert_eq!(denied["status"], "denied");
     }
 
     #[tokio::test]
