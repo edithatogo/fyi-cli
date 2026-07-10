@@ -17,23 +17,23 @@
 ## Phase 2: Correspondence & Request Management
 
 ### 2.1 Add Correspondence
-- [ ] Task: Write failing tests for `add_correspondence` endpoint
-- [ ] Task: Implement POST correspondence to existing requests
+- [x] Task: Write failing tests for `add_correspondence` endpoint — WireMock verifies POST path, JSON payload, and response parsing
+- [x] Task: Implement POST correspondence to existing requests
 - [ ] Task: Add multipart form data support for attachments
 - [ ] Task: Test attachment upload functionality
 - [ ] Task: Conductor - User Manual Verification 'Phase 2.1: Correspondence' (Protocol in workflow.md)
 
 ### 2.2 Update Request State
-- [ ] Task: Write failing tests for `update_request_state`
-- [ ] Task: Implement state transition logic
+- [x] Task: Write failing tests for `update_request_state` — WireMock verifies PUT path, JSON payload, and response parsing
+- [x] Task: Implement state transition logic
 - [ ] Task: Validate state transitions per Alaveteli spec
 - [ ] Task: Conductor - User Manual Verification 'Phase 2.2: State Updates' (Protocol in workflow.md)
 
 ## Phase 3: Authority Discovery & Prefilled URLs
 
 ### 3.1 Remote Authorities
-- [ ] Task: Write failing tests for authority list endpoints
-- [ ] Task: Implement authority discovery endpoints
+- [x] Task: Write failing tests for authority list endpoints — WireMock verifies wrapped authority response parsing
+- [x] Task: Implement authority discovery endpoints
 - [ ] Task: Add authority filtering support
 - [ ] Task: Conductor - User Manual Verification 'Phase 3.1: Authorities' (Protocol in workflow.md)
 
@@ -46,9 +46,9 @@
 ## Phase 4: Health, Version & Feeds
 
 ### 4.1 Health & Version APIs
-- [ ] Task: Write failing tests for health and version endpoints
-- [ ] Task: Implement `check_api_health` endpoint
-- [ ] Task: Implement `get_api_version` endpoint
+- [x] Task: Write failing tests for health and version endpoints — WireMock covers successful health and object-shaped version responses
+- [x] Task: Implement `check_api_health` endpoint
+- [x] Task: Implement `get_api_version` endpoint
 - [ ] Task: Conductor - User Manual Verification 'Phase 4.1: Health APIs' (Protocol in workflow.md)
 
 ### 4.2 RSS/Authority Feeds
@@ -82,3 +82,4 @@
 ## Track History
 - **2026-07-08**: Track created for multi-jurisdictional expansion
 - **2026-07-11**: Added Rust `search.rss` request-ID discovery with deduplication and query propagation; local execution is blocked by the absent MSVC Windows SDK, so CI remains the execution gate.
+- **2026-07-11**: Added WireMock contract coverage for correspondence, state, authority, health, and object-shaped version APIs; local Rust execution remains blocked by the absent MSVC Windows SDK.
