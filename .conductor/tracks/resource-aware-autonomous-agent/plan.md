@@ -16,52 +16,52 @@
 ## Phase 1: Identity Hygiene (Zero Trust UA)
 
 ### 1.1 User-Agent policy
-- [ ] Task: Implement `ClientIdentity` / `UserAgentPolicy` with reject-blank/generic, product+version+SHA-256 fingerprint, repo URL, opt-in admin contact
-- [ ] Task: Wire policy into Rust client construction / request builders
-- [ ] Task: Wire policy into Python live paths still used for discovery/capture
-- [ ] Task: Unit tests for accepted and rejected UA strings (incl. opt-in contact present/absent)
+- [x] Task: Implement `ClientIdentity` / `UserAgentPolicy` with reject-blank/generic, product+version+SHA-256 fingerprint, repo URL, opt-in admin contact — 413d8b2
+- [x] Task: Wire policy into Rust client construction / request builders — 413d8b2
+- [x] Task: Wire policy into Python live paths still used for discovery/capture — 50bb43e
+- [x] Task: Unit tests for accepted and rejected UA strings (incl. opt-in contact present/absent) — 413d8b2
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Identity Hygiene' (Protocol in workflow.md)
 
 ### 1.2 Continuous behavioral guardrails
-- [ ] Task: Implement run guardrails: max requests, max response bytes, max wall-clock duration, max concurrency
-- [ ] Task: Embed checks in the network execution loop; trip → halt + structured reason
-- [ ] Task: Unit tests for each trip condition
+- [x] Task: Implement run guardrails: max requests, max response bytes, max wall-clock duration, max concurrency — 413d8b2
+- [x] Task: Embed checks in the network execution loop; trip → halt + structured reason — 413d8b2
+- [x] Task: Unit tests for each trip condition — 413d8b2
 - [ ] Task: Conductor - User Manual Verification 'Phase 1.2: Guardrails' (Protocol in workflow.md)
 
 ## Phase 2: Standardized Header Interception & 429
 
 ### 2.1 Header parsing
-- [ ] Task: Parse `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`, `Retry-After` (delta-seconds + HTTP-date)
-- [ ] Task: Normalize into a `RateLimitSnapshot` / `ThrottleSignal` type used by the pacing engine
-- [ ] Task: Unit tests with wiremock/header fixtures (present, partial, absent, malformed)
+- [x] Task: Parse `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`, `Retry-After` (delta-seconds + HTTP-date) — 413d8b2 / 50bb43e
+- [x] Task: Normalize into a `RateLimitSnapshot` / `ThrottleSignal` type used by the pacing engine — 413d8b2
+- [x] Task: Unit tests with wiremock/header fixtures (present, partial, absent, malformed) — 413d8b2 / 50bb43e
 
 ### 2.2 Graceful 429 + exponential backoff
-- [ ] Task: Unified 429 path: halt instance workers, honour Retry-After, else exponential backoff + jitter with ceiling
-- [ ] Task: Ensure error/status strings never leak secrets (extend existing Rust sync coverage pattern)
-- [ ] Task: Python parity for archive/discovery retry paths that currently special-case 429
+- [x] Task: Unified 429 path: halt instance workers, honour Retry-After, else exponential backoff + jitter with ceiling — 413d8b2
+- [x] Task: Ensure error/status strings never leak secrets (extend existing Rust sync coverage pattern) — 413d8b2
+- [x] Task: Python parity for archive/discovery retry paths that currently special-case 429 — 50bb43e
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Headers & 429' (Protocol in workflow.md)
 
 ## Phase 3: Dynamic Bandwidth Scaling
 
 ### 3.1 Pacing engine
-- [ ] Task: Implement adaptive scaler states: `Baseline`, `Degraded`, `BackingOff`, `Recovering`
-- [ ] Task: Map scaler state → concurrency, inter-request delay, batch size
-- [ ] Task: Integrate scaler into primary Rust outbound paths; document Python integration points
-- [ ] Task: Property/unit tests for threshold transitions and recovery hysteresis
+- [x] Task: Implement adaptive scaler states: `Baseline`, `Degraded`, `BackingOff`, `Recovering` — 413d8b2
+- [x] Task: Map scaler state → concurrency, inter-request delay, batch size — 9333935
+- [x] Task: Integrate scaler into primary Rust outbound paths; document Python integration points — 413d8b2
+- [x] Task: Property/unit tests for threshold transitions and recovery hysteresis — 413d8b2
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: Adaptive Pacing' (Protocol in workflow.md)
 
 ## Phase 4: Deliberate Load Memory
 
 ### 4.1 Schema & API
-- [ ] Task: Design SQLite tables/events for endpoint latency EWMA and rate-limit occurrences (per `instance_id` + route class)
-- [ ] Task: Implement write path on each response (success and throttle)
-- [ ] Task: Implement prune/retention so memory stays lightweight
+- [x] Task: Design SQLite tables/events for endpoint latency EWMA and rate-limit occurrences (per `instance_id` + route class) — 413d8b2
+- [x] Task: Implement write path on each response (success and throttle) — 413d8b2
+- [x] Task: Implement prune/retention so memory stays lightweight — 9333935
 - [ ] Task: Extend or complement `fyi rate-limit-status` (CLI) with load-memory summary; MCP status if natural fit
 
 ### 4.2 Rescheduling heavy work
-- [ ] Task: Classify jobs as light vs heavy (e.g. single request fetch vs historical seed / bulk backfill)
-- [ ] Task: Defer or reschedule heavy jobs using historical high-load windows unless urgency override is set
-- [ ] Task: Tests with injected memory snapshots
+- [x] Task: Classify jobs as light vs heavy (e.g. single request fetch vs historical seed / bulk backfill) — 413d8b2
+- [x] Task: Defer or reschedule heavy jobs using historical high-load windows unless urgency override is set — 413d8b2
+- [x] Task: Tests with injected memory snapshots — 413d8b2 / 8267e31
 - [ ] Task: Conductor - User Manual Verification 'Phase 4: Load Memory' (Protocol in workflow.md)
 
 ## Phase 5: Agentic Reflection & Plan-and-Solve
@@ -119,5 +119,6 @@
 - **2026-07-10**: Phase 0 inventory and policy baseline completed in `docs/agent-network-middleware.md`; Rust and Python live paths now share header-aware retry and identity policy. Checkpoint: `413d8b2`.
 - **2026-07-10**: Added offline `dry-plan` CLI reflection and completed the plan-model/reflection subsection. Checkpoint: `50bb43e`.
 - **2026-07-10**: Added deterministic post-throttle plan rewrite/rejection hooks and tests; GNU-target Rust suite reached 111 passing tests. Checkpoint: `8267e31`.
+- **2026-07-10**: Added explicit adaptive batch sizing and bounded load-memory pruning/status reporting; GNU-target Rust suite reached 112 passing tests. Checkpoint: `9333935`.
 - **2026-07-09**: Track created via `/conductor-newtrack` from architectural brief (agentic reflection, load memory, framework integration, RateLimit-* headers, dynamic bandwidth scaling, 429/Retry-After, User-Agent zero-trust hygiene). Active registry entry added.
 - **2026-07-09**: Spec/plan extended with cryptographic-aligned UA + opt-in admin contact, continuous behavioral guardrails, Langfuse/Braintrust-compatible trace hooks, FOSS/local-cache constraints, and network middleware deliverable. Implementation of `fyi-core::agent_runtime` begun.
