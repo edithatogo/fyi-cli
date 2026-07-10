@@ -24,6 +24,11 @@ BEARER_RE = re.compile(r'(?i)(authorization\s*:\s*bearer\s+)[^\s]+')
 SECRET_RE = re.compile(r'(?i)(?<![?&])((?:api[_-]?key|token|signature|sig|auth)\s*[=:]\s*)([^\s,;]+)')
 
 
+def redact_emails(value: str) -> str:
+    """Compatibility helper for callers that only need email redaction."""
+    return EMAIL_RE.sub('[redacted-email]', value)
+
+
 @dataclass
 class PrivacySettings:
     profile: str = 'standard'
@@ -113,8 +118,12 @@ def _redact_url_query_secrets(value: str) -> str:
             pairs = []
             changed = False
             for k, v in parse_qsl(parts.query, keep_blank_values=True):
+                nested = SECRET_RE.sub(r'\1[redacted-secret]', v)
                 if k.lower() in SENSITIVE_QUERY_KEYS:
                     pairs.append((k, '[redacted]'))
+                    changed = True
+                elif nested != v:
+                    pairs.append((k, nested))
                     changed = True
                 else:
                     pairs.append((k, v))
