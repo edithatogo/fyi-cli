@@ -1330,7 +1330,7 @@ fn request_ids_from_feed(feed: &str) -> Vec<i64> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wiremock::matchers::{header, method, path, query_param};
+    use wiremock::matchers::{body_json, header, method, path, query_param};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     fn request(id: i64, title: &str, updated_at: &str) -> AlaveteliRequest {
@@ -1634,6 +1634,117 @@ mod tests {
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].id, 88);
         assert_eq!(requests[0].title, "Filtered search result");
+    }
+
+    #[tokio::test]
+    async fn add_correspondence_posts_payload_and_parses_response() {
+        let server = MockServer::start().await;
+        let payload = AddCorrespondencePayload {
+            direction: crate::api::CorrespondenceDirection::Response,
+            body: "The request has been received.".to_string(),
+            sent_at: "2026-07-11T00:00:00Z".to_string(),
+            state: Some("waiting_response".to_string()),
+        };
+
+        Mock::given(method("POST"))
+            .and(path("/api/v2/request/42/correspondence.json"))
+            .and(body_json(&payload))
+            .respond_with(
+                ResponseTemplate::new(201).set_body_json(CorrespondenceResponse { success: true }),
+            )
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+        let response = client.add_correspondence(42, &payload).await.unwrap();
+
+        assert!(response.success);
+    }
+
+    #[tokio::test]
+    async fn update_request_state_puts_payload_and_parses_response() {
+        let server = MockServer::start().await;
+        let payload = UpdateRequestStatePayload {
+            state: "successful".to_string(),
+        };
+
+        Mock::given(method("PUT"))
+            .and(path("/api/v2/request/42/state.json"))
+            .and(body_json(&payload))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(UpdateRequestStateResponse { updated: true }),
+            )
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+        let response = client.update_request_state(42, &payload).await.unwrap();
+
+        assert!(response.updated);
+    }
+
+    #[tokio::test]
+    async fn list_authorities_parses_wrapped_authority_payload() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/api/v2/authority.json"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "authorities": [{
+                    "id": "42",
+                    "slug": "example-ministry",
+                    "name": "Example Ministry",
+                    "url": "https://example.com/body/example-ministry"
+                }]
+            })))
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+        let authorities = client.list_authorities().await.unwrap();
+
+        assert_eq!(authorities.len(), 1);
+        assert_eq!(authorities[0].slug.as_deref(), Some("example-ministry"));
+        assert_eq!(authorities[0].name.as_deref(), Some("Example Ministry"));
+    }
+
+    #[tokio::test]
+    async fn get_api_version_parses_object_payload() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/api/v2/version.json"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "version": "2.4.1"
+            })))
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+
+        assert_eq!(client.get_api_version().await.unwrap(), "2.4.1");
+    }
+
+    #[tokio::test]
+    async fn health_check_reports_reachable_successful_api() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/api/v2/request.json"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "requests": []
+            })))
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+        let health = client.health_check().await;
+
+        assert_eq!(
+            health,
+            SyncHealth {
+                network_reachable: true,
+                api_reachable: true,
+            }
+        );
     }
 
     #[tokio::test]
