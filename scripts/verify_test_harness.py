@@ -110,6 +110,11 @@ LAYERS = (
         ("tests/test_cli.py", "tests/test_verify_packaging_assets.py", ".github/workflows/ci.yml"),
         ("pytest", "tests/test_cli.py", "tests/test_verify_packaging_assets.py"),
     ),
+    Layer(
+        "remote-mcp-contract",
+        ("tests/fixtures/remote_mcp/v1.json", "scripts/verify_remote_mcp_contract.py"),
+        ("python", "scripts/verify_remote_mcp_contract.py"),
+    ),
 )
 
 
