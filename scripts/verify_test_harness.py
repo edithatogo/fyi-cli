@@ -115,6 +115,11 @@ LAYERS = (
         ("tests/fixtures/remote_mcp/v1.json", "scripts/verify_remote_mcp_contract.py"),
         ("python", "scripts/verify_remote_mcp_contract.py"),
     ),
+    Layer(
+        "rust-guardrail-boundaries",
+        ("crates/fyi-core/src/sync.rs", "crates/fyi-core/src/tor.rs", "scripts/verify_rust_guardrail_boundaries.py"),
+        ("python", "scripts/verify_rust_guardrail_boundaries.py"),
+    ),
 )
 
 
