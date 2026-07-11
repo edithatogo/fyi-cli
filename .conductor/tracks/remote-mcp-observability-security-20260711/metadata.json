@@ -1,0 +1,10 @@
+{
+  "track_id": "remote-mcp-observability-security-20260711",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-07-11T08:34:24Z",
+  "updated_at": "2026-07-11T08:34:24Z",
+  "description": "Security policy, observability, auditability, and operator controls for remote MCP operations",
+  "github_parent_issue": 169,
+  "github_issue": 172
+}

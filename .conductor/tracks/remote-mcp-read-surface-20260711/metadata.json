@@ -1,0 +1,11 @@
+{
+  "track_id": "remote-mcp-read-surface-20260711",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-07-11T08:34:24Z",
+  "updated_at": "2026-07-11T08:34:24Z",
+  "description": "Guarded opt-in read-only MCP tools backed by SyncClient",
+  "github_parent_issue": 169,
+  "github_issue": 170,
+  "dependencies": ["remote-mcp-observability-security-20260711"]
+}

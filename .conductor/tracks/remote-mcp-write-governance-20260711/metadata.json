@@ -1,0 +1,15 @@
+{
+  "track_id": "remote-mcp-write-governance-20260711",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-07-11T08:34:24Z",
+  "updated_at": "2026-07-11T08:34:24Z",
+  "description": "Governed remote MCP write tools with confirmation, idempotency, and replay protection",
+  "github_parent_issue": 169,
+  "github_issue": 171,
+  "dependencies": [
+    "remote-mcp-observability-security-20260711",
+    "remote-mcp-read-surface-20260711",
+    "remote-mcp-contract-harness-20260711"
+  ]
+}
