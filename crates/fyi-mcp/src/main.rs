@@ -2522,7 +2522,8 @@ async fn remote_read(
         "remote_version" => client
             .get_api_version()
             .await
-            .map(|version| json!({"instance_id": instance_id, "version": version})),
+            .map(|version| json!({"instance_id": instance_id, "version": version}))
+            .map_err(|_| "remote operation failed".to_string()),
         "remote_search_requests" => {
             let query = arguments
                 .get("query")
@@ -2541,6 +2542,7 @@ async fn remote_read(
                 .search_requests_with_options(&SearchOptions { query: Some(query.into()), per_page: Some(limit as u32), ..Default::default() })
                 .await
                 .map(|requests| json!({"instance_id": instance_id, "query": query, "requests": requests.into_iter().take(limit).collect::<Vec<_>>() }))
+                .map_err(|_| "remote operation failed".to_string())
         }
         "remote_get_request" => {
             let request_id = arguments
@@ -2554,6 +2556,7 @@ async fn remote_read(
                 .fetch_request(request_id)
                 .await
                 .map(|request| json!({"instance_id": instance_id, "request": request}))
+                .map_err(|_| "remote operation failed".to_string())
         }
         "remote_list_authorities" => {
             let filter = arguments
@@ -2568,7 +2571,7 @@ async fn remote_read(
                 .and_then(Value::as_u64)
                 .unwrap_or(50)
                 .clamp(1, 200) as usize;
-            client.list_authorities_matching(filter).await.map(|authorities| json!({"instance_id": instance_id, "authorities": authorities.into_iter().take(limit).collect::<Vec<_>>() }))
+            client.list_authorities_matching(filter).await.map(|authorities| json!({"instance_id": instance_id, "authorities": authorities.into_iter().take(limit).collect::<Vec<_>>() })).map_err(|_| "remote operation failed".to_string())
         }
         _ => Err("unsupported remote read operation".to_string()),
     };
@@ -2640,6 +2643,7 @@ async fn remote_commit_write(
                 .create_request(&payload)
                 .await
                 .map(|response| json!({"instance_id": instance_id, "request": response}))
+                .map_err(|_| "remote operation failed".to_string())
         }
         "remote_add_correspondence" => {
             let request_id = prepared
@@ -2678,6 +2682,7 @@ async fn remote_commit_write(
                 .add_correspondence(request_id, &payload)
                 .await
                 .map(|response| json!({"instance_id": instance_id, "correspondence": response}))
+                .map_err(|_| "remote operation failed".to_string())
         }
         "remote_update_state" => {
             let request_id = prepared
@@ -2705,6 +2710,7 @@ async fn remote_commit_write(
                 )
                 .await
                 .map(|response| json!({"instance_id": instance_id, "state": response}))
+                .map_err(|_| "remote operation failed".to_string())
         }
         _ => Err("unsupported remote write operation".to_string()),
     };
