@@ -175,14 +175,14 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## Active Tracks
 
-- [ ] **Track: remote-mcp-observability-security**
+- [x] **Track: remote-mcp-observability-security** (IMPLEMENTED 2026-07-11, PR #175)
   *GitHub parent: [#169](https://github.com/edithatogo/fyi-cli/issues/169)*
   *GitHub issue: [#172](https://github.com/edithatogo/fyi-cli/issues/172)*
   *Link: [./tracks/remote-mcp-observability-security-20260711/](./tracks/remote-mcp-observability-security-20260711/)*
   *Description: Default-deny capability policy, kill switch, circuit breaker, redacted audit/trace/metrics, and operator controls for remote MCP operations.*
   *Priority: critical*
 
-- [ ] **Track: remote-mcp-read-surface**
+- [x] **Track: remote-mcp-read-surface** (IMPLEMENTED 2026-07-11, PR #176)
   *GitHub parent: [#169](https://github.com/edithatogo/fyi-cli/issues/169)*
   *GitHub issue: [#170](https://github.com/edithatogo/fyi-cli/issues/170)*
   *Link: [./tracks/remote-mcp-read-surface-20260711/](./tracks/remote-mcp-read-surface-20260711/)*
@@ -190,7 +190,7 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Dependencies: remote-mcp-observability-security*
   *Priority: high*
 
-- [ ] **Track: remote-mcp-contract-harness**
+- [x] **Track: remote-mcp-contract-harness** (IMPLEMENTED 2026-07-11, PR #177; correction #180)
   *GitHub parent: [#169](https://github.com/edithatogo/fyi-cli/issues/169)*
   *GitHub issue: [#173](https://github.com/edithatogo/fyi-cli/issues/173)*
   *Link: [./tracks/remote-mcp-contract-harness-20260711/](./tracks/remote-mcp-contract-harness-20260711/)*
@@ -198,7 +198,7 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Dependencies: remote-mcp-observability-security, remote-mcp-read-surface*
   *Priority: high*
 
-- [ ] **Track: remote-mcp-write-governance**
+- [~] **Track: remote-mcp-write-governance** (CORE IMPLEMENTED 2026-07-11, PR #178; correction #180; attachment follow-up #181)
   *GitHub parent: [#169](https://github.com/edithatogo/fyi-cli/issues/169)*
   *GitHub issue: [#171](https://github.com/edithatogo/fyi-cli/issues/171)*
   *Link: [./tracks/remote-mcp-write-governance-20260711/](./tracks/remote-mcp-write-governance-20260711/)*
