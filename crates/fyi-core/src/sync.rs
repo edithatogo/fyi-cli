@@ -9,6 +9,7 @@ use reqwest::{header, Client, RequestBuilder, StatusCode, Url};
 use serde_json::Value;
 use std::collections::{BTreeSet, HashMap};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::path::Path;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::{oneshot, Mutex, OwnedSemaphorePermit, Semaphore};
@@ -617,6 +618,72 @@ impl SyncClient {
             .send_guarded(self.http.post(url).json(payload))
             .await
             .context("failed to add correspondence")?;
+
+        ensure_success(response, "correspondence endpoint")
+            .await?
+            .json::<CorrespondenceResponse>()
+            .await
+            .context("failed to parse correspondence response")
+    }
+
+    /// Add correspondence with optional file attachments using multipart form data.
+    ///
+    /// The JSON method remains available for requests without attachments. Files are
+    /// uploaded as `attachment_<index>` parts with an octet-stream content type.
+    pub async fn add_correspondence_with_attachments<P: AsRef<Path>>(
+        &self,
+        request_id: i64,
+        payload: &AddCorrespondencePayload,
+        attachments: &[P],
+    ) -> Result<CorrespondenceResponse> {
+        let url = self
+            .base_url
+            .join(&format!("api/v2/request/{request_id}/correspondence.json"))
+            .context("failed to build correspondence URL")?;
+
+        let direction = serde_json::to_string(&payload.direction)
+            .context("failed to serialize correspondence direction")?
+            .trim_matches('"')
+            .to_owned();
+        let mut form = reqwest::multipart::Form::new()
+            .text("direction", direction)
+            .text("body", payload.body.clone())
+            .text("sent_at", payload.sent_at.clone());
+        if let Some(state) = &payload.state {
+            form = form.text("state", state.clone());
+        }
+
+        for (index, attachment) in attachments.iter().enumerate() {
+            let path = attachment.as_ref();
+            const MAX_ATTACHMENT_BYTES: u64 = 50 * 1024 * 1024;
+            let metadata = tokio::fs::metadata(path)
+                .await
+                .with_context(|| format!("failed to inspect attachment {}", path.display()))?;
+            if metadata.len() > MAX_ATTACHMENT_BYTES {
+                return Err(anyhow!(
+                    "attachment {} exceeds the 50 MiB upload limit",
+                    path.display()
+                ));
+            }
+            let bytes = tokio::fs::read(path)
+                .await
+                .with_context(|| format!("failed to read attachment {}", path.display()))?;
+            let filename = path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .unwrap_or("attachment")
+                .to_owned();
+            let part = reqwest::multipart::Part::bytes(bytes)
+                .file_name(filename)
+                .mime_str("application/octet-stream")
+                .context("failed to build attachment part")?;
+            form = form.part(format!("attachment_{index}"), part);
+        }
+
+        let response = self
+            .send_guarded(self.http.post(url).multipart(form))
+            .await
+            .context("failed to add correspondence with attachments")?;
 
         ensure_success(response, "correspondence endpoint")
             .await?
@@ -1355,7 +1422,7 @@ fn request_ids_from_feed(feed: &str) -> Vec<i64> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wiremock::matchers::{body_json, header, method, path, query_param};
+    use wiremock::matchers::{body_json, body_string_contains, header, method, path, query_param};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     fn request(id: i64, title: &str, updated_at: &str) -> AlaveteliRequest {
@@ -1684,6 +1751,70 @@ mod tests {
         let response = client.add_correspondence(42, &payload).await.unwrap();
 
         assert!(response.success);
+    }
+
+    #[tokio::test]
+    async fn add_correspondence_with_attachments_posts_multipart_parts() {
+        let server = MockServer::start().await;
+        let attachment = std::env::temp_dir().join(format!(
+            "fyi-cli-sync-attachment-{}.txt",
+            std::process::id()
+        ));
+        std::fs::write(&attachment, "attachment-data").unwrap();
+
+        Mock::given(method("POST"))
+            .and(path("/api/v2/request/42/correspondence.json"))
+            .and(body_string_contains("name=\"direction\""))
+            .and(body_string_contains("name=\"body\""))
+            .and(body_string_contains("name=\"attachment_0\""))
+            .and(body_string_contains("attachment-data"))
+            .respond_with(
+                ResponseTemplate::new(201).set_body_json(CorrespondenceResponse { success: true }),
+            )
+            .mount(&server)
+            .await;
+
+        let payload = AddCorrespondencePayload {
+            direction: crate::api::CorrespondenceDirection::Response,
+            body: "See the attached file.".to_string(),
+            sent_at: "2026-07-11T00:00:00Z".to_string(),
+            state: Some("successful".to_string()),
+        };
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+        let response = client
+            .add_correspondence_with_attachments(42, &payload, std::slice::from_ref(&attachment))
+            .await
+            .unwrap();
+
+        std::fs::remove_file(&attachment).unwrap();
+        assert!(response.success);
+    }
+
+    #[tokio::test]
+    async fn add_correspondence_with_attachments_rejects_oversized_files() {
+        let server = MockServer::start().await;
+        let attachment = std::env::temp_dir().join(format!(
+            "fyi-cli-sync-oversized-attachment-{}.bin",
+            std::process::id()
+        ));
+        let file = tokio::fs::File::create(&attachment).await.unwrap();
+        file.set_len(50 * 1024 * 1024 + 1).await.unwrap();
+        drop(file);
+
+        let payload = AddCorrespondencePayload {
+            direction: crate::api::CorrespondenceDirection::Response,
+            body: "Too large".to_string(),
+            sent_at: "2026-07-11T00:00:00Z".to_string(),
+            state: None,
+        };
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+        let error = client
+            .add_correspondence_with_attachments(42, &payload, std::slice::from_ref(&attachment))
+            .await
+            .expect_err("oversized attachments must be rejected before upload");
+
+        std::fs::remove_file(&attachment).unwrap();
+        assert!(error.to_string().contains("50 MiB upload limit"));
     }
 
     #[tokio::test]
