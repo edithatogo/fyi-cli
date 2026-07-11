@@ -835,7 +835,12 @@ fn main() {
         }
         Commands::Sync { command } => {
             if let Err(error) = handle_sync_command(command, args.output_format) {
-                eprintln!("Sync command failed: {error}");
+                let message = format_sync_error(&error, args.output_format);
+                if args.output_format == OutputFormat::Json {
+                    println!("{message}");
+                } else {
+                    eprintln!("{message}");
+                }
                 std::process::exit(1);
             }
         }
@@ -1203,6 +1208,19 @@ fn print_global_sync_status(
     Ok(())
 }
 
+fn format_sync_error(error: &dyn std::fmt::Display, output_format: OutputFormat) -> String {
+    match output_format {
+        OutputFormat::Text => format!("Sync command failed: {error}"),
+        OutputFormat::Json => serde_json::json!({
+            "error": {
+                "kind": "sync",
+                "message": error.to_string()
+            }
+        })
+        .to_string(),
+    }
+}
+
 fn print_request_sync_status(
     request_id: i64,
     metadata: Option<fyi_core::db::RequestSyncMetadata>,
@@ -1357,6 +1375,25 @@ fn initialize_database_file(db: &str) -> std::io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn sync_error_text_format_is_operator_readable() {
+        let error = std::io::Error::new(std::io::ErrorKind::Other, "HTTP 503 server error");
+        assert_eq!(
+            format_sync_error(&error, OutputFormat::Text),
+            "Sync command failed: HTTP 503 server error"
+        );
+    }
+
+    #[test]
+    fn sync_error_json_format_is_machine_readable() {
+        let error = std::io::Error::new(std::io::ErrorKind::Other, "HTTP 429 rate limited");
+        let output = format_sync_error(&error, OutputFormat::Json);
+        let value: serde_json::Value = serde_json::from_str(&output).unwrap();
+
+        assert_eq!(value["error"]["kind"], "sync");
+        assert_eq!(value["error"]["message"], "HTTP 429 rate limited");
+    }
 
     #[test]
     fn test_parse_init_db() {

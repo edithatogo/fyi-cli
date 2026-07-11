@@ -91,6 +91,8 @@
 - **2026-07-11**: Reconciled API contract documentation and added `docs/RUST_API_MIGRATION.md`; coverage-report generation remains tied to the CI/Codecov gate rather than a locally generated static artifact.
 - **2026-07-11**: Added redacted HTTP-error and missing-attachment tests for search feeds, authority discovery/feeds, and multipart correspondence; CLI/MCP-wide error presentation remains outside this Rust sync slice.
 - **2026-07-11**: Conductor review closeout completed with portable-MSVC verification: 53 focused `sync::tests` passed; stale manual-verification markers were replaced by review evidence, and the plan now distinguishes server-authoritative transition semantics from client validation.
+- **2026-07-11**: Addressed review residuals: added optimistic `update_request_state_if_current`, structured JSON CLI sync errors, and tests; MCP’s local-only boundary is now documented as non-applicable to remote API normalization.
+- **2026-07-11**: Portable-MSVC review verification passed full `fyi-core` and 51 `fyi-cli` unit tests. Existing CLI subprocess integration tests overflow the stack only when launched directly through the portable wrapper; normal CI subprocess execution remains green and authoritative.
 
 ## Phase: Conductor Review Closeout
 - [x] Task: Apply review findings — plan evidence, portable-MSVC verification, and Rust/Python stack documentation headings reconciled

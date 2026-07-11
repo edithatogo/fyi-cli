@@ -743,6 +743,31 @@ impl SyncClient {
             .context("failed to parse request state response")
     }
 
+    /// Update a request only when its remote state still matches the caller's
+    /// expected value. This prevents stale clients from overwriting a newer
+    /// remote transition; the server remains authoritative for final policy.
+    pub async fn update_request_state_if_current(
+        &self,
+        request_id: i64,
+        expected_current_state: &str,
+        payload: &UpdateRequestStatePayload,
+    ) -> Result<UpdateRequestStateResponse> {
+        validate_request_state(expected_current_state)?;
+        validate_request_state(&payload.state)?;
+        let current = self.fetch_request(request_id).await?;
+        let actual = current
+            .status
+            .as_deref()
+            .ok_or_else(|| anyhow!("request {request_id} has no remote state"))?;
+        if actual != expected_current_state {
+            return Err(anyhow!(
+                "request {request_id} state changed: expected `{expected_current_state}`, found `{actual}`"
+            ));
+        }
+
+        self.update_request_state(request_id, payload).await
+    }
+
     pub async fn list_authorities(&self) -> Result<Vec<Authority>> {
         let url = self
             .base_url
@@ -1963,6 +1988,77 @@ mod tests {
 
         assert!(error.to_string().contains("unsupported request state"));
         assert_eq!(mock.received_requests().await.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn update_request_state_if_current_puts_only_after_matching_fetch() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/api/v2/request/42.json"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(request(
+                42,
+                "Current request",
+                "2026-07-11T00:00:00Z",
+            )))
+            .mount(&server)
+            .await;
+        Mock::given(method("PUT"))
+            .and(path("/api/v2/request/42/state.json"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(UpdateRequestStateResponse { updated: true }),
+            )
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+        let response = client
+            .update_request_state_if_current(
+                42,
+                "waiting_response",
+                &UpdateRequestStatePayload {
+                    state: "successful".to_string(),
+                },
+            )
+            .await
+            .unwrap();
+
+        assert!(response.updated);
+    }
+
+    #[tokio::test]
+    async fn update_request_state_if_current_rejects_stale_state_before_put() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/api/v2/request/42.json"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(request(
+                42,
+                "Current request",
+                "2026-07-11T00:00:00Z",
+            )))
+            .mount(&server)
+            .await;
+        let put = Mock::given(method("PUT"))
+            .and(path("/api/v2/request/42/state.json"))
+            .respond_with(ResponseTemplate::new(200))
+            .expect(0)
+            .mount_as_scoped(&server)
+            .await;
+
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+        let error = client
+            .update_request_state_if_current(
+                42,
+                "rejected",
+                &UpdateRequestStatePayload {
+                    state: "successful".to_string(),
+                },
+            )
+            .await
+            .expect_err("stale state must fail before PUT");
+
+        assert!(error.to_string().contains("state changed"));
+        assert_eq!(put.received_requests().await.len(), 0);
     }
 
     #[tokio::test]
