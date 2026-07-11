@@ -18,8 +18,8 @@ Generated from checked-in source and test evidence for the `api-contract-hardeni
 - **closed** `rust_sync_client`: Malformed JSON, missing required fields, and unexpected optional fields are covered by regression tests.
 - **closed** `rust_sync_client`: Multipart correspondence uploads are bounded to 50 MiB per attachment and reject oversized files before network I/O.
 - **low** `rust_sync_client`: State vocabulary is validated before PUT; graph-level transitions require the current remote state, which is not part of the current payload.
-- **medium** `rust_cli_sync_surface`: CLI output has sync coverage, but API failure presentation needs end-to-end assertions.
-- **medium** `rust_mcp_sync_surface`: MCP database errors are surfaced, but upstream API error normalization is indirect until sync error types are added.
+- **closed** `rust_cli_sync_surface`: Sync failures preserve text output and now emit structured JSON errors; unit coverage protects both modes.
+- **informational** `rust_mcp_sync_surface`: MCP currently exposes local SQLite tools rather than remote SyncClient operations, so upstream API error normalization is not an applicable boundary.
 - **medium** `archive_public_web`: Live public-web smoke remains opt-in to avoid network-dependent CI.
 
 ## Phase 1 Next Actions
