@@ -15,6 +15,11 @@ REQUIRED_READ_TOOLS = {
     "remote_get_request",
     "remote_list_authorities",
 }
+REQUIRED_WRITE_TOOLS = {
+    "remote_create_request",
+    "remote_add_correspondence",
+    "remote_update_state",
+}
 
 
 def validate_contract(path: Path = FIXTURE) -> list[str]:
@@ -28,12 +33,15 @@ def validate_contract(path: Path = FIXTURE) -> list[str]:
     tools = contract.get("tools", {})
     if set(tools.get("read_only", [])) != REQUIRED_READ_TOOLS:
         errors.append("read-only tool set does not match the v1 contract")
-    if tools.get("write") != []:
-        errors.append("write tools must remain absent from the read-only v1 contract")
+    if set(tools.get("write", [])) != REQUIRED_WRITE_TOOLS:
+        errors.append("governed write tool set does not match the v1 contract")
     required = contract.get("required_input", {})
     for tool in REQUIRED_READ_TOOLS:
         if "instance_id" not in required.get(tool, []):
             errors.append(f"{tool} lacks required instance_id")
+    for tool in REQUIRED_WRITE_TOOLS:
+        if "instance_id" not in required.get(tool, []) or "idempotency_key" not in required.get(tool, []):
+            errors.append(f"{tool} lacks required instance_id or idempotency_key")
     envelope = contract.get("error_envelope", {})
     if envelope.get("jsonrpc_code") != -32003:
         errors.append("remote error code changed without a fixture version bump")
