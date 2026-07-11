@@ -20,6 +20,11 @@ cargo build --release --package fyi-mcp
 cargo run --package fyi-mcp
 ```
 
+Remote capabilities are disabled by default. See
+[`docs/remote-mcp-security.md`](../../docs/remote-mcp-security.md) before
+enabling an explicit instance allowlist; remote write capability is not
+available from this release.
+
 ## Glama
 
 The repository root contains the Dockerfile used for Glama release builds. It

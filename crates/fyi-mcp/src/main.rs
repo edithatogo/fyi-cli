@@ -8,6 +8,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
+pub mod policy;
+use policy::RemoteMcpPolicy;
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct JsonRpcRequest {
     pub jsonrpc: String,
@@ -2477,6 +2480,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
         )
         .init();
+
+    let remote_policy = RemoteMcpPolicy::from_env()?;
+    tracing::info!(
+        remote_enabled = remote_policy.status().remote_enabled,
+        "remote MCP policy loaded; capabilities remain disabled unless explicitly configured"
+    );
 
     tracing::info!("FYI MCP Server starting up...");
 
