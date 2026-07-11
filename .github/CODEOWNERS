@@ -1,7 +1,7 @@
 # Every production, security, workflow, and Conductor change requires owner review.
 * @edithatogo
-.github/ @edithatogo
-.conductor/ @edithatogo
-crates/ @edithatogo
-scripts/ @edithatogo
-tests/ @edithatogo
+/.github/ @edithatogo
+/.conductor/ @edithatogo
+/crates/ @edithatogo
+/scripts/ @edithatogo
+/tests/ @edithatogo
