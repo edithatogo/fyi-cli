@@ -1378,7 +1378,7 @@ mod tests {
 
     #[test]
     fn sync_error_text_format_is_operator_readable() {
-        let error = std::io::Error::new(std::io::ErrorKind::Other, "HTTP 503 server error");
+        let error = std::io::Error::other("HTTP 503 server error");
         assert_eq!(
             format_sync_error(&error, OutputFormat::Text),
             "Sync command failed: HTTP 503 server error"
@@ -1387,7 +1387,7 @@ mod tests {
 
     #[test]
     fn sync_error_json_format_is_machine_readable() {
-        let error = std::io::Error::new(std::io::ErrorKind::Other, "HTTP 429 rate limited");
+        let error = std::io::Error::other("HTTP 429 rate limited");
         let output = format_sync_error(&error, OutputFormat::Json);
         let value: serde_json::Value = serde_json::from_str(&output).unwrap();
 
