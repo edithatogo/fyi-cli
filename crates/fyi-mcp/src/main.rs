@@ -1,5 +1,9 @@
 use chrono::NaiveDate;
 use fyi_core::api::AlaveteliRequest;
+use fyi_core::api::{
+    AddCorrespondencePayload, CorrespondenceDirection, CreateRequestPayload,
+    UpdateRequestStatePayload,
+};
 use fyi_core::db::DbPool;
 use fyi_core::deadlines::{calculate_deadline, DeadlineInput, WorkingDayRule};
 use fyi_core::endorsed_route::{CapabilityDocument, RouteRequest};
@@ -11,6 +15,8 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
 pub mod policy;
 use policy::RemoteMcpPolicy;
+pub mod write_gate;
+use write_gate::RemoteWriteGate;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct JsonRpcRequest {
@@ -762,7 +768,7 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
     let policy = RemoteMcpPolicy::from_env().unwrap_or_else(|_| {
         RemoteMcpPolicy::new(Vec::new()).expect("empty remote policy is valid")
     });
-    handle_jsonrpc_request_with_policy(db, req, &policy).await
+    handle_jsonrpc_request_with_policy_and_gate(db, req, &policy, &RemoteWriteGate::default()).await
 }
 
 fn remote_tool_definition(name: &str, description: &str) -> Value {
@@ -786,6 +792,52 @@ fn remote_tool_definition(name: &str, description: &str) -> Value {
             properties["limit"] =
                 json!({"type": "integer", "minimum": 1, "maximum": 200, "default": 50});
         }
+        "remote_create_request" => {
+            properties["title"] = json!({"type": "string", "minLength": 1, "maxLength": 500});
+            properties["body"] = json!({"type": "string", "minLength": 1, "maxLength": 100000});
+            properties["external_user_name"] =
+                json!({"type": "string", "minLength": 1, "maxLength": 200});
+            properties["external_url"] = json!({"type": "string", "maxLength": 2048});
+            properties["tags"] = json!({"type": "string", "maxLength": 500});
+            properties["idempotency_key"] =
+                json!({"type": "string", "minLength": 1, "maxLength": 128});
+            required.extend([
+                "title",
+                "body",
+                "external_user_name",
+                "external_url",
+                "idempotency_key",
+            ]);
+        }
+        "remote_add_correspondence" => {
+            properties["request_id"] = json!({"type": "integer", "minimum": 1});
+            properties["direction"] = json!({"type": "string", "enum": ["request", "response"]});
+            properties["body"] = json!({"type": "string", "minLength": 1, "maxLength": 100000});
+            properties["sent_at"] = json!({"type": "string", "maxLength": 64});
+            properties["idempotency_key"] =
+                json!({"type": "string", "minLength": 1, "maxLength": 128});
+            required.extend([
+                "request_id",
+                "direction",
+                "body",
+                "sent_at",
+                "idempotency_key",
+            ]);
+        }
+        "remote_update_state" => {
+            properties["request_id"] = json!({"type": "integer", "minimum": 1});
+            properties["expected_current_state"] =
+                json!({"type": "string", "minLength": 1, "maxLength": 64});
+            properties["state"] = json!({"type": "string", "minLength": 1, "maxLength": 64});
+            properties["idempotency_key"] =
+                json!({"type": "string", "minLength": 1, "maxLength": 128});
+            required.extend([
+                "request_id",
+                "expected_current_state",
+                "state",
+                "idempotency_key",
+            ]);
+        }
         _ => {}
     }
     json!({
@@ -801,6 +853,16 @@ pub async fn handle_jsonrpc_request_with_policy(
     db: &DbPool,
     req: JsonRpcRequest,
     remote_policy: &RemoteMcpPolicy,
+) -> Option<JsonRpcResponse> {
+    handle_jsonrpc_request_with_policy_and_gate(db, req, remote_policy, &RemoteWriteGate::default())
+        .await
+}
+
+pub async fn handle_jsonrpc_request_with_policy_and_gate(
+    db: &DbPool,
+    req: JsonRpcRequest,
+    remote_policy: &RemoteMcpPolicy,
+    write_gate: &RemoteWriteGate,
 ) -> Option<JsonRpcResponse> {
     match req.method.as_str() {
         "initialize" => {
@@ -1402,6 +1464,30 @@ pub async fn handle_jsonrpc_request_with_policy(
                             "Bounded remote authority discovery",
                         ),
                     ]);
+                if remote_policy
+                    .status()
+                    .instances
+                    .iter()
+                    .any(|instance| instance.write_enabled)
+                {
+                    tools["tools"]
+                        .as_array_mut()
+                        .expect("tools is an array")
+                        .extend([
+                            remote_tool_definition(
+                                "remote_create_request",
+                                "Prepare or commit a governed remote request creation",
+                            ),
+                            remote_tool_definition(
+                                "remote_add_correspondence",
+                                "Prepare or commit governed remote correspondence",
+                            ),
+                            remote_tool_definition(
+                                "remote_update_state",
+                                "Prepare or commit an optimistic remote state update",
+                            ),
+                        ]);
+                }
             }
             Some(JsonRpcResponse::success(req.id, tools))
         }
@@ -2370,6 +2456,32 @@ pub async fn handle_jsonrpc_request_with_policy(
                         Err(error) => Some(JsonRpcResponse::error(req.id, -32003, error)),
                     }
                 }
+                "remote_create_request" | "remote_add_correspondence" | "remote_update_state" => {
+                    let instance_id = arguments
+                        .get("instance_id")
+                        .and_then(Value::as_str)
+                        .unwrap_or("");
+                    let phase = arguments
+                        .get("phase")
+                        .and_then(Value::as_str)
+                        .unwrap_or("prepare");
+                    let result = if phase == "commit" {
+                        remote_commit_write(
+                            remote_policy,
+                            write_gate,
+                            instance_id,
+                            name,
+                            &arguments,
+                        )
+                        .await
+                    } else {
+                        write_gate.prepare(remote_policy, instance_id, name, &arguments)
+                    };
+                    match result {
+                        Ok(payload) => Some(tool_success(req.id, payload)),
+                        Err(error) => Some(JsonRpcResponse::error(req.id, -32004, error)),
+                    }
+                }
                 _ => Some(JsonRpcResponse::error(
                     req.id,
                     -32601,
@@ -2487,6 +2599,129 @@ async fn remote_read(
                 "remote MCP read failed"
             );
             Err("remote operation failed; see operator audit telemetry".into())
+        }
+    }
+}
+
+async fn remote_commit_write(
+    policy: &RemoteMcpPolicy,
+    gate: &RemoteWriteGate,
+    instance_id: &str,
+    operation: &str,
+    arguments: &Value,
+) -> Result<Value, String> {
+    policy
+        .authorize(instance_id, policy::RemoteCapability::Write)
+        .map_err(|error| error.to_string())?;
+    let token = arguments
+        .get("confirmation_token")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "confirmation_token is required for commit".to_string())?;
+    let prepared = gate.take(token)?;
+    if prepared.instance_id != instance_id || prepared.operation != operation {
+        return Err("confirmation token does not match this write operation".into());
+    }
+    let instance = policy
+        .instance(instance_id)
+        .ok_or_else(|| "remote instance is not configured".to_string())?;
+    let token_env = format!(
+        "FYI_MCP_REMOTE_BOT_TOKEN_{}",
+        instance_id.to_ascii_uppercase().replace('-', "_")
+    );
+    let bot_token = std::env::var(token_env).ok();
+    let client = SyncClient::new(&instance.base_url)
+        .map_err(|_| "remote client could not be initialized".to_string())?
+        .with_bot_token(bot_token);
+    let result = match operation {
+        "remote_create_request" => {
+            let payload: CreateRequestPayload = serde_json::from_value(prepared.arguments.clone())
+                .map_err(|_| "remote create payload is invalid".to_string())?;
+            client
+                .create_request(&payload)
+                .await
+                .map(|response| json!({"instance_id": instance_id, "request": response}))
+        }
+        "remote_add_correspondence" => {
+            let request_id = prepared
+                .arguments
+                .get("request_id")
+                .and_then(Value::as_i64)
+                .ok_or_else(|| "request_id is required".to_string())?;
+            let direction = prepared
+                .arguments
+                .get("direction")
+                .and_then(Value::as_str)
+                .ok_or_else(|| "direction is required".to_string())?;
+            let direction: CorrespondenceDirection = serde_json::from_value(json!(direction))
+                .map_err(|_| "direction is invalid".to_string())?;
+            let payload = AddCorrespondencePayload {
+                direction,
+                body: prepared
+                    .arguments
+                    .get("body")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| "body is required".to_string())?
+                    .to_string(),
+                sent_at: prepared
+                    .arguments
+                    .get("sent_at")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| "sent_at is required".to_string())?
+                    .to_string(),
+                state: prepared
+                    .arguments
+                    .get("state")
+                    .and_then(Value::as_str)
+                    .map(str::to_string),
+            };
+            client
+                .add_correspondence(request_id, &payload)
+                .await
+                .map(|response| json!({"instance_id": instance_id, "correspondence": response}))
+        }
+        "remote_update_state" => {
+            let request_id = prepared
+                .arguments
+                .get("request_id")
+                .and_then(Value::as_i64)
+                .ok_or_else(|| "request_id is required".to_string())?;
+            let expected = prepared
+                .arguments
+                .get("expected_current_state")
+                .and_then(Value::as_str)
+                .ok_or_else(|| "expected_current_state is required".to_string())?;
+            let state = prepared
+                .arguments
+                .get("state")
+                .and_then(Value::as_str)
+                .ok_or_else(|| "state is required".to_string())?;
+            client
+                .update_request_state_if_current(
+                    request_id,
+                    expected,
+                    &UpdateRequestStatePayload {
+                        state: state.to_string(),
+                    },
+                )
+                .await
+                .map(|response| json!({"instance_id": instance_id, "state": response}))
+        }
+        _ => Err("unsupported remote write operation".into()),
+    };
+    match result {
+        Ok(payload) => {
+            gate.remember_result(prepared.idempotency_key, payload.clone());
+            let _ = policy.record_request(
+                instance_id,
+                serde_json::to_vec(&payload)
+                    .map(|v| v.len() as u64)
+                    .unwrap_or(0),
+            );
+            Ok(payload)
+        }
+        Err(_) => {
+            policy.record_failure();
+            Err("remote write failed; see operator audit telemetry".into())
         }
     }
 }
@@ -2699,6 +2934,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let stdin = tokio::io::stdin();
     let mut reader = BufReader::new(stdin).lines();
     let mut stdout = tokio::io::stdout();
+    let write_gate = RemoteWriteGate::default();
 
     while let Some(line) = reader.next_line().await? {
         if line.trim().is_empty() {
@@ -2707,8 +2943,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         match serde_json::from_str::<JsonRpcRequest>(&line) {
             Ok(req) => {
-                if let Some(resp) =
-                    handle_jsonrpc_request_with_policy(&db, req, &remote_policy).await
+                if let Some(resp) = handle_jsonrpc_request_with_policy_and_gate(
+                    &db,
+                    req,
+                    &remote_policy,
+                    &write_gate,
+                )
+                .await
                 {
                     let resp_str = serde_json::to_string(&resp)? + "\n";
                     stdout.write_all(resp_str.as_bytes()).await?;

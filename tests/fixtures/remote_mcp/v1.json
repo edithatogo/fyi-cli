@@ -8,17 +8,25 @@
       "remote_get_request",
       "remote_list_authorities"
     ],
-    "write": []
+    "write": [
+      "remote_create_request",
+      "remote_add_correspondence",
+      "remote_update_state"
+    ]
   },
   "required_input": {
     "remote_health": ["instance_id"],
     "remote_version": ["instance_id"],
     "remote_search_requests": ["instance_id", "query"],
     "remote_get_request": ["instance_id", "request_id"],
-    "remote_list_authorities": ["instance_id"]
+    "remote_list_authorities": ["instance_id"],
+    "remote_create_request": ["instance_id", "idempotency_key"],
+    "remote_add_correspondence": ["instance_id", "request_id", "idempotency_key"],
+    "remote_update_state": ["instance_id", "request_id", "idempotency_key"]
   },
   "error_envelope": {
     "jsonrpc_code": -32003,
+    "write_jsonrpc_code": -32004,
     "message": "remote operation failed; see operator audit telemetry",
     "contains_sensitive_content": false
   },

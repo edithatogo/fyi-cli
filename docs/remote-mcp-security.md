@@ -7,7 +7,7 @@ server accepts an explicit, credential-free HTTPS allowlist through
 ```text
 FYI_MCP_REMOTE_INSTANCES=nz=https://foi-repository.example
 FYI_MCP_REMOTE_READ=nz
-# Leave unset until the governed-write track is complete.
+# Leave unset unless governed writes are explicitly approved.
 FYI_MCP_REMOTE_WRITE=
 ```
 
@@ -42,7 +42,10 @@ responses, accidental operator misconfiguration, and a compromised local
 workspace. The allowlist and existing `SyncClient` SSRF checks constrain
 destinations; resource-aware pacing and budgets constrain load; redacted
 structured events constrain disclosure; kill switch and circuit breaker
-constrain blast radius. Remote writes remain out of scope until the separate
-confirmation, idempotency, and replay-protection track is complete.
+constrain blast radius. Remote writes require the separate confirmation,
+idempotency, and replay-protection flow. They also require a protected
+per-instance bot token (`FYI_MCP_REMOTE_BOT_TOKEN_<INSTANCE_ID>`) when the
+upstream instance needs one; token values are never included in responses or
+telemetry.
 
 Issue: https://github.com/edithatogo/fyi-cli/issues/172

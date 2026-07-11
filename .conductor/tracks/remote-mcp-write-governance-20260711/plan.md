@@ -2,16 +2,16 @@
 
 ## Phase 1: Write policy and confirmation contract
 
-- [ ] Task: Define write capability, protected credential, confirmation, idempotency, and replay contracts
-- [ ] Task: Write failing tests for default-disabled, read-only, expired, mismatched, and replayed writes
-- [ ] Task: Implement short-lived payload-bound single-use confirmation records
+- [x] Task: Define write capability, protected credential, confirmation, idempotency, and replay contracts
+- [x] Task: Write failing tests for default-disabled, read-only, expired, mismatched, and replayed writes
+- [x] Task: Implement short-lived payload-bound single-use confirmation records
 - [ ] Task: Conductor review verification 'Write policy and confirmation contract'
 
 ## Phase 2: Request and correspondence writes
 
 - [ ] Task: Write failing WireMock tests for prepare/commit request creation and correspondence
-- [ ] Task: Implement governed request creation and correspondence tools via SyncClient
-- [ ] Task: Add idempotency, safe errors, and durable redacted audit events
+- [x] Task: Implement governed request creation and correspondence tools via SyncClient
+- [x] Task: Add idempotency, safe errors, and durable redacted audit events
 - [ ] Task: Conductor review verification 'Request and correspondence writes'
 
 ## Phase 3: Attachments and state updates
