@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import ast
 import csv
 import hashlib
 import io
+import json
 import os
 from datetime import UTC, datetime
 from pathlib import Path
@@ -77,6 +79,47 @@ def import_authorities_rows(
 def parse_authorities_csv(csv_text: str) -> list[dict[str, str]]:
     """Parse an FYI authorities CSV payload."""
     return list(csv.DictReader(io.StringIO(csv_text.lstrip("\ufeff"))))
+
+
+def _parse_tags(value: str | None) -> list[str]:
+    """Normalize common catalog tag encodings into a stable list."""
+    if not value:
+        return []
+    candidate = value.strip()
+    if not candidate:
+        return []
+    if candidate.startswith("["):
+        try:
+            parsed = json.loads(candidate)
+        except json.JSONDecodeError:
+            try:
+                parsed = ast.literal_eval(candidate)
+            except (SyntaxError, ValueError):
+                parsed = None
+        if isinstance(parsed, list):
+            return sorted({str(tag).strip() for tag in parsed if str(tag).strip()})
+    cleaned = candidate.lstrip("[").rstrip("]")
+    tags = cleaned.replace("|", ",").replace(";", ",").split(",")
+    return sorted({tag.strip("'\" ") for tag in tags if tag.strip("'\" ")})
+
+
+def format_bodies_jsonl(rows: list[dict[str, str]]) -> str:
+    """Serialize catalog rows as contract-stable JSONL body records."""
+    records: list[str] = []
+    for row in rows:
+        url_name = _value(row, "url_name", "slug", "authority_slug")
+        name = _value(row, "name", "authority_name", "public_body_name")
+        if not url_name or not name:
+            continue
+        tags = _parse_tags(_value(row, "tags", "tag", "labels"))
+        records.append(
+            json.dumps(
+                {"url_name": url_name, "name": name, "tags": tags},
+                ensure_ascii=False,
+                sort_keys=True,
+            ),
+        )
+    return "\n".join(records) + ("\n" if records else "")
 
 
 def import_authorities_csv(csv_path: str | Path, db_path: str | Path = "fyi_system.db") -> int:
