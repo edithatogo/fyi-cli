@@ -117,7 +117,7 @@ LAYERS = (
     ),
     Layer(
         "rust-guardrail-boundaries",
-        ("crates/fyi-core/src/sync.rs", "crates/fyi-core/src/tor.rs", "scripts/verify_rust_guardrail_boundaries.py"),
+        ("crates/fyi-core/src/api.rs", "crates/fyi-core/src/sync.rs", "crates/fyi-core/src/tor.rs", "scripts/verify_rust_guardrail_boundaries.py"),
         ("python", "scripts/verify_rust_guardrail_boundaries.py"),
     ),
 )

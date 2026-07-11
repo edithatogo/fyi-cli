@@ -38,7 +38,8 @@ def validate_boundaries() -> list[str]:
     if tor.count(".execute(request)") != 1:
         errors.append("tor: unexpected number of direct request execution sites")
     api = (ROOT / "crates/fyi-core/src/api.rs").read_text(encoding="utf-8")
-    if "reqwest::Client::new()" in api and "#[cfg(test)]" not in api:
+    production_api = api.split("#[cfg(test)]", 1)[0]
+    if "reqwest::Client::new()" in production_api:
         errors.append("api: direct reqwest fixture is not visibly test-scoped")
     return errors
 
