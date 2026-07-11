@@ -2,9 +2,9 @@
 
 ## Phase 1: Policy and threat model
 
-- [ ] Task: Write failing tests for default-deny read/write policy and invalid configuration
-- [ ] Task: Implement per-instance remote capability policy and startup validation
-- [ ] Task: Update threat model, privacy review, credential flow, and data-retention decisions
+- [x] Task: Write failing tests for default-deny read/write policy and invalid configuration
+- [x] Task: Implement per-instance remote capability policy and startup validation
+- [x] Task: Update threat model, privacy review, credential flow, and data-retention decisions
 - [ ] Task: Conductor review verification 'Policy and threat model'
 
 ## Phase 2: Operator controls
