@@ -461,6 +461,34 @@ impl SyncClient {
         })
     }
 
+    /// Pull an authority-scoped feed using Alaveteli's `/feed` convention.
+    ///
+    /// `authority_path` is a path such as `body/ministry-of-health`; query
+    /// strings and fragments are rejected so the feed remains deterministic.
+    pub async fn pull_authority_feed(
+        &self,
+        db: &DbPool,
+        authority_path: &str,
+    ) -> Result<PullReport> {
+        let authority_path = authority_path.trim().trim_start_matches('/');
+        if authority_path.is_empty() {
+            return Err(anyhow!("authority feed path must not be empty"));
+        }
+
+        let mut feed_url = self
+            .base_url
+            .join(authority_path)
+            .context("failed to build authority URL")?;
+        if feed_url.query().is_some() || feed_url.fragment().is_some() {
+            return Err(anyhow!(
+                "authority feed path must not include a query or fragment"
+            ));
+        }
+        let feed_path = format!("{}/feed", feed_url.path().trim_end_matches('/'));
+        feed_url.set_path(&feed_path);
+        self.pull_feed(db, feed_url.as_str()).await
+    }
+
     pub async fn fetch_updates_since(&self, since: Option<&str>) -> Result<Vec<AlaveteliRequest>> {
         let mut url = self
             .base_url
@@ -2275,6 +2303,54 @@ mod tests {
         assert_eq!(report.source, "feed");
         assert_eq!(report.fetched, 1);
         assert_eq!(saved.title, "Feed request");
+    }
+
+    #[tokio::test]
+    async fn pull_authority_feed_builds_feed_route_and_applies_requests() {
+        let server = MockServer::start().await;
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+
+        Mock::given(method("GET"))
+            .and(path("/body/ministry-of-health/feed"))
+            .respond_with(ResponseTemplate::new(200).set_body_string(
+                r#"<feed><entry><link href="https://fyi.org.nz/request/34/example"/></entry></feed>"#,
+            ))
+            .mount(&server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/api/v2/request/34.json"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(request(
+                34,
+                "Authority feed request",
+                "2026-06-30T02:30:00Z",
+            )))
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+        let report = client
+            .pull_authority_feed(&db, "body/ministry-of-health")
+            .await
+            .unwrap();
+
+        assert_eq!(report.fetched, 1);
+        assert_eq!(
+            db.get_request(34).await.unwrap().unwrap().title,
+            "Authority feed request"
+        );
+    }
+
+    #[tokio::test]
+    async fn pull_authority_feed_rejects_query_and_fragment_paths() {
+        let server = MockServer::start().await;
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+
+        for path in ["body/ministry?status=open", "body/ministry#recent", "  "] {
+            assert!(client.pull_authority_feed(&db, path).await.is_err());
+        }
     }
 
     #[test]
