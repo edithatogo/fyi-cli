@@ -16,6 +16,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       - name: Poll external registries
         run: python scripts/check_external_registry_status.py --output registry-status.json
 
@@ -25,7 +30,7 @@ jobs:
         run: |
           fingerprint=$(jq -r '.fingerprint' registry-status.json)
           body=$(jq -r '.markdown' registry-status.json)
-          prior=$(gh issue view 32 --json comments --jq '.comments[].body')
+          prior=$(gh issue view 32 --json comments --jq '.comments[].body' 2>/dev/null || true)
           marker="<!-- registry-monitor:${fingerprint} -->"
           if ! grep -Fq "$marker" <<< "$prior"; then
             gh issue comment 32 --body "$body"

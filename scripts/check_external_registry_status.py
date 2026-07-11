@@ -54,7 +54,11 @@ def fetch_url(url: str) -> FetchResult:
         with urlopen(request, timeout=30) as response:  # noqa: S310 - fixed HTTPS endpoints only
             return FetchResult(response.status, response.read().decode("utf-8", "replace"))
     except HTTPError as exc:
-        return FetchResult(exc.code, exc.read().decode("utf-8", "replace"))
+        try:
+            body = exc.read().decode("utf-8", "replace")
+        except Exception:  # noqa: BLE001 - an HTTP error must not crash the monitor
+            body = ""
+        return FetchResult(exc.code, body)
     except (TimeoutError, URLError, OSError) as exc:
         return FetchResult(0, "", str(exc))
 
@@ -87,7 +91,7 @@ def _official_latest(payload: Any) -> dict[str, Any] | None:
         return None
     metadata = row.get("_meta", {}).get("io.modelcontextprotocol.registry/official", {})
     return {
-        "version": row["server"].get("version"),
+        "version": row.get("server", {}).get("version"),
         "status": metadata.get("status"),
         "is_latest": bool(metadata.get("isLatest")),
     }
