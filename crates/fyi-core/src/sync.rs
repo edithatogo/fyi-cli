@@ -1782,7 +1782,7 @@ mod tests {
         };
         let client = SyncClient::new_for_testing(&server.uri()).unwrap();
         let response = client
-            .add_correspondence_with_attachments(42, &payload, &[attachment.clone()])
+            .add_correspondence_with_attachments(42, &payload, std::slice::from_ref(&attachment))
             .await
             .unwrap();
 
@@ -1809,7 +1809,7 @@ mod tests {
         };
         let client = SyncClient::new_for_testing(&server.uri()).unwrap();
         let error = client
-            .add_correspondence_with_attachments(42, &payload, &[attachment.clone()])
+            .add_correspondence_with_attachments(42, &payload, std::slice::from_ref(&attachment))
             .await
             .expect_err("oversized attachments must be rejected before upload");
 
