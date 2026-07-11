@@ -208,3 +208,15 @@ def test_format_bodies_jsonl_normalizes_tags_and_emits_contract_fields() -> None
 
 def test_format_bodies_jsonl_skips_rows_without_required_identity() -> None:
     assert format_bodies_jsonl([{"url_name": "", "name": "Missing"}]) == ""
+
+
+def test_format_bodies_jsonl_accepts_python_style_tag_lists() -> None:
+    output = format_bodies_jsonl(
+        [{"url_name": "agency", "name": "Agency", "tags": "['NSW_state', 'health']"}],
+    )
+
+    assert json.loads(output) == {
+        "name": "Agency",
+        "tags": ["NSW_state", "health"],
+        "url_name": "agency",
+    }

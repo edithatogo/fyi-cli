@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import csv
 import hashlib
 import io
@@ -91,7 +92,10 @@ def _parse_tags(value: str | None) -> list[str]:
         try:
             parsed = json.loads(candidate)
         except json.JSONDecodeError:
-            parsed = []
+            try:
+                parsed = ast.literal_eval(candidate)
+            except (SyntaxError, ValueError):
+                parsed = []
         if isinstance(parsed, list):
             return sorted({str(tag).strip() for tag in parsed if str(tag).strip()})
     tags = candidate.replace("|", ",").replace(";", ",").split(",")
