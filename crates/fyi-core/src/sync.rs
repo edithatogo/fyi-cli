@@ -697,6 +697,7 @@ impl SyncClient {
         request_id: i64,
         payload: &UpdateRequestStatePayload,
     ) -> Result<UpdateRequestStateResponse> {
+        validate_request_state(&payload.state)?;
         let url = self
             .base_url
             .join(&format!("api/v2/request/{request_id}/state.json"))
@@ -1358,6 +1359,15 @@ fn parse_authorities(value: Value) -> Result<Vec<Authority>> {
     ))
 }
 
+fn validate_request_state(state: &str) -> Result<()> {
+    match state {
+        "waiting_response" | "rejected" | "successful" | "partially_successful" => Ok(()),
+        _ => Err(anyhow!(
+            "unsupported request state `{state}`; expected waiting_response, rejected, successful, or partially_successful"
+        )),
+    }
+}
+
 async fn ensure_success(response: GuardedResponse, endpoint: &str) -> Result<GuardedResponse> {
     if response.status.is_success() {
         return Ok(response);
@@ -1838,6 +1848,49 @@ mod tests {
         let response = client.update_request_state(42, &payload).await.unwrap();
 
         assert!(response.updated);
+    }
+
+    #[test]
+    fn validate_request_state_accepts_documented_states() {
+        for state in [
+            "waiting_response",
+            "rejected",
+            "successful",
+            "partially_successful",
+        ] {
+            assert!(
+                validate_request_state(state).is_ok(),
+                "state {state} should be valid"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn update_request_state_rejects_unknown_state_before_network_call() {
+        let server = MockServer::start().await;
+        let mock = Mock::given(method("PUT"))
+            .and(path("/api/v2/request/42/state.json"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(UpdateRequestStateResponse { updated: true }),
+            )
+            .expect(0)
+            .mount_as_scoped(&server)
+            .await;
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+
+        let error = client
+            .update_request_state(
+                42,
+                &UpdateRequestStatePayload {
+                    state: "unknown_state".to_string(),
+                },
+            )
+            .await
+            .expect_err("unknown states must fail closed");
+
+        assert!(error.to_string().contains("unsupported request state"));
+        assert_eq!(mock.received_requests().await.len(), 0);
     }
 
     #[tokio::test]
