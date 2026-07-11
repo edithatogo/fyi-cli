@@ -703,23 +703,20 @@ impl SyncClient {
                     path.display()
                 ));
             }
-            let metadata = tokio::fs::metadata(path)
-                .await
-                .with_context(|| format!("failed to inspect attachment {}", path.display()))?;
-            if !metadata.is_file() {
+            if !link_metadata.is_file() {
                 return Err(anyhow!(
                     "attachment {} is not a regular file",
                     path.display()
                 ));
             }
-            if metadata.len() > MAX_ATTACHMENT_BYTES {
+            if link_metadata.len() > MAX_ATTACHMENT_BYTES {
                 return Err(anyhow!(
                     "attachment {} exceeds the 50 MiB upload limit",
                     path.display()
                 ));
             }
             total_bytes = total_bytes
-                .checked_add(metadata.len())
+                .checked_add(link_metadata.len())
                 .ok_or_else(|| anyhow!("attachment byte total overflow"))?;
             if total_bytes > MAX_TOTAL_ATTACHMENT_BYTES {
                 return Err(anyhow!(

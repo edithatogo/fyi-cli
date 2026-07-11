@@ -2680,7 +2680,7 @@ async fn remote_commit_write(
                     .and_then(Value::as_str)
                     .map(str::to_string),
             };
-            let attachments = validated_attachment_paths(&prepared.arguments)?;
+            let attachments = validated_attachment_paths(&prepared.arguments).await?;
             if attachments.is_empty() {
                 client
                     .add_correspondence(request_id, &payload)
@@ -2743,7 +2743,7 @@ async fn remote_commit_write(
     }
 }
 
-fn validated_attachment_paths(arguments: &Value) -> Result<Vec<PathBuf>, String> {
+async fn validated_attachment_paths(arguments: &Value) -> Result<Vec<PathBuf>, String> {
     let Some(values) = arguments.get("attachments") else {
         return Ok(Vec::new());
     };
@@ -2755,30 +2755,30 @@ fn validated_attachment_paths(arguments: &Value) -> Result<Vec<PathBuf>, String>
     }
     let root = std::env::var_os("FYI_MCP_ATTACHMENT_ROOT")
         .ok_or_else(|| "FYI_MCP_ATTACHMENT_ROOT is required for attachment writes".to_string())?;
-    let root =
-        std::fs::canonicalize(root).map_err(|_| "attachment root is unavailable".to_string())?;
-    values
-        .iter()
-        .map(|value| {
-            let relative = value
-                .as_str()
-                .ok_or_else(|| "attachment paths must be strings".to_string())?;
-            if relative.is_empty()
-                || relative.len() > 1024
-                || relative.contains('\0')
-                || relative.contains("..")
-            {
-                return Err("attachment path is invalid".into());
-            }
-            let path = root.join(relative);
-            let canonical = std::fs::canonicalize(path)
-                .map_err(|_| "attachment path is unavailable".to_string())?;
-            if !canonical.starts_with(&root) {
-                return Err("attachment path escapes FYI_MCP_ATTACHMENT_ROOT".into());
-            }
-            Ok(canonical)
-        })
-        .collect()
+    let root = tokio::fs::canonicalize(root)
+        .await
+        .map_err(|_| "attachment root is unavailable".to_string())?;
+    let mut paths = Vec::with_capacity(values.len());
+    for value in values {
+        let relative = value
+            .as_str()
+            .ok_or_else(|| "attachment paths must be strings".to_string())?;
+        if relative.is_empty()
+            || relative.len() > 1024
+            || relative.contains('\0')
+            || relative.contains("..")
+        {
+            return Err("attachment path is invalid".into());
+        }
+        let canonical = tokio::fs::canonicalize(root.join(relative))
+            .await
+            .map_err(|_| "attachment path is unavailable".to_string())?;
+        if !canonical.starts_with(&root) {
+            return Err("attachment path escapes FYI_MCP_ATTACHMENT_ROOT".into());
+        }
+        paths.push(canonical);
+    }
+    Ok(paths)
 }
 
 /// Built-in demo documents for the experimental `search_corpus` tool.
