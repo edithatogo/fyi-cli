@@ -2570,7 +2570,7 @@ async fn remote_read(
                 .clamp(1, 200) as usize;
             client.list_authorities_matching(filter).await.map(|authorities| json!({"instance_id": instance_id, "authorities": authorities.into_iter().take(limit).collect::<Vec<_>>() }))
         }
-        _ => Err("unsupported remote read operation".into()),
+        _ => Err("unsupported remote read operation".to_string()),
     };
     match result {
         Ok(payload) => {
@@ -2706,7 +2706,7 @@ async fn remote_commit_write(
                 .await
                 .map(|response| json!({"instance_id": instance_id, "state": response}))
         }
-        _ => Err("unsupported remote write operation".into()),
+        _ => Err("unsupported remote write operation".to_string()),
     };
     match result {
         Ok(payload) => {
