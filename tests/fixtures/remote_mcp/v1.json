@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "tools": {
+    "read_only": [
+      "remote_health",
+      "remote_version",
+      "remote_search_requests",
+      "remote_get_request",
+      "remote_list_authorities"
+    ],
+    "write": []
+  },
+  "required_input": {
+    "remote_health": ["instance_id"],
+    "remote_version": ["instance_id"],
+    "remote_search_requests": ["instance_id", "query"],
+    "remote_get_request": ["instance_id", "request_id"],
+    "remote_list_authorities": ["instance_id"]
+  },
+  "error_envelope": {
+    "jsonrpc_code": -32003,
+    "message": "remote operation failed; see operator audit telemetry",
+    "contains_sensitive_content": false
+  },
+  "invariants": {
+    "default_remote_enabled": false,
+    "read_does_not_enable_write": true,
+    "wildcard_hosts_rejected": true,
+    "credentials_rejected": true,
+    "live_network_required": false
+  }
+}
