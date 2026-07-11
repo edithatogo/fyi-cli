@@ -9,5 +9,5 @@
 
 ## Phase 2 — Handover
 
-- [ ] Open a focused PR closing GitHub issue #136.
+- [x] Open a focused PR closing GitHub issue #136 (PR #187).
 - [x] Record live execution outcome: RightToKnow returned HTTP 403 before capture; the smoke reports an explicit external-availability skip.
