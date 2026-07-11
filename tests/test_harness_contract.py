@@ -19,4 +19,5 @@ def test_every_required_test_layer_has_checked_in_evidence() -> None:
         "usability",
         "regression",
         "sanity",
+        "remote-mcp-contract",
     }
