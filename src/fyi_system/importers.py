@@ -98,8 +98,9 @@ def _parse_tags(value: str | None) -> list[str]:
                 parsed = []
         if isinstance(parsed, list):
             return sorted({str(tag).strip() for tag in parsed if str(tag).strip()})
-    tags = candidate.replace("|", ",").replace(";", ",").split(",")
-    return sorted({tag.strip() for tag in tags if tag.strip()})
+    cleaned = candidate.lstrip("[").rstrip("]")
+    tags = cleaned.replace("|", ",").replace(";", ",").split(",")
+    return sorted({tag.strip("'\" ") for tag in tags if tag.strip("'\" ")})
 
 
 def format_bodies_jsonl(rows: list[dict[str, str]]) -> str:

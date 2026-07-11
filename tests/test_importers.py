@@ -220,3 +220,11 @@ def test_format_bodies_jsonl_accepts_python_style_tag_lists() -> None:
         "tags": ["NSW_state", "health"],
         "url_name": "agency",
     }
+
+
+def test_format_bodies_jsonl_recovers_malformed_bracketed_tags() -> None:
+    output = format_bodies_jsonl(
+        [{"url_name": "agency", "name": "Agency", "tags": "[NSW_state, 'health']"}],
+    )
+
+    assert json.loads(output)["tags"] == ["NSW_state", "health"]
