@@ -175,11 +175,18 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## Active Tracks
 
-- [~] **Track: au-rtk-body-discovery** (IN PROGRESS 2026-07-11)
+- [~] **Track: au-rtk-live-smoke** (IN PROGRESS 2026-07-11)
+  *GitHub issue: [#136](https://github.com/edithatogo/fyi-cli/issues/136)*
+  *Link: [./tracks/au-rtk-live-smoke-20260711/](./tracks/au-rtk-live-smoke-20260711/)*
+  *Description: Opt-in bounded RightToKnow discovery and read-only capture smoke sensor.*
+  *Priority: high*
+
+- [x] **Track: au-rtk-body-discovery** (COMPLETED 2026-07-11, PR #186)
   *GitHub issue: [#135](https://github.com/edithatogo/fyi-cli/issues/135)*
   *Link: [./tracks/au-rtk-body-discovery-20260711/](./tracks/au-rtk-body-discovery-20260711/)*
   *Description: Emit stable JSONL AU RightToKnow body records with normalized tags and named shared rate limiting.*
   *Priority: high*
+  *Results: Stable JSONL body records with normalized tags, malformed-input recovery, named shared limiter, and provenance-preserving JSON mode.*
 
 - [x] **Track: remote-mcp-observability-security** (IMPLEMENTED 2026-07-11, PR #175)
   *GitHub parent: [#169](https://github.com/edithatogo/fyi-cli/issues/169)*

@@ -10,5 +10,5 @@
 
 ## Phase 2 — Handover
 
-- [ ] Open a focused PR closing GitHub issue #135.
-- [ ] Record CI evidence and downstream consumer guidance.
+- [x] Open a focused PR closing GitHub issue #135 (PR #186).
+- [x] Record CI evidence and downstream consumer guidance.

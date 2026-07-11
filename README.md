@@ -334,6 +334,15 @@ Opt-in live smoke test:
 FYI_LIVE_SMOKE=1 pytest -m smoke tests/test_discovery_smoke.py
 ```
 
+The AU RightToKnow smoke is bounded to one discovery page and at most five
+request captures. It writes only to temporary test directories and remains
+disabled unless `FYI_LIVE_SMOKE=1` is explicitly set.
+
+In the current live verification, RightToKnow returned HTTP 403 for the
+bounded JSON search request, so the smoke records an explicit external
+availability skip and does not attempt capture. This does not change default
+offline CI behavior or retry the denied request aggressively.
+
 ### Faithful Archive Capture
 
 `fyi capture` stores the public request JSON, rendered HTML, and attachments as

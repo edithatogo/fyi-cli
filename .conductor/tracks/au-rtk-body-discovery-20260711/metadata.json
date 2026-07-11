@@ -1,11 +1,12 @@
 {
   "track_id": "au-rtk-body-discovery-20260711",
   "type": "feature",
-  "status": "in_progress",
+  "status": "completed",
   "created_at": "2026-07-11T00:00:00Z",
   "description": "Emit stable JSONL AU RightToKnow body records with normalized tags and named shared rate limiting.",
   "github_issue": 135,
   "priority": "high",
+  "github_pr": 186,
   "implementation_workflow": {
     "tracked_by": "github-issues-prs"
   }
