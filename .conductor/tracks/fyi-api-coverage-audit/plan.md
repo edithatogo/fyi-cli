@@ -67,9 +67,9 @@
 
 ### 5.2 Coverage Report & Documentation
 - [ ] Task: Generate API coverage report
-- [ ] Task: Document all new endpoints with examples
-- [ ] Task: Update Rust API documentation
-- [ ] Task: Create migration guide for Python users
+- [x] Task: Document all new endpoints with examples — `docs/RUST_API_MIGRATION.md` and `docs/api-contract-inventory.md`
+- [x] Task: Update Rust API documentation — migration and contract inventory now cover the SyncClient surface
+- [x] Task: Create migration guide for Python users — `docs/RUST_API_MIGRATION.md`
 - [ ] Task: Conductor - User Manual Verification 'Phase 5.2: Documentation' (Protocol in workflow.md)
 
 ## Completion Criteria
@@ -88,3 +88,4 @@
 - **2026-07-11**: Added fail-closed validation for the documented request-state vocabulary before PUT; graph-level transition validation remains pending because the payload does not include the current remote state.
 - **2026-07-11**: Added prefilled URL coverage for authority slug variants, Unicode/reserved query values, and blank tags.
 - **2026-07-11**: Added authority-scoped feed pulling with route and path-safety coverage, reusing the existing RSS/Atom ID parser and bounded request fetch path.
+- **2026-07-11**: Reconciled API contract documentation and added `docs/RUST_API_MIGRATION.md`; coverage-report generation remains tied to the CI/Codecov gate rather than a locally generated static artifact.
