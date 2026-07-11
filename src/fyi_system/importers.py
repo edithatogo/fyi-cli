@@ -95,7 +95,7 @@ def _parse_tags(value: str | None) -> list[str]:
             try:
                 parsed = ast.literal_eval(candidate)
             except (SyntaxError, ValueError):
-                parsed = []
+                parsed = None
         if isinstance(parsed, list):
             return sorted({str(tag).strip() for tag in parsed if str(tag).strip()})
     cleaned = candidate.lstrip("[").rstrip("]")
