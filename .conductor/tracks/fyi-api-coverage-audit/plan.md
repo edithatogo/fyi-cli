@@ -52,9 +52,9 @@
 - [ ] Task: Conductor - User Manual Verification 'Phase 4.1: Health APIs' (Protocol in workflow.md)
 
 ### 4.2 RSS/Authority Feeds
-- [ ] Task: Write failing tests for RSS feed parsing
-- [ ] Task: Implement RSS feed parser
-- [ ] Task: Add authority-specific feed support
+- [x] Task: Write failing tests for RSS feed parsing — RSS/Atom extraction, empty/malformed-safe handling, and watched-feed ingestion are covered
+- [x] Task: Implement RSS feed parser
+- [x] Task: Add authority-specific feed support — `pull_authority_feed` follows the `/feed` convention and rejects query/fragment paths
 - [ ] Task: Conductor - User Manual Verification 'Phase 4.2: RSS Feeds' (Protocol in workflow.md)
 
 ## Phase 5: Integration Testing & Documentation
@@ -87,3 +87,4 @@
 - **2026-07-11**: Added async multipart correspondence uploads with attachment contract coverage; local Rust execution remains blocked by the absent MSVC Windows SDK, so CI is the execution gate.
 - **2026-07-11**: Added fail-closed validation for the documented request-state vocabulary before PUT; graph-level transition validation remains pending because the payload does not include the current remote state.
 - **2026-07-11**: Added prefilled URL coverage for authority slug variants, Unicode/reserved query values, and blank tags.
+- **2026-07-11**: Added authority-scoped feed pulling with route and path-safety coverage, reusing the existing RSS/Atom ID parser and bounded request fetch path.
