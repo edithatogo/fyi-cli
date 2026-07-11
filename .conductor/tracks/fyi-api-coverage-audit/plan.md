@@ -60,8 +60,8 @@
 ## Phase 5: Integration Testing & Documentation
 
 ### 5.1 Live-Safe Contract Tests
-- [ ] Task: Create comprehensive wiremock test suite
-- [ ] Task: Test all endpoints with realistic mock data
+- [x] Task: Create comprehensive wiremock test suite — sync tests cover JSON, multipart, feeds, authorities, health/version, guardrails, and error redaction
+- [x] Task: Test all endpoints with realistic mock data — request, authority, feed, multipart, and database fixtures are covered
 - [ ] Task: Verify error handling for all endpoints
 - [ ] Task: Conductor - User Manual Verification 'Phase 5.1: Contract Tests' (Protocol in workflow.md)
 
@@ -89,3 +89,4 @@
 - **2026-07-11**: Added prefilled URL coverage for authority slug variants, Unicode/reserved query values, and blank tags.
 - **2026-07-11**: Added authority-scoped feed pulling with route and path-safety coverage, reusing the existing RSS/Atom ID parser and bounded request fetch path.
 - **2026-07-11**: Reconciled API contract documentation and added `docs/RUST_API_MIGRATION.md`; coverage-report generation remains tied to the CI/Codecov gate rather than a locally generated static artifact.
+- **2026-07-11**: Added redacted HTTP-error and missing-attachment tests for search feeds, authority discovery/feeds, and multipart correspondence; CLI/MCP-wide error presentation remains outside this Rust sync slice.
