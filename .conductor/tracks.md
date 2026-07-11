@@ -175,6 +175,12 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## Active Tracks
 
+- [~] **Track: au-rtk-body-discovery** (IN PROGRESS 2026-07-11)
+  *GitHub issue: [#135](https://github.com/edithatogo/fyi-cli/issues/135)*
+  *Link: [./tracks/au-rtk-body-discovery-20260711/](./tracks/au-rtk-body-discovery-20260711/)*
+  *Description: Emit stable JSONL AU RightToKnow body records with normalized tags and named shared rate limiting.*
+  *Priority: high*
+
 - [x] **Track: remote-mcp-observability-security** (IMPLEMENTED 2026-07-11, PR #175)
   *GitHub parent: [#169](https://github.com/edithatogo/fyi-cli/issues/169)*
   *GitHub issue: [#172](https://github.com/edithatogo/fyi-cli/issues/172)*

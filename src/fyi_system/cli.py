@@ -12,8 +12,8 @@ from .agent_runtime import RetrievalPlan, agent_status_report, reflect_plan
 from .fyi import build_prefilled_url
 from .importers import (
     DEFAULT_AUTHORITIES_URL,
-    discover_bodies,
     discover_bodies_with_provenance,
+    format_bodies_jsonl,
     import_authorities_csv,
     import_authorities_url,
 )
@@ -70,8 +70,17 @@ def cmd_discover_bodies(args):
         catalog_url=args.catalog_url,
         delay_seconds=args.delay_seconds,
         shared_rate_limit_db_path=args.db,
+        shared_rate_limit_name=args.rate_limit_name,
         transport=None,
     )
+    if args.format == "jsonl":
+        rendered = format_bodies_jsonl(rows)
+        if args.output:
+            secure_write_text(Path(args.output), rendered)
+            print(args.output)
+        else:
+            print(rendered, end="")
+        return
     payload = {
         "base_url": args.base_url.rstrip("/"),
         "catalog_url": provenance["catalog_url"],
@@ -384,8 +393,10 @@ def build_parser():
     sp.add_argument('--base-url', default='https://fyi.org.nz')
     sp.add_argument('--catalog-url', default=None)
     sp.add_argument('--delay-seconds', type=float, default=1.0)
+    sp.add_argument('--rate-limit-name', default='authority-discovery')
     sp.add_argument('--db', default='fyi_system.db')
     sp.add_argument('--output')
+    sp.add_argument('--format', choices=('json', 'jsonl'), default='json')
     sp.set_defaults(func=cmd_discover_bodies)
     
     # Command: list-authorities

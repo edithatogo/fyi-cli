@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING
 
 import httpx
@@ -11,6 +12,7 @@ from fyi_system.importers import (
     authorities_url,
     discover_bodies,
     discover_bodies_with_provenance,
+    format_bodies_jsonl,
     import_authorities_csv,
     import_authorities_rows,
     import_authorities_url,
@@ -181,3 +183,28 @@ def test_discover_bodies_override_uses_catalog_host_and_provenance() -> None:
         "https://catalog.example/robots.txt",
         "https://catalog.example/custom.csv?rev=7",
     ]
+
+
+def test_format_bodies_jsonl_normalizes_tags_and_emits_contract_fields() -> None:
+    output = format_bodies_jsonl(
+        [
+            {
+                "url_name": "nsw-agency",
+                "name": "NSW Agency",
+                "url": "https://righttoknow.example/body/nsw-agency",
+                "tags": "NSW_state|health, federal",
+            },
+        ],
+    )
+
+    assert [json.loads(line) for line in output.splitlines()] == [
+        {
+            "name": "NSW Agency",
+            "tags": ["NSW_state", "federal", "health"],
+            "url_name": "nsw-agency",
+        },
+    ]
+
+
+def test_format_bodies_jsonl_skips_rows_without_required_identity() -> None:
+    assert format_bodies_jsonl([{"url_name": "", "name": "Missing"}]) == ""

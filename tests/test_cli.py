@@ -33,6 +33,17 @@ class TestBuildParser:
         assert args.instance_id == 'nz-fyi'
         assert args.recursive_unbounded is True
 
+    def test_discover_bodies_jsonl_contract_options(self):
+        args = build_parser().parse_args([
+            'discover-bodies',
+            '--base-url', 'https://www.righttoknow.org.au',
+            '--format', 'jsonl',
+            '--rate-limit-name', 'archive-discovery-au-rtk',
+        ])
+        assert args.cmd == 'discover-bodies'
+        assert args.format == 'jsonl'
+        assert args.rate_limit_name == 'archive-discovery-au-rtk'
+
     def test_dry_plan_rejects_unbounded_without_network(self, capsys):
         args = build_parser().parse_args([
             'dry-plan', '--instance-id', 'nz-fyi', '--recursive-unbounded',

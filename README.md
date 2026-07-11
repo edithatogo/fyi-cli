@@ -290,8 +290,14 @@ explicit alternate URL:
 
 ```bash
 fyi discover-bodies --base-url https://www.righttoknow.org.au \
-  --catalog-url https://catalog.example/au-authorities.csv --output bodies.json
+  --catalog-url https://catalog.example/au-authorities.csv \
+  --rate-limit-name archive-discovery-au-rtk --format jsonl --output bodies.jsonl
 ```
+
+With `--format jsonl`, each output line contains only the stable downstream
+contract fields `url_name`, `name`, and `tags[]`. The default JSON format also
+includes retrieval provenance for audit records. Both modes are read-only,
+robots-aware, and use the configured shared limiter.
 
 The JSON output includes the effective catalog URL, whether the default or an
 override was used, retrieval time, HTTP status, row count, and a SHA-256 of the
