@@ -175,6 +175,37 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## Active Tracks
 
+- [ ] **Track: remote-mcp-observability-security**
+  *GitHub parent: [#169](https://github.com/edithatogo/fyi-cli/issues/169)*
+  *GitHub issue: [#172](https://github.com/edithatogo/fyi-cli/issues/172)*
+  *Link: [./tracks/remote-mcp-observability-security-20260711/](./tracks/remote-mcp-observability-security-20260711/)*
+  *Description: Default-deny capability policy, kill switch, circuit breaker, redacted audit/trace/metrics, and operator controls for remote MCP operations.*
+  *Priority: critical*
+
+- [ ] **Track: remote-mcp-read-surface**
+  *GitHub parent: [#169](https://github.com/edithatogo/fyi-cli/issues/169)*
+  *GitHub issue: [#170](https://github.com/edithatogo/fyi-cli/issues/170)*
+  *Link: [./tracks/remote-mcp-read-surface-20260711/](./tracks/remote-mcp-read-surface-20260711/)*
+  *Description: Opt-in read-only remote health, version, search, request, authority, and feed MCP tools backed by SyncClient.*
+  *Dependencies: remote-mcp-observability-security*
+  *Priority: high*
+
+- [ ] **Track: remote-mcp-contract-harness**
+  *GitHub parent: [#169](https://github.com/edithatogo/fyi-cli/issues/169)*
+  *GitHub issue: [#173](https://github.com/edithatogo/fyi-cli/issues/173)*
+  *Link: [./tracks/remote-mcp-contract-harness-20260711/](./tracks/remote-mcp-contract-harness-20260711/)*
+  *Description: Versioned compatibility fixtures plus unit, integration, end-to-end, property, mutation, edge, performance, security, compatibility, usability, regression, sanity, and smoke/system sensors.*
+  *Dependencies: remote-mcp-observability-security, remote-mcp-read-surface*
+  *Priority: high*
+
+- [ ] **Track: remote-mcp-write-governance**
+  *GitHub parent: [#169](https://github.com/edithatogo/fyi-cli/issues/169)*
+  *GitHub issue: [#171](https://github.com/edithatogo/fyi-cli/issues/171)*
+  *Link: [./tracks/remote-mcp-write-governance-20260711/](./tracks/remote-mcp-write-governance-20260711/)*
+  *Description: Explicitly enabled prepare/commit remote writes with protected credentials, idempotency, replay protection, attachment bounds, optimistic state concurrency, and durable audit.*
+  *Dependencies: remote-mcp-observability-security, remote-mcp-read-surface, remote-mcp-contract-harness*
+  *Priority: high*
+
 - [x] **Track: resource-aware-autonomous-agent** (COMPLETED 2026-07-10)
   *Link: [./tracks/resource-aware-autonomous-agent/](./tracks/resource-aware-autonomous-agent/)*
   *Description: Refactor fyi-cli from a passive scraper into a production-grade, resource-aware autonomous agent: RateLimit-* / Retry-After header interception, adaptive bandwidth scaling, local load memory, plan-and-solve reflection, framework-ready core loop, and mandatory contactable User-Agent hygiene for sustainable use of volunteer Alaveteli instances (FYI.org.nz and peers).*

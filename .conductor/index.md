@@ -8,7 +8,7 @@ This directory contains the canonical Conductor project context and management f
 
 - [Product Definition](./product.md) - Vision, goals, target users, and key features
 - [Product Guidelines](./product-guidelines.md) - Style, branding, UX principles, and ethics
-- [Technology Stack](./tech-stack.md) - Python (active) and Rust (future) tech stacks
+- [Technology Stack](./tech-stack.md) - Rust (primary) and Python (legacy) tech stacks
 
 ---
 
@@ -25,8 +25,10 @@ This directory contains the canonical Conductor project context and management f
 - [Tracks Directory](./tracks/) - Individual track specifications and plans
 
 ### Active Tracks
-- **alaveteli-bot-contract** - Fork-local client/server contract for bounded, observable Alaveteli traffic
-- **endorsed-client-route-20260710** - Evidence-gated preparation for a future opt-in, sysadmin-controlled upstream proposal
+- **remote-mcp-observability-security-20260711** - Default-deny policy, observability, and operator controls
+- **remote-mcp-read-surface-20260711** - Guarded read-only remote SyncClient tools
+- **remote-mcp-contract-harness-20260711** - Compatibility contracts and aggressive layered harnesses
+- **remote-mcp-write-governance-20260711** - Governed prepare/commit remote writes
 
 ### Completed Tracks
 - **resource-aware-autonomous-agent** - Header-aware adaptive pacing, load memory, plan reflection, identity hygiene, filesystem cache, and local traces for sustainable Alaveteli access
@@ -81,7 +83,15 @@ scripts/                   # Utility scripts
 - `/conductor:implement <track-id>` - Implement a track
 - `/conductor:status` - Check project status
 
-### Development Commands (Python)
+### Development Commands (Rust primary)
+```powershell
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace
+pwsh -NoProfile -File scripts/Invoke-MsvcPortable.ps1 cargo test --target x86_64-pc-windows-msvc -p fyi-core
+```
+
+### Development Commands (Python legacy)
 ```bash
 # Install dependencies
 pip install -e ".[dev]"
@@ -108,5 +118,5 @@ mypy src/
 
 - **Canonical Structure**: `.conductor/` is the single source of truth for Conductor files
 - **Integration Complete**: The project has been integrated from 14 versioned archives (v14 canonical)
-- **Dual Stack**: Python is the active implementation; Rust is a future direction
+- **Dual Stack**: Rust is the primary implementation; Python remains a supported legacy and compatibility surface
 - **Migration Report**: See `handover/migration-report.md` for integration details
