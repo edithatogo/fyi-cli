@@ -175,11 +175,12 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## Active Tracks
 
-- [~] **Track: registry-blocker-monitor** (IN PROGRESS 2026-07-11)
+- [x] **Track: registry-blocker-monitor** (COMPLETED 2026-07-11, PR #190)
   *GitHub issue: [#32](https://github.com/edithatogo/fyi-cli/issues/32)*
   *Link: [./tracks/registry-blocker-monitor-20260711/](./tracks/registry-blocker-monitor-20260711/)*
   *Description: Read-only scheduled monitor for external registry onboarding state with fingerprinted issue evidence.*
   *Priority: high*
+  *Results: Weekly/manual monitor polls Smithery, official MCP Registry, and GitHub curated onboarding; comments on #32 only when evidence changes.*
 
 - [x] **Track: au-rtk-live-smoke** (COMPLETED 2026-07-11, PR #187)
   *GitHub issue: [#136](https://github.com/edithatogo/fyi-cli/issues/136)*
