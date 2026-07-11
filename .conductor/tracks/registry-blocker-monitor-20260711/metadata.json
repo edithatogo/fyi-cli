@@ -1,9 +1,10 @@
 {
   "track_id": "registry-blocker-monitor-20260711",
   "type": "automation",
-  "status": "in_progress",
+  "status": "completed",
   "created_at": "2026-07-11T00:00:00Z",
   "description": "Read-only scheduled monitor for Smithery, official MCP Registry, and GitHub curated onboarding state.",
   "github_issue": 32,
-  "priority": "high"
+  "priority": "high",
+  "github_pr": 190
 }
