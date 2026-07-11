@@ -38,9 +38,9 @@
 - [ ] Task: Conductor - User Manual Verification 'Phase 3.1: Authorities' (Protocol in workflow.md)
 
 ### 3.2 Prefilled URL Builder
-- [ ] Task: Write failing tests for `build_prefilled_url`
-- [ ] Task: Implement prefilled URL generation for `/new/<authority>`
-- [ ] Task: Test with various authority types
+- [x] Task: Write failing tests for `build_prefilled_url` — coverage includes query encoding and blank-tag handling
+- [x] Task: Implement prefilled URL generation for `/new/<authority>`
+- [x] Task: Test with various authority types — ministry, council, university, and agency-style slugs
 - [ ] Task: Conductor - User Manual Verification 'Phase 3.2: Prefilled URLs' (Protocol in workflow.md)
 
 ## Phase 4: Health, Version & Feeds
@@ -86,3 +86,4 @@
 - **2026-07-11**: Added deterministic client-side authority filtering with WireMock coverage; remote filter query semantics remain intentionally unspecified.
 - **2026-07-11**: Added async multipart correspondence uploads with attachment contract coverage; local Rust execution remains blocked by the absent MSVC Windows SDK, so CI is the execution gate.
 - **2026-07-11**: Added fail-closed validation for the documented request-state vocabulary before PUT; graph-level transition validation remains pending because the payload does not include the current remote state.
+- **2026-07-11**: Added prefilled URL coverage for authority slug variants, Unicode/reserved query values, and blank tags.

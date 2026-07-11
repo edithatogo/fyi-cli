@@ -1993,6 +1993,64 @@ mod tests {
         assert!(url.to_string().contains("tags=foo"));
     }
 
+    #[tokio::test]
+    async fn build_prefilled_url_supports_common_authority_slug_variants() {
+        let server = MockServer::start().await;
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+
+        for slug in ["ministry-of-health", "city-council", "public-university"] {
+            let url = client
+                .build_prefilled_url(slug, "Title", "Body", None)
+                .await
+                .unwrap();
+
+            assert_eq!(url.path(), format!("/new/{slug}"));
+            assert_eq!(
+                url.query_pairs().collect::<Vec<_>>(),
+                vec![
+                    ("title".into(), "Title".into()),
+                    ("body".into(), "Body".into())
+                ]
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn build_prefilled_url_encodes_unicode_and_reserved_query_values() {
+        let server = MockServer::start().await;
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+
+        let url = client
+            .build_prefilled_url(
+                "records-office",
+                "Budget & records",
+                "Café / fiscal year?",
+                Some("finance & retention"),
+            )
+            .await
+            .unwrap();
+        let query: std::collections::BTreeMap<_, _> = url.query_pairs().into_owned().collect();
+
+        assert_eq!(query["title"], "Budget & records");
+        assert_eq!(query["body"], "Café / fiscal year?");
+        assert_eq!(query["tags"], "finance & retention");
+        assert!(url.as_str().contains("%26"));
+        assert!(url.as_str().contains("%C3%A9"));
+    }
+
+    #[tokio::test]
+    async fn build_prefilled_url_omits_blank_tags() {
+        let server = MockServer::start().await;
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+
+        let url = client
+            .build_prefilled_url("agency", "Title", "Body", Some("  "))
+            .await
+            .unwrap();
+
+        assert!(!url.query_pairs().any(|(key, _)| key == "tags"));
+    }
+
     #[test]
     fn rejects_non_https_or_private_targets() {
         assert!(SyncClient::new("http://example.com").is_err());
