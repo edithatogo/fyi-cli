@@ -8,7 +8,7 @@ This project supports two technology stacks:
 
 ---
 
-## Rust Stack (Active)
+## Python Stack (Legacy)
 
 The active stack uses Rust for enhanced performance, memory safety, and single-binary deployment.
 
@@ -49,7 +49,7 @@ fyi-system = "fyi_system.cli:main"
 
 ---
 
-## Python Stack (Legacy)
+## Rust Stack (Active)
 
 The legacy implementation uses Python for rapid development and deployment.
 
