@@ -194,6 +194,22 @@ the pre-existing dirty `agent_runtime.rs` change unless explicitly assigned.
 - Run `29075190333` passed: the focused bulk exporter, traffic-control, and
   contract-validation suite completed successfully (13 examples, 0 failures).
 
+### Paired contract documentation sensor (2026-07-11)
+
+- Paired Alaveteli issue #24 now has fork-only draft PR #46:
+  https://github.com/edithatogo/alaveteli/pull/46.
+- The PR publishes the observed version `0.1` HTTP contract in
+  `doc/fyi_cli_contract.md` and extends the fork-owned workflow with the
+  sustainability controller spec.
+- The focused paired run
+  `29148244853` passed on Ruby 3.4/PostgreSQL 13.5: 19 examples, 0 failures.
+- The run caught and fixed streamed-body and fixture-isolation defects in the
+  server spec. The PR remains draft while repository-wide baseline security,
+  dependency, and preview-Ruby gates remain unresolved; no finding is
+  suppressed.
+- fyi-cli issue #142 and PR #150 are closed/merged. No upstream Alaveteli
+  issue or PR is implied by this fork-local documentation sensor.
+
 ## Closure boundary
 
 - Fork-local fyi-cli implementation, fixtures, tests, documentation, rollback
