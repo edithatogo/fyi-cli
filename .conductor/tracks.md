@@ -198,7 +198,7 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Dependencies: remote-mcp-observability-security, remote-mcp-read-surface*
   *Priority: high*
 
-- [~] **Track: remote-mcp-write-governance** (CORE IMPLEMENTED 2026-07-11, PR #178; correction #180; attachment follow-up #181)
+- [x] **Track: remote-mcp-write-governance** (COMPLETED 2026-07-11, PR #178; correction #180; attachment contract #183)
   *GitHub parent: [#169](https://github.com/edithatogo/fyi-cli/issues/169)*
   *GitHub issue: [#171](https://github.com/edithatogo/fyi-cli/issues/171)*
   *Link: [./tracks/remote-mcp-write-governance-20260711/](./tracks/remote-mcp-write-governance-20260711/)*
