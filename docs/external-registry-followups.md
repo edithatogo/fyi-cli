@@ -1,11 +1,24 @@
 # External registry follow-ups (#26 Smithery, #32 GitHub MCP)
 
-Operator playbook for the two remaining **blocked-external** issues after Conductor
+Operator playbook for the two **external-registry** issues after Conductor
 tracks were archived.
+
+## Fresh verification — 2026-07-11
+
+The live endpoints were rechecked before changing issue state:
+
+- Smithery namespace `edithatogo/fyi-mcp`: `isDeployed=true`, `remote=false`,
+  `useCount=0`, `score=null`.
+- Smithery detail: 14 tools, 2 resources, and 3 prompts.
+- Official MCP Registry: `io.github.edithatogo/fyi-mcp` version `0.1.2`,
+  `status=active`, `isLatest=true`.
+- GitHub curated search `https://github.com/mcp?q=fyi-mcp`: page loads but has
+  no server card; direct path `github.com/mcp/io.github.edithatogo/fyi-mcp`
+  returns 404.
 
 ## #26 — Smithery live score and indexing refresh
 
-### Current verified state (2026-07-09, post republish)
+### Current verified state (2026-07-11, post republish)
 
 | Check | Result |
 |-------|--------|
@@ -81,7 +94,7 @@ Close when **at least one** is true:
 
 ## #32 — GitHub MCP Registry onboarding (`github.com/mcp`)
 
-### Current verified state (2026-07-09)
+### Current verified state (2026-07-11)
 
 | Check | Result |
 |-------|--------|
