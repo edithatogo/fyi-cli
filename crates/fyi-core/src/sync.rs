@@ -1565,6 +1565,27 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn search_request_ids_from_feed_propagates_http_errors_without_body() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/search.rss"))
+            .respond_with(ResponseTemplate::new(503).set_body_string("secret-token"))
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+        let error = client
+            .search_request_ids_from_feed("open data")
+            .await
+            .expect_err("feed HTTP failures must be surfaced");
+        let message = error.to_string();
+
+        assert!(message.contains("HTTP 503"));
+        assert!(message.contains("server error"));
+        assert!(!message.contains("secret-token"));
+    }
+
+    #[tokio::test]
     async fn response_byte_guardrail_blocks_the_next_remote_call() {
         let server = MockServer::start().await;
         let mock = Mock::given(method("GET"))
@@ -1856,6 +1877,29 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn add_correspondence_with_attachments_reports_missing_files() {
+        let server = MockServer::start().await;
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+        let missing = std::env::temp_dir().join(format!(
+            "fyi-cli-sync-missing-attachment-{}.bin",
+            std::process::id()
+        ));
+        let payload = AddCorrespondencePayload {
+            direction: crate::api::CorrespondenceDirection::Response,
+            body: "Missing attachment".to_string(),
+            sent_at: "2026-07-11T00:00:00Z".to_string(),
+            state: None,
+        };
+
+        let error = client
+            .add_correspondence_with_attachments(42, &payload, std::slice::from_ref(&missing))
+            .await
+            .expect_err("missing attachments must fail before upload");
+
+        assert!(error.to_string().contains("failed to inspect attachment"));
+    }
+
+    #[tokio::test]
     async fn update_request_state_puts_payload_and_parses_response() {
         let server = MockServer::start().await;
         let payload = UpdateRequestStatePayload {
@@ -1943,6 +1987,27 @@ mod tests {
         assert_eq!(authorities.len(), 1);
         assert_eq!(authorities[0].slug.as_deref(), Some("example-ministry"));
         assert_eq!(authorities[0].name.as_deref(), Some("Example Ministry"));
+    }
+
+    #[tokio::test]
+    async fn list_authorities_propagates_http_errors_without_body() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/api/v2/authority.json"))
+            .respond_with(ResponseTemplate::new(502).set_body_string("secret-token"))
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+        let error = client
+            .list_authorities()
+            .await
+            .expect_err("authority HTTP failures must be surfaced");
+        let message = error.to_string();
+
+        assert!(message.contains("HTTP 502"));
+        assert!(message.contains("server error"));
+        assert!(!message.contains("secret-token"));
     }
 
     #[tokio::test]
@@ -2351,6 +2416,29 @@ mod tests {
         for path in ["body/ministry?status=open", "body/ministry#recent", "  "] {
             assert!(client.pull_authority_feed(&db, path).await.is_err());
         }
+    }
+
+    #[tokio::test]
+    async fn pull_authority_feed_propagates_http_errors_without_body() {
+        let server = MockServer::start().await;
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+        Mock::given(method("GET"))
+            .and(path("/body/ministry/feed"))
+            .respond_with(ResponseTemplate::new(429).set_body_string("secret-token"))
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+        let error = client
+            .pull_authority_feed(&db, "body/ministry")
+            .await
+            .expect_err("authority feed HTTP failures must be surfaced");
+        let message = error.to_string();
+
+        assert!(message.contains("HTTP 429"));
+        assert!(message.contains("rate limited"));
+        assert!(!message.contains("secret-token"));
     }
 
     #[test]
