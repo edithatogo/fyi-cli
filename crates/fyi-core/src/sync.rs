@@ -657,7 +657,7 @@ impl SyncClient {
     /// Add correspondence with optional file attachments using multipart form data.
     ///
     /// The JSON method remains available for requests without attachments. Files are
-    /// uploaded as `attachment_<index>` parts with an octet-stream content type.
+    /// uploaded as `attachment_<index>` parts with an allowlisted MIME type.
     pub async fn add_correspondence_with_attachments<P: AsRef<Path>>(
         &self,
         request_id: i64,
@@ -681,19 +681,56 @@ impl SyncClient {
             form = form.text("state", state.clone());
         }
 
-        for (index, attachment) in attachments.iter().enumerate() {
+        const MAX_ATTACHMENTS: usize = 8;
+        const MAX_ATTACHMENT_BYTES: u64 = 50 * 1024 * 1024;
+        const MAX_TOTAL_ATTACHMENT_BYTES: u64 = 100 * 1024 * 1024;
+        if attachments.len() > MAX_ATTACHMENTS {
+            return Err(anyhow!(
+                "attachment count exceeds the {MAX_ATTACHMENTS} file limit"
+            ));
+        }
+
+        let mut attachment_metadata = Vec::with_capacity(attachments.len());
+        let mut total_bytes = 0_u64;
+        for attachment in attachments {
             let path = attachment.as_ref();
-            const MAX_ATTACHMENT_BYTES: u64 = 50 * 1024 * 1024;
-            let metadata = tokio::fs::metadata(path)
+            let link_metadata = tokio::fs::symlink_metadata(path)
                 .await
                 .with_context(|| format!("failed to inspect attachment {}", path.display()))?;
-            if metadata.len() > MAX_ATTACHMENT_BYTES {
+            if link_metadata.file_type().is_symlink() {
+                return Err(anyhow!(
+                    "attachment {} must not be a symlink",
+                    path.display()
+                ));
+            }
+            if !link_metadata.is_file() {
+                return Err(anyhow!(
+                    "attachment {} is not a regular file",
+                    path.display()
+                ));
+            }
+            if link_metadata.len() > MAX_ATTACHMENT_BYTES {
                 return Err(anyhow!(
                     "attachment {} exceeds the 50 MiB upload limit",
                     path.display()
                 ));
             }
-            let bytes = tokio::fs::read(path)
+            total_bytes = total_bytes
+                .checked_add(link_metadata.len())
+                .ok_or_else(|| anyhow!("attachment byte total overflow"))?;
+            if total_bytes > MAX_TOTAL_ATTACHMENT_BYTES {
+                return Err(anyhow!(
+                    "attachments exceed the 100 MiB aggregate upload limit"
+                ));
+            }
+            let mime = Self::attachment_mime(path).ok_or_else(|| {
+                anyhow!("attachment {} has an unsupported MIME type", path.display())
+            })?;
+            attachment_metadata.push((path.to_owned(), mime));
+        }
+
+        for (index, (path, mime)) in attachment_metadata.into_iter().enumerate() {
+            let bytes = tokio::fs::read(&path)
                 .await
                 .with_context(|| format!("failed to read attachment {}", path.display()))?;
             let filename = path
@@ -703,7 +740,7 @@ impl SyncClient {
                 .to_owned();
             let part = reqwest::multipart::Part::bytes(bytes)
                 .file_name(filename)
-                .mime_str("application/octet-stream")
+                .mime_str(mime)
                 .context("failed to build attachment part")?;
             form = form.part(format!("attachment_{index}"), part);
         }
@@ -741,6 +778,26 @@ impl SyncClient {
             .json::<UpdateRequestStateResponse>()
             .await
             .context("failed to parse request state response")
+    }
+
+    fn attachment_mime(path: &Path) -> Option<&'static str> {
+        match path.extension()?.to_str()?.to_ascii_lowercase().as_str() {
+            "csv" => Some("text/csv"),
+            "doc" => Some("application/msword"),
+            "docx" => {
+                Some("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+            }
+            "html" | "htm" => Some("text/html"),
+            "jpg" | "jpeg" => Some("image/jpeg"),
+            "json" => Some("application/json"),
+            "odt" => Some("application/vnd.oasis.opendocument.text"),
+            "pdf" => Some("application/pdf"),
+            "png" => Some("image/png"),
+            "txt" => Some("text/plain"),
+            "xml" => Some("application/xml"),
+            "zip" => Some("application/zip"),
+            _ => None,
+        }
     }
 
     /// Update a request only when its remote state still matches the caller's
@@ -1922,6 +1979,76 @@ mod tests {
             .expect_err("missing attachments must fail before upload");
 
         assert!(error.to_string().contains("failed to inspect attachment"));
+    }
+
+    #[tokio::test]
+    async fn add_correspondence_with_attachments_rejects_count_and_mime_bounds() {
+        let server = MockServer::start().await;
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+        let payload = AddCorrespondencePayload {
+            direction: crate::api::CorrespondenceDirection::Response,
+            body: "bounded attachments".to_string(),
+            sent_at: "2026-07-11T00:00:00Z".to_string(),
+            state: None,
+        };
+        let mut files = Vec::new();
+        for index in 0..9 {
+            let path = std::env::temp_dir().join(format!(
+                "fyi-cli-sync-count-{index}-{}.txt",
+                std::process::id()
+            ));
+            std::fs::write(&path, b"x").unwrap();
+            files.push(path);
+        }
+        let error = client
+            .add_correspondence_with_attachments(42, &payload, &files)
+            .await
+            .expect_err("attachment count must be bounded");
+        assert!(error.to_string().contains("8 file limit"));
+        for path in &files {
+            std::fs::remove_file(path).unwrap();
+        }
+
+        let unsupported =
+            std::env::temp_dir().join(format!("fyi-cli-sync-mime-{}.exe", std::process::id()));
+        std::fs::write(&unsupported, b"not an executable").unwrap();
+        let error = client
+            .add_correspondence_with_attachments(42, &payload, std::slice::from_ref(&unsupported))
+            .await
+            .expect_err("unsupported MIME types must be rejected");
+        assert!(error.to_string().contains("unsupported MIME type"));
+        std::fs::remove_file(unsupported).unwrap();
+    }
+
+    #[tokio::test]
+    async fn add_correspondence_with_attachments_rejects_aggregate_bytes() {
+        let server = MockServer::start().await;
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+        let payload = AddCorrespondencePayload {
+            direction: crate::api::CorrespondenceDirection::Response,
+            body: "aggregate bound".to_string(),
+            sent_at: "2026-07-11T00:00:00Z".to_string(),
+            state: None,
+        };
+        let mut files = Vec::new();
+        for index in 0..3 {
+            let path = std::env::temp_dir().join(format!(
+                "fyi-cli-sync-total-{index}-{}.txt",
+                std::process::id()
+            ));
+            let file = tokio::fs::File::create(&path).await.unwrap();
+            file.set_len(40 * 1024 * 1024).await.unwrap();
+            drop(file);
+            files.push(path);
+        }
+        let error = client
+            .add_correspondence_with_attachments(42, &payload, &files)
+            .await
+            .expect_err("aggregate attachment bytes must be bounded");
+        assert!(error.to_string().contains("100 MiB aggregate"));
+        for path in &files {
+            std::fs::remove_file(path).unwrap();
+        }
     }
 
     #[tokio::test]

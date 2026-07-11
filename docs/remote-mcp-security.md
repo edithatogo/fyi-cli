@@ -48,4 +48,9 @@ per-instance bot token (`FYI_MCP_REMOTE_BOT_TOKEN_<INSTANCE_ID>`) when the
 upstream instance needs one; token values are never included in responses or
 telemetry.
 
+Attachment writes additionally require `FYI_MCP_ATTACHMENT_ROOT`. Paths are
+relative to that canonical directory; symlinks, traversal, unsupported MIME
+types, more than eight files, files over 50 MiB, and aggregate payloads over
+100 MiB are rejected before any remote request is sent.
+
 Issue: https://github.com/edithatogo/fyi-cli/issues/172

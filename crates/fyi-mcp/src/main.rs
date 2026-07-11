@@ -11,6 +11,7 @@ use fyi_core::search::{InMemorySearchIndex, SearchDocument, SearchIndex};
 use fyi_core::sync::{SearchOptions, SyncClient};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::path::PathBuf;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
 pub mod policy;
@@ -814,6 +815,7 @@ fn remote_tool_definition(name: &str, description: &str) -> Value {
             properties["direction"] = json!({"type": "string", "enum": ["request", "response"]});
             properties["body"] = json!({"type": "string", "minLength": 1, "maxLength": 100000});
             properties["sent_at"] = json!({"type": "string", "maxLength": 64});
+            properties["attachments"] = json!({"type": "array", "maxItems": 8, "items": {"type": "string", "minLength": 1, "maxLength": 1024}});
             properties["idempotency_key"] =
                 json!({"type": "string", "minLength": 1, "maxLength": 128});
             required.extend([
@@ -2678,11 +2680,20 @@ async fn remote_commit_write(
                     .and_then(Value::as_str)
                     .map(str::to_string),
             };
-            client
-                .add_correspondence(request_id, &payload)
-                .await
-                .map(|response| json!({"instance_id": instance_id, "correspondence": response}))
-                .map_err(|_| "remote operation failed".to_string())
+            let attachments = validated_attachment_paths(&prepared.arguments).await?;
+            if attachments.is_empty() {
+                client
+                    .add_correspondence(request_id, &payload)
+                    .await
+                    .map(|response| json!({"instance_id": instance_id, "correspondence": response}))
+                    .map_err(|_| "remote operation failed".to_string())
+            } else {
+                client
+                    .add_correspondence_with_attachments(request_id, &payload, &attachments)
+                    .await
+                    .map(|response| json!({"instance_id": instance_id, "correspondence": response}))
+                    .map_err(|_| "remote operation failed".to_string())
+            }
         }
         "remote_update_state" => {
             let request_id = prepared
@@ -2730,6 +2741,44 @@ async fn remote_commit_write(
             Err("remote write failed; see operator audit telemetry".into())
         }
     }
+}
+
+async fn validated_attachment_paths(arguments: &Value) -> Result<Vec<PathBuf>, String> {
+    let Some(values) = arguments.get("attachments") else {
+        return Ok(Vec::new());
+    };
+    let values = values
+        .as_array()
+        .ok_or_else(|| "attachments must be an array".to_string())?;
+    if values.len() > 8 {
+        return Err("attachments exceed the 8 file limit".into());
+    }
+    let root = std::env::var_os("FYI_MCP_ATTACHMENT_ROOT")
+        .ok_or_else(|| "FYI_MCP_ATTACHMENT_ROOT is required for attachment writes".to_string())?;
+    let root = tokio::fs::canonicalize(root)
+        .await
+        .map_err(|_| "attachment root is unavailable".to_string())?;
+    let mut paths = Vec::with_capacity(values.len());
+    for value in values {
+        let relative = value
+            .as_str()
+            .ok_or_else(|| "attachment paths must be strings".to_string())?;
+        if relative.is_empty()
+            || relative.len() > 1024
+            || relative.contains('\0')
+            || relative.contains("..")
+        {
+            return Err("attachment path is invalid".into());
+        }
+        let canonical = tokio::fs::canonicalize(root.join(relative))
+            .await
+            .map_err(|_| "attachment path is unavailable".to_string())?;
+        if !canonical.starts_with(&root) {
+            return Err("attachment path escapes FYI_MCP_ATTACHMENT_ROOT".into());
+        }
+        paths.push(canonical);
+    }
+    Ok(paths)
 }
 
 /// Built-in demo documents for the experimental `search_corpus` tool.
