@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
-mod policy;
+pub mod policy;
 use policy::RemoteMcpPolicy;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
