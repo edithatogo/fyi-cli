@@ -3,7 +3,7 @@
 Implementation-oriented submission matrix for **fyi-cli** / **fyi-mcp** distribution.
 Update this file when a submission lands or when release assets change.
 
-Last reviewed: **2026-07-09**
+Last reviewed: **2026-07-11**
 
 Home-page listing (README): see **Where fyi-cli / fyi-mcp is listed** in [`README.md`](../README.md).  
 Release automation (tags, GHCR, external catalogs, version sync): [`release-multi-registry.md`](./release-multi-registry.md).  
@@ -24,8 +24,8 @@ Packaging asset CI check: `python scripts/verify_packaging_assets.py`.
 |--------|--------|----------------------|-------|
 | Official MCP Registry (`io.github.edithatogo/fyi-mcp`) | **live** | API shows `0.1.2` active/latest; `server.json` in repo | — |
 | Glama | **live** | Listed as [fyi-mcp by edithatogo](https://glama.ai/mcp/servers/edithatogo/fyi-cli); search `author:edithatogo` returns the server; scores license A / quality A / maintenance B | #25 |
-| Smithery | **live** (score pending external) | Registry: `edithatogo/fyi-mcp`; page [smithery.ai/server/@edithatogo/fyi-mcp](https://smithery.ai/server/@edithatogo/fyi-mcp). MCPB republished SUCCESS (`9219599b-…`); live binary 14 tools / 2 resources / 3 prompts; **list `score` still `null`** (same for all edithatogo local servers, useCount 0). Playbook: [docs/external-registry-followups.md](external-registry-followups.md) | #26 |
-| GitHub curated MCP surface (`github.com/mcp`) | **blocked-external** | OSS registry `io.github.edithatogo/fyi-mcp@0.1.2` active/latest; curated path still 404. Onboarding requests filed: [discussion #2844](https://github.com/github/github-mcp-server/discussions/2844), [comment on #1257](https://github.com/github/github-mcp-server/discussions/1257#discussioncomment-17584387). Playbook: [docs/external-registry-followups.md](external-registry-followups.md) | #32 |
+| Smithery | **live** (score pending external) | Registry: `edithatogo/fyi-mcp`; page [smithery.ai/server/@edithatogo/fyi-mcp](https://smithery.ai/server/@edithatogo/fyi-mcp). Fresh 2026-07-11 API check: `score=null`, `useCount=0`, `remote=false`; detail exposes 14 tools / 2 resources / 3 prompts. Playbook: [docs/external-registry-followups.md](external-registry-followups.md) | #26 |
+| GitHub curated MCP surface (`github.com/mcp`) | **blocked-external** | Fresh 2026-07-11 check: OSS registry `io.github.edithatogo/fyi-mcp@0.1.2` active/latest; curated search has no server card and direct path is 404. Onboarding requests filed: [discussion #2844](https://github.com/github/github-mcp-server/discussions/2844), [comment on #1257](https://github.com/github/github-mcp-server/discussions/1257#discussioncomment-17584387). Playbook: [docs/external-registry-followups.md](external-registry-followups.md) | #32 |
 | PulseMCP | **assets-ready** | Package: [`packaging/mcp-catalogs/pulsemcp/`](../packaging/mcp-catalogs/pulsemcp/) (`submission.json` + README). Submit via https://www.pulsemcp.com/submit or wait for official-registry weekly ingest; do not mark live without a public PulseMCP URL | #100 |
 | mcp.so | **assets-ready** | Package: [`packaging/mcp-catalogs/mcp-so/`](../packaging/mcp-catalogs/mcp-so/) (`listing.md` + issue template). Submit via mcp.so **Submit** / GitHub issue | #101 |
 | Docker MCP Catalog | **assets-ready** | Package: [`packaging/mcp-catalogs/docker-mcp/`](../packaging/mcp-catalogs/docker-mcp/); root `Dockerfile`; intended image `ghcr.io/edithatogo/fyi-mcp`. Open PR per [docker/mcp-registry](https://github.com/docker/mcp-registry) when multi-arch pull is verified | #102 |
