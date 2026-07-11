@@ -236,6 +236,10 @@ impl RemoteMcpPolicy {
         Ok(())
     }
 
+    pub fn instance(&self, instance_id: &str) -> Option<RemoteInstancePolicy> {
+        self.instances.get(instance_id).cloned()
+    }
+
     pub fn record_request(&self, instance_id: &str, bytes: u64) -> Result<(), PolicyError> {
         let instance = self.instances.get(instance_id).ok_or_else(|| {
             PolicyError::Disabled("remote instance is not in the explicit allowlist".into())

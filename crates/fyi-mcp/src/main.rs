@@ -4,6 +4,7 @@ use fyi_core::db::DbPool;
 use fyi_core::deadlines::{calculate_deadline, DeadlineInput, WorkingDayRule};
 use fyi_core::endorsed_route::{CapabilityDocument, RouteRequest};
 use fyi_core::search::{InMemorySearchIndex, SearchDocument, SearchIndex};
+use fyi_core::sync::{SearchOptions, SyncClient};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
@@ -758,6 +759,49 @@ fn enrich_tool_definitions(tools: &mut Value) {
 
 /// Handles a single incoming JSON-RPC request and produces the response.
 pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<JsonRpcResponse> {
+    let policy = RemoteMcpPolicy::from_env().unwrap_or_else(|_| {
+        RemoteMcpPolicy::new(Vec::new()).expect("empty remote policy is valid")
+    });
+    handle_jsonrpc_request_with_policy(db, req, &policy).await
+}
+
+fn remote_tool_definition(name: &str, description: &str) -> Value {
+    let mut properties = json!({
+        "instance_id": {"type": "string", "minLength": 1, "maxLength": 64}
+    });
+    let mut required = vec!["instance_id"];
+    match name {
+        "remote_search_requests" => {
+            properties["query"] = json!({"type": "string", "minLength": 1, "maxLength": 200});
+            properties["limit"] =
+                json!({"type": "integer", "minimum": 1, "maximum": 50, "default": 10});
+            required.push("query");
+        }
+        "remote_get_request" => {
+            properties["request_id"] = json!({"type": "integer", "minimum": 1});
+            required.push("request_id");
+        }
+        "remote_list_authorities" => {
+            properties["filter"] = json!({"type": "string", "maxLength": 100});
+            properties["limit"] =
+                json!({"type": "integer", "minimum": 1, "maximum": 200, "default": 50});
+        }
+        _ => {}
+    }
+    json!({
+        "name": name,
+        "title": description,
+        "description": description,
+        "inputSchema": {"type": "object", "properties": properties, "required": required, "additionalProperties": false},
+        "annotations": {"readOnlyHint": true, "destructiveHint": false, "idempotentHint": true, "openWorldHint": true}
+    })
+}
+
+pub async fn handle_jsonrpc_request_with_policy(
+    db: &DbPool,
+    req: JsonRpcRequest,
+    remote_policy: &RemoteMcpPolicy,
+) -> Option<JsonRpcResponse> {
     match req.method.as_str() {
         "initialize" => {
             let res = json!({
@@ -1338,6 +1382,27 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                 }
             }));
             enrich_tool_definitions(&mut tools);
+            if remote_policy.status().remote_enabled {
+                tools["tools"]
+                    .as_array_mut()
+                    .expect("tools is an array")
+                    .extend([
+                        remote_tool_definition("remote_health", "Read-only remote health probe"),
+                        remote_tool_definition("remote_version", "Read-only remote API version"),
+                        remote_tool_definition(
+                            "remote_search_requests",
+                            "Bounded remote request search",
+                        ),
+                        remote_tool_definition(
+                            "remote_get_request",
+                            "Read-only remote request retrieval",
+                        ),
+                        remote_tool_definition(
+                            "remote_list_authorities",
+                            "Bounded remote authority discovery",
+                        ),
+                    ]);
+            }
             Some(JsonRpcResponse::success(req.id, tools))
         }
         "resources/list" => Some(JsonRpcResponse::success(
@@ -2276,6 +2341,35 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
                         }),
                     ))
                 }
+                "remote_health"
+                | "remote_version"
+                | "remote_search_requests"
+                | "remote_get_request"
+                | "remote_list_authorities" => {
+                    let instance_id = arguments
+                        .get("instance_id")
+                        .and_then(Value::as_str)
+                        .unwrap_or("");
+                    let correlation_id = format!(
+                        "mcp-{}",
+                        req.id
+                            .as_ref()
+                            .map(Value::to_string)
+                            .unwrap_or_else(|| "notification".into())
+                    );
+                    match remote_read(
+                        remote_policy,
+                        instance_id,
+                        name,
+                        &arguments,
+                        &correlation_id,
+                    )
+                    .await
+                    {
+                        Ok(payload) => Some(tool_success(req.id, payload)),
+                        Err(error) => Some(JsonRpcResponse::error(req.id, -32003, error)),
+                    }
+                }
                 _ => Some(JsonRpcResponse::error(
                     req.id,
                     -32601,
@@ -2288,6 +2382,112 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
             -32601,
             format!("Method '{}' not found", req.method),
         )),
+    }
+}
+
+async fn remote_read(
+    policy: &RemoteMcpPolicy,
+    instance_id: &str,
+    operation: &str,
+    arguments: &Value,
+    correlation_id: &str,
+) -> Result<Value, String> {
+    policy
+        .authorize(instance_id, policy::RemoteCapability::Read)
+        .map_err(|error| error.to_string())?;
+    let instance = policy
+        .instance(instance_id)
+        .ok_or_else(|| "remote instance is not configured".to_string())?;
+    let client = SyncClient::new(&instance.base_url)
+        .map_err(|_| "remote client could not be initialized".to_string())?;
+    let result = match operation {
+        "remote_health" => {
+            let health = client.health_check().await;
+            Ok(
+                json!({"instance_id": instance_id, "network_reachable": health.network_reachable, "api_reachable": health.api_reachable}),
+            )
+        }
+        "remote_version" => client
+            .get_api_version()
+            .await
+            .map(|version| json!({"instance_id": instance_id, "version": version})),
+        "remote_search_requests" => {
+            let query = arguments
+                .get("query")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .trim();
+            if query.is_empty() || query.len() > 200 {
+                return Err("query must be between 1 and 200 characters".into());
+            }
+            let limit = arguments
+                .get("limit")
+                .and_then(Value::as_u64)
+                .unwrap_or(10)
+                .clamp(1, 50) as usize;
+            client
+                .search_requests_with_options(&SearchOptions { query: Some(query.into()), per_page: Some(limit as u32), ..Default::default() })
+                .await
+                .map(|requests| json!({"instance_id": instance_id, "query": query, "requests": requests.into_iter().take(limit).collect::<Vec<_>>() }))
+        }
+        "remote_get_request" => {
+            let request_id = arguments
+                .get("request_id")
+                .and_then(Value::as_i64)
+                .ok_or_else(|| "request_id must be a positive integer".to_string())?;
+            if request_id < 1 {
+                return Err("request_id must be a positive integer".into());
+            }
+            client
+                .fetch_request(request_id)
+                .await
+                .map(|request| json!({"instance_id": instance_id, "request": request}))
+        }
+        "remote_list_authorities" => {
+            let filter = arguments
+                .get("filter")
+                .and_then(Value::as_str)
+                .unwrap_or("");
+            if filter.len() > 100 {
+                return Err("filter exceeds 100 characters".into());
+            }
+            let limit = arguments
+                .get("limit")
+                .and_then(Value::as_u64)
+                .unwrap_or(50)
+                .clamp(1, 200) as usize;
+            client.list_authorities_matching(filter).await.map(|authorities| json!({"instance_id": instance_id, "authorities": authorities.into_iter().take(limit).collect::<Vec<_>>() }))
+        }
+        _ => Err("unsupported remote read operation".into()),
+    };
+    match result {
+        Ok(payload) => {
+            let _ = policy.record_request(
+                instance_id,
+                serde_json::to_vec(&payload)
+                    .map(|v| v.len() as u64)
+                    .unwrap_or(0),
+            );
+            tracing::info!(
+                correlation_id,
+                operation,
+                instance_id,
+                outcome = "success",
+                "remote MCP read completed"
+            );
+            Ok(payload)
+        }
+        Err(_) => {
+            policy.record_failure();
+            tracing::warn!(
+                correlation_id,
+                operation,
+                instance_id,
+                outcome = "failure",
+                "remote MCP read failed"
+            );
+            Err("remote operation failed; see operator audit telemetry".into())
+        }
     }
 }
 
@@ -2507,7 +2707,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         match serde_json::from_str::<JsonRpcRequest>(&line) {
             Ok(req) => {
-                if let Some(resp) = handle_jsonrpc_request(&db, req).await {
+                if let Some(resp) =
+                    handle_jsonrpc_request_with_policy(&db, req, &remote_policy).await
+                {
                     let resp_str = serde_json::to_string(&resp)? + "\n";
                     stdout.write_all(resp_str.as_bytes()).await?;
                     stdout.flush().await?;
