@@ -19,8 +19,8 @@
 ### 2.1 Add Correspondence
 - [x] Task: Write failing tests for `add_correspondence` endpoint — WireMock verifies POST path, JSON payload, and response parsing
 - [x] Task: Implement POST correspondence to existing requests
-- [ ] Task: Add multipart form data support for attachments
-- [ ] Task: Test attachment upload functionality
+- [x] Task: Add multipart form data support for attachments — `add_correspondence_with_attachments` uses bounded file reads and multipart parts
+- [x] Task: Test attachment upload functionality — WireMock verifies multipart field names and attachment bytes
 - [ ] Task: Conductor - User Manual Verification 'Phase 2.1: Correspondence' (Protocol in workflow.md)
 
 ### 2.2 Update Request State
@@ -84,3 +84,4 @@
 - **2026-07-11**: Added Rust `search.rss` request-ID discovery with deduplication and query propagation; local execution is blocked by the absent MSVC Windows SDK, so CI remains the execution gate.
 - **2026-07-11**: Added WireMock contract coverage for correspondence, state, authority, health, and object-shaped version APIs; local Rust execution remains blocked by the absent MSVC Windows SDK.
 - **2026-07-11**: Added deterministic client-side authority filtering with WireMock coverage; remote filter query semantics remain intentionally unspecified.
+- **2026-07-11**: Added async multipart correspondence uploads with attachment contract coverage; local Rust execution remains blocked by the absent MSVC Windows SDK, so CI is the execution gate.
