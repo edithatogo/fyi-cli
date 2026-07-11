@@ -1,0 +1,39 @@
+name: External Registry Monitor
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 6 * * 1"
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Poll external registries
+        run: python scripts/check_external_registry_status.py --output registry-status.json
+
+      - name: Comment on #32 when evidence changes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          fingerprint=$(jq -r '.fingerprint' registry-status.json)
+          body=$(jq -r '.markdown' registry-status.json)
+          prior=$(gh issue view 32 --json comments --jq '.comments[].body')
+          marker="<!-- registry-monitor:${fingerprint} -->"
+          if ! grep -Fq "$marker" <<< "$prior"; then
+            gh issue comment 32 --body "$body"
+          fi
+
+      - name: Upload monitor evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: external-registry-status
+          path: registry-status.json
+          if-no-files-found: error
