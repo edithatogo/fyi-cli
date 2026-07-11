@@ -16,9 +16,9 @@
 
 ## Phase 3: Attachments and state updates
 
-- [ ] Task: Write failing tests for attachment bounds, MIME/path handling, stale state, and rollback
-- [ ] Task: Implement bounded attachment writes and optimistic state update tools
-- [ ] Task: Add property, mutation, edge, security, and replay regression tests
+- [x] Task: Write failing tests for attachment bounds, MIME/path handling, stale state, and rollback
+- [x] Task: Implement bounded attachment writes and optimistic state update tools
+- [x] Task: Add property, mutation, edge, security, and replay regression tests
 - [ ] Task: Conductor review verification 'Attachments and state updates'
 
 ## Phase 4: End-to-end and operations

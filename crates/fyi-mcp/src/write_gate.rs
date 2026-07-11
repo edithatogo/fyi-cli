@@ -67,8 +67,25 @@ impl RemoteWriteGate {
         if encoded.len() > MAX_PREPARE_BYTES {
             return Err("write arguments exceed the 64 KiB safety limit".into());
         }
-        if arguments.get("attachments").is_some() {
-            return Err("attachments require the bounded attachment contract".into());
+        if let Some(attachments) = arguments.get("attachments") {
+            let attachments = attachments
+                .as_array()
+                .ok_or_else(|| "attachments must be an array".to_string())?;
+            if attachments.len() > 8 {
+                return Err("attachments exceed the 8 file limit".into());
+            }
+            for attachment in attachments {
+                let path = attachment
+                    .as_str()
+                    .ok_or_else(|| "attachment paths must be strings".to_string())?;
+                if path.is_empty()
+                    || path.len() > 1024
+                    || path.contains('\0')
+                    || path.contains("..")
+                {
+                    return Err("attachment path is invalid".into());
+                }
+            }
         }
         if let Some(result) = self
             .completed
