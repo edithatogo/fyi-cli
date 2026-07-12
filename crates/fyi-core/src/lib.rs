@@ -11,6 +11,7 @@ pub mod i18n;
 pub mod jurisdiction;
 pub mod notifications;
 pub mod provenance;
+pub mod provider_contract;
 pub mod search;
 pub mod security;
 pub mod sync;
