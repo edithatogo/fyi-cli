@@ -9,7 +9,7 @@ Implement the lowest-risk, highest-value non-Alaveteli provider adapters after t
 1. MuckRock read-only API adapter.
 2. FragDenStaat read-only API adapter.
 3. FOIA.gov agency/catalog read-only adapter, with submission disabled by default.
-4. USCIS FOIA/PA adapter only as a separately gated, identity-aware pilot if production access is granted.
+4. USCIS FOIA/PA adapter only as a separately gated, non-sensitive metadata/status evaluation; no identity-sensitive request creation is included.
 
 ## Requirements
 
@@ -30,6 +30,5 @@ Implement the lowest-risk, highest-value non-Alaveteli provider adapters after t
 ## Out of scope
 
 - Automated portal scraping.
-- Bulk filing, identity-sensitive requests, paid request credits, or CAPTCHA bypass.
+- Bulk filing, identity-sensitive request creation, paid request credits, or CAPTCHA bypass.
 - Alaveteli provider changes.
-
