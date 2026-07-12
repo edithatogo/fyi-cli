@@ -2,7 +2,8 @@
 
 ## Phase 1: Contract design
 
-- [ ] Task: Define normalized provider capabilities and provenance rules for non-Alaveteli APIs.
+- [~] Task: Define normalized provider capabilities and provenance rules for non-Alaveteli APIs.
+    - [ ] Refactor the Alaveteli-specific `FoiProvider` return types behind a provider-neutral boundary (issue #203).
     - [ ] Add fixtures and schemas for requests, authorities, messages, attachments, status transitions, and provider capability flags.
     - [ ] Define provider-specific privacy, identity, billing, and write gates.
     - [ ] Conductor - User Manual Verification 'Contract design' (Protocol in workflow.md)

@@ -1,8 +1,10 @@
 {
   "track_id": "foi-platform-landscape_20260712",
   "type": "research",
-  "status": "new",
+  "status": "in_progress",
   "created_at": "2026-07-12T00:00:00Z",
   "updated_at": "2026-07-12T00:00:00Z",
-  "description": "Map non-Alaveteli FOI request platforms and rank safe integration opportunities."
+  "description": "Map non-Alaveteli FOI request platforms and rank safe integration opportunities.",
+  "github_issue": 195,
+  "child_issues": [199]
 }

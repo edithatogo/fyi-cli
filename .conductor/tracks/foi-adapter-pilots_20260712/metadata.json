@@ -1,8 +1,10 @@
 {
   "track_id": "foi-adapter-pilots_20260712",
   "type": "feature",
-  "status": "new",
+  "status": "in_progress",
   "created_at": "2026-07-12T00:00:00Z",
   "updated_at": "2026-07-12T00:00:00Z",
-  "description": "Implement safe read-only pilots for the best non-Alaveteli FOI APIs."
+  "description": "Implement safe read-only pilots for the best non-Alaveteli FOI APIs.",
+  "github_issue": 196,
+  "child_issues": [200, 201, 203]
 }
