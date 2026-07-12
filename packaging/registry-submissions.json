@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "last_reviewed": "2026-07-12",
+  "source_release": "0.1.2",
+  "targets": [
+    {"id": "official-mcp", "class": "mcp-registry", "status": "live", "evidence": "https://registry.modelcontextprotocol.io/", "next_action": "Verify on each release."},
+    {"id": "glama", "class": "mcp-registry", "status": "live", "evidence": "https://glama.ai/mcp/servers/edithatogo/fyi-cli", "next_action": "Monitor listing and score."},
+    {"id": "smithery", "class": "mcp-registry", "status": "live", "evidence": "https://smithery.ai/server/@edithatogo/fyi-mcp", "next_action": "Monitor score and usage indexing."},
+    {"id": "github-curated-mcp", "class": "mcp-registry", "status": "blocked-external", "evidence": "https://github.com/edithatogo/fyi-cli/issues/32", "next_action": "Recheck curated listing after manual onboarding."},
+    {"id": "codex-plugins", "class": "ai-plugin", "status": "planned", "evidence": null, "submission_url": "https://help.openai.com/en/articles/20001256-plugins-in-codex", "next_action": "Prepare plugin review packet and submit through the approved Codex flow."},
+    {"id": "anthropic-connectors", "class": "ai-plugin", "status": "planned", "evidence": null, "submission_url": "https://claude.com/docs/connectors/building/submission", "next_action": "Prepare Connector Directory packet and submit through Anthropic's form."},
+    {"id": "awesome-mcp-servers", "class": "community-catalog", "status": "submitted", "evidence": "https://github.com/punkpeye/awesome-mcp-servers/pull/9693", "next_action": "Monitor review and update status on merge or closure."},
+    {"id": "pulsemcp", "class": "mcp-catalog", "status": "assets-ready", "evidence": null, "next_action": "Submit packet and record public listing URL."},
+    {"id": "mcp-so", "class": "mcp-catalog", "status": "assets-ready", "evidence": null, "next_action": "Submit listing and record public URL."},
+    {"id": "docker-mcp", "class": "mcp-catalog", "status": "assets-ready", "evidence": null, "next_action": "Verify GHCR multi-arch pull, then open upstream submission."},
+    {"id": "opentools", "class": "mcp-catalog", "status": "assets-ready", "evidence": null, "next_action": "Submit listing and record public URL."},
+    {"id": "crates-io", "class": "package", "status": "assets-ready", "evidence": "https://crates.io/crates/fyi-cli", "next_action": "Verify current release and provenance before marking live."},
+    {"id": "pypi", "class": "package", "status": "live", "evidence": "https://pypi.org/project/fyi-cli/", "next_action": "Maintain legacy compatibility or document retirement."},
+    {"id": "ghcr", "class": "container", "status": "assets-ready", "evidence": null, "next_action": "Publish and verify amd64/arm64 public pulls."},
+    {"id": "homebrew", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Replace release placeholders and submit formula."},
+    {"id": "chocolatey", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Complete checksum and moderation packet."},
+    {"id": "scoop", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Submit manifest after release asset verification."},
+    {"id": "winget", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Submit manifest using a stable release asset."},
+    {"id": "cargo-binstall", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Wire metadata to release artifacts."},
+    {"id": "aur", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Fill source hash and submit PKGBUILD."},
+    {"id": "nixpkgs", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Compute source and cargo hashes before submission."},
+    {"id": "snap", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Build and publish a confined snap."},
+    {"id": "flatpak", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Validate AppStream metadata and submit."},
+    {"id": "asdf-mise", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Publish a dedicated plugin repository after release assets stabilize."},
+    {"id": "debian", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Build and lint Debian source package before PPA submission."},
+    {"id": "fedora-copr", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Build SRPM and submit COPR configuration."}
+  ]
+}

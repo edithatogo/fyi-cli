@@ -3,7 +3,7 @@
 ## Phase 1: Contract design
 
 - [ ] Task: Define normalized provider capabilities and provenance rules for non-Alaveteli APIs.
-    - [ ] Add fixtures and schemas for requests, authorities, messages, attachments, and status transitions.
+    - [ ] Add fixtures and schemas for requests, authorities, messages, attachments, status transitions, and provider capability flags.
     - [ ] Define provider-specific privacy, identity, billing, and write gates.
     - [ ] Conductor - User Manual Verification 'Contract design' (Protocol in workflow.md)
 
@@ -13,6 +13,7 @@
     - [ ] Add Rust provider implementations and instance configuration.
     - [ ] Add offline contract, integration, property, edge, and security tests.
     - [ ] Add bounded opt-in live smoke tests with public endpoints only.
+    - [ ] Add schema-drift fingerprints and fail-closed behavior for changed response contracts.
     - [ ] Conductor - User Manual Verification 'Read-only pilots' (Protocol in workflow.md)
 
 ## Phase 3: Official government API evaluation
@@ -28,4 +29,3 @@
     - [ ] Run full harness, mutation, performance, security, and compatibility gates.
     - [ ] Document rollout, rollback, rate limits, source attribution, and provider deprecation handling.
     - [ ] Conductor - User Manual Verification 'Quality and release' (Protocol in workflow.md)
-

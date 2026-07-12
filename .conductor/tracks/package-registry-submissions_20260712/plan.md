@@ -3,7 +3,7 @@
 ## Phase 1: Release-source hardening
 
 - [ ] Task: Make GitHub Releases the reproducible source for all package submissions.
-    - [ ] Verify cargo-dist artifacts, SHA-256 manifests, SBOM, signatures, and provenance.
+    - [ ] Verify cargo-dist artifacts, SHA-256 manifests, SBOM, signatures, provenance, and rollback metadata.
     - [ ] Add a release compatibility table for CLI, MCP binary, MCPB, container, and legacy Python package.
     - [ ] Conductor - User Manual Verification 'Release-source hardening' (Protocol in workflow.md)
 
@@ -22,4 +22,3 @@
     - [ ] Record public URLs, package versions, checksums, and review outcomes.
     - [ ] Add scheduled freshness and security monitoring with deterministic alerts.
     - [ ] Conductor - User Manual Verification 'Publication and operational verification' (Protocol in workflow.md)
-

@@ -31,3 +31,16 @@ Research snapshot: 2026-07-12. This inventory deliberately excludes Alaveteli de
 
 The lowest-risk expansion is a read-only `FoiProvider` adapter layer for MuckRock and FragDenStaat. FOIA.gov and USCIS should remain separately governed because their APIs create legal, identity, consent, billing, or agency-delivery obligations that do not fit an unrestricted bulk client.
 
+## Capability matrix for adapter work
+
+| Capability | MuckRock | FragDenStaat | FOIA.gov | USCIS |
+|---|---:|---:|---:|---:|
+| Public request search/retrieval | Yes | Yes | Agency/catalog focused | Case/status focused |
+| Public-body/agency discovery | Yes | Yes | Yes | No general catalog |
+| Correspondence and attachments | Yes | API surface to verify in fixtures | Agency-dependent | Case-specific |
+| Auth required for reads | No for documented public endpoints | OAuth available for account operations | API key for portal API | OAuth client credentials |
+| Write capability | Yes; account/credit implications | OAuth/account and jurisdiction rules | Delivery is agency-specific | Identity/consent and production approval |
+| Recommended first mode | Read-only | Read-only | Read-only discovery | Disabled evaluation |
+| Risk gate | Rate limit and paid credits | GDPR/legal semantics | Agency contract variance | Identity, consent, sandbox, production approval |
+
+The adapter track must treat this matrix as a contract checklist, not as an assumption that every endpoint is interchangeable.
