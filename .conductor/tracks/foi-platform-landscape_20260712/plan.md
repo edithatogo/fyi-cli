@@ -2,14 +2,14 @@
 
 ## Phase 1: Evidence inventory
 
-- [x] Task: Build the platform inventory from primary documentation and source repositories. (evidence: docs/foi-platform-landscape.md)
+- [~] Task: Build the platform inventory from primary documentation and source repositories. (evidence: docs/foi-platform-landscape.md)
     - [x] Verify platform identity, jurisdiction, software lineage, public endpoints, and current availability.
     - [x] Capture API schemas, auth, rate limits, write requirements, and data-handling constraints.
     - [ ] Conductor - User Manual Verification 'Evidence inventory' (Protocol in workflow.md)
 
 ## Phase 2: Comparative feasibility
 
-- [x] Task: Score adapter candidates against the existing FoiProvider contract.
+- [~] Task: Score adapter candidates against the existing FoiProvider contract.
     - [x] Compare request, authority, correspondence, attachment, status, search, and provenance mappings.
     - [x] Score implementation effort, legal risk, operational burden, and testability.
     - [x] Publish a ranked shortlist and explicit exclusions.
