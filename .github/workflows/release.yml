@@ -7,6 +7,8 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 jobs:
   build:
@@ -119,6 +121,17 @@ jobs:
           mkdir -p release-assets
           find artifacts -type f -exec cp {} release-assets/ \;
           ls -l release-assets/
+
+      - name: Create integrity manifest
+        run: |
+          python3 scripts/create_release_manifest.py release-assets \
+            --version "${GITHUB_REF_NAME#v}" \
+            --commit "${GITHUB_SHA}"
+
+      - name: Attest release assets
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: release-assets/*
 
       - name: Create Release
         uses: softprops/action-gh-release@v2

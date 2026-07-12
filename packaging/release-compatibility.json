@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "source_of_truth": "https://github.com/edithatogo/fyi-cli/releases",
+  "release_contract": {
+    "version_source": "git tag v<semver>",
+    "integrity_manifest": "SHA256SUMS",
+    "provenance": "GitHub artifact attestations when published by the release workflow",
+    "rollback": "Select a prior GitHub Release and verify its SHA256SUMS before installation"
+  },
+  "surfaces": [
+    {"name": "fyi-cli", "kind": "cli", "artifact_pattern": "fyi-cli-*", "remote_writes": false},
+    {"name": "fyi-mcp", "kind": "mcp-server", "artifact_pattern": "fyi-mcp-*", "remote_writes": false},
+    {"name": "MCPB", "kind": "desktop-package", "artifact_pattern": "fyi-mcp-*.mcpb", "remote_writes": false},
+    {"name": "container", "kind": "oci", "artifact_pattern": "ghcr.io/edithatogo/fyi-mcp:<tag>", "remote_writes": false},
+    {"name": "legacy-python", "kind": "python-package", "artifact_pattern": "fyi-cli==<version>", "remote_writes": false}
+  ]
+}

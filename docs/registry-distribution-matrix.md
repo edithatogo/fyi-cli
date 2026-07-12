@@ -6,7 +6,8 @@ Update this file when a submission lands or when release assets change.
 Last reviewed: **2026-07-11**
 
 Home-page listing (README): see **Where fyi-cli / fyi-mcp is listed** in [`README.md`](../README.md).  
-Release automation (tags, GHCR, external catalogs, version sync): [`release-multi-registry.md`](./release-multi-registry.md).  
+Release automation (tags, GHCR, external catalogs, version sync): [`release-multi-registry.md`](./release-multi-registry.md).
+Release compatibility and integrity contract: [`packaging/release-compatibility.json`](../packaging/release-compatibility.json).
 Packaging asset CI check: `python scripts/verify_packaging_assets.py`.
 Machine-readable submission ledger: [`packaging/registry-submissions.json`](../packaging/registry-submissions.json), validated by `python scripts/validate_registry_submission_ledger.py`.
 
