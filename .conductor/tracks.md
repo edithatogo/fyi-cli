@@ -297,6 +297,22 @@ The following tracks were imported from fyi-cli-v14 and represent completed phas
 
 ## Future Tracks (Proposed)
 
+- [ ] **Track: ai-plugin-registry-submissions_20260712**
+  *Link: [./tracks/ai-plugin-registry-submissions_20260712/](./tracks/ai-plugin-registry-submissions_20260712/)*
+  *Description: Prepare, submit, verify, and monitor fyi-mcp across Codex, Anthropic/Claude, MCP directories, and community catalogs.*
+
+- [ ] **Track: package-registry-submissions_20260712**
+  *Link: [./tracks/package-registry-submissions_20260712/](./tracks/package-registry-submissions_20260712/)*
+  *Description: Complete reproducible package, container, and developer distribution submissions.*
+
+- [ ] **Track: foi-platform-landscape_20260712**
+  *Link: [./tracks/foi-platform-landscape_20260712/](./tracks/foi-platform-landscape_20260712/)*
+  *Description: Map non-Alaveteli FOI request platforms and rank safe integration opportunities.*
+
+- [ ] **Track: foi-adapter-pilots_20260712**
+  *Link: [./tracks/foi-adapter-pilots_20260712/](./tracks/foi-adapter-pilots_20260712/)*
+  *Description: Implement safe read-only MuckRock and FragDenStaat pilots, then evaluate FOIA.gov and USCIS.*
+
 Potential tracks for future development:
 
 - [x] **Track: rust-cli-scaffold** (COMPLETED) - Create Rust CLI skeleton with Clap

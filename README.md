@@ -22,6 +22,8 @@ package (`fyi_system`) remains available as a reference implementation but is no
 | Registry / catalog | Package / server | Status | Link |
 |--------------------|------------------|--------|------|
 | **Official MCP Registry** | `io.github.edithatogo/fyi-mcp` @ `0.1.2` | Live | [registry.modelcontextprotocol.io](https://registry.modelcontextprotocol.io/) · [`server.json`](server.json) |
+| **OpenAI Codex plugins** | `fyi-mcp` plugin packet | Planned — submission track created | [`ai-plugin-registry-submissions_20260712`](.conductor/tracks/ai-plugin-registry-submissions_20260712/) |
+| **Anthropic Claude Connectors** | `fyi-mcp` connector packet | Planned — submission track created | [`ai-plugin-registry-submissions_20260712`](.conductor/tracks/ai-plugin-registry-submissions_20260712/) |
 | **Glama** | `edithatogo/fyi-cli` (`fyi-mcp`) | Live | [glama.ai/mcp/servers/edithatogo/fyi-cli](https://glama.ai/mcp/servers/edithatogo/fyi-cli) · [scores](https://glama.ai/mcp/servers/edithatogo/fyi-cli/score) |
 | **Smithery** | `edithatogo/fyi-mcp` | Live (score pending) | [smithery.ai/server/@edithatogo/fyi-mcp](https://smithery.ai/server/@edithatogo/fyi-mcp) |
 | **PyPI** | `fyi-cli` (legacy Python package) | Live | [pypi.org/project/fyi-cli](https://pypi.org/project/fyi-cli/) |
@@ -30,7 +32,7 @@ package (`fyi_system`) remains available as a reference implementation but is no
 | **Awesome-MCP-Servers** | Legal section entry | PR submitted | [PR #9693](https://github.com/punkpeye/awesome-mcp-servers/pull/9693) |
 | **GitHub curated MCP** (`github.com/mcp`) | — | Blocked external (manual onboarding) | Tracked in [#32](https://github.com/edithatogo/fyi-cli/issues/32) |
 
-**Draft / not yet submitted:** Scoop, WinGet, Homebrew, Chocolatey, cargo-binstall metadata, GHCR multi-arch workflow, PulseMCP, mcp.so, Docker MCP Catalog, mcp-get, OpenTools, AUR, nixpkgs, Snap, Flatpak, asdf/mise, Debian/PPA, Fedora/COPR.
+**Draft / not yet submitted:** Scoop, WinGet, Homebrew, Chocolatey, cargo-binstall metadata, GHCR multi-arch workflow, PulseMCP, mcp.so, Docker MCP Catalog, mcp-get, OpenTools, AUR, nixpkgs, Snap, Flatpak, asdf/mise, Debian/PPA, Fedora/COPR, OpenAI Codex plugins, Anthropic Claude Connectors.
 
 Full status matrix (including planned channels): [`docs/registry-distribution-matrix.md`](docs/registry-distribution-matrix.md).
 
