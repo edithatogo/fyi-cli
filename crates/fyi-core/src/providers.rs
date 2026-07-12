@@ -23,7 +23,7 @@ pub struct MuckRockProvider {
 
 impl MuckRockProvider {
     pub fn new(instance: Instance, client: Client) -> Result<Self> {
-        let base = instance.base_url.trim_end_matches('/');
+        let base = instance.base_url.trim_end_matches('/').to_owned();
         if !base.starts_with("https://") {
             return Err(anyhow!("MuckRock provider requires an HTTPS base URL"));
         }
