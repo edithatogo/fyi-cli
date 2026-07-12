@@ -6,6 +6,7 @@
 
 use crate::jurisdiction::Instance;
 use anyhow::Result;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::future::Future;
 use std::pin::Pin;
@@ -28,12 +29,19 @@ pub struct ProviderAuthority {
     pub url: Option<String>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ProviderMessageDirection {
+    Request,
+    Response,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProviderMessage {
-    pub direction: String,
+    pub direction: ProviderMessageDirection,
     pub body: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub sent_at: Option<String>,
+    pub sent_at: Option<DateTime<Utc>>,
     #[serde(default)]
     pub attachment_urls: Vec<String>,
 }
@@ -50,9 +58,9 @@ pub struct ProviderRequest {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_url: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<String>,
+    pub created_at: Option<DateTime<Utc>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<String>,
+    pub updated_at: Option<DateTime<Utc>>,
     #[serde(default)]
     pub tags: Vec<String>,
     #[serde(default)]
@@ -112,9 +120,9 @@ mod tests {
             updated_at: None,
             tags: vec!["public".into()],
             messages: vec![ProviderMessage {
-                direction: "response".into(),
+                direction: ProviderMessageDirection::Response,
                 body: "Attached".into(),
-                sent_at: None,
+                sent_at: Some("2026-07-12T00:00:00Z".parse().unwrap()),
                 attachment_urls: vec!["https://example.test/file.pdf".into()],
             }],
             raw_source_hash: Some("sha256:abc".into()),
