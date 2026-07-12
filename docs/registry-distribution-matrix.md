@@ -8,6 +8,7 @@ Last reviewed: **2026-07-11**
 Home-page listing (README): see **Where fyi-cli / fyi-mcp is listed** in [`README.md`](../README.md).  
 Release automation (tags, GHCR, external catalogs, version sync): [`release-multi-registry.md`](./release-multi-registry.md).  
 Packaging asset CI check: `python scripts/verify_packaging_assets.py`.
+Machine-readable submission ledger: [`packaging/registry-submissions.json`](../packaging/registry-submissions.json), validated by `python scripts/validate_registry_submission_ledger.py`.
 
 ## Legend
 
@@ -23,6 +24,8 @@ Packaging asset CI check: `python scripts/verify_packaging_assets.py`.
 | Target | Status | Evidence / next step | Issue |
 |--------|--------|----------------------|-------|
 | Official MCP Registry (`io.github.edithatogo/fyi-mcp`) | **live** | API shows `0.1.2` active/latest; `server.json` in repo | — |
+| OpenAI Codex plugins | **planned** | Submission packet and review evidence are tracked in `.conductor/tracks/ai-plugin-registry-submissions_20260712/` | new track |
+| Anthropic Claude Connectors Directory | **planned** | Connector submission packet and review evidence are tracked in `.conductor/tracks/ai-plugin-registry-submissions_20260712/` | new track |
 | Glama | **live** | Listed as [fyi-mcp by edithatogo](https://glama.ai/mcp/servers/edithatogo/fyi-cli); search `author:edithatogo` returns the server; scores license A / quality A / maintenance B | #25 |
 | Smithery | **live** (score pending external) | Registry: `edithatogo/fyi-mcp`; page [smithery.ai/server/@edithatogo/fyi-mcp](https://smithery.ai/server/@edithatogo/fyi-mcp). Fresh 2026-07-11 API check: `score=null`, `useCount=0`, `remote=false`; detail exposes 14 tools / 2 resources / 3 prompts. Playbook: [docs/external-registry-followups.md](external-registry-followups.md) | #26 |
 | GitHub curated MCP surface (`github.com/mcp`) | **blocked-external** | Fresh 2026-07-11 check: OSS registry `io.github.edithatogo/fyi-mcp@0.1.2` active/latest; curated search has no server card and direct path is 404. Onboarding requests filed: [discussion #2844](https://github.com/github/github-mcp-server/discussions/2844), [comment on #1257](https://github.com/github/github-mcp-server/discussions/1257#discussioncomment-17584387). Playbook: [docs/external-registry-followups.md](external-registry-followups.md) | #32 |
