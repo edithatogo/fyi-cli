@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "target": "openai-codex-plugins",
+  "product": "fyi-mcp",
+  "version": "0.1.2",
+  "repository": "https://github.com/edithatogo/fyi-cli",
+  "release_source": "https://github.com/edithatogo/fyi-cli/releases",
+  "license": "MIT",
+  "submission_route": "https://help.openai.com/en/articles/20001256-plugins-in-codex",
+  "operator_contact": "https://github.com/edithatogo/fyi-cli/issues",
+  "description": "Local-first, read-oriented MCP server for tracking public FOI/OIA request data and local correspondence.",
+  "runtime": {
+    "transport": "stdio",
+    "entrypoint": "fyi-mcp",
+    "configuration": "DATABASE_URL and FYI_MCP_EPHEMERAL are documented environment settings"
+  },
+  "capabilities": {
+    "read_only_remote_operations": false,
+    "local_mutations": true,
+    "remote_request_submission": false,
+    "remote_authority_writes": false,
+    "credentials_required_by_default": false,
+    "network_access_by_default": false
+  },
+  "privacy": {
+    "data_storage": "Local SQLite storage; operators control the database path and retention.",
+    "telemetry": "No product telemetry is required for the MCP server.",
+    "sensitive_data": "Operators must avoid placing secrets or unnecessary personal data in local request records.",
+    "policy": "https://github.com/edithatogo/fyi-cli/blob/master/SECURITY.md"
+  },
+  "review_checklist": [
+    "Verify the submitted version matches a GitHub Release and its checksums.",
+    "Verify the server starts in an isolated local environment.",
+    "Verify no tool silently submits a request to a public authority.",
+    "Verify the operator can disable network access and remove local data.",
+    "Record the public listing URL or rejection evidence in the registry ledger."
+  ],
+  "rollback": "Remove the plugin listing and pin operators to the prior signed GitHub Release; no remote data migration is required."
+}
