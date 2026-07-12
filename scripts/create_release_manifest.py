@@ -25,6 +25,8 @@ def main() -> int:
     parser.add_argument("--version", required=True)
     parser.add_argument("--commit", required=True)
     args = parser.parse_args()
+    if not args.assets.is_dir():
+        parser.error(f"assets directory does not exist: {args.assets}")
     manifest = create_manifest(args.assets, args.version, args.commit)
     (args.assets / "release-manifest.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"

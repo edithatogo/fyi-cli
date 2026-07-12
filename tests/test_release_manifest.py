@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from scripts.create_release_manifest import create_manifest
 
 
@@ -11,3 +13,8 @@ def test_release_manifest_is_sorted_and_content_addressed(tmp_path: Path):
     assert [item["name"] for item in manifest["files"]] == ["a.bin", "z.bin"]
     assert manifest["files"][0]["sha256"] == "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
     assert json.dumps(manifest, sort_keys=True)
+
+
+def test_release_manifest_rejects_missing_assets_directory(tmp_path: Path):
+    with pytest.raises(FileNotFoundError):
+        create_manifest(tmp_path / "missing", "0.1.2", "abc123")
