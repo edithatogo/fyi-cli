@@ -10,9 +10,10 @@
 
 ## Phase 2: Read-only pilots
 
-- [ ] Task: Implement MuckRock and FragDenStaat read-only adapters.
-    - [ ] Add Rust provider implementations and instance configuration.
-    - [ ] Add offline contract, integration, property, edge, and security tests.
+- [~] Task: Implement MuckRock and FragDenStaat read-only adapters.
+    - [~] Add Rust provider implementations and instance configuration.
+        - [x] Add the MuckRock read-only provider boundary and community instance metadata.
+    - [x] Add offline contract, integration, edge, and security tests for the MuckRock slice.
     - [ ] Add bounded opt-in live smoke tests with public endpoints only.
     - [ ] Add schema-drift fingerprints and fail-closed behavior for changed response contracts.
     - [ ] Conductor - User Manual Verification 'Read-only pilots' (Protocol in workflow.md)

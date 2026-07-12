@@ -124,6 +124,22 @@ health = true
 status = "community"
 
 [[instances]]
+id = "us-muckrock"
+base_url = "https://www.muckrock.com"
+country = "US"
+locale = "en-US"
+
+[instances.foi_law]
+law_name = "Freedom of Information Act and state public-records laws"
+request_term = "public records request"
+
+[instances.capabilities]
+read = true
+search = true
+
+status = "community"
+
+[[instances]]
 id = "es-tdas"
 base_url = "https://www.tuderechoasaber.es"
 country = "ES"
