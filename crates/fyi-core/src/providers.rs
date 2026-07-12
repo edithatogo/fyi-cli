@@ -136,8 +136,15 @@ impl ReadOnlyFoiProvider for MuckRockProvider {
 }
 
 fn string_field(value: &Value, keys: &[&str]) -> Option<String> {
-    keys.iter()
-        .find_map(|key| value.get(*key).and_then(Value::as_str).map(str::to_owned))
+    keys.iter().find_map(|key| {
+        value.get(*key).and_then(|field| {
+            field
+                .as_str()
+                .map(str::to_owned)
+                .or_else(|| field.as_u64().map(|number| number.to_string()))
+                .or_else(|| field.as_i64().map(|number| number.to_string()))
+        })
+    })
 }
 
 fn required_string(value: &Value, keys: &[&str], label: &str) -> Result<String> {
