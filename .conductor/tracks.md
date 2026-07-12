@@ -249,6 +249,26 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Dependencies: alaveteli-bot-contract, resource-aware-autonomous-agent*
   *Results: Rust/Python/MCP fail-closed route, threat model, fixtures, runbook, operator status, 100% route coverage, and focused paired contract evidence complete; no upstream issue or PR opened by policy.*
 
+- [~] **Track: ai-plugin-registry-submissions_20260712**
+  *Link: [./tracks/ai-plugin-registry-submissions_20260712/](./tracks/ai-plugin-registry-submissions_20260712/)*
+  *GitHub issue: [#193](https://github.com/edithatogo/fyi-cli/issues/193); children [#197](https://github.com/edithatogo/fyi-cli/issues/197), [#198](https://github.com/edithatogo/fyi-cli/issues/198)*
+  *Description: Prepare, submit, verify, and monitor fyi-mcp across Codex, Anthropic/Claude, MCP directories, and community catalogs.*
+
+- [~] **Track: package-registry-submissions_20260712**
+  *Link: [./tracks/package-registry-submissions_20260712/](./tracks/package-registry-submissions_20260712/)*
+  *GitHub issue: [#194](https://github.com/edithatogo/fyi-cli/issues/194); child [#202](https://github.com/edithatogo/fyi-cli/issues/202)*
+  *Description: Complete reproducible package, container, and developer distribution submissions.*
+
+- [~] **Track: foi-platform-landscape_20260712**
+  *Link: [./tracks/foi-platform-landscape_20260712/](./tracks/foi-platform-landscape_20260712/)*
+  *GitHub issue: [#195](https://github.com/edithatogo/fyi-cli/issues/195); child [#199](https://github.com/edithatogo/fyi-cli/issues/199)*
+  *Description: Map non-Alaveteli FOI request platforms and rank safe integration opportunities.*
+
+- [~] **Track: foi-adapter-pilots_20260712**
+  *Link: [./tracks/foi-adapter-pilots_20260712/](./tracks/foi-adapter-pilots_20260712/)*
+  *GitHub issue: [#196](https://github.com/edithatogo/fyi-cli/issues/196); children [#200](https://github.com/edithatogo/fyi-cli/issues/200), [#201](https://github.com/edithatogo/fyi-cli/issues/201), [#203](https://github.com/edithatogo/fyi-cli/issues/203)*
+  *Description: Implement safe read-only MuckRock and FragDenStaat pilots, then evaluate FOIA.gov and USCIS.*
+
 ## Recently completed (2026-07-09)
 
 - [x] **Track: bleeding-edge-features** (COMPLETED 2026-07-09 — repo-side foundations)
@@ -296,22 +316,6 @@ The following tracks were imported from fyi-cli-v14 and represent completed phas
 ---
 
 ## Future Tracks (Proposed)
-
-- [ ] **Track: ai-plugin-registry-submissions_20260712**
-  *Link: [./tracks/ai-plugin-registry-submissions_20260712/](./tracks/ai-plugin-registry-submissions_20260712/)*
-  *Description: Prepare, submit, verify, and monitor fyi-mcp across Codex, Anthropic/Claude, MCP directories, and community catalogs.*
-
-- [ ] **Track: package-registry-submissions_20260712**
-  *Link: [./tracks/package-registry-submissions_20260712/](./tracks/package-registry-submissions_20260712/)*
-  *Description: Complete reproducible package, container, and developer distribution submissions.*
-
-- [ ] **Track: foi-platform-landscape_20260712**
-  *Link: [./tracks/foi-platform-landscape_20260712/](./tracks/foi-platform-landscape_20260712/)*
-  *Description: Map non-Alaveteli FOI request platforms and rank safe integration opportunities.*
-
-- [ ] **Track: foi-adapter-pilots_20260712**
-  *Link: [./tracks/foi-adapter-pilots_20260712/](./tracks/foi-adapter-pilots_20260712/)*
-  *Description: Implement safe read-only MuckRock and FragDenStaat pilots, then evaluate FOIA.gov and USCIS.*
 
 Potential tracks for future development:
 
