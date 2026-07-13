@@ -20,7 +20,9 @@ def test_non_release_changes_do_not_require_distribution_assets():
 
 def test_component_only_rust_release_is_rejected():
     module = load_module()
-    missing = module.missing_release_assets(["crates/fyi-core/Cargo.toml"])
+    missing = module.missing_release_assets(
+        ["crates/fyi-core/Cargo.toml"], version_changed=True
+    )
     assert missing
     assert "crates/fyi-cli/Cargo.toml" in missing
     assert "server.json" in missing
@@ -29,3 +31,21 @@ def test_component_only_rust_release_is_rejected():
 def test_synchronized_rust_release_is_accepted():
     module = load_module()
     assert module.missing_release_assets(module.VERSIONED_RELEASE_ASSETS) == []
+
+
+def test_dependency_only_manifest_change_is_allowed():
+    module = load_module()
+
+    assert module.missing_release_assets(
+        ["crates/fyi-mcp/Cargo.toml"], version_changed=False
+    ) == []
+
+
+def test_only_version_lines_trigger_release_scope():
+    module = load_module()
+
+    diff_header = "diff --git a/crates/fyi-core/Cargo.toml b/crates/fyi-core/Cargo.toml\n"
+    assert module.rust_version_changed(
+        diff_header + '-version = "0.1.2"\n+version = "0.1.3"'
+    )
+    assert not module.rust_version_changed(diff_header + '+axum = "0.7"')

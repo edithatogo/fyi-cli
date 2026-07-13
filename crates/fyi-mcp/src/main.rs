@@ -1,3 +1,10 @@
+use axum::{
+    extract::State,
+    http::{header, HeaderMap, StatusCode},
+    response::{IntoResponse, Response},
+    routing::{get, post},
+    Json, Router,
+};
 use chrono::NaiveDate;
 use fyi_core::api::AlaveteliRequest;
 use fyi_core::api::{
@@ -12,7 +19,9 @@ use fyi_core::sync::{SearchOptions, SyncClient};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::path::PathBuf;
+use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::net::TcpListener;
 
 pub mod policy;
 use policy::RemoteMcpPolicy;
@@ -2976,6 +2985,119 @@ async fn open_database(database_url: &str) -> Result<DbPool, sqlx::Error> {
     }
 }
 
+#[derive(Clone)]
+struct HttpState {
+    db: DbPool,
+    remote_policy: RemoteMcpPolicy,
+    write_gate: RemoteWriteGate,
+    bearer_token: Option<Arc<str>>,
+}
+
+fn http_transport_enabled() -> bool {
+    std::env::var("FYI_MCP_TRANSPORT")
+        .map(|value| value.eq_ignore_ascii_case("http"))
+        .unwrap_or(false)
+}
+
+fn http_addr() -> String {
+    std::env::var("FYI_MCP_HTTP_ADDR").unwrap_or_else(|_| "0.0.0.0:8080".to_string())
+}
+
+fn configured_bearer_token() -> Result<Option<Arc<str>>, Box<dyn std::error::Error>> {
+    let token = std::env::var("FYI_MCP_HTTP_BEARER_TOKEN").ok();
+    if http_transport_enabled() && token.as_deref().is_none_or(str::is_empty) {
+        return Err("FYI_MCP_HTTP_BEARER_TOKEN is required when FYI_MCP_TRANSPORT=http".into());
+    }
+    Ok(token.map(Arc::from))
+}
+
+fn authorized(headers: &HeaderMap, expected: Option<&str>) -> bool {
+    let Some(expected) = expected else {
+        return false;
+    };
+    let Some(value) = headers
+        .get(header::AUTHORIZATION)
+        .and_then(|value| value.to_str().ok())
+    else {
+        return false;
+    };
+    value
+        .strip_prefix("Bearer ")
+        .is_some_and(|token| token == expected)
+}
+
+async fn healthz() -> impl IntoResponse {
+    Json(json!({"status": "ok", "service": "fyi-mcp", "transport": "http-jsonrpc"}))
+}
+
+async fn http_mcp(
+    State(state): State<HttpState>,
+    headers: HeaderMap,
+    Json(req): Json<JsonRpcRequest>,
+) -> Response {
+    if !authorized(&headers, state.bearer_token.as_deref()) {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    match handle_jsonrpc_request_with_policy_and_gate(
+        &state.db,
+        req,
+        &state.remote_policy,
+        &state.write_gate,
+    )
+    .await
+    {
+        Some(response) => (StatusCode::OK, Json(response)).into_response(),
+        None => StatusCode::NO_CONTENT.into_response(),
+    }
+}
+
+async fn run_http(state: HttpState, addr: String) -> Result<(), Box<dyn std::error::Error>> {
+    let listener = TcpListener::bind(&addr).await?;
+    let app = Router::new()
+        .route("/healthz", get(healthz))
+        .route("/mcp", post(http_mcp))
+        .with_state(state);
+    tracing::info!(listen_addr = %addr, "FYI MCP HTTP transport listening");
+    axum::serve(listener, app).await?;
+    Ok(())
+}
+
+async fn run_stdio(
+    db: &DbPool,
+    remote_policy: &RemoteMcpPolicy,
+    write_gate: &RemoteWriteGate,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let stdin = tokio::io::stdin();
+    let mut reader = BufReader::new(stdin).lines();
+    let mut stdout = tokio::io::stdout();
+
+    while let Some(line) = reader.next_line().await? {
+        if line.trim().is_empty() {
+            continue;
+        }
+
+        match serde_json::from_str::<JsonRpcRequest>(&line) {
+            Ok(req) => {
+                if let Some(resp) =
+                    handle_jsonrpc_request_with_policy_and_gate(db, req, remote_policy, write_gate)
+                        .await
+                {
+                    let resp_str = serde_json::to_string(&resp)? + "\n";
+                    stdout.write_all(resp_str.as_bytes()).await?;
+                    stdout.flush().await?;
+                }
+            }
+            Err(e) => {
+                let resp = JsonRpcResponse::error(None, -32700, format!("Parse error: {}", e));
+                let resp_str = serde_json::to_string(&resp)? + "\n";
+                stdout.write_all(resp_str.as_bytes()).await?;
+                stdout.flush().await?;
+            }
+        }
+    }
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // MCP servers speak JSON-RPC over stdout, so all diagnostics must go to
@@ -3005,41 +3127,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     db.run_migrations().await?;
     ensure_authorities_table(db.pool()).await?;
 
-    let stdin = tokio::io::stdin();
-    let mut reader = BufReader::new(stdin).lines();
-    let mut stdout = tokio::io::stdout();
     let write_gate = RemoteWriteGate::default();
-
-    while let Some(line) = reader.next_line().await? {
-        if line.trim().is_empty() {
-            continue;
-        }
-
-        match serde_json::from_str::<JsonRpcRequest>(&line) {
-            Ok(req) => {
-                if let Some(resp) = handle_jsonrpc_request_with_policy_and_gate(
-                    &db,
-                    req,
-                    &remote_policy,
-                    &write_gate,
-                )
-                .await
-                {
-                    let resp_str = serde_json::to_string(&resp)? + "\n";
-                    stdout.write_all(resp_str.as_bytes()).await?;
-                    stdout.flush().await?;
-                }
-            }
-            Err(e) => {
-                let resp = JsonRpcResponse::error(None, -32700, format!("Parse error: {}", e));
-                let resp_str = serde_json::to_string(&resp)? + "\n";
-                stdout.write_all(resp_str.as_bytes()).await?;
-                stdout.flush().await?;
-            }
-        }
+    if http_transport_enabled() {
+        let bearer_token = configured_bearer_token()?;
+        run_http(
+            HttpState {
+                db,
+                remote_policy,
+                write_gate,
+                bearer_token,
+            },
+            http_addr(),
+        )
+        .await
+    } else {
+        run_stdio(&db, &remote_policy, &write_gate).await
     }
-
-    Ok(())
 }
 
 #[cfg(test)]
@@ -3054,6 +3157,24 @@ mod tests {
         std::env::remove_var("FYI_MCP_EPHEMERAL");
         std::env::remove_var("FYI_MCP_INSPECTION");
         std::env::remove_var("GLAMA_VERSION");
+    }
+
+    #[test]
+    fn http_authorization_requires_exact_bearer_token() {
+        let mut headers = HeaderMap::new();
+        headers.insert(header::AUTHORIZATION, "Bearer secret".parse().unwrap());
+
+        assert!(authorized(&headers, Some("secret")));
+        assert!(!authorized(&headers, Some("other")));
+        assert!(!authorized(&HeaderMap::new(), Some("secret")));
+    }
+
+    #[test]
+    fn http_transport_requires_a_bearer_token_by_default() {
+        let mut headers = HeaderMap::new();
+        headers.insert(header::AUTHORIZATION, "Basic secret".parse().unwrap());
+
+        assert!(!authorized(&headers, Some("secret")));
     }
 
     fn structured_content(result: &Value) -> &Value {

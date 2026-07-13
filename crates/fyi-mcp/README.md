@@ -25,6 +25,16 @@ Remote capabilities are disabled by default. See
 enabling an explicit instance allowlist; remote write capability is not
 available from this release.
 
+## Optional HTTP transport
+
+Desktop clients continue to use stdio by default. For a stateless HTTP JSON-RPC
+deployment, set `FYI_MCP_TRANSPORT=http` and provide
+`FYI_MCP_HTTP_BEARER_TOKEN`; the listener defaults to `0.0.0.0:8080` and can
+be changed with `FYI_MCP_HTTP_ADDR`. The service exposes `/healthz` and `/mcp`.
+Terminate TLS at a trusted reverse proxy or platform ingress; do not expose
+the bearer-token listener directly to the public internet. The existing remote
+policy remains fail-closed and does not grant write capability.
+
 ## Glama
 
 The repository root contains the Dockerfile used for Glama release builds. It

@@ -37,24 +37,52 @@ VERSIONED_RELEASE_ASSETS: tuple[str, ...] = (
 )
 
 
-def missing_release_assets(changed_paths: Iterable[str]) -> list[str]:
+def missing_release_assets(
+    changed_paths: Iterable[str], *, version_changed: bool = True
+) -> list[str]:
     """Return assets missing from a Rust version-changing pull request."""
     changed = {path.replace("\\", "/") for path in changed_paths}
-    if not changed.intersection(RUST_VERSION_FILES):
+    if not version_changed or not changed.intersection(RUST_VERSION_FILES):
         return []
     return [asset for asset in VERSIONED_RELEASE_ASSETS if asset not in changed]
 
 
-def changed_paths(repo_root: Path, base: str, head: str) -> list[str]:
+def changed_diff(repo_root: Path, base: str, head: str) -> str:
     """Read changed paths from git without shell interpolation."""
     result = subprocess.run(
-        ["git", "diff", "--name-only", f"{base}...{head}"],
+        ["git", "diff", "--unified=0", f"{base}...{head}"],
         cwd=repo_root,
         check=True,
         capture_output=True,
         text=True,
     )
-    return [line for line in result.stdout.splitlines() if line]
+    return result.stdout
+
+
+def changed_paths(diff: str) -> list[str]:
+    return [
+        line.removeprefix("+++ b/")
+        for line in diff.splitlines()
+        if line.startswith("+++ b/")
+    ]
+
+
+def rust_version_changed(diff: str) -> bool:
+    """Detect additions/removals of a package version line only."""
+    current_path: str | None = None
+    for line in diff.splitlines():
+        if line.startswith("diff --git a/"):
+            current_path = line.split(" b/", 1)[-1]
+            continue
+        if current_path not in RUST_VERSION_FILES:
+            continue
+        if (
+            line[:1] in "+-"
+            and not line.startswith(("+++", "---"))
+            and line[1:].lstrip().startswith("version")
+        ):
+            return True
+    return False
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -68,7 +96,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    missing = missing_release_assets(changed_paths(args.repo_root, args.base, args.head))
+    diff = changed_diff(args.repo_root, args.base, args.head)
+    missing = missing_release_assets(
+        changed_paths(diff), version_changed=rust_version_changed(diff)
+    )
     if not missing:
         print("Release scope verification: PASS")
         return 0
