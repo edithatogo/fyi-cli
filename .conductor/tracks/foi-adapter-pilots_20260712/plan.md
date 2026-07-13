@@ -21,9 +21,9 @@
 
 ## Phase 3: Official government API evaluation
 
-- [ ] Task: Evaluate FOIA.gov and USCIS as separately governed providers.
-    - [ ] Implement FOIA.gov agency/catalog read-only discovery only if its API contract is stable.
-    - [ ] Produce a USCIS sandbox access and consent readiness checklist; write capabilities are completely excluded from this pilot.
+- [~] Task: Evaluate FOIA.gov and USCIS as separately governed providers.
+    - [x] Evaluate FOIA.gov agency/catalog read-only discovery and document the API-key/versioning/decentralization gate.
+    - [x] Produce a USCIS sandbox access and consent readiness checklist; write capabilities are completely excluded from this pilot.
     - [ ] Conductor - User Manual Verification 'Official government API evaluation' (Protocol in workflow.md)
 
 ## Phase 4: Quality and release
