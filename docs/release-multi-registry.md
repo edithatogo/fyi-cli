@@ -84,6 +84,9 @@ These paths are **assets-ready** drafts under `packaging/`. CI does not submit t
 # Packaging asset presence + version alignment (no cargo required)
 python scripts/verify_packaging_assets.py
 
+# Cross-platform synchronized release preflight (no credentials or network)
+python scripts/release_preflight.py --json
+
 # Release PR scope (requires a base ref in a pull request)
 python scripts/verify_release_scope.py --base origin/master --head HEAD
 
@@ -97,6 +100,10 @@ Also:
 2. Refresh SHA-256 / installer URLs from the new GitHub Release (Homebrew, Scoop, WinGet, AUR `sha256sums`, `server.json` mcpb hash, etc.).
 3. Follow [`packaging/mcp-catalogs/SUBMISSION_CHECKLIST.md`](../packaging/mcp-catalogs/SUBMISSION_CHECKLIST.md).
 4. Update [`registry-distribution-matrix.md`](./registry-distribution-matrix.md) only after public proof.
+
+Hosted Connector submissions have an additional prerequisite: the current
+`fyi-mcp` binary is stdio-only. Review the [hosted MCP deployment contract](../deploy/remote-mcp/README.md)
+before claiming that a remote HTTPS connector is available.
 
 ### Catalog & PM checklist (link map)
 
