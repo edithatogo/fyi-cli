@@ -1533,6 +1533,92 @@
         "type": "object"
       },
       "title": "Search Corpus"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Evaluate an operator-published endorsed-client capability document locally. Read-only, fail-closed, and never enables a route or contacts a remote service.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "bulk_export": {
+            "default": false,
+            "description": "Whether to request the bounded bulk-export capability; defaults to false and requires its explicit endorsed scope.",
+            "type": "boolean"
+          },
+          "capabilities": {
+            "description": "Operator-published capability document to evaluate; it must contain the endorsed client route configuration.",
+            "type": "object"
+          },
+          "client_id": {
+            "description": "Stable client identifier to authorize against the capability document's endorsed client allow-list.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "now_epoch": {
+            "description": "Current Unix time in seconds used to reject expired capability documents.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "scopes": {
+            "description": "Requested non-empty permission scopes; every requested scope must be endorsed by the route.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "capabilities",
+          "client_id",
+          "scopes",
+          "now_epoch"
+        ],
+        "type": "object"
+      },
+      "name": "endorsed_route_status",
+      "outputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "bulk_export": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "instance_id": {
+            "type": "string"
+          },
+          "quotas": {
+            "type": "object"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "authorized",
+              "denied"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "title": "Endorsed Route Status"
     }
   ],
   "resources": [

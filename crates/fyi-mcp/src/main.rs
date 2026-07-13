@@ -1416,11 +1416,30 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "capabilities": { "type": "object" },
-                        "client_id": { "type": "string", "minLength": 1 },
-                        "scopes": { "type": "array", "items": { "type": "string" } },
-                        "now_epoch": { "type": "integer", "minimum": 0 },
-                        "bulk_export": { "type": "boolean", "default": false }
+                        "capabilities": {
+                            "type": "object",
+                            "description": "Operator-published capability document to evaluate; it must contain the endorsed client route configuration."
+                        },
+                        "client_id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Stable client identifier to authorize against the capability document's endorsed client allow-list."
+                        },
+                        "scopes": {
+                            "type": "array",
+                            "items": { "type": "string" },
+                            "description": "Requested non-empty permission scopes; every requested scope must be endorsed by the route."
+                        },
+                        "now_epoch": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "description": "Current Unix time in seconds used to reject expired capability documents."
+                        },
+                        "bulk_export": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Whether to request the bounded bulk-export capability; defaults to false and requires its explicit endorsed scope."
+                        }
                     },
                     "required": ["capabilities", "client_id", "scopes", "now_epoch"],
                     "additionalProperties": false
