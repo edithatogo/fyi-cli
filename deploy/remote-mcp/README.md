@@ -18,10 +18,15 @@ Before submitting to a hosted Connector directory, a deployment must provide:
 - OCI packaging so the same image can run on Cloud Run, Fly.io, Azure
   Container Apps, Kubernetes, or another OCI-compatible platform.
 
-The HTTP listener is intentionally stateless and bearer-token protected. A
-deployment targeting clients that require MCP Streamable HTTP session or SSE
-features must add and verify those protocol features before claiming full
-Connector compatibility.
+The HTTP listener is intentionally stateless and bearer-token protected. It
+implements the JSON response form of Streamable HTTP, validates the required
+dual `Accept` media types, accepts the current `2025-06-18` and fallback
+`2025-03-26` protocol versions, returns `202 Accepted` for notifications, and
+returns `405 Method Not Allowed` for `GET /mcp` because it does not offer an SSE
+stream. Session management, resumability, and OAuth protected-resource
+metadata are not implemented; a deployment targeting clients that require
+those features must add and verify them before claiming full Connector
+compatibility.
 
 Do not advertise the current stdio image as a hosted remote connector until
 these conditions are verified. The portable local distribution remains the

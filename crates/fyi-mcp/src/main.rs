@@ -2993,6 +2993,9 @@ struct HttpState {
     bearer_token: Option<Arc<str>>,
 }
 
+const MCP_PROTOCOL_VERSION: &str = "2025-06-18";
+const MCP_FALLBACK_PROTOCOL_VERSION: &str = "2025-03-26";
+
 fn http_transport_enabled() -> bool {
     std::env::var("FYI_MCP_TRANSPORT")
         .map(|value| value.eq_ignore_ascii_case("http"))
@@ -3026,6 +3029,39 @@ fn authorized(headers: &HeaderMap, expected: Option<&str>) -> bool {
         .is_some_and(|token| token == expected)
 }
 
+fn accepts_mcp_response(headers: &HeaderMap) -> bool {
+    let Some(value) = headers
+        .get(header::ACCEPT)
+        .and_then(|value| value.to_str().ok())
+    else {
+        return false;
+    };
+
+    let media_types = value
+        .split(',')
+        .filter_map(|part| part.split(';').next())
+        .map(str::trim)
+        .collect::<Vec<_>>();
+    media_types.contains(&"application/json") && media_types.contains(&"text/event-stream")
+}
+
+fn supported_protocol_version(headers: &HeaderMap) -> Result<(), StatusCode> {
+    let Some(value) = headers
+        .get("MCP-Protocol-Version")
+        .and_then(|value| value.to_str().ok())
+    else {
+        // The specification permits servers to assume 2025-03-26 when the
+        // client omitted the header and no negotiated session identifies it.
+        return Ok(());
+    };
+
+    if value == MCP_PROTOCOL_VERSION || value == MCP_FALLBACK_PROTOCOL_VERSION {
+        Ok(())
+    } else {
+        Err(StatusCode::BAD_REQUEST)
+    }
+}
+
 async fn healthz() -> impl IntoResponse {
     Json(json!({"status": "ok", "service": "fyi-mcp", "transport": "http-jsonrpc"}))
 }
@@ -3036,7 +3072,14 @@ async fn http_mcp(
     Json(req): Json<JsonRpcRequest>,
 ) -> Response {
     if !authorized(&headers, state.bearer_token.as_deref()) {
-        return StatusCode::UNAUTHORIZED.into_response();
+        return Response::builder()
+            .status(StatusCode::UNAUTHORIZED)
+            .header(header::WWW_AUTHENTICATE, "Bearer realm=\"fyi-mcp\"")
+            .body(axum::body::Body::empty())
+            .expect("static unauthorized response should build");
+    }
+    if !accepts_mcp_response(&headers) || supported_protocol_version(&headers).is_err() {
+        return StatusCode::BAD_REQUEST.into_response();
     }
     match handle_jsonrpc_request_with_policy_and_gate(
         &state.db,
@@ -3047,15 +3090,23 @@ async fn http_mcp(
     .await
     {
         Some(response) => (StatusCode::OK, Json(response)).into_response(),
-        None => StatusCode::NO_CONTENT.into_response(),
+        None => StatusCode::ACCEPTED.into_response(),
     }
+}
+
+async fn http_mcp_get() -> Response {
+    Response::builder()
+        .status(StatusCode::METHOD_NOT_ALLOWED)
+        .header(header::ALLOW, "POST")
+        .body(axum::body::Body::empty())
+        .expect("static method response should build")
 }
 
 async fn run_http(state: HttpState, addr: String) -> Result<(), Box<dyn std::error::Error>> {
     let listener = TcpListener::bind(&addr).await?;
     let app = Router::new()
         .route("/healthz", get(healthz))
-        .route("/mcp", post(http_mcp))
+        .route("/mcp", get(http_mcp_get).post(http_mcp))
         .with_state(state);
     tracing::info!(listen_addr = %addr, "FYI MCP HTTP transport listening");
     axum::serve(listener, app).await?;
@@ -3175,6 +3226,43 @@ mod tests {
         headers.insert(header::AUTHORIZATION, "Basic secret".parse().unwrap());
 
         assert!(!authorized(&headers, Some("secret")));
+    }
+
+    #[test]
+    fn http_requires_both_streamable_response_media_types() {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            header::ACCEPT,
+            "application/json, text/event-stream".parse().unwrap(),
+        );
+        assert!(accepts_mcp_response(&headers));
+
+        headers.insert(header::ACCEPT, "application/json".parse().unwrap());
+        assert!(!accepts_mcp_response(&headers));
+    }
+
+    #[test]
+    fn http_accepts_current_and_legacy_protocol_versions_only() {
+        let mut headers = HeaderMap::new();
+        assert!(supported_protocol_version(&headers).is_ok());
+
+        headers.insert(
+            "MCP-Protocol-Version",
+            MCP_PROTOCOL_VERSION.parse().unwrap(),
+        );
+        assert!(supported_protocol_version(&headers).is_ok());
+
+        headers.insert(
+            "MCP-Protocol-Version",
+            MCP_FALLBACK_PROTOCOL_VERSION.parse().unwrap(),
+        );
+        assert!(supported_protocol_version(&headers).is_ok());
+
+        headers.insert("MCP-Protocol-Version", "2099-01-01".parse().unwrap());
+        assert_eq!(
+            supported_protocol_version(&headers),
+            Err(StatusCode::BAD_REQUEST)
+        );
     }
 
     fn structured_content(result: &Value) -> &Value {
