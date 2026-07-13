@@ -6,6 +6,7 @@
     - [x] Add deterministic SHA-256 and release-manifest generation for published assets.
     - [x] Add GitHub artifact provenance attestation to the release workflow.
     - [x] Add a release compatibility table for CLI, MCP binary, MCPB, container, and legacy Python package.
+    - [x] Group Release Please components and reject partial Rust release scopes in CI. (edd6fe9)
     - [ ] Conductor - User Manual Verification 'Release-source hardening' (Protocol in workflow.md)
 
 ## Phase 2: Registry packet completion
