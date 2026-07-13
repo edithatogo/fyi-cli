@@ -7,6 +7,7 @@
     - [x] Add GitHub artifact provenance attestation to the release workflow.
     - [x] Add a release compatibility table for CLI, MCP binary, MCPB, container, and legacy Python package.
     - [x] Group Release Please components and reject partial Rust release scopes in CI. (edd6fe9)
+    - [x] Add a credential-free, cross-platform release preflight and hosted-MCP deployment contract. (89ed0b0)
     - [ ] Conductor - User Manual Verification 'Release-source hardening' (Protocol in workflow.md)
 
 ## Phase 2: Registry packet completion
