@@ -8,6 +8,12 @@ Container details: [`containers.md`](./containers.md)
 
 Last reviewed: **2026-07-09**
 
+Release Please is configured to group workspace components into one release
+pull request. The CI `packaging-assets` job also rejects any pull request that
+changes a Rust package version without changing every pinned distribution asset.
+This prevents a component-only release from producing inconsistent tags,
+checksums, MCP manifests, or package-manager metadata.
+
 ---
 
 ## Principles
@@ -77,6 +83,9 @@ These paths are **assets-ready** drafts under `packaging/`. CI does not submit t
 ```bash
 # Packaging asset presence + version alignment (no cargo required)
 python scripts/verify_packaging_assets.py
+
+# Release PR scope (requires a base ref in a pull request)
+python scripts/verify_release_scope.py --base origin/master --head HEAD
 
 # Optional machine-readable report
 python scripts/verify_packaging_assets.py --json
