@@ -1780,7 +1780,7 @@ dependencies = [
 
 [[package]]
 name = "fyi-cli"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "chrono",
  "clap",
@@ -1799,7 +1799,7 @@ dependencies = [
 
 [[package]]
 name = "fyi-core"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "aead",
  "aes-gcm",
@@ -1828,7 +1828,7 @@ dependencies = [
 
 [[package]]
 name = "fyi-mcp"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "chrono",
