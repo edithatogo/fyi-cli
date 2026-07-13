@@ -20,5 +20,6 @@ def test_live_target_requires_public_evidence():
 def test_planned_ai_plugin_requires_submission_route():
     ledger = json.loads(LEDGER.read_text(encoding="utf-8"))
     target = next(item for item in ledger["targets"] if item["id"] == "codex-plugins")
+    target["status"] = "assets-ready"
     target["submission_url"] = None
     assert any("submission_url is required" in error for error in validate(ledger))

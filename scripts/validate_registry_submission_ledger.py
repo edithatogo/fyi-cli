@@ -54,8 +54,8 @@ def validate(ledger: dict[str, Any]) -> list[str]:
             parsed = urlparse(evidence)
             if parsed.scheme not in {"http", "https"} or not parsed.netloc:
                 errors.append(f"{prefix}.evidence must be an HTTP(S) URL")
-        if status == "planned" and not target.get("submission_url") and target.get("class") == "ai-plugin":
-            errors.append(f"{prefix}.submission_url is required for planned AI plugins")
+        if status in {"planned", "assets-ready"} and not target.get("submission_url") and target.get("class") == "ai-plugin":
+            errors.append(f"{prefix}.submission_url is required for tracked AI plugins")
 
     return errors
 
