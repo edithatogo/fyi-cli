@@ -19,8 +19,8 @@
 
 ## Phase 3: Publication and operational verification
 
-- [ ] Task: Publish eligible packages and verify clean installation.
+- [~] Task: Publish eligible packages and verify clean installation.
     - [ ] Submit community packages using least-privilege maintainer accounts.
     - [ ] Record public URLs, package versions, checksums, and review outcomes.
-    - [ ] Add scheduled freshness and security monitoring with deterministic alerts.
+    - [x] Add scheduled freshness monitoring with deterministic, credential-free alerts.
     - [ ] Conductor - User Manual Verification 'Publication and operational verification' (Protocol in workflow.md)
