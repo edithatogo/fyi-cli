@@ -12,7 +12,7 @@
 - [~] Task: Add deterministic packaging and metadata checks for every target.
     - [x] Validate the machine-readable registry ledger, versions, hashes, URLs, licenses, manifests, and reproducible release references.
     - [x] Validate the Codex and Anthropic packet safety invariants in CI.
-    - [ ] Add public-status probes with bounded timeouts and fingerprinted evidence.
+    - [x] Add public-status probes with bounded timeouts and fingerprinted evidence. (3035d63)
     - [x] Add negative tests proving a target cannot be marked live without evidence.
     - [ ] Conductor - User Manual Verification 'Automated evidence and validation' (Protocol in workflow.md)
 
