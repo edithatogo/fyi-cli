@@ -75,8 +75,8 @@ def validate(repo_root: Path) -> list[str]:
         target = targets.get(ledger_id)
         if target is None:
             errors.append(f"ledger target missing: {ledger_id}")
-        elif target.get("status") != "planned":
-            errors.append(f"ledger target {ledger_id} must remain planned until external evidence")
+        elif target.get("status") != "assets-ready":
+            errors.append(f"ledger target {ledger_id} must remain assets-ready until external evidence")
     return errors
 
 
