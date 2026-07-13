@@ -8,7 +8,7 @@ Status captured: 2026-06-15.
 |---------|-------------|-----------------|
 | Python CLI | `fyi`, `fyi-cli`, `fyi-system` -> `fyi_system.cli:main` | [README](../README.md), [docs site](../docs-site/src/content/docs/index.md) |
 | Rust CLI | `crates/fyi-cli` -> `fyi-cli` binary from `crates/fyi-cli/src/main.rs` | [Rust migration guide](../docs-site/src/content/docs/guides/rust-migration.md), [release checklist](release-candidate-checklist.md) |
-| Rust MCP | `crates/fyi-mcp` -> `fyi-mcp` binary from `crates/fyi-mcp/src/main.rs` | [GitHub MCP Registry](https://registry.modelcontextprotocol.io/servers/io.github.edithatogo/fyi-mcp), [Smithery](https://smithery.ai/servers/edithatogo/fyi-mcp), [MCP bundle manifest](../server.json) |
+| Rust MCP | `crates/fyi-mcp` -> `fyi-mcp` binary from `crates/fyi-mcp/src/main.rs` | [GitHub MCP Registry](https://registry.modelcontextprotocol.io/servers/io.github.edithatogo/fyi-mcp), [Smithery](https://smithery.ai/server/@edithatogo/fyi-mcp), [MCP bundle manifest](../server.json) |
 
 ## Python package entrypoints
 

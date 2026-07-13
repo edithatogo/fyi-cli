@@ -13,7 +13,7 @@ def test_build_report_identifies_external_github_blocker() -> None:
             200,
             '{"servers":[{"slug":"fyi-mcp","score":null,"useCount":0,"isDeployed":true,"remote":false}]}',
         ),
-        "https://registry.smithery.ai/servers/edithatogo/fyi-mcp": FetchResult(
+        "https://registry.smithery.ai/servers/@edithatogo/fyi-mcp": FetchResult(
             200,
             '{"tools":[1,2],"resources":[1],"prompts":[1,2,3]}',
         ),
@@ -41,7 +41,7 @@ def test_build_report_marks_github_listing_ready() -> None:
             200,
             json.dumps({"servers": []}),
         ),
-        "https://registry.smithery.ai/servers/edithatogo/fyi-mcp": FetchResult(
+        "https://registry.smithery.ai/servers/@edithatogo/fyi-mcp": FetchResult(
             200,
             "{}",
         ),
