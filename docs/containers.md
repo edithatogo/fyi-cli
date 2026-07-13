@@ -15,6 +15,10 @@ How to build, publish, and pull the **fyi-mcp** container image.
 **live** in [`registry-distribution-matrix.md`](./registry-distribution-matrix.md) until a public
 `docker pull` succeeds for a published tag.
 
+Use the manual [Container Verification workflow](../.github/workflows/container-verification.yml)
+to inspect a published tag. It requires both `linux/amd64` and `linux/arm64`; it does not change the
+distribution ledger automatically.
+
 ---
 
 ## Image behaviour
