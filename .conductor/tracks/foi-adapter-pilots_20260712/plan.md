@@ -13,6 +13,7 @@
 - [~] Task: Implement MuckRock and FragDenStaat read-only adapters.
     - [~] Add Rust provider implementations and instance configuration.
         - [x] Add the MuckRock read-only provider boundary and community instance metadata.
+        - [x] Add the FragDenStaat read-only provider boundary using the documented API v1 routes.
     - [x] Add offline contract, integration, edge, and security tests for the MuckRock slice.
     - [ ] Add bounded opt-in live smoke tests with public endpoints only.
     - [ ] Add schema-drift fingerprints and fail-closed behavior for changed response contracts.

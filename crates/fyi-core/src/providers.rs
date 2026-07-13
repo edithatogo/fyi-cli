@@ -1,5 +1,7 @@
 //! Read-only providers for non-Alaveteli FOI platforms.
 
+pub mod fragdenstaat;
+
 use crate::jurisdiction::Instance;
 use crate::provider_contract::{
     ProviderAuthority, ProviderRequest, ReadCapabilities, ReadOnlyFoiProvider,
