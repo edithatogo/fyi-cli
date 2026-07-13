@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "source_release": "0.1.2",
+  "targets": [
+    {"id":"homebrew","asset":"packaging/homebrew/fyi-cli.rb","status":"release-gated","smoke":"fyi --help","requires_release_asset":true,"remote_writes":false},
+    {"id":"chocolatey","asset":"packaging/chocolatey/fyi-cli.nuspec","status":"release-gated","smoke":"fyi-cli.exe --help","requires_release_asset":true,"remote_writes":false},
+    {"id":"scoop","asset":"packaging/scoop/fyi-cli.json","status":"release-gated","smoke":"fyi-cli.exe --help","requires_release_asset":true,"remote_writes":false},
+    {"id":"winget","asset":"packaging/winget/edithatogo.fyi-cli.yaml","status":"release-gated","smoke":"fyi-cli.exe --help","requires_release_asset":true,"remote_writes":false},
+    {"id":"cargo-binstall","asset":"packaging/cargo-binstall/metadata.toml","status":"release-gated","smoke":"fyi-cli --help","requires_release_asset":true,"remote_writes":false},
+    {"id":"aur","asset":"packaging/aur/PKGBUILD","status":"release-gated","smoke":"fyi-cli --help","requires_release_asset":true,"remote_writes":false},
+    {"id":"nixpkgs","asset":"packaging/nix/default.nix","status":"release-gated","smoke":"fyi-cli --help","requires_release_asset":true,"remote_writes":false},
+    {"id":"snap","asset":"packaging/snap/snapcraft.yaml","status":"release-gated","smoke":"fyi-cli --help","requires_release_asset":true,"remote_writes":false},
+    {"id":"flatpak","asset":"packaging/flatpak/io.github.edithatogo.fyi-cli.yml","status":"release-gated","smoke":"fyi-cli --help","requires_release_asset":true,"remote_writes":false},
+    {"id":"asdf-mise","asset":"packaging/asdf/bin/install","status":"release-gated","smoke":"fyi-cli --help","requires_release_asset":true,"remote_writes":false},
+    {"id":"debian","asset":"packaging/debian/control","status":"release-gated","smoke":"fyi-cli --help","requires_release_asset":true,"remote_writes":false},
+    {"id":"fedora-copr","asset":"packaging/fedora/fyi-cli.spec","status":"release-gated","smoke":"fyi-cli --help","requires_release_asset":true,"remote_writes":false}
+  ]
+}
