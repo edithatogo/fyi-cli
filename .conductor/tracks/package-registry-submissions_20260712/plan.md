@@ -13,6 +13,7 @@
 - [~] Task: Complete and validate package-specific metadata.
     - [x] Declare package assets, release gating, help-only smoke commands, and no-write guarantees in a machine-readable matrix.
     - [x] Validate the install-smoke matrix in CI.
+    - [x] Add a manual GHCR multi-arch verification workflow and fail-closed inspector.
     - [ ] Verify GHCR multi-arch publication and Docker catalog prerequisites.
     - [x] Add package contract and install-smoke checks to CI.
     - [ ] Conductor - User Manual Verification 'Registry packet completion' (Protocol in workflow.md)
