@@ -10,10 +10,11 @@
 
 ## Phase 2: Registry packet completion
 
-- [ ] Task: Complete and validate package-specific metadata.
-    - [ ] Fill Homebrew, Chocolatey, Scoop, WinGet, cargo-binstall, AUR, nix, Snap, Flatpak, asdf/mise, Debian, and Fedora packets.
+- [~] Task: Complete and validate package-specific metadata.
+    - [x] Declare package assets, release gating, help-only smoke commands, and no-write guarantees in a machine-readable matrix.
+    - [x] Validate the install-smoke matrix in CI.
     - [ ] Verify GHCR multi-arch publication and Docker catalog prerequisites.
-    - [ ] Add package lint and install smoke checks to CI.
+    - [x] Add package contract and install-smoke checks to CI.
     - [ ] Conductor - User Manual Verification 'Registry packet completion' (Protocol in workflow.md)
 
 ## Phase 3: Publication and operational verification
