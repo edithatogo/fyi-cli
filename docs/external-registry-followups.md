@@ -71,11 +71,11 @@ smithery mcp publish ./target/mcpb/fyi-mcp-smithery-refresh.mcpb -n edithatogo/f
 | `8828d4a6-8474-4534-9e91-f06aeafa0710` | First rich MCPB republish |
 | `9219599b-af42-4a24-b509-4cd2c9e5d42f` | Re-export + republish after scan lag (14/2/3 in package) |
 
-Dashboard: https://smithery.ai/servers/edithatogo/fyi-mcp/releases
+Dashboard: https://smithery.ai/server/@edithatogo/fyi-mcp/releases
 
 1. Re-check (poll a few times; detail cache can lag):
    ```bash
-   curl -sS "https://registry.smithery.ai/servers/edithatogo/fyi-mcp" | jq '{tools:(.tools|length),resources:(.resources|length),prompts:(.prompts|length)}'
+   curl -sS "https://registry.smithery.ai/servers/@edithatogo/fyi-mcp" | jq '{tools:(.tools|length),resources:(.resources|length),prompts:(.prompts|length)}'
    curl -sS "https://registry.smithery.ai/servers?namespace=edithatogo" | jq '.servers[] | select(.slug=="fyi-mcp") | {score,useCount,remote}'
    ```
 2. Optional: exercise once via Smithery UI / client if score stays null after usage.

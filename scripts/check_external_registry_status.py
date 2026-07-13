@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 SMITHERY_NAMESPACE_URL = "https://registry.smithery.ai/servers?namespace=edithatogo"
-SMITHERY_DETAIL_URL = "https://registry.smithery.ai/servers/edithatogo/fyi-mcp"
+SMITHERY_DETAIL_URL = "https://registry.smithery.ai/servers/@edithatogo/fyi-mcp"
 OFFICIAL_REGISTRY_URL = "https://registry.modelcontextprotocol.io/v0/servers?search=fyi-mcp"
 GITHUB_SEARCH_URL = "https://github.com/mcp?q=fyi-mcp"
 GITHUB_DIRECT_URL = "https://github.com/mcp/io.github.edithatogo/fyi-mcp"
