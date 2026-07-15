@@ -1,8 +1,10 @@
 
 from __future__ import annotations
+from html.parser import HTMLParser
 import json
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote, urljoin, urlsplit
 import requests
 from .db import connect, query_all
 
@@ -90,6 +92,40 @@ def _flatten_candidate_files(node: Any, path: str = 'root') -> list[dict[str, An
     return _dedupe_keep_order(found, ('name', 'url'))
 
 
+class _AttachmentLinkParser(HTMLParser):
+    """Extract public attachment download links from rendered Alaveteli HTML."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.links: list[dict[str, Any]] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag != 'a':
+            return
+        href = dict(attrs).get('href') or ''
+        if '/attach/' not in href or '/attach/html/' in href:
+            return
+        path = unquote(urlsplit(href).path)
+        self.links.append({
+            'name': Path(path).name or 'attachment',
+            'url': href,
+            'content_type': '',
+            'size': None,
+            'path': 'html.attachments',
+        })
+
+
+def extract_html_attachments(html: bytes, base_url: str) -> list[dict[str, Any]]:
+    """Return deduplicated attachment links visible on the public request page."""
+    parser = _AttachmentLinkParser()
+    parser.feed(html.decode('utf-8', errors='replace'))
+    normalized = [
+        {**item, 'url': urljoin(base_url.rstrip('/') + '/', item['url'])}
+        for item in parser.links
+    ]
+    return _dedupe_keep_order(normalized, ('name', 'url'))
+
+
 def _normalize_event(node: dict[str, Any], path: str) -> dict[str, Any] | None:
     if path == 'root':
         return None
@@ -156,9 +192,19 @@ def normalize_request_payload(data: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def extract_request_artifacts(data: dict) -> dict[str, Any]:
+def extract_request_artifacts(
+    data: dict,
+    *,
+    html: bytes | None = None,
+    base_url: str = 'https://fyi.org.nz',
+) -> dict[str, Any]:
     request = normalize_request_payload(data)
     attachments = _flatten_candidate_files(data)
+    if html is not None:
+        attachments = _dedupe_keep_order(
+            [*attachments, *extract_html_attachments(html, base_url)],
+            ('name', 'url'),
+        )
     events = _flatten_candidate_events(data)
     return {
         'attachments': attachments,
