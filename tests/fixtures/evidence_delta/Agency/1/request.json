@@ -1,0 +1,9 @@
+{
+  "id": 1,
+  "url_title": "synthetic-request-1",
+  "title": "Synthetic request",
+  "authority": "Synthetic Authority",
+  "state": "waiting_response",
+  "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "last_updated": "2026-07-15T12:00:00Z"
+}

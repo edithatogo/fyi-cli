@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from .archive_capture import CaptureCaps, capture_request
 from .archive_diff import run_diff
+from .evidence_delta import emit_evidence_deltas
 from .archive_health import build_archive_health, write_archive_health
 from .db import init_db, query_all, connect, get_tracked_request, export_tracked_requests, import_tracked_requests, request_timeline, update_request_status
 from .discovery import backfill_ids, discover_feed, reconcile_discovery_files, shared_rate_limit_status, write_jsonl
@@ -247,6 +248,23 @@ def cmd_diff(args):
         since=args.since,
     )
     print(json.dumps(changes, indent=2, sort_keys=True))
+
+
+def cmd_emit_evidence_delta(args):
+    if not args.experimental:
+        raise SystemExit("EvidenceDelta emission is experimental; pass --experimental to enable it")
+    deltas = emit_evidence_deltas(
+        derived_dir=Path(args.derived_dir),
+        output=Path(args.output),
+        captured_at=args.captured_at,
+        previous_manifest=Path(args.previous_manifest) if args.previous_manifest else None,
+        instance_id=args.instance_id,
+        jurisdiction=args.jurisdiction,
+        source=args.source,
+        partition=args.partition,
+        base_url=args.base_url,
+    )
+    print(json.dumps({"output": args.output, "delta_count": len(deltas)}, sort_keys=True))
 
 
 def cmd_attention_report(args):
@@ -553,6 +571,20 @@ def build_parser():
     sp.add_argument('--since')
     sp.add_argument('--advance-cursor', action='store_true')
     sp.set_defaults(func=cmd_diff)
+
+    # Command: emit-evidence-delta
+    sp = sub.add_parser('emit-evidence-delta')
+    sp.add_argument('--experimental', action='store_true')
+    sp.add_argument('--derived-dir', default='data/raw/requests')
+    sp.add_argument('--previous-manifest')
+    sp.add_argument('--output', required=True)
+    sp.add_argument('--captured-at', required=True)
+    sp.add_argument('--instance-id', default='nz-fyi')
+    sp.add_argument('--jurisdiction', default='NZ')
+    sp.add_argument('--source', default='urn:fyi-cli:site:fyi.org.nz')
+    sp.add_argument('--partition', default='requests')
+    sp.add_argument('--base-url', default='https://fyi.org.nz')
+    sp.set_defaults(func=cmd_emit_evidence_delta)
     
     # Command: attention-report
     sp = sub.add_parser('attention-report')
