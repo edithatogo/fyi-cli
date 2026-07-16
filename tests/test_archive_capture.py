@@ -91,6 +91,46 @@ def capture_transport_without_attachments() -> httpx.MockTransport:
     return httpx.MockTransport(handler)
 
 
+def capture_transport_with_html_attachment() -> httpx.MockTransport:
+    """Build a request whose attachment is exposed only by rendered HTML."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        path = request.url.path
+        if path == "/request/123.json":
+            return httpx.Response(
+                200,
+                json={
+                    "id": 123,
+                    "url_title": "example_request",
+                    "title": "Example request",
+                    "authority": {"url_name": "agency", "name": "Agency"},
+                    "attachments": [],
+                },
+                headers={"content-type": "application/json"},
+                request=request,
+            )
+        if path == "/request/example_request":
+            return httpx.Response(
+                200,
+                content=(
+                    b'<div class="attachments"><a href="/request/123/response/1/'
+                    b'attach/1/example.pdf">Download</a></div>'
+                ),
+                headers={"content-type": "text/html"},
+                request=request,
+            )
+        if path == "/request/123/response/1/attach/1/example.pdf":
+            return httpx.Response(
+                200,
+                content=b"pdf bytes",
+                headers={"content-type": "application/pdf"},
+                request=request,
+            )
+        return httpx.Response(404, request=request)
+
+    return httpx.MockTransport(handler)
+
+
 def capture_transport_with_exact_cap() -> httpx.MockTransport:
     """Build a mocked FYI request whose JSON payload is exactly two bytes."""
 
@@ -178,6 +218,24 @@ def test_capture_request_writes_warc_wacz_and_derived_store(tmp_path: Path) -> N
         names = set(archive.namelist())
     assert "datapackage.json" in names
     assert "indexes/index.cdxj" in names
+
+
+def test_capture_request_discovers_html_only_attachments(tmp_path: Path) -> None:
+    summary = capture_request(
+        request_ref="123",
+        base_url="https://fyi.example",
+        data_dir=tmp_path / "data",
+        dist_dir=tmp_path / "dist",
+        transport=capture_transport_with_html_attachment(),
+    )
+    assert [resource["kind"] for resource in summary["resources"]] == [
+        "json",
+        "html",
+        "attachment",
+    ]
+    derived_path = tmp_path / summary["derived_path"]
+    attachments = json.loads((derived_path / "attachments.json").read_text())
+    assert attachments[0]["url"].endswith("example.pdf")
 
 
 def test_capture_request_derived_store_matches_warc_contents(tmp_path: Path) -> None:

@@ -320,7 +320,11 @@ def capture_request(
                     payload=payload,
                 )
 
-            for attachment in extract_request_artifacts(request_json)["attachments"]:
+            for attachment in extract_request_artifacts(
+                request_json,
+                html=html_response.content,
+                base_url=base_url,
+            )["attachments"]:
                 attachment_url = urljoin(base_url.rstrip("/") + "/", str(attachment["url"]))
                 response = get_with_retry(http, attachment_url)
                 if response.status_code == 404:

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.1] - 2026-07-15
+
+### Fixed
+
+- Capture attachment links exposed by rendered Alaveteli request pages when the
+  request JSON does not include attachment metadata, including WARC/WACZ and
+  content-addressed derived-store records.
+
+---
+
 ## [1.1.0](https://github.com/edithatogo/fyi-cli/compare/v1.0.0...v1.1.0) (2026-06-30)
 
 
