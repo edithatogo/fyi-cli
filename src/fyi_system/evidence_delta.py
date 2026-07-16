@@ -1,3 +1,4 @@
+# ruff: noqa: EM101, EM102, TRY003
 """Experimental EvidenceDelta emitter for the fyi-process integration."""
 
 from __future__ import annotations
@@ -9,6 +10,22 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+
+class EvidenceDeltaInputError(ValueError):
+    """Raised when an emitter input violates the integration contract."""
+
+
+class EvidenceDeltaStoreMissingError(FileNotFoundError):
+    """Raised when the configured derived request store is absent."""
+
+
+def _input_error(message: str) -> EvidenceDeltaInputError:
+    return EvidenceDeltaInputError(message)
+
+
+def _store_missing_error(message: str) -> EvidenceDeltaStoreMissingError:
+    return EvidenceDeltaStoreMissingError(message)
 
 
 def _canonical(value: Any) -> str:
@@ -51,9 +68,9 @@ def _request_id(request: dict[str, Any]) -> int:
     try:
         value = int(raw)
     except (TypeError, ValueError) as exc:
-        raise ValueError("request record must contain a positive integer id") from exc
+        raise _input_error("request record must contain a positive integer id") from exc
     if value < 1:
-        raise ValueError("request record id must be positive")
+        raise _input_error("request record id must be positive")
     return value
 
 
@@ -149,7 +166,7 @@ def _record_delta(
 
 def _load_current(derived_dir: Path) -> list[dict[str, Any]]:
     if not derived_dir.is_dir():
-        raise FileNotFoundError(f"derived request store does not exist: {derived_dir}")
+        raise _store_missing_error(f"derived request store does not exist: {derived_dir}")
     rows = []
     for path in sorted(derived_dir.glob("*/*/request.json")):
         value = json.loads(path.read_text(encoding="utf-8"))
@@ -165,15 +182,19 @@ def _load_previous(path: Path | None) -> dict[int, dict[str, Any]]:
         return {}
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict) or not isinstance(payload.get("requests"), list):
-        raise ValueError("previous manifest must contain a requests array")
+        raise _input_error("previous manifest must contain a requests array")
     previous = {}
     for row in payload["requests"]:
         if not isinstance(row, dict) or "request_id" not in row:
-            raise ValueError("previous manifest request rows must contain request_id")
+            raise _input_error(
+                "previous manifest request rows must contain request_id",
+            )
         request_id = _request_id(row)
         digest = str(row.get("content_sha256") or "").lower()
         if len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest):
-            raise ValueError(f"previous manifest row {request_id} has an invalid content_sha256")
+            raise _input_error(
+                f"previous manifest row {request_id} has an invalid content_sha256",
+            )
         previous[request_id] = row
     return previous
 
