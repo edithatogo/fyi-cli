@@ -166,7 +166,11 @@ def _record_delta(
 
 def _load_current(derived_dir: Path) -> list[dict[str, Any]]:
     if not derived_dir.is_dir():
-        raise _store_missing_error(f"derived request store does not exist: {derived_dir}")
+def _load_current(derived_dir: Path) -> list[dict[str, Any]]:
+    if not derived_dir.exists():
+        raise FileNotFoundError(f"Derived directory does not exist: {derived_dir}")
+    if not derived_dir.is_dir():
+        raise NotADirectoryError(f"Derived path is not a directory: {derived_dir}")
     rows = []
     for path in sorted(derived_dir.glob("*/*/request.json")):
         value = json.loads(path.read_text(encoding="utf-8"))
