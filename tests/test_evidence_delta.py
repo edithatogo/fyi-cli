@@ -2,6 +2,8 @@
 
 import json
 
+import pytest
+
 from fyi_system.cli import build_parser
 from fyi_system.evidence_delta import emit_evidence_deltas
 
@@ -58,3 +60,24 @@ def test_emitter_produces_revision_aware_deltas_and_skips_unchanged(tmp_path):
     assert [row["position"]["sequence"] for row in deltas] == [1, 2, 3]
     assert all(row["evidence"]["privacy"]["disposition"] == "needs_review" for row in deltas[:2])
     assert len(output.read_text(encoding="utf-8").splitlines()) == 3
+
+
+def test_emitter_fails_closed_for_missing_store_and_bad_manifest(tmp_path):
+    with pytest.raises(FileNotFoundError, match="derived request store"):
+        emit_evidence_deltas(
+            derived_dir=tmp_path / "missing",
+            output=tmp_path / "out.ndjson",
+            captured_at="2026-07-16T00:00:00Z",
+        )
+
+    derived = tmp_path / "derived"
+    write_request(derived, 1, content_sha256="a" * 64)
+    previous = tmp_path / "previous.json"
+    previous.write_text(json.dumps({"requests": [{"request_id": 1}]}), encoding="utf-8")
+    with pytest.raises(ValueError, match="invalid content_sha256"):
+        emit_evidence_deltas(
+            derived_dir=derived,
+            output=tmp_path / "out.ndjson",
+            captured_at="2026-07-16T00:00:00Z",
+            previous_manifest=previous,
+        )
