@@ -333,3 +333,10 @@ Potential tracks for future development:
 - `[~]` - In progress
 - `[x]` - Completed
 
+---
+
+- [ ] **Track: Versioned public-safe process-event export**
+  *Link: [./tracks/process-event-export_20260721/](./tracks/process-event-export_20260721/)*
+  *GitHub: [#231](https://github.com/edithatogo/fyi-cli/issues/231), registered as a subissue of [foi-process #36](https://github.com/edithatogo/foi-process/issues/36).*
+  *Downstream: `fyi-archive:full_corpus_process_projection_20260721`, `foi-process:T10-full-corpus-process-mining`.*
+

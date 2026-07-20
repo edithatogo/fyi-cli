@@ -1,0 +1,14 @@
+{
+  "track_id": "process-event-export_20260721",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-07-21T00:00:00+10:00",
+  "updated_at": "2026-07-21T00:00:00+10:00",
+  "description": "Emit a versioned, deterministic, public-safe Alaveteli process-event stream for full-corpus process mining.",
+  "github_parent_issue": "https://github.com/edithatogo/foi-process/issues/36",
+  "github_issue": "https://github.com/edithatogo/fyi-cli/issues/231",
+  "downstream_tracks": [
+    "edithatogo/fyi-archive:full_corpus_process_projection_20260721",
+    "edithatogo/foi-process:T10-full-corpus-process-mining"
+  ]
+}
