@@ -158,6 +158,26 @@ def test_public_event_validation_is_recursive():
         validate_public_event({"schema_version": "1.0.0", "provenance": {"body": "secret"}})
 
 
+def test_missing_timestamp_is_explicit_and_state_is_preserved(tmp_path):
+    derived = tmp_path / "derived"
+    _write(
+        derived,
+        1,
+        [{"id": "evt-1", "event_type": "opened", "state": "open", "message_id": "m-1"}],
+    )
+    output = tmp_path / "events.ndjson"
+    export_process_events(
+        derived_dir=derived,
+        output=output,
+        captured_at="2026-02-01T00:00:00Z",
+    )
+    row = json.loads(output.read_text().splitlines()[0])
+    assert row["timestamp"] is None
+    assert row["timestamp_status"] == "missing"
+    assert row["state"] == "open"
+    assert row["provenance"]["message_reference_id"] == "m-1"
+
+
 def test_exported_file_validator_counts_rows_and_rejects_wrong_version(tmp_path):
     path = tmp_path / "events.ndjson"
     path.write_text(

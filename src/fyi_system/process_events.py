@@ -25,16 +25,16 @@ def _sha256(value: Any) -> str:
     return hashlib.sha256(_canonical(value)).hexdigest()
 
 
-def _utc(value: Any, fallback: str) -> str:
+def _utc(value: Any) -> tuple[str | None, str]:
     if not isinstance(value, str) or not value:
-        return fallback
+        return None, "missing"
     try:
         parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
     except ValueError:
-        return fallback
+        return None, "invalid"
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=UTC)
-    return parsed.astimezone(UTC).isoformat().replace("+00:00", "Z")
+    return parsed.astimezone(UTC).isoformat().replace("+00:00", "Z"), "valid"
 
 
 def _request_id(row: dict[str, Any]) -> int:
@@ -129,16 +129,17 @@ def export_process_events(
         for index, raw in enumerate(source_events):
             source_ref = _source_ref(raw, index)
             event_id = f"{logical_id}:event:{_sha256((source_ref, index))}"
-            timestamp = _utc(
+            timestamp, timestamp_status = _utc(
                 raw.get("occurred_at") or raw.get("created_at") or raw.get("updated_at"),
-                captured_at,
             )
             item = {
                 "schema_version": SCHEMA_VERSION,
                 "event_id": event_id,
                 "logical_request_id": logical_id,
                 "activity": _activity(raw),
+                "state": str(raw.get("state") or raw.get("described_state") or "") or None,
                 "timestamp": timestamp,
+                "timestamp_status": timestamp_status,
                 "source_order": {
                     "source": source,
                     "request_sequence": request_id,
@@ -146,6 +147,10 @@ def export_process_events(
                 },
                 "provenance": {
                     "source_ref": source_ref,
+                    "message_reference_id": str(
+                        raw.get("message_id") or raw.get("message_reference_id") or "",
+                    )
+                    or None,
                     "capture_uri": f"{base_url.rstrip('/')}/request/{request_id}.json",
                     "captured_at": captured_at,
                 },

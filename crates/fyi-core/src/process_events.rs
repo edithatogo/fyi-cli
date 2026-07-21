@@ -122,6 +122,24 @@ fn source_ref(event: &Map<String, Value>, index: usize) -> String {
         .unwrap_or_else(|| format!("source-index:{index}"))
 }
 
+fn timestamp(event: &Map<String, Value>) -> (Option<String>, &'static str) {
+    let value = event
+        .get("occurred_at")
+        .or_else(|| event.get("created_at"))
+        .or_else(|| event.get("updated_at"))
+        .and_then(Value::as_str);
+    match value {
+        Some(value) if !value.is_empty() => {
+            if chrono::DateTime::parse_from_rfc3339(value).is_ok() {
+                (Some(value.to_string()), "valid")
+            } else {
+                (None, "invalid")
+            }
+        }
+        _ => (None, "missing"),
+    }
+}
+
 fn load_checkpoint(path: Option<&Path>) -> Result<BTreeMap<String, Value>, ProcessEventError> {
     let Some(path) = path else {
         return Ok(BTreeMap::new());
@@ -176,22 +194,25 @@ pub fn export_process_events(
                 digest(&format!("{reference}:{index}"))
             );
             current.insert(event_id.clone());
+            let (event_timestamp, timestamp_status) = timestamp(raw);
             let mut event = json!({
                 "schema_version": SCHEMA_VERSION,
                 "event_id": event_id.clone(),
                 "logical_request_id": logical_id.clone(),
                 "activity": activity(raw),
-                "timestamp": raw.get("occurred_at")
-                    .or_else(|| raw.get("created_at"))
-                    .or_else(|| raw.get("updated_at"))
-                    .and_then(Value::as_str)
-                    .unwrap_or(captured_at),
+                "state": raw.get("state").or_else(|| raw.get("described_state")).cloned().unwrap_or(Value::Null),
+                "timestamp": event_timestamp,
+                "timestamp_status": timestamp_status,
                 "source_order": {
                     "source": "urn:fyi-cli:site:fyi.org.nz",
                     "request_sequence": request_id,
                     "event_sequence": index
                 },
-                "provenance": {"source_ref": reference, "captured_at": captured_at},
+                "provenance": {
+                    "source_ref": reference,
+                    "message_reference_id": raw.get("message_id").or_else(|| raw.get("message_reference_id")).cloned().unwrap_or(Value::Null),
+                    "captured_at": captured_at
+                },
                 "operation": "upsert"
             });
             let event_digest = digest(&serde_json::to_string(&event)?);
