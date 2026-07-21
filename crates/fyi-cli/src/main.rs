@@ -6,6 +6,7 @@ use fyi_core::deadlines::{
 };
 use fyi_core::federation::list_federated_summaries;
 use fyi_core::jurisdiction::InstanceRegistry;
+use fyi_core::process_events::export_process_events;
 use fyi_core::provenance::{append_record, verify_chain, verify_chain_with_payloads};
 use fyi_core::search::{InMemorySearchIndex, SearchDocument, SearchIndex};
 use fyi_core::security::{
@@ -330,6 +331,19 @@ pub enum Commands {
         no_sanitize: bool,
         #[arg(long, default_value = "fyi_system.db")]
         db: String,
+    },
+    #[command(about = "Export public-safe process events for archive consumers")]
+    ExportProcessEvents {
+        #[arg(long, default_value = "data/raw/requests")]
+        derived_dir: String,
+        #[arg(long)]
+        output: String,
+        #[arg(long)]
+        captured_at: String,
+        #[arg(long)]
+        checkpoint: Option<String>,
+        #[arg(long)]
+        attachments_output: Option<String>,
     },
     #[command(about = "Show current loaded settings")]
     ShowSettings {
@@ -813,6 +827,32 @@ fn main() {
                 "Exporting bundle for {} to {:?} (Profile: {:?}, No Sanitize: {}) using {}",
                 request_id, output_dir, profile, no_sanitize, db
             );
+        }
+        Commands::ExportProcessEvents {
+            derived_dir,
+            output,
+            captured_at,
+            checkpoint,
+            attachments_output,
+        } => {
+            let result = export_process_events(
+                Path::new(&derived_dir),
+                Path::new(&output),
+                captured_at,
+                checkpoint.as_deref().map(Path::new),
+                attachments_output.as_deref().map(Path::new),
+            );
+            match result {
+                Ok(summary) => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&summary)
+                        .expect("process-event summary is serializable")
+                ),
+                Err(error) => {
+                    eprintln!("Process-event export failed: {error}");
+                    std::process::exit(1);
+                }
+            }
         }
         Commands::ShowSettings { settings, output } => {
             println!("Showing settings from {:?} to {:?}", settings, output);

@@ -118,9 +118,6 @@ def _record_delta(
     attributes = {
         "platform_activity": "platform_state_observed",
         "platform_state": str(request.get("state") or ""),
-        "request_title": str(request.get("title") or ""),
-        "url_title": str(request.get("url_title") or ""),
-        "request_url": _request_url(request, base_url),
         "authority_name": str(request.get("authority") or request.get("public_body") or ""),
         "event_time": event_time,
     }

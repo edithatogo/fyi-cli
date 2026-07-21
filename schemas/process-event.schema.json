@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fyi-cli.org.nz/schemas/process-event-1.0.0.json",
+  "title": "FYI public-safe process event",
+  "type": "object",
+  "required": ["schema_version", "event_id", "logical_request_id", "activity", "timestamp", "source_order", "provenance"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "event_id": {"type": "string"},
+    "logical_request_id": {"type": "string"},
+    "activity": {"type": "string", "minLength": 1},
+    "state": {"type": ["string", "null"]},
+    "timestamp": {"type": ["string", "null"], "format": "date-time"},
+    "timestamp_status": {"enum": ["valid", "missing", "invalid"]},
+    "revision": {"type": "integer", "minimum": 1},
+    "operation": {"enum": ["upsert", "delete"]},
+    "source_order": {"type": "object", "required": ["source", "request_sequence", "event_sequence"]},
+    "provenance": {"type": "object", "required": ["captured_at"]}
+  },
+  "additionalProperties": false
+}

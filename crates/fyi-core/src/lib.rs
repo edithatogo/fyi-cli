@@ -10,6 +10,7 @@ pub mod federation;
 pub mod i18n;
 pub mod jurisdiction;
 pub mod notifications;
+pub mod process_events;
 pub mod provenance;
 pub mod provider_contract;
 pub mod providers;
