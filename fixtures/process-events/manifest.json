@@ -1,0 +1,24 @@
+{
+  "contract_version": "1.0.0",
+  "event_schema": "schemas/process-event.schema.json",
+  "attachment_schema": "schemas/attachment-metadata.schema.json",
+  "golden_fixture": "fixtures/process-events/golden.jsonl",
+  "consumers": [
+    {
+      "repository": "edithatogo/fyi-archive",
+      "track_issue": 196
+    },
+    {
+      "repository": "edithatogo/foi-process",
+      "track_issue": 37
+    }
+  ],
+  "public_exclusions": [
+    "requester identity",
+    "request title",
+    "message body",
+    "OCR text",
+    "attachment bytes",
+    "attachment filename"
+  ]
+}

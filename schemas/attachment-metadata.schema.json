@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fyi-cli.org.nz/schemas/attachment-metadata-1.0.0.json",
+  "title": "FYI public-safe attachment metadata",
+  "type": "object",
+  "required": ["schema_version", "attachment_id", "logical_request_id", "source_order", "provenance"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "attachment_id": {"type": "string"},
+    "logical_request_id": {"type": "string"},
+    "content_type": {"type": ["string", "null"]},
+    "byte_size": {"type": ["integer", "null"], "minimum": 0},
+    "locator": {"type": ["object", "null"]},
+    "warc_record_id": {"type": ["string", "null"]},
+    "source_order": {"type": "object", "required": ["source", "request_sequence", "attachment_sequence"]},
+    "provenance": {"type": "object", "required": ["captured_at", "source_path"]}
+  },
+  "additionalProperties": false
+}

@@ -6,6 +6,7 @@ from pathlib import Path
 from .archive_capture import CaptureCaps, capture_request
 from .archive_diff import run_diff
 from .evidence_delta import emit_evidence_deltas
+from .process_events import export_process_events, validate_process_event_file
 from .archive_health import build_archive_health, write_archive_health
 from .db import init_db, query_all, connect, get_tracked_request, export_tracked_requests, import_tracked_requests, request_timeline, update_request_status
 from .discovery import backfill_ids, discover_feed, reconcile_discovery_files, shared_rate_limit_status, write_jsonl
@@ -265,6 +266,26 @@ def cmd_emit_evidence_delta(args):
         base_url=args.base_url,
     )
     print(json.dumps({"output": args.output, "delta_count": len(deltas)}, sort_keys=True))
+
+
+def cmd_export_process_events(args):
+    result = export_process_events(
+        derived_dir=Path(args.derived_dir),
+        output=Path(args.output),
+        captured_at=args.captured_at,
+        checkpoint=Path(args.checkpoint) if args.checkpoint else None,
+        instance_id=args.instance_id,
+        source=args.source,
+        base_url=args.base_url,
+        attachments_output=Path(args.attachments_output) if args.attachments_output else None,
+    )
+    print(json.dumps(result, sort_keys=True))
+
+
+def cmd_validate_process_events(args):
+    result = validate_process_event_file(Path(args.input))
+    result["input"] = args.input
+    print(json.dumps(result, sort_keys=True))
 
 
 def cmd_attention_report(args):
@@ -585,6 +606,23 @@ def build_parser():
     sp.add_argument('--partition', default='requests')
     sp.add_argument('--base-url', default='https://fyi.org.nz')
     sp.set_defaults(func=cmd_emit_evidence_delta)
+
+    # Command: export-process-events
+    sp = sub.add_parser('export-process-events')
+    sp.add_argument('--derived-dir', default='data/raw/requests')
+    sp.add_argument('--output', required=True)
+    sp.add_argument('--captured-at', required=True)
+    sp.add_argument('--checkpoint')
+    sp.add_argument('--instance-id', default='nz-fyi')
+    sp.add_argument('--source', default='urn:fyi-cli:site:fyi.org.nz')
+    sp.add_argument('--base-url', default='https://fyi.org.nz')
+    sp.add_argument('--attachments-output')
+    sp.set_defaults(func=cmd_export_process_events)
+
+    # Command: validate-process-events
+    sp = sub.add_parser('validate-process-events')
+    sp.add_argument('--input', required=True)
+    sp.set_defaults(func=cmd_validate_process_events)
     
     # Command: attention-report
     sp = sub.add_parser('attention-report')
