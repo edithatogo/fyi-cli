@@ -179,6 +179,32 @@ def test_get_with_backoff_recovers_from_429() -> None:
     assert attempts["count"] == 2
 
 
+def test_get_with_backoff_recovers_from_transport_timeout() -> None:
+    attempts = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise httpx.ReadTimeout("transient timeout", request=request)
+        return httpx.Response(200, json={"ok": True}, request=request)
+
+    with httpx.Client(
+        base_url="https://example.test",
+        transport=httpx.MockTransport(handler),
+    ) as http:
+        response = get_with_backoff(
+            http,
+            "/request/1.json",
+            disallows=[],
+            retries=2,
+            backoff_seconds=0,
+            sleeper=lambda _: None,
+        )
+    assert response.status_code == 200
+    assert attempts == 2
+
+
 def test_get_with_backoff_enforces_rate_cap() -> None:
     sleeps: list[float] = []
     now = {"value": 0.0}
