@@ -298,14 +298,27 @@ def get_with_backoff(
     backoff_seconds: float = 1.0,
     sleeper: Any = time.sleep,
 ) -> httpx.Response:
-    """GET with robots enforcement and simple retry backoff on transient statuses."""
+    """GET with robots enforcement and bounded status/transport retries."""
     path = httpx.URL(url).path if url.startswith("http") else url
     if not robots_allows(path, disallows):
         msg = f"robots.txt disallows fetching {path}"
         raise PermissionError(msg)
     for attempt in range(retries + 1):
         _wait_with_shared_fallback(shared_rate_limiter, rate_limiter, backoff_seconds)
-        response = http.get(url)
+        try:
+            response = http.get(url)
+        except (httpx.TimeoutException, httpx.TransportError):
+            if attempt == retries:
+                raise
+            delay = min(float(backoff_seconds) * (2**attempt), 60.0)
+            _record_shared_backoff(
+                shared_rate_limiter,
+                delay_seconds=delay,
+                status_code=599,
+            )
+            if delay > 0:
+                sleeper(delay)
+            continue
         if response.status_code not in {429, 500, 502, 503, 504}:
             return response
         if attempt == retries:
