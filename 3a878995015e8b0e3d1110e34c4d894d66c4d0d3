@@ -1,0 +1,7 @@
+Task: Audit fyi-cli capture support for AU-CTH and AU-NSW.
+
+Artifact SHA-256: d1af66697c173cfafd8de2dfd00a8d83f3be5a5401ece5fae2bac1e67c723d71.
+
+Verification: 2 focused tests passed; Ruff lint and format passed.
+
+Boundary: no live capture was performed; jurisdiction classification and a non-empty authorized source remain external gates.
