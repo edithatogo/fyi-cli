@@ -1,0 +1,22 @@
+Task: Keyring management actions
+
+Summary:
+- Added TUI-facing add/update/delete keyring credential actions backed by KeyringStore.
+- Added selected keyring entry deletion for credentials and MFA TOTP entries.
+- Added managed encryption key state for the keyring dashboard.
+- Added security indicator fields for key strength, key age, and rotation status.
+- Rendered security columns and an encryption key management panel in the Keyring Browser tab.
+- Added tests for credential add/update/delete, encryption key state, and security indicator rendering.
+
+Modified files:
+- crates/fyi-cli/src/tui.rs
+
+Verification:
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-cli keyring
+- rustfmt +stable-x86_64-pc-windows-gnu --edition 2021 --check crates\\fyi-cli\\src\\tui.rs
+- cargo +stable-x86_64-pc-windows-gnu check -p fyi-cli
+- git diff --check
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-cli
+
+Why:
+The keyring dashboard needs safe management primitives and visible security posture before broader navigation/search workflows can operate across the TUI.

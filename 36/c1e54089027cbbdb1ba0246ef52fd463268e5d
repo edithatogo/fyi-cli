@@ -1,0 +1,1 @@
+Extended rate-limit-status with optional secret-free agent memory and User-Agent reporting; Python suite verified at 106 passing tests. Commit: 36c1e54089027cbbdb1ba0246ef52fd463268e5d

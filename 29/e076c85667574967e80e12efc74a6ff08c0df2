@@ -1,0 +1,21 @@
+Task: Add JSON export button to dashboard
+
+Summary:
+- Added an Export JSON action to the dashboard header.
+- Exports the current summary and chart snapshot as a formatted JSON Blob.
+- Uses a date-stamped fyi-dashboard-YYYY-MM-DD.json filename.
+- Added component coverage for the browser download path.
+
+Modified files:
+- dashboard/src/components/DashboardSummary.tsx
+- dashboard/src/components/DashboardSummaryShell.tsx
+- dashboard/src/components/DashboardSummaryShell.test.tsx
+
+Why:
+- Task 3.3 requires one-click dashboard export actions; JSON export is the first export format and gives operators a portable snapshot of current dashboard analytics.
+
+Verification:
+- npm test -- DashboardSummaryShell.test.tsx
+- npm test
+- npm run build
+- npx tsc --noEmit

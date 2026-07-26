@@ -1,0 +1,21 @@
+Task: Build status distribution pie/donut chart
+
+Summary:
+- Added a Recharts-based StatusDistributionChart with donut chart, tooltip, legend, and empty state.
+- Extended dashboard API payload to return both KPI summary and chart series.
+- Wired live status distribution data through the dashboard shell and summary view.
+- Added tests for chart rendering, empty state, combined dashboard payload, and polling updates with chart data.
+
+Files changed:
+- dashboard/src/app/api/dashboard/summary/route.ts
+- dashboard/src/app/page.tsx
+- dashboard/src/components/DashboardSummary.tsx
+- dashboard/src/components/DashboardSummaryShell.tsx
+- dashboard/src/components/DashboardSummaryShell.test.tsx
+- dashboard/src/components/StatusDistributionChart.tsx
+- dashboard/src/components/StatusDistributionChart.test.tsx
+- dashboard/src/lib/dashboard-summary.ts
+- dashboard/src/lib/dashboard-summary.test.ts
+
+Why:
+- Phase 3.2 requires interactive charting that visualizes request analytics from MCP-backed request data.

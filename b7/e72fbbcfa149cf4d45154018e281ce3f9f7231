@@ -1,0 +1,21 @@
+Task: Add status/authority filters
+
+Summary:
+- Added status and authority select filters to the requests list.
+- Keeps filters local and composable with full-text search.
+- Added optional authority_slug and authority_name fields to the dashboard request type so the UI can filter authority data when MCP responses include it.
+- Added component coverage for combined status and authority filtering.
+
+Modified files:
+- dashboard/src/components/RequestsTable.tsx
+- dashboard/src/components/RequestsTable.test.tsx
+- dashboard/src/lib/mcp-client.ts
+
+Why:
+- Phase 5.1 requires request filtering beyond text search. Authority fields are optional because the current Rust request payload may not always include them.
+
+Verification:
+- npm test -- RequestsTable.test.tsx
+- npm test
+- npm run build
+- npx tsc --noEmit

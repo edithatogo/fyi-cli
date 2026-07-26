@@ -1,0 +1,23 @@
+Task: Credential manager dialog
+
+Summary:
+- Added a modal credential manager overlay in the Ratatui dashboard.
+- Added credential account state, active account switching, and dialog keybindings.
+- Loaded stored credential usernames from KeyringStore without exposing credential secrets.
+- Added credential indexing to KeyringStore so stored usernames can be listed safely.
+- Added render, keybinding, and keyring-backed switching tests.
+
+Modified files:
+- crates/fyi-cli/src/tui.rs
+- crates/fyi-core/src/security.rs
+
+Verification:
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-cli credential
+- rustfmt +stable-x86_64-pc-windows-gnu --edition 2021 --check crates\\fyi-cli\\src\\tui.rs crates\\fyi-core\\src\\security.rs
+- cargo +stable-x86_64-pc-windows-gnu check -p fyi-cli -p fyi-core
+- git diff --check
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-cli
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-core
+
+Why:
+Credential switching needs a keyboard-accessible dialog and a non-secret account listing primitive before credential testing and session status can be displayed in the TUI.

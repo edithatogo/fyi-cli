@@ -1,0 +1,1 @@
+Restored missing Hypothesis dev dependency and legacy reporting/security exports; fixed POST body parsing, nested URL secret redaction, timeline status visibility, and scheduler network timeout. Focused regressions pass. Commit: 0054571b117ef06ff1d3f79de19884deed3a7c0a

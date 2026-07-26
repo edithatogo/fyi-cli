@@ -1,0 +1,1 @@
+Track: dynamic-versioning-and-logging. Fixes release-please Python-only misconfig for the Rust workspace (cargo-workspace plugin, additive) and adds tracing-based structured logging to fyi-cli/fyi-mcp per repo best-practices audit.

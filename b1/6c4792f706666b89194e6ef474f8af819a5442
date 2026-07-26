@@ -1,0 +1,21 @@
+Task: Keyring browser
+
+Summary:
+- Added a Keyring Browser TUI tab and navigation support.
+- Added keyring entry state for credential and MFA TOTP entries.
+- Loaded keyring entries from KeyringStore credential and TOTP indexes.
+- Rendered entry metadata columns for kind, username, service, created, and last-used values.
+- Added keyring browser render and keyring-backed loading tests.
+
+Modified files:
+- crates/fyi-cli/src/tui.rs
+
+Verification:
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-cli keyring
+- rustfmt +stable-x86_64-pc-windows-gnu --edition 2021 --check crates\\fyi-cli\\src\\tui.rs
+- cargo +stable-x86_64-pc-windows-gnu check -p fyi-cli
+- git diff --check
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-cli
+
+Why:
+The keyring management phase needs a read-only browser surface before destructive add/edit/delete and rotation actions are introduced.

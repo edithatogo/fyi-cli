@@ -1,0 +1,1 @@
+Address GitHub code scanning alert #1 by replacing the URL substring assertion in tests/test_security.py with an exact equality check, preserving the intended behavior without triggering the incomplete URL-substring-sanitization rule.

@@ -1,0 +1,1 @@
+Full-suite regression fix: monitor feed ingestion now preserves local DB initialization when feedparser raises socket timeout or OSError. Targeted monitor/scheduler tests: 22 passed.

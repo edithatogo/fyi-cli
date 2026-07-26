@@ -1,0 +1,14 @@
+Conductor review: offline-sync-engine
+
+Findings fixed:
+- Replaced INSERT OR REPLACE request upsert with ON CONFLICT DO UPDATE to avoid deleting rows and cascading sync metadata.
+- Applied non-conflicting remote merge results without recording remote fields as local dirty changes.
+- Treated updated_at as merge metadata by choosing the newer timestamp instead of forcing otherwise non-conflicting changes into conflict.
+
+Verification:
+- cargo +stable-x86_64-pc-windows-gnu fmt --all -- --check: passed
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-core --test db_tests: passed
+- cargo +stable-x86_64-pc-windows-gnu clippy --workspace --all-targets --all-features -- -D warnings: passed
+- cargo +stable-x86_64-pc-windows-gnu test --workspace --all-features: passed
+
+Archive status: track was already archived at .conductor/archive/offline-sync-engine and remains archived.

@@ -1,0 +1,20 @@
+Task: Add date range picker for filtering
+
+Summary:
+- Added Updated from and Updated to date inputs to the requests table filters.
+- Filters requests by updated_at with created_at fallback using ISO date prefixes.
+- Keeps date filtering composable with full-text, status, and authority filters.
+- Added component coverage for date range filtering.
+
+Modified files:
+- dashboard/src/components/RequestsTable.tsx
+- dashboard/src/components/RequestsTable.test.tsx
+
+Why:
+- Phase 5.1 requires a date range picker so operators can narrow request lists by recency.
+
+Verification:
+- npm test -- RequestsTable.test.tsx
+- npm test
+- npm run build
+- npx tsc --noEmit

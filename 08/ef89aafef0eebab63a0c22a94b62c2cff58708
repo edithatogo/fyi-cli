@@ -1,0 +1,1 @@
+Bot-contract Phase 2 evidence: added HTTP-date Retry-After parsing coverage and SyncClient 429 feedback test asserting non-secret error, BackingOff pacing, and instance/route load memory. Full GNU fyi-core suite: 128 passed.

@@ -1,0 +1,17 @@
+Task: 3.2 Brute force protection and audit logging
+
+Summary:
+- Added MFA rate limiting after five failed attempts in a 30-second window.
+- Added MFA audit event types and event capture for success, failure, and rate-limit outcomes.
+- Added an in-memory credential backend for deterministic keyring/MFA tests while preserving system keyring behavior for production construction.
+- Updated keyring tests to use the in-memory backend and avoid OS keyring hangs.
+
+Modified files:
+- crates/fyi-core/src/security.rs
+- crates/fyi-core/tests/security_tests.rs
+
+Verification:
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-core --test security_tests
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-core --test property_tests
+- cargo +stable-x86_64-pc-windows-gnu check -p fyi-core
+- rustfmt +stable-x86_64-pc-windows-gnu --check crates\fyi-core\src\security.rs crates\fyi-core\tests\security_tests.rs crates\fyi-core\tests\property_tests.rs

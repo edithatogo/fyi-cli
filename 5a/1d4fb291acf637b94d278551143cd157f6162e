@@ -1,0 +1,22 @@
+Task: Fetch and display request lifecycle events
+
+Summary:
+- Extended CorrespondenceTimeline to accept the fetched request payload alongside correspondence.
+- Builds a unified chronological event list from request created_at, request updated_at, and correspondence sent_at timestamps.
+- Displays request-created and request-updated lifecycle events with status badges in the request detail timeline.
+- Added component coverage for mixed lifecycle and correspondence ordering.
+
+Modified files:
+- dashboard/src/app/requests/[id]/page.tsx
+- dashboard/src/components/CorrespondenceTimeline.tsx
+- dashboard/src/components/CorrespondenceTimeline.test.tsx
+
+Why:
+- Phase 4.1 requires request lifecycle events to appear in the timeline, not only correspondence rows.
+
+Verification:
+- npm test -- CorrespondenceTimeline.test.tsx
+- npm test
+- npm run build
+- npx tsc --noEmit
+- cargo --version after adding the stable MSVC Rust toolchain bin path

@@ -1,0 +1,15 @@
+Task: Apply review fixes for api-contract-hardening-20260630
+
+Summary:
+- Completed the remaining track scope after review found the track was incomplete.
+- Added explicit FYI API status classification for sync HTTP failures without including response bodies or secrets.
+- Added mocked contract tests for malformed JSON, missing required fields, forward-compatible optional fields, 401/403/404/429/5xx, retry exhaustion, and dirty-data preservation.
+- Added safe contract fixtures and release checklist documentation.
+- Regenerated the API contract inventory to reflect resolved high-risk sync gaps.
+
+Verification:
+- cargo +stable-x86_64-pc-windows-gnu fmt --all -- --check
+- cargo +stable-x86_64-pc-windows-gnu clippy --workspace --all-targets --all-features -- -D warnings
+- cargo +stable-x86_64-pc-windows-gnu test --workspace --all-features
+- .venv\Scripts\python.exe -m pytest tests/test_api_contract_inventory.py
+- .venv\Scripts\python.exe -m ruff check scripts/__init__.py scripts/api_contract_inventory.py tests/test_api_contract_inventory.py

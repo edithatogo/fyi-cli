@@ -1,0 +1,1 @@
+Issue #141. Wired validated ClientIdentity into TorManager reqwest construction while preserving the existing default constructor. Added a no-network request-header regression test with opt-in contact identity. Focused Rust tests were attempted but blocked by missing Windows SDK libraries required by rust-lld (kernel32.lib, ntdll.lib, ws2_32.lib, dbghelp.lib).

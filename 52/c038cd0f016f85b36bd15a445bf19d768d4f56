@@ -1,0 +1,22 @@
+Task: Keyboard shortcuts for editor
+
+Summary:
+- Added editor key handling for inline title/body/tags editing.
+- Added Ctrl+S save-request signaling, Ctrl+Q editor close, Esc/q quit handling, and tab/list navigation behavior.
+- Added active editor field and pane state with status/footer hints.
+- Added render and keybinding tests for editor shortcuts and save-state visibility.
+
+Modified files:
+- crates/fyi-cli/src/tui.rs
+
+Verification:
+- cargo +stable-x86_64-pc-windows-gnu fmt --check
+- cargo +stable-x86_64-pc-windows-gnu clippy --workspace --all-targets --all-features -- -D warnings
+- cargo +stable-x86_64-pc-windows-gnu test --workspace --all-features
+- git diff --check
+
+Coverage note:
+- cargo llvm-cov and cargo tarpaulin are not installed in this local Windows environment.
+
+Why:
+The editor needs deterministic keyboard commands before credential and keyring dialogs can share the same TUI event-handling patterns.
