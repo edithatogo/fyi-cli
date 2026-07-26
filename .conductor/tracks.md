@@ -340,6 +340,6 @@ Potential tracks for future development:
   *GitHub: [#231](https://github.com/edithatogo/fyi-cli/issues/231), registered as a subissue of [foi-process #36](https://github.com/edithatogo/foi-process/issues/36).*
   *Downstream: `fyi-archive:full_corpus_process_projection_20260721`, `foi-process:T10-full-corpus-process-mining`.*
 
-- [ ] **Track: Incremental jurisdiction capture completion**
+- [~] **Track: Incremental jurisdiction capture completion**
   *Link: [./tracks/jurisdiction-capture-completion-20260721/](./tracks/jurisdiction-capture-completion-20260721/)*
   *GitHub: [#234](https://github.com/edithatogo/fyi-cli/issues/234); programme parent [foi-o #81](https://github.com/edithatogo/foi-o/issues/81).*

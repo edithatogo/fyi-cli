@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/edithatogo/fyi-cli/schemas/australian-capture-capability-audit.schema.json",
+  "title": "Australian bounded capture capability audit",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "recorded_at",
+    "repository_revision",
+    "instance",
+    "jurisdictions",
+    "capabilities",
+    "limitations",
+    "live_capture_performed",
+    "archive_handoff_status",
+    "prohibitions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "fyi-cli.australian-capture-capability-audit.v0.1.0"
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "repository_revision": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "instance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "base_url", "country", "locale"],
+      "properties": {
+        "id": {"const": "au-rtk"},
+        "base_url": {"const": "https://www.righttoknow.org.au"},
+        "country": {"const": "AU"},
+        "locale": {"const": "en-AU"}
+      }
+    },
+    "jurisdictions": {
+      "const": [
+        {
+          "id": "AU-CTH",
+          "capture_status": "generic_alaveteli_capture_supported",
+          "live_source_status": "blocked_external_access"
+        },
+        {
+          "id": "AU-NSW",
+          "capture_status": "generic_alaveteli_capture_supported",
+          "live_source_status": "blocked_external_access"
+        }
+      ]
+    },
+    "capabilities": {
+      "type": "array",
+      "minItems": 8,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 3}
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 3,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 10}
+    },
+    "live_capture_performed": {"const": false},
+    "archive_handoff_status": {
+      "const": "implementation_ready_requires_authorized_nonempty_capture"
+    },
+    "prohibitions": {
+      "const": [
+        "live_capture_without_operator_authorization",
+        "cross_profile_fallback",
+        "infer_jurisdiction_from_request_text",
+        "treat_platform_state_as_legal_evidence",
+        "publication",
+        "redistribution",
+        "training",
+        "legal_certification",
+        "profile_promotion"
+      ]
+    }
+  }
+}
