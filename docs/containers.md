@@ -8,7 +8,7 @@ How to build, publish, and pull the **fyi-mcp** container image.
 | Publish workflow | [`.github/workflows/container-publish.yml`](../.github/workflows/container-publish.yml) |
 | Intended image | **`ghcr.io/edithatogo/fyi-mcp`** |
 | Platforms | `linux/amd64`, `linux/arm64` |
-| Entrypoint | `/usr/local/bin/fyi-mcp` (stdio MCP) |
+| Entrypoint | `/usr/local/bin/fyi-mcp` (defaults to stdio; set `FYI_MCP_TRANSPORT=http` for stateless HTTP JSON-RPC) |
 | Issue | [#116](https://github.com/edithatogo/fyi-cli/issues/116) |
 
 **Status discipline:** the Dockerfile and GHCR workflow are **assets-ready**. Do not treat GHCR as
@@ -178,7 +178,27 @@ docker run --rm -i \
   ghcr.io/edithatogo/fyi-mcp:latest
 ```
 
-### MCP client (`mcpServers` JSON)
+  ### Hosted HTTP JSON-RPC (connector-prep only)
+
+  ```bash
+  docker run --rm \
+    -p 8080:8080 \
+    -e FYI_MCP_TRANSPORT=http \
+    -e FYI_MCP_HTTP_BEARER_TOKEN=replace-me \
+    ghcr.io/edithatogo/fyi-mcp:latest
+
+  curl -H "Authorization: Bearer replace-me" \
+    http://127.0.0.1:8080/healthz
+  ```
+
+  This enables the opt-in stateless HTTP JSON-RPC listener documented in
+  [`deploy/remote-mcp/README.md`](../deploy/remote-mcp/README.md). It is still
+  not evidence of a hosted Connector deployment: terminate TLS at a trusted
+  reverse proxy or platform ingress, keep write capability disabled, and do not
+  claim external connector availability until the hosted deployment contract is
+  verified.
+
+  ### MCP client (`mcpServers` JSON)
 
 ```json
 {
@@ -223,5 +243,6 @@ Upstream registry: https://github.com/docker/mcp-registry
 ## Related docs
 
 - [`docs/registry-distribution-matrix.md`](./registry-distribution-matrix.md)
+- [`deploy/remote-mcp/README.md`](../deploy/remote-mcp/README.md)
 - [`GLAMA.md`](../GLAMA.md)
 - [`crates/fyi-mcp/README.md`](../crates/fyi-mcp/README.md)
