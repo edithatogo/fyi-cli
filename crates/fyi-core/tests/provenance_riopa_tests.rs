@@ -4,20 +4,19 @@ use fyi_core::provenance::{
 use serde_json::Value;
 
 fn synthetic_chain() -> Vec<fyi_core::provenance::ProvenanceRecord> {
-    let mut chain = Vec::new();
-    chain.push(append_record(
-        &chain,
+    let first = append_record(
+        &[],
         "2026-07-01T00:00:00Z",
         "capture/request-42.json",
         b"payload-a",
-    ));
-    chain.push(append_record(
-        &chain,
+    );
+    let second = append_record(
+        std::slice::from_ref(&first),
         "2026-07-01T00:01:00Z",
         "capture/request-42-attachment-1.bin",
         b"payload-b",
-    ));
-    chain
+    );
+    vec![first, second]
 }
 
 fn synthetic_context() -> RiopaEmissionContext {

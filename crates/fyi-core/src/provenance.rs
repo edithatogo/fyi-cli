@@ -384,19 +384,19 @@ mod tests {
 
     #[test]
     fn emit_riopa_stream_preserves_chain_integrity_fields() {
-        let mut chain = Vec::new();
-        chain.push(append_record(
-            &chain,
+        let first = append_record(
+            &[],
             "2026-07-01T00:00:00Z",
             "capture/request-42.json",
             b"payload-a",
-        ));
-        chain.push(append_record(
-            &chain,
+        );
+        let second = append_record(
+            std::slice::from_ref(&first),
             "2026-07-01T00:01:00Z",
             "capture/request-42-attachment-1.bin",
             b"payload-b",
-        ));
+        );
+        let chain = vec![first, second];
         let context = RiopaEmissionContext {
             generated_at: "2026-07-01T00:02:00Z".to_string(),
             source: "fyi-cli://capture".to_string(),
