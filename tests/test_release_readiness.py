@@ -23,6 +23,9 @@ def test_release_readiness_inventory_passes_after_release_hygiene(tmp_path):
     assert report["issues"] == []
     assert "README.md" in scanned_paths
     assert "pyproject.toml" in scanned_paths
+    assert "CITATION.cff" in scanned_paths
+    assert ".zenodo.json" in scanned_paths
+    assert "artifacts/release/zenodo-mirror-manifest.json" in scanned_paths
 
     checklist = tmp_path / "release-readiness.md"
     module.write_markdown_report(report, checklist)

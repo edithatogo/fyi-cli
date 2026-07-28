@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "repository": "https://github.com/edithatogo/fyi-cli",
+  "release": {
+    "tag": "v1.2.0",
+    "version": "1.2.0",
+    "date": "2026-07-10"
+  },
+  "zenodo": {
+    "github_archiving_enabled": "pending-verification",
+    "concept_doi": null,
+    "version_doi": null,
+    "verified_at": null,
+    "verification_status": "pending"
+  },
+  "policy": {
+    "doi_claim_rule": "No DOI may be published in repository metadata until the live Zenodo record is verified."
+  }
+}

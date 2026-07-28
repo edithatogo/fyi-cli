@@ -1,0 +1,27 @@
+{
+  "title": "fyi-cli",
+  "description": "A multi-jurisdiction command-line and MCP tool for interacting with Alaveteli-based Freedom of Information request platforms.",
+  "creators": [
+    {
+      "name": "edithatogo"
+    }
+  ],
+  "license": "MIT",
+  "upload_type": "software",
+  "keywords": [
+    "foi",
+    "alaveteli",
+    "mcp",
+    "rust",
+    "civic-tech"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/edithatogo/fyi-cli",
+      "relation": "isSupplementTo",
+      "resource_type": "software"
+    }
+  ],
+  "version": "1.2.0",
+  "notes": "Do not add version DOI or concept DOI fields here until the live Zenodo record is verified."
+}
