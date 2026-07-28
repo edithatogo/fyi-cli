@@ -44,3 +44,50 @@ The lowest-risk expansion is a read-only `FoiProvider` adapter layer for MuckRoc
 | Risk gate | Rate limit and paid credits | GDPR/legal semantics | Agency contract variance | Identity, consent, sandbox, production approval |
 
 The adapter track must treat this matrix as a contract checklist, not as an assumption that every endpoint is interchangeable.
+
+## Operational rollout contract for non-Alaveteli adapters
+
+The current adapter fleet is intentionally narrow:
+
+- **Enabled read-only providers:** MuckRock and FragDenStaat through the
+  provider-neutral `ReadOnlyFoiProvider` contract.
+- **Separately governed discovery only:** FOIA.gov agency/component catalog
+  reads, and only after operator-supplied API-key approval.
+- **Explicitly disabled:** USCIS request creation, status polling, or any
+  identity-sensitive workflow.
+
+### Rollout
+
+- Ship new providers behind explicit instance metadata and fail-closed
+  capability flags.
+- Keep live smoke opt-in, bounded, read-only, and publicly attributable.
+- Preserve `provider_id`, `source_url`, retrieval time where available, and
+  `raw_source_hash` so downstream archive and provenance tooling can prove
+  origin without replaying live calls.
+
+### Rollback
+
+- Remove or disable the affected instance entry rather than silently falling
+  back to scraping or alternate write paths.
+- Treat schema drift, auth changes, or legal-policy regressions as a reason to
+  demote the provider back to discovery-only or disabled status.
+- Do not retain a "best effort" write mode for non-Alaveteli providers; writes
+  stay unavailable unless the provider contract explicitly supports them.
+
+### Rate limits and operator posture
+
+- Use fixed HTTPS endpoints, bounded request counts, page sizes, bytes, and
+  timeouts for all public smoke sensors.
+- Identify traffic with the repository User-Agent and never use authenticated
+  or credit-consuming routes in default validation.
+- Keep FOIA.gov and USCIS out of unattended polling until their separate
+  operator, consent, and approval gates are satisfied.
+
+### Source attribution and deprecation
+
+- Attribute every normalized record back to its source platform and public URL.
+- Keep legal and operational differences visible in documentation instead of
+  flattening providers into an "FOI is FOI" abstraction.
+- When an upstream provider changes ownership, terms, auth, or response shape,
+  update the documented risk gate first and only restore live status after
+  fixtures, fingerprints, and operator review are refreshed.

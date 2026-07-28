@@ -1,10 +1,16 @@
 {
   "track_id": "foi-adapter-pilots_20260712",
   "type": "feature",
-  "status": "in_progress",
+  "status": "completed",
   "created_at": "2026-07-12T00:00:00Z",
-  "updated_at": "2026-07-12T00:00:00Z",
+  "updated_at": "2026-07-28T10:55:00Z",
   "description": "Implement safe read-only pilots for the best non-Alaveteli FOI APIs.",
   "github_issue": 196,
-  "child_issues": [200, 201, 203]
+  "child_issues": [200, 201, 203],
+  "completion_notes": [
+    "Provider-neutral read-only contract merged in #206.",
+    "MuckRock and FragDenStaat read-only pilots merged in #209 and #210.",
+    "Bounded public smoke and schema-drift evidence merged in #211.",
+    "FOIA.gov and USCIS remain documented as separately governed gates from #212 onward."
+  ]
 }
