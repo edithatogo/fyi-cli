@@ -9,7 +9,7 @@ description = "Multi-jurisdiction FOI/Alaveteli request management CLI"
 [dependencies]
 tokio = { version = "1.36", features = ["full"] }
 clap = { version = "4.4", features = ["derive"] }
-ratatui = "0.24"
+ratatui = "0.30"
 crossterm = "0.27"
 fyi-core = { version = "0.1.2", path = "../fyi-core" }
 dhat = { version = "0.3.3", optional = true }
