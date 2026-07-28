@@ -38,6 +38,32 @@ jobs:
       - name: Run Python test suite
         run: uv run pytest -q
 
+  property-tests:
+    name: Property Tests
+    runs-on: ubuntu-latest
+    env:
+      PYTHON_KEYRING_BACKEND: keyrings.alt.file.PlaintextKeyring
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Python dependencies
+        run: uv sync --extra dev --frozen
+
+      - name: Run property-based suites
+        run: uv run python scripts/run_property_tests.py
+
   fmt:
     name: Rustfmt
     runs-on: ubuntu-latest

@@ -56,14 +56,14 @@ LAYERS = (
     ),
     Layer(
         "mutation",
-        ("mutation_test.py", "mutants.toml", "run-mutants.ps1"),
+        ("mutation_test.py", "mutants.toml", "run-mutants.ps1", ".github/workflows/mutation.yml"),
         ("python", "mutation_test.py"),
         expensive=True,
     ),
     Layer(
         "property-based",
-        ("tests/test_hypothesis.py", "crates/fyi-core/tests/property_tests.rs"),
-        ("pytest", "tests/test_hypothesis.py"),
+        ("tests/test_hypothesis.py", "tests/test_fuzz.py", "crates/fyi-core/tests/property_tests.rs", "scripts/run_property_tests.py"),
+        ("python", "scripts/run_property_tests.py"),
     ),
     Layer(
         "edge",

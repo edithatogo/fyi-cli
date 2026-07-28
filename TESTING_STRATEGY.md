@@ -48,7 +48,9 @@ This document describes the comprehensive testing strategy for the FYI Request S
 
 **Framework:** pytest  
 **Count:** 155+ tests  
-**Coverage:** 80%
+**Coverage gate:** Rust reusable-library logic must stay **>90%** line coverage in
+CI/Codecov via `cargo llvm-cov --fail-under-lines 90`; branch uploads below that
+threshold fail the build.
 
 ### Test Files
 - `tests/test_cli.py` - CLI argument parsing and commands
@@ -74,9 +76,10 @@ pytest tests/test_security.py -v
 
 ## 2. Property-Based Testing (Hypothesis) ✅
 
-**Framework:** hypothesis  
-**Count:** 19+ property tests  
-**Generated Cases:** 1000+ per property
+**Frameworks:** hypothesis + proptest  
+**Coverage:** Python generative tests in `tests/test_hypothesis.py` and
+`tests/test_fuzz.py`, plus Rust property tests in
+`crates/fyi-core/tests/property_tests.rs`
 
 ### What It Tests
 - Email redaction (any format)
@@ -105,8 +108,8 @@ pytest tests/test_hypothesis.py -v
 
 ## 3. Mutation Testing ✅
 
-**Tools:** cosmic-ray, mutmut, custom script  
-**Status:** Infrastructure setup
+**Tools:** `cargo-mutants` + custom Python mutation harness  
+**Status:** Scheduled/manual workflow in `.github/workflows/mutation.yml`
 
 ### What It Does
 Mutation testing introduces small bugs (mutants) into your code and verifies that tests catch them.
