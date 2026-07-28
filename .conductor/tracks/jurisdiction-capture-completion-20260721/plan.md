@@ -10,6 +10,14 @@
   - [ ] Exercise live capture only under a separately authorized non-empty
     source run, then classify jurisdiction from recorded authority evidence.
 - [ ] UK and European English increments.
+- [~] UK + Ireland bounded capture increment (next in sequence).
+  - [ ] Confirm bounded read-only discovery + request JSON/HTML/attachment capture for
+    `uk-wdtk` and `ie-myrighttoknow` using the existing profile adapters, with explicit
+    no-fallback profile assertions.
+  - [ ] Record per-profile evidence bundle hashes and checkpoint resumability outcomes for
+    handoff to `fyi-archive`.
+  - [ ] Capture any authorization/policy blockers as explicit gates in `metadata.json`
+    (do not proceed to unrestricted live capture).
 - [ ] Rescan and implement official Alaveteli deployments one jurisdiction at a time.
 - [ ] Verify/add Germany, Spain and Ireland platform support.
 - [ ] Implement explicitly bounded non-Alaveteli adapters for Canada federal, US federal and South Africa.
