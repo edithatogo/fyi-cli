@@ -12,7 +12,8 @@
   "runtime": {
     "transport": "stdio",
     "entrypoint": "fyi-mcp",
-    "configuration": "DATABASE_URL and FYI_MCP_EPHEMERAL are documented environment settings"
+    "configuration": "DATABASE_URL and FYI_MCP_EPHEMERAL are documented environment settings",
+    "hosted_transport_note": "Optional FYI_MCP_TRANSPORT=http support exists for hosted HTTPS deployments; stdio remains the default local-first runtime."
   },
   "capabilities": {
     "read_only_remote_operations": false,
