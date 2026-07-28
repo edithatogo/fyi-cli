@@ -1,9 +1,11 @@
 # OpenAI plugin directory packet for Codex
 
 This packet is prepared for OpenAI's documented plugin-directory / Codex review
-flow. It is not evidence that a submission has been filed or accepted. The
-public status remains `planned` until an operator with access to the submission
-surface records public evidence in `packaging/registry-submissions.json`.
+flow. **Current repo-side status: `assets-ready`.** That means the submission
+materials are prepared in-repo, but this is not evidence that a submission has
+been filed or accepted. Keep the target non-live until an operator with access
+to the submission surface records external evidence in
+`packaging/registry-submissions.json`.
 
 ## Review notes
 
