@@ -32,11 +32,12 @@
   - [x] Keep Ireland (`ie-myrighttoknow`) coverage under the UK+IE bounded capture increment.
   - [x] Preserve explicit external authorization gates for non-empty live capture runs prior to
     archive handoff.
-- [~] Implement explicitly bounded non-Alaveteli adapters for Canada federal, US federal and South Africa.
+- [x] Implement explicitly bounded non-Alaveteli adapters for Canada federal, US federal and South Africa.
   - [x] Record US federal FOIA.gov as a bounded discovery-only target with explicit blocked
     request/attachment/timeline capture status and no POST fallback assumptions.
     (`us_federal_capture_capability_audit.json`)
   - [x] Record Canada federal as a discovery-only or manual-route target with stable blockers.
     (`canada_federal_capture_capability_audit.json`)
-  - [ ] Record South Africa as a bounded unsupported/blocked target with stable blockers.
+  - [x] Record South Africa as a bounded unsupported/blocked target with stable blockers.
+    (`south_africa_capture_capability_audit.json`)
 - [ ] At each increment, stop before live capture without operator authorization and record archive/NLP/process dependencies.
