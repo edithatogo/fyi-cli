@@ -52,7 +52,7 @@ Machine-readable submission ledger: [`packaging/registry-submissions.json`](../p
 | Snap | **assets-ready** (draft) | `packaging/snap/snapcraft.yaml` — builds `fyi-cli` + `fyi-mcp` from tagged source | #110 |
 | Flatpak | **assets-ready** (draft) | `packaging/flatpak/io.github.edithatogo.fyi-cli.yml` (+ AppStream metainfo) | #111 |
 | asdf / mise | **assets-ready** (draft) | `packaging/asdf/bin/{install,list-all}`, `packaging/mise/backend.toml` | #112 |
-| cargo-binstall | **assets-ready** | `packaging/cargo-binstall/metadata.toml` (+ crate metadata to wire) | #113 |
+| cargo-binstall | **assets-ready** | `packaging/cargo-binstall/metadata.toml` plus wired `[package.metadata.binstall]` in `crates/fyi-cli/Cargo.toml` and `crates/fyi-mcp/Cargo.toml`; still needs matching release assets for public resolution | #113 |
 | Debian / PPA | **assets-ready** (draft) | `packaging/debian/{control,rules,changelog,copyright}` skeleton | #114 |
 | Fedora / COPR | **assets-ready** (draft) | `packaging/fedora/fyi-cli.spec` | #115 |
 

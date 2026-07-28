@@ -21,7 +21,7 @@
     {"id": "chocolatey", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Complete checksum and moderation packet."},
     {"id": "scoop", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Submit manifest after release asset verification."},
     {"id": "winget", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Submit manifest using a stable release asset."},
-    {"id": "cargo-binstall", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Wire metadata to release artifacts."},
+    {"id": "cargo-binstall", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Publish matching GitHub Release assets and verify cargo-binstall resolves them correctly."},
     {"id": "aur", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Fill source hash and submit PKGBUILD."},
     {"id": "nixpkgs", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Compute source and cargo hashes before submission."},
     {"id": "snap", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Build and publish a confined snap."},

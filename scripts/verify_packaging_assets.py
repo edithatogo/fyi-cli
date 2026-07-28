@@ -68,6 +68,10 @@ OPTIONAL_ASSETS: tuple[str, ...] = (
     "docs/registry-distribution-matrix.md",
     "docs/release-multi-registry.md",
 )
+BINSTALL_METADATA_ASSETS: tuple[str, ...] = (
+    "crates/fyi-cli/Cargo.toml",
+    "crates/fyi-mcp/Cargo.toml",
+)
 
 # Files expected to embed a concrete release version string (e.g. 0.1.2).
 # Paths relative to repo root. Checked only when the file exists.
@@ -194,6 +198,48 @@ def file_mentions_version(text: str, version: str) -> bool:
     return version in text
 
 
+def check_binstall_metadata(
+    repo_root: Path, assets: Iterable[str] = BINSTALL_METADATA_ASSETS
+) -> list[CheckResult]:
+    """Ensure the expected crates wire cargo-binstall metadata in Cargo.toml."""
+    results: list[CheckResult] = []
+    for relative in assets:
+        path = repo_root / relative
+        if not path.is_file():
+            results.append(
+                CheckResult(
+                    path=relative,
+                    kind="binstall",
+                    ok=False,
+                    message="missing",
+                    severity="error",
+                )
+            )
+            continue
+        text = path.read_text(encoding="utf-8", errors="replace")
+        if "[package.metadata.binstall]" in text:
+            results.append(
+                CheckResult(
+                    path=relative,
+                    kind="binstall",
+                    ok=True,
+                    message="cargo-binstall metadata wired",
+                    severity="info",
+                )
+            )
+            continue
+        results.append(
+            CheckResult(
+                path=relative,
+                kind="binstall",
+                ok=False,
+                message="missing [package.metadata.binstall]",
+                severity="error",
+            )
+        )
+    return results
+
+
 def check_versions(
     repo_root: Path,
     expected_version: str,
@@ -244,6 +290,7 @@ def verify_packaging_assets(
     critical: Iterable[str] = CRITICAL_ASSETS,
     optional: Iterable[str] = OPTIONAL_ASSETS,
     versioned: Iterable[str] = VERSIONED_ASSETS,
+    binstall_assets: Iterable[str] = BINSTALL_METADATA_ASSETS,
 ) -> VerificationReport:
     """Run all packaging asset checks and return a structured report."""
     repo_root = repo_root.resolve()
@@ -258,6 +305,7 @@ def verify_packaging_assets(
         )
     )
     report.results.extend(check_versions(repo_root, version, versioned))
+    report.results.extend(check_binstall_metadata(repo_root, binstall_assets))
     return report
 
 
@@ -275,6 +323,7 @@ def format_human_report(report: VerificationReport) -> str:
         r for r in report.results if r.kind == "critical" and not r.ok
     ]
     version_fail = [r for r in report.results if r.kind == "version" and not r.ok]
+    binstall_fail = [r for r in report.results if r.kind == "binstall" and not r.ok]
     optional_missing = [
         r for r in report.results if r.kind == "optional" and not r.ok
     ]
@@ -288,6 +337,12 @@ def format_human_report(report: VerificationReport) -> str:
     if version_fail:
         lines.append("Version mismatches:")
         for r in version_fail:
+            lines.append(f"  - {r.path}: {r.message}")
+        lines.append("")
+
+    if binstall_fail:
+        lines.append("cargo-binstall wiring issues:")
+        for r in binstall_fail:
             lines.append(f"  - {r.path}: {r.message}")
         lines.append("")
 
