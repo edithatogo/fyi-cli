@@ -1873,7 +1873,7 @@ dependencies = [
  "sha1",
  "sha2 0.10.9",
  "sqlx",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "tokio",
  "toml 0.8.23",
  "tor-rtcompat",

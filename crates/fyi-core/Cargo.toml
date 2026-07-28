@@ -19,7 +19,7 @@ reqwest = { version = "0.11", features = ["json", "multipart", "socks"] }
 arti-client = { version = "0.10" }
 tor-rtcompat = { version = "=0.9.7", features = ["rustls", "tokio"] }
 chrono = { version = "0.4", features = ["serde"] }
-thiserror = "1.0"
+thiserror = "2.0"
 anyhow = "1.0"
 hmac = "0.12"
 sha1 = "0.10"
