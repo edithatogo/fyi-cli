@@ -1,0 +1,63 @@
+{
+  "schema_version": "fyi-cli.canada-federal-capture-capability-audit.v0.1.0",
+  "recorded_at": "2026-07-28T11:10:00Z",
+  "repository_revision": "8eae45b56f3cc40de97cf6b601409fccb713b1d0",
+  "platform": {
+    "id": "ca-atip-online-request",
+    "base_url": "https://atip-aiprp.apps.gc.ca/atip/",
+    "country": "CA",
+    "locale": "en-CA",
+    "surface": "manual_online_request_portal"
+  },
+  "support_matrix": [
+    {
+      "route": "manual_online_request_portal",
+      "capture_status": "manual_route_only_no_public_api",
+      "live_source_status": "public_portal_visible"
+    },
+    {
+      "route": "automated_request_submission",
+      "capture_status": "explicitly_prohibited_identity_consent_surface",
+      "live_source_status": "blocked_external_access"
+    },
+    {
+      "route": "public_request_response_capture",
+      "capture_status": "unsupported_no_public_listing_api",
+      "live_source_status": "blocked_external_access"
+    },
+    {
+      "route": "public_attachment_timeline_capture",
+      "capture_status": "unsupported_no_public_listing_api",
+      "live_source_status": "blocked_external_access"
+    }
+  ],
+  "capabilities": [
+    "stable official Canada ATIP portal identifier",
+    "bounded platform classification without automated interaction",
+    "manual-route only status preserved as a hard blocker",
+    "explicit no-public-API and no-scraping posture",
+    "source URL preservation for future operator-reviewed evidence",
+    "archive handoff remains blocked until a lawful machine-readable source exists"
+  ],
+  "limitations": [
+    "the Canada ATIP Online Request portal is a request-submission form and does not expose a stable public general-purpose API for request, response, attachment, or timeline capture",
+    "automated request submission is outside scope because the portal carries identity, consent, and institution-selection obligations inappropriate for unattended capture",
+    "no public listing endpoint is documented for non-empty archive handoff evidence, so request-response-attachment capture remains unsupported in this repository",
+    "bounded capability verification is implementation readiness evidence, not legal evidence"
+  ],
+  "explicit_route_assertion": "platform id and route must be explicit and capture must not silently fall back to scraping, browser automation, or another provider",
+  "live_capture_performed": false,
+  "archive_handoff_status": "blocked_pending_lawful_machine_readable_source",
+  "prohibitions": [
+    "live_capture_without_operator_authorization",
+    "automated_form_submission",
+    "browser_automation_submission",
+    "cross_provider_fallback",
+    "treat_platform_state_as_legal_evidence",
+    "publication",
+    "redistribution",
+    "training",
+    "legal_certification",
+    "profile_promotion"
+  ]
+}

@@ -53,3 +53,21 @@ USCIS work:
 
 No USCIS credentials, tokens, request payloads, or production calls belong in
 this repository or its CI.
+
+## Canada ATIP Online Request portal
+
+Decision: keep this as a discovery-only or manual-route target; do not treat it
+as a machine-readable capture source.
+
+The official portal is available at `https://atip-aiprp.apps.gc.ca/atip/` and
+is an online request form rather than a stable public API for listing requests,
+responses, attachments, or timelines. That means:
+
+- the portal may be recorded as a stable official target identifier;
+- unattended scraping, browser automation, or form submission is out of scope;
+- no public request-response-attachment feed is available for archive handoff;
+- any future automation would require a separately justified lawful
+  machine-readable source, not opportunistic form driving.
+
+Canada should therefore remain blocked for public capture completion in this
+repository until a documented machine-readable public surface exists.
