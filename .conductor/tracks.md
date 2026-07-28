@@ -335,11 +335,12 @@ Potential tracks for future development:
 
 ---
 
-- [ ] **Track: Versioned public-safe process-event export**
+- [x] **Track: Versioned public-safe process-event export** (COMPLETED 2026-07-28, PR #240)
   *Link: [./tracks/process-event-export_20260721/](./tracks/process-event-export_20260721/)*
-  *GitHub: [#231](https://github.com/edithatogo/fyi-cli/issues/231), registered as a subissue of [foi-process #36](https://github.com/edithatogo/foi-process/issues/36).*
+  *GitHub: [#231](https://github.com/edithatogo/fyi-cli/issues/231) (closed), registered as a subissue of [foi-process #36](https://github.com/edithatogo/foi-process/issues/36).*
   *Downstream: `fyi-archive:full_corpus_process_projection_20260721`, `foi-process:T10-full-corpus-process-mining`.*
 
 - [~] **Track: Incremental jurisdiction capture completion**
   *Link: [./tracks/jurisdiction-capture-completion-20260721/](./tracks/jurisdiction-capture-completion-20260721/)*
   *GitHub: [#234](https://github.com/edithatogo/fyi-cli/issues/234); programme parent [foi-o #81](https://github.com/edithatogo/foi-o/issues/81).*
+  *Current increment: UK + Ireland bounded capture planning (`uk_ie_bounded_capture_planning`).*
