@@ -1,0 +1,164 @@
+{
+  "schema_version": "fyi-cli.foundation-capture-handoff-manifest.v0.1.0",
+  "recorded_at": "2026-07-28T12:12:00Z",
+  "repository_revision": "5cbd416ee33a758a7982c9778ef1cc61ecc952bd",
+  "live_capture_performed": false,
+  "archive_target": {
+    "repository": "edithatogo/fyi-archive",
+    "handoff_formats": [
+      "WARC",
+      "WACZ",
+      "derived_request_view"
+    ],
+    "capture_entrypoints": [
+      "CaptureCaps",
+      "get_with_retry",
+      "write_warc_record",
+      "package_wacz",
+      "write_derived_store"
+    ]
+  },
+  "summary": {
+    "bounded_targets_total": 7,
+    "implementation_ready_with_authorized_nonempty_capture": 4,
+    "blocked_pending_external_source_or_policy": 3
+  },
+  "jurisdiction_audits": [
+    {
+      "target": "AU-CTH/AU-NSW",
+      "artifact": "artifacts/foio/australian_capture_capability_audit.json",
+      "artifact_sha256": "d1af66697c173cfafd8de2dfd00a8d83f3be5a5401ece5fae2bac1e67c723d71",
+      "archive_handoff_status": "implementation_ready_requires_authorized_nonempty_capture",
+      "blocking_gate": "australian-authorized-nonempty-source",
+      "downstream_dependency": "Record authority-based jurisdiction evidence before any archive acceptance."
+    },
+    {
+      "target": "UK/IE",
+      "artifact": "artifacts/foio/uk_ie_capture_capability_audit.json",
+      "artifact_sha256": "425865653fa64a7c352b59f8272b0deabed1089be5f9a60f4768e82fc5ba7ade",
+      "archive_handoff_status": "implementation_ready_requires_authorized_nonempty_capture",
+      "blocking_gate": "uk-ie-authorized-nonempty-source",
+      "downstream_dependency": "Run an operator-authorized non-empty source capture before handing off immutable bundles."
+    },
+    {
+      "target": "DE/ES",
+      "artifact": "artifacts/foio/de_es_capture_capability_audit.json",
+      "artifact_sha256": "1e53d5849db860395778a4a5171db72498ec75ee6b79433f9fdbee6d5ad27c85",
+      "archive_handoff_status": "implementation_ready_requires_authorized_nonempty_capture",
+      "blocking_gate": "de-es-authorized-nonempty-source",
+      "downstream_dependency": "Preserve explicit profile selection and wait for operator-authorized non-empty capture evidence."
+    },
+    {
+      "target": "FR",
+      "artifact": "artifacts/foio/fr_capture_capability_audit.json",
+      "artifact_sha256": "1eb3287aed15065ed347c0375627d5f55e6640e447c6b52e6effd7847738e881",
+      "archive_handoff_status": "implementation_ready_requires_authorized_nonempty_capture",
+      "blocking_gate": "fr-authorized-nonempty-source",
+      "downstream_dependency": "A separately authorized non-empty France capture remains required before archive handoff."
+    },
+    {
+      "target": "US federal",
+      "artifact": "artifacts/foio/us_federal_capture_capability_audit.json",
+      "artifact_sha256": "168b22835797ab7ede6a852178eb383d96d5f40046d0f5de0171e7ebc64c2b45",
+      "archive_handoff_status": "blocked_pending_authorized_api_key_and_nonempty_catalog_evidence",
+      "blocking_gate": "us-federal-authorized-api-key-catalog-evidence",
+      "downstream_dependency": "FOIA.gov archive handoff remains blocked until operator-approved API-key evidence and non-empty catalog proof exist."
+    },
+    {
+      "target": "Canada federal",
+      "artifact": "artifacts/foio/canada_federal_capture_capability_audit.json",
+      "artifact_sha256": "7c31af171adfc162b3afc21b51896c12f25b488f760e5d73a963541f914ba857",
+      "archive_handoff_status": "blocked_pending_lawful_machine_readable_source",
+      "blocking_gate": "canada-federal-lawful-machine-readable-source",
+      "downstream_dependency": "A lawful machine-readable public source is required before request-response-attachment capture can hand off downstream."
+    },
+    {
+      "target": "South Africa",
+      "artifact": "artifacts/foio/south_africa_capture_capability_audit.json",
+      "artifact_sha256": "324c8cad46e0366d85834d2bcb69ed34afee79885ed9e5eb675a0b301bc1c140",
+      "archive_handoff_status": "blocked_pending_lawful_machine_readable_public_source",
+      "blocking_gate": "south-africa-lawful-machine-readable-source",
+      "downstream_dependency": "A lawful public machine-readable source is required before archive handoff can proceed."
+    }
+  ],
+  "downstream_dependencies": {
+    "archive": [
+      "Operator-authorized non-empty source evidence is required before any immutable handoff is accepted by fyi-archive.",
+      "Bounded capture outputs must stay provider-specific, content-addressed and resumable.",
+      "Unsupported targets remain explicitly blocked rather than silently falling back across profiles."
+    ],
+    "nlp": [
+      "NLP or other derived analysis remains downstream of archive handoff and is not authorized by discovery-only audits.",
+      "Platform state and derived text must never be treated as legal evidence."
+    ],
+    "process": [
+      "Live capture without operator authorization is prohibited.",
+      "Terms, robots and platform-policy review remain hard gates before any live source run.",
+      "Publication, redistribution, training and profile promotion remain prohibited without separate approval."
+    ]
+  },
+  "external_blockers": [
+    {
+      "id": "australian-authorized-nonempty-source",
+      "reason": "Await a separately authorized non-empty Australian source and authority evidence for archive acceptance.",
+      "evidence": [
+        "artifacts/foio/australian_capture_capability_audit.json",
+        "https://github.com/edithatogo/foi-o/pull/103"
+      ]
+    },
+    {
+      "id": "uk-ie-authorized-nonempty-source",
+      "reason": "Await an operator-authorized non-empty UK or Ireland source capture before archive handoff.",
+      "evidence": [
+        "artifacts/foio/uk_ie_capture_capability_audit.json"
+      ]
+    },
+    {
+      "id": "de-es-authorized-nonempty-source",
+      "reason": "Await an operator-authorized non-empty Germany or Spain source capture before archive handoff.",
+      "evidence": [
+        "artifacts/foio/de_es_capture_capability_audit.json"
+      ]
+    },
+    {
+      "id": "fr-authorized-nonempty-source",
+      "reason": "Await an operator-authorized non-empty France source capture before archive handoff.",
+      "evidence": [
+        "artifacts/foio/fr_capture_capability_audit.json"
+      ]
+    },
+    {
+      "id": "us-federal-authorized-api-key-catalog-evidence",
+      "reason": "Await operator-approved FOIA.gov API-key evidence and a lawful non-empty catalog proof before archive handoff.",
+      "evidence": [
+        "artifacts/foio/us_federal_capture_capability_audit.json",
+        "docs/government-api-evaluation.md"
+      ]
+    },
+    {
+      "id": "canada-federal-lawful-machine-readable-source",
+      "reason": "Await a lawful machine-readable Canada federal source before request-response-attachment capture can hand off downstream.",
+      "evidence": [
+        "artifacts/foio/canada_federal_capture_capability_audit.json",
+        "docs/government-api-evaluation.md"
+      ]
+    },
+    {
+      "id": "south-africa-lawful-machine-readable-source",
+      "reason": "Await a lawful machine-readable South Africa source before archive handoff can proceed.",
+      "evidence": [
+        "artifacts/foio/south_africa_capture_capability_audit.json",
+        "docs/government-api-evaluation.md"
+      ]
+    }
+  ],
+  "prohibitions": [
+    "live_capture_without_operator_authorization",
+    "cross_profile_fallback",
+    "treat_platform_state_as_legal_evidence",
+    "publication",
+    "redistribution",
+    "training",
+    "profile_promotion"
+  ]
+}

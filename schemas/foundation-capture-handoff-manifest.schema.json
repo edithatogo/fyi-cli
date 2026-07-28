@@ -1,0 +1,217 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/edithatogo/fyi-cli/schemas/foundation-capture-handoff-manifest.schema.json",
+  "title": "Foundation capture handoff manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "recorded_at",
+    "repository_revision",
+    "live_capture_performed",
+    "archive_target",
+    "summary",
+    "jurisdiction_audits",
+    "downstream_dependencies",
+    "external_blockers",
+    "prohibitions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "fyi-cli.foundation-capture-handoff-manifest.v0.1.0"
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "repository_revision": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "live_capture_performed": {
+      "const": false
+    },
+    "archive_target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "handoff_formats",
+        "capture_entrypoints"
+      ],
+      "properties": {
+        "repository": {
+          "const": "edithatogo/fyi-archive"
+        },
+        "handoff_formats": {
+          "const": [
+            "WARC",
+            "WACZ",
+            "derived_request_view"
+          ]
+        },
+        "capture_entrypoints": {
+          "const": [
+            "CaptureCaps",
+            "get_with_retry",
+            "write_warc_record",
+            "package_wacz",
+            "write_derived_store"
+          ]
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bounded_targets_total",
+        "implementation_ready_with_authorized_nonempty_capture",
+        "blocked_pending_external_source_or_policy"
+      ],
+      "properties": {
+        "bounded_targets_total": {
+          "const": 7
+        },
+        "implementation_ready_with_authorized_nonempty_capture": {
+          "const": 4
+        },
+        "blocked_pending_external_source_or_policy": {
+          "const": 3
+        }
+      }
+    },
+    "jurisdiction_audits": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "target",
+          "artifact",
+          "artifact_sha256",
+          "archive_handoff_status",
+          "blocking_gate",
+          "downstream_dependency"
+        ],
+        "properties": {
+          "target": {
+            "enum": [
+              "AU-CTH/AU-NSW",
+              "UK/IE",
+              "DE/ES",
+              "FR",
+              "US federal",
+              "Canada federal",
+              "South Africa"
+            ]
+          },
+          "artifact": {
+            "type": "string",
+            "pattern": "^artifacts/foio/.+\\.json$"
+          },
+          "artifact_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "archive_handoff_status": {
+            "enum": [
+              "implementation_ready_requires_authorized_nonempty_capture",
+              "blocked_pending_authorized_api_key_and_nonempty_catalog_evidence",
+              "blocked_pending_lawful_machine_readable_source",
+              "blocked_pending_lawful_machine_readable_public_source"
+            ]
+          },
+          "blocking_gate": {
+            "type": "string",
+            "minLength": 3
+          },
+          "downstream_dependency": {
+            "type": "string",
+            "minLength": 20
+          }
+        }
+      }
+    },
+    "downstream_dependencies": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "archive",
+        "nlp",
+        "process"
+      ],
+      "properties": {
+        "archive": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "string",
+            "minLength": 20
+          }
+        },
+        "nlp": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "string",
+            "minLength": 20
+          }
+        },
+        "process": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "string",
+            "minLength": 20
+          }
+        }
+      }
+    },
+    "external_blockers": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "reason",
+          "evidence"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 3
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 20
+          },
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 10
+            }
+          }
+        }
+      }
+    },
+    "prohibitions": {
+      "const": [
+        "live_capture_without_operator_authorization",
+        "cross_profile_fallback",
+        "treat_platform_state_as_legal_evidence",
+        "publication",
+        "redistribution",
+        "training",
+        "profile_promotion"
+      ]
+    }
+  }
+}
