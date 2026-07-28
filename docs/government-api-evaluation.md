@@ -71,3 +71,23 @@ responses, attachments, or timelines. That means:
 
 Canada should therefore remain blocked for public capture completion in this
 repository until a documented machine-readable public surface exists.
+
+## South Africa PAIA guidance
+
+Decision: keep this as a guidance-only or manual-route target; do not treat it
+as a machine-readable capture source.
+
+The Information Regulator publishes PAIA guidance at
+`https://inforegulator.org.za/paia/`. The public surface is a guidance/manual
+page rather than a stable public API for listing requests, responses,
+attachments, or timelines. That means:
+
+- the guidance page may be recorded as a stable official target identifier;
+- unattended scraping, browser automation, or submission driving is out of
+  scope;
+- no public request-response-attachment feed is available for archive handoff;
+- any future automation would require a separately justified lawful
+  machine-readable public source.
+
+South Africa should therefore remain blocked for public capture completion in
+this repository until a documented machine-readable public surface exists.

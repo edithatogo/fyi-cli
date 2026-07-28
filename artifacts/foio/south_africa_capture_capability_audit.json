@@ -1,0 +1,63 @@
+{
+  "schema_version": "fyi-cli.south-africa-capture-capability-audit.v0.1.0",
+  "recorded_at": "2026-07-28T11:20:00Z",
+  "repository_revision": "7650d38ef4da7e1723c83bbb18066da7ed9eb0ab",
+  "platform": {
+    "id": "za-inforegulator-paia",
+    "base_url": "https://inforegulator.org.za/paia/",
+    "country": "ZA",
+    "locale": "en-ZA",
+    "surface": "official_paia_guidance"
+  },
+  "support_matrix": [
+    {
+      "route": "official_paia_guidance",
+      "capture_status": "guidance_only_no_public_api",
+      "live_source_status": "public_guidance_available"
+    },
+    {
+      "route": "automated_request_submission",
+      "capture_status": "explicitly_prohibited_no_documented_public_submission_api",
+      "live_source_status": "blocked_external_access"
+    },
+    {
+      "route": "public_request_response_capture",
+      "capture_status": "unsupported_no_public_listing_api",
+      "live_source_status": "blocked_external_access"
+    },
+    {
+      "route": "public_attachment_timeline_capture",
+      "capture_status": "unsupported_no_public_listing_api",
+      "live_source_status": "blocked_external_access"
+    }
+  ],
+  "capabilities": [
+    "stable official PAIA guidance identifier",
+    "bounded legal-platform classification without automated interaction",
+    "guidance-only status preserved as a hard blocker",
+    "explicit no-public-API and no-scraping posture",
+    "source URL preservation for future operator-reviewed evidence",
+    "archive handoff remains blocked until a lawful machine-readable public source exists"
+  ],
+  "limitations": [
+    "the Information Regulator PAIA page provides manuals and guidance rather than a stable public API for listing requests, responses, attachments, or timelines",
+    "no documented public submission API is available for unattended request filing or evidence collection in this repository",
+    "no public listing endpoint is documented for non-empty archive handoff evidence, so request-response-attachment capture remains unsupported in this repository",
+    "bounded capability verification is implementation readiness evidence, not legal evidence"
+  ],
+  "explicit_route_assertion": "platform id and guidance route must be explicit and capture must not silently fall back to scraping, browser automation, or another provider",
+  "live_capture_performed": false,
+  "archive_handoff_status": "blocked_pending_lawful_machine_readable_public_source",
+  "prohibitions": [
+    "live_capture_without_operator_authorization",
+    "automated_form_submission",
+    "browser_automation_submission",
+    "cross_provider_fallback",
+    "treat_platform_state_as_legal_evidence",
+    "publication",
+    "redistribution",
+    "training",
+    "legal_certification",
+    "profile_promotion"
+  ]
+}
