@@ -2,7 +2,7 @@
 
 ## Summary
 
-- Surfaces scanned: 11
+- Surfaces scanned: 14
 - Missing surfaces: 0
 - Issues found: 0
 - High severity: 0
@@ -18,6 +18,9 @@
 - `CHANGELOG.md`: present
 - `Cargo.toml`: present
 - `pyproject.toml`: present
+- `CITATION.cff`: present
+- `.zenodo.json`: present
+- `artifacts/release/zenodo-mirror-manifest.json`: present
 - `.github/workflows/ci.yml`: present
 - `.github/workflows/release.yml`: present
 - `.github/workflows/release-please.yml`: present

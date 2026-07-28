@@ -18,6 +18,9 @@ RELEASE_SURFACES = [
     "CHANGELOG.md",
     "Cargo.toml",
     "pyproject.toml",
+    "CITATION.cff",
+    ".zenodo.json",
+    "artifacts/release/zenodo-mirror-manifest.json",
     ".github/workflows/ci.yml",
     ".github/workflows/release.yml",
     ".github/workflows/release-please.yml",
@@ -139,6 +142,126 @@ def _scan_rust_release_commands(repo_root: Path) -> list[Issue]:
     return issues
 
 
+def _extract_cff_value(text: str, key: str) -> str | None:
+    for line in text.splitlines():
+        if line.startswith(f"{key}:"):
+            value = line.split(":", 1)[1].strip()
+            return value.strip('"')
+    return None
+
+
+def _scan_citation_zenodo_alignment(repo_root: Path) -> list[Issue]:
+    citation_path = repo_root / "CITATION.cff"
+    zenodo_path = repo_root / ".zenodo.json"
+    manifest_path = repo_root / "artifacts/release/zenodo-mirror-manifest.json"
+    issues: list[Issue] = []
+
+    if not citation_path.exists() or not zenodo_path.exists() or not manifest_path.exists():
+        return issues
+
+    citation_text = _read_text(citation_path)
+    citation_title = _extract_cff_value(citation_text, "title")
+    citation_version = _extract_cff_value(citation_text, "version")
+    citation_repo = _extract_cff_value(citation_text, "repository-code")
+    citation_url = _extract_cff_value(citation_text, "url")
+
+    try:
+        zenodo = json.loads(_read_text(zenodo_path))
+        manifest = json.loads(_read_text(manifest_path))
+    except json.JSONDecodeError as exc:
+        return [
+            Issue(
+                code="release_metadata_json_invalid",
+                severity="high",
+                path=str(exc),
+                line=None,
+                message="Release metadata JSON must be valid.",
+            )
+        ]
+
+    if citation_title and citation_title != zenodo.get("title"):
+        issues.append(
+            Issue(
+                code="citation_zenodo_title_mismatch",
+                severity="medium",
+                path="CITATION.cff",
+                line=_line_number(citation_text, "title:"),
+                message="CITATION title does not match .zenodo.json title.",
+            )
+        )
+    if citation_version and citation_version != str(zenodo.get("version", "")):
+        issues.append(
+            Issue(
+                code="citation_zenodo_version_mismatch",
+                severity="high",
+                path="CITATION.cff",
+                line=_line_number(citation_text, "version:"),
+                message="CITATION version does not match .zenodo.json version.",
+            )
+        )
+
+    repo_url = "https://github.com/edithatogo/fyi-cli"
+    if citation_repo and citation_repo != repo_url:
+        issues.append(
+            Issue(
+                code="citation_repository_url_unexpected",
+                severity="medium",
+                path="CITATION.cff",
+                line=_line_number(citation_text, "repository-code:"),
+                message="CITATION repository-code should match the canonical repository URL.",
+            )
+        )
+    if citation_url and citation_url != repo_url:
+        issues.append(
+            Issue(
+                code="citation_url_unexpected",
+                severity="medium",
+                path="CITATION.cff",
+                line=_line_number(citation_text, "url:"),
+                message="CITATION url should match the canonical repository URL.",
+            )
+        )
+
+    release_version = str(manifest.get("release", {}).get("version", ""))
+    if citation_version and release_version and citation_version != release_version:
+        issues.append(
+            Issue(
+                code="citation_manifest_version_mismatch",
+                severity="high",
+                path="artifacts/release/zenodo-mirror-manifest.json",
+                line=None,
+                message="CITATION version does not match Zenodo mirror manifest release version.",
+            )
+        )
+
+    if zenodo.get("version") and release_version and str(zenodo["version"]) != release_version:
+        issues.append(
+            Issue(
+                code="zenodo_manifest_version_mismatch",
+                severity="high",
+                path=".zenodo.json",
+                line=None,
+                message=".zenodo.json version does not match Zenodo mirror manifest release version.",
+            )
+        )
+
+    concept_doi = manifest.get("zenodo", {}).get("concept_doi")
+    version_doi = manifest.get("zenodo", {}).get("version_doi")
+    status = manifest.get("zenodo", {}).get("verification_status")
+    if (concept_doi or version_doi) and status != "verified":
+        issues.append(
+            Issue(
+                code="zenodo_doi_without_verification",
+                severity="high",
+                path="artifacts/release/zenodo-mirror-manifest.json",
+                line=None,
+                message="Zenodo DOI fields are set but verification_status is not 'verified'.",
+            )
+        )
+
+    return issues
+
+
 def build_report(repo_root: Path) -> dict[str, Any]:
     """Build a release-readiness inventory without modifying the repository."""
     repo_root = repo_root.resolve()
@@ -163,6 +286,7 @@ def build_report(repo_root: Path) -> dict[str, Any]:
         issues.extend(_scan_legacy_commands(surface["path"], text))
 
     issues.extend(_scan_rust_release_commands(repo_root))
+    issues.extend(_scan_citation_zenodo_alignment(repo_root))
 
     return {
         "surfaces": surfaces,

@@ -122,6 +122,16 @@ Live listings and draft status: **[Where fyi-cli / fyi-mcp is listed](#where-fyi
 | [FAQ.md](FAQ.md) | Frequently asked questions |
 | [CHANGELOG.md](CHANGELOG.md) | Version history |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute |
+| [CITATION.cff](CITATION.cff) | Citation metadata for releases |
+| [.zenodo.json](.zenodo.json) | Zenodo release metadata source |
+
+---
+
+## 📚 Citation and Zenodo
+
+Release metadata is versioned in `CITATION.cff`, `.zenodo.json`, and
+`artifacts/release/zenodo-mirror-manifest.json`. DOI fields remain unset until the live Zenodo
+record is verified for the tagged release.
 
 ---
 

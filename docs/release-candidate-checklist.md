@@ -18,6 +18,10 @@ cargo +stable-x86_64-pc-windows-gnu build --release --locked --package fyi-cli
 - Confirm `git status --short` is clean before tagging.
 - Remove generated profiler files such as `crates/fyi-cli/dhat-heap.json`.
 - Keep publishing credentials out of local config and logs.
+- Keep `CITATION.cff`, `.zenodo.json`, and
+  `artifacts/release/zenodo-mirror-manifest.json` aligned to the same released version.
+- Leave `concept_doi` and `version_doi` as `null` in the mirror manifest until the live Zenodo
+  record is verified for the exact release tag.
 
 ## Secret-Gated Steps
 
@@ -30,3 +34,6 @@ cargo +stable-x86_64-pc-windows-gnu build --release --locked --package fyi-cli
 - Fix any issues reported in `docs/release-readiness-inventory.md`.
 - Re-run the local verification commands after documentation or workflow changes.
 - Use live FYI.org.nz smoke tests only with explicit opt-in and polite rate limits.
+- For each release, verify GitHub→Zenodo archiving in Zenodo, then update `concept_doi`,
+  `version_doi`, `verified_at`, and `verification_status` in
+  `artifacts/release/zenodo-mirror-manifest.json`.

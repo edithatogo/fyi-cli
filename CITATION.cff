@@ -10,5 +10,5 @@ authors:
 repository-code: "https://github.com/edithatogo/fyi-cli"
 url: "https://github.com/edithatogo/fyi-cli"
 license: MIT
-version: "0.1.0"
-date-released: "2026-07-09"
+version: "1.2.0"
+date-released: "2026-07-10"
