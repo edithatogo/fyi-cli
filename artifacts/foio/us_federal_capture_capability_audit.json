@@ -1,0 +1,64 @@
+{
+  "schema_version": "fyi-cli.us-federal-capture-capability-audit.v0.1.0",
+  "recorded_at": "2026-07-28T10:58:00Z",
+  "repository_revision": "1498e81444d211d9f32bde0d17e852781c1e3edb",
+  "platform": {
+    "id": "us-foia-gov",
+    "base_url": "https://api.foia.gov/api/agency_components",
+    "country": "US",
+    "locale": "en-US",
+    "surface": "agency_component_catalog"
+  },
+  "support_matrix": [
+    {
+      "route": "agency_component_catalog",
+      "capture_status": "discovery_only_authorized_api_key_required",
+      "live_source_status": "blocked_external_access"
+    },
+    {
+      "route": "agency_request_submission",
+      "capture_status": "explicitly_prohibited_write_surface",
+      "live_source_status": "blocked_external_access"
+    },
+    {
+      "route": "public_request_response_capture",
+      "capture_status": "unsupported_decentralized_agency_delivery",
+      "live_source_status": "blocked_external_access"
+    },
+    {
+      "route": "public_attachment_timeline_capture",
+      "capture_status": "unsupported_no_general_public_api",
+      "live_source_status": "blocked_external_access"
+    }
+  ],
+  "capabilities": [
+    "fixed HTTPS FOIA.gov allowlist",
+    "bounded read-only agency/component catalog discovery",
+    "JSON:API shape fingerprinting",
+    "request-count, page, byte, and timeout caps",
+    "source URL and retrieval timestamp preservation",
+    "fail-closed block on Agency API POST routes",
+    "archive handoff remains blocked until authorized non-empty catalog evidence"
+  ],
+  "limitations": [
+    "FOIA.gov catalog reads require an operator-approved API key and are not available for unauthenticated live verification in this repository",
+    "federal request submission is decentralized across agencies, so the general Agency API POST surface is outside the bounded read-only capture contract",
+    "no public FOIA.gov route provides generic request-response-attachment-timeline capture suitable for archive handoff without agency-specific authorization",
+    "bounded capability verification is implementation readiness evidence, not legal evidence"
+  ],
+  "explicit_route_assertion": "platform id and discovery route must be explicit and capture must not silently fall back to non-federal providers or agency POST surfaces",
+  "live_capture_performed": false,
+  "archive_handoff_status": "blocked_pending_authorized_api_key_and_nonempty_catalog_evidence",
+  "prohibitions": [
+    "live_capture_without_operator_authorization",
+    "agency_api_post_calls",
+    "cross_provider_fallback",
+    "assume_public_request_api",
+    "treat_platform_state_as_legal_evidence",
+    "publication",
+    "redistribution",
+    "training",
+    "legal_certification",
+    "profile_promotion"
+  ]
+}
