@@ -17,6 +17,23 @@ CRATE_FILES = (
     "crates/fyi-cli/Cargo.toml",
     "crates/fyi-mcp/Cargo.toml",
 )
+HOSTED_CONNECTOR_DOCS = {
+    "deploy/remote-mcp/README.md": (
+        "FYI_MCP_TRANSPORT=http",
+        "FYI_MCP_HTTP_BEARER_TOKEN",
+        "/healthz",
+    ),
+    "docs/release-multi-registry.md": (
+        "FYI_MCP_TRANSPORT=http",
+        "hosted MCP deployment contract",
+        "/healthz",
+    ),
+    "docs/containers.md": (
+        "FYI_MCP_TRANSPORT=http",
+        "/healthz",
+        "deploy/remote-mcp/README.md",
+    ),
+}
 VERSION_RE = re.compile(r'^version\s*=\s*"(?P<version>[^"\n]+)"$', re.MULTILINE)
 
 
@@ -40,6 +57,28 @@ def crate_versions(repo_root: Path) -> dict[str, str]:
             raise ValueError(f"missing package version in {relative}")
         versions[relative] = match.group("version")
     return versions
+
+
+def hosted_connector_docs_check(repo_root: Path) -> dict[str, Any]:
+    missing: list[str] = []
+    for relative, snippets in HOSTED_CONNECTOR_DOCS.items():
+        path = repo_root / relative
+        if not path.is_file():
+            missing.append(f"{relative} missing")
+            continue
+        text = path.read_text(encoding="utf-8")
+        for snippet in snippets:
+            if snippet not in text:
+                missing.append(f"{relative} missing {snippet!r}")
+    return {
+        "id": "hosted-connector-docs",
+        "ok": not missing,
+        "message": (
+            "hosted connector docs cover opt-in HTTP transport and deployment prerequisites"
+            if not missing
+            else "; ".join(missing)
+        ),
+    }
 
 
 def build_report(repo_root: Path = ROOT, requested_version: str | None = None) -> dict[str, Any]:
@@ -77,6 +116,7 @@ def build_report(repo_root: Path = ROOT, requested_version: str | None = None) -
             "message": f"{len(packaging.errors)} errors, {len(packaging.warnings)} warnings",
         }
     )
+    checks.append(hosted_connector_docs_check(repo_root))
     return {
         "schema_version": 1,
         "ok": all(check["ok"] for check in checks),
@@ -85,6 +125,7 @@ def build_report(repo_root: Path = ROOT, requested_version: str | None = None) -
         "operator_actions": [
             f"Create and push the annotated tag v{version} after this report passes.",
             "Confirm required package-registry credentials are available to GitHub Actions.",
+            "If targeting hosted Connector directories, verify an HTTPS deployment with FYI_MCP_TRANSPORT=http, bearer-token auth, and /healthz against deploy/remote-mcp/README.md before claiming compatibility.",
             "Record public release URLs, digests, and registry outcomes after publication.",
         ],
     }

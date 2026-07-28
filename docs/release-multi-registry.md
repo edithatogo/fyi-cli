@@ -102,8 +102,11 @@ Also:
 4. Update [`registry-distribution-matrix.md`](./registry-distribution-matrix.md) only after public proof.
 
 Hosted Connector submissions have an additional prerequisite: the current
-`fyi-mcp` binary is stdio-only. Review the [hosted MCP deployment contract](../deploy/remote-mcp/README.md)
-before claiming that a remote HTTPS connector is available.
+`fyi-mcp` binary defaults to stdio, but it also has an opt-in stateless HTTP
+JSON-RPC mode via `FYI_MCP_TRANSPORT=http`. Review the
+[hosted MCP deployment contract](../deploy/remote-mcp/README.md) and verify an
+HTTPS deployment with bearer-token auth and `/healthz` before claiming that a
+remote Connector is available.
 
 ### Catalog & PM checklist (link map)
 

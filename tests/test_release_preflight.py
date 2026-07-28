@@ -18,6 +18,9 @@ def test_current_release_preflight_passes():
     report = module.build_report()
     assert report["ok"] is True
     assert report["version"] == "0.1.2"
+    assert any(
+        check["id"] == "hosted-connector-docs" and check["ok"] for check in report["checks"]
+    )
 
 
 def test_requested_version_mismatch_fails():
@@ -25,3 +28,12 @@ def test_requested_version_mismatch_fails():
     report = module.build_report(requested_version="9.9.9")
     assert report["ok"] is False
     assert any(check["id"] == "requested-version" and not check["ok"] for check in report["checks"])
+
+
+def test_operator_actions_include_hosted_connector_prerequisite():
+    module = load_module()
+    report = module.build_report()
+    assert any(
+        "FYI_MCP_TRANSPORT=http" in action and "deploy/remote-mcp/README.md" in action
+        for action in report["operator_actions"]
+    )
