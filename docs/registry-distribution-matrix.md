@@ -25,7 +25,7 @@ Machine-readable submission ledger: [`packaging/registry-submissions.json`](../p
 | Target | Status | Evidence / next step | Issue |
 |--------|--------|----------------------|-------|
 | Official MCP Registry (`io.github.edithatogo/fyi-mcp`) | **live** | API shows `0.1.2` active/latest; `server.json` in repo | — |
-| OpenAI Codex plugins | **assets-ready** | [`packaging/ai-plugins/codex/`](../packaging/ai-plugins/codex/) is validated; external submission and public evidence remain pending | #197 |
+| OpenAI plugin directory (Codex) | **assets-ready** | [`packaging/ai-plugins/codex/`](../packaging/ai-plugins/codex/) is validated; packet refreshed to the current plugin-directory model, but external submission and public evidence remain pending | #197 |
 | Anthropic Claude Connectors Directory | **assets-ready** | [`packaging/ai-plugins/anthropic/`](../packaging/ai-plugins/anthropic/) is validated; external submission and public evidence remain pending | #198 |
 | Glama | **live** | Listed as [fyi-mcp by edithatogo](https://glama.ai/mcp/servers/edithatogo/fyi-cli); search `author:edithatogo` returns the server; scores license A / quality A / maintenance B | #25 |
 | Smithery | **live** (score pending external) | Registry: `edithatogo/fyi-mcp`; page [smithery.ai/server/@edithatogo/fyi-mcp](https://smithery.ai/server/@edithatogo/fyi-mcp). Fresh 2026-07-11 API check: `score=null`, `useCount=0`, `remote=false`; detail exposes 14 tools / 2 resources / 3 prompts. Playbook: [docs/external-registry-followups.md](external-registry-followups.md) | #26 |
