@@ -23,7 +23,7 @@ package (`fyi_system`) remains available as a reference implementation but is no
 |--------------------|------------------|--------|------|
 | **Official MCP Registry** | `io.github.edithatogo/fyi-mcp` @ `0.1.2` | Live | [registry.modelcontextprotocol.io](https://registry.modelcontextprotocol.io/) · [`server.json`](server.json) |
 | **OpenAI plugin directory (Codex)** | `fyi-mcp` plugin packet | Assets ready — external submission pending | [`packaging/ai-plugins/codex/`](packaging/ai-plugins/codex/) |
-| **Anthropic Claude Connectors** | `fyi-mcp` connector packet | Assets ready — external submission pending | [`packaging/ai-plugins/anthropic/`](packaging/ai-plugins/anthropic/) |
+| **Anthropic Claude Connectors** | `fyi-mcp` connector packet | Assets ready — hosted HTTPS deployment and external submission pending | [`packaging/ai-plugins/anthropic/`](packaging/ai-plugins/anthropic/) |
 | **Glama** | `edithatogo/fyi-cli` (`fyi-mcp`) | Live | [glama.ai/mcp/servers/edithatogo/fyi-cli](https://glama.ai/mcp/servers/edithatogo/fyi-cli) · [scores](https://glama.ai/mcp/servers/edithatogo/fyi-cli/score) |
 | **Smithery** | `edithatogo/fyi-mcp` | Live (score pending) | [smithery.ai/server/@edithatogo/fyi-mcp](https://smithery.ai/server/@edithatogo/fyi-mcp) |
 | **PyPI** | `fyi-cli` (legacy Python package) | Live | [pypi.org/project/fyi-cli](https://pypi.org/project/fyi-cli/) |
