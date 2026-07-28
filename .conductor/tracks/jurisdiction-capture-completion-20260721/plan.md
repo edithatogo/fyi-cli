@@ -20,6 +20,12 @@
   - [x] Capture authorization/policy blockers as explicit gates in `metadata.json`
     (do not proceed to unrestricted live capture).
 - [ ] Rescan and implement official Alaveteli deployments one jurisdiction at a time.
-- [ ] Verify/add Germany, Spain and Ireland platform support.
+- [x] Verify/add Germany, Spain and Ireland platform support.
+  - [x] Confirm bounded read-only discovery + request JSON/HTML/attachment capture for
+    `de-fds` and `es-tdas` using explicit profile selectors with no cross-profile fallback.
+    (`de_es_capture_capability_audit.json`)
+  - [x] Keep Ireland (`ie-myrighttoknow`) coverage under the UK+IE bounded capture increment.
+  - [x] Preserve explicit external authorization gates for non-empty live capture runs prior to
+    archive handoff.
 - [ ] Implement explicitly bounded non-Alaveteli adapters for Canada federal, US federal and South Africa.
 - [ ] At each increment, stop before live capture without operator authorization and record archive/NLP/process dependencies.
