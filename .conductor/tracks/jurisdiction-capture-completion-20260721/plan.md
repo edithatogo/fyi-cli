@@ -19,7 +19,12 @@
     `425865653fa64a7c352b59f8272b0deabed1089be5f9a60f4768e82fc5ba7ade`)
   - [x] Capture authorization/policy blockers as explicit gates in `metadata.json`
     (do not proceed to unrestricted live capture).
-- [ ] Rescan and implement official Alaveteli deployments one jurisdiction at a time.
+- [~] Rescan and implement official Alaveteli deployments one jurisdiction at a time.
+  - [x] Confirm bounded read-only discovery + request JSON/HTML/attachment capture for
+    `fr-cada` using the explicit profile selector with no cross-profile fallback.
+    (`fr_capture_capability_audit.json`)
+  - [x] Preserve an explicit external authorization gate for non-empty France live capture prior
+    to archive handoff.
 - [x] Verify/add Germany, Spain and Ireland platform support.
   - [x] Confirm bounded read-only discovery + request JSON/HTML/attachment capture for
     `de-fds` and `es-tdas` using explicit profile selectors with no cross-profile fallback.

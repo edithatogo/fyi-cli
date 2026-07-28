@@ -1,0 +1,46 @@
+{
+  "schema_version": "fyi-cli.fr-capture-capability-audit.v0.1.0",
+  "recorded_at": "2026-07-28T10:28:00Z",
+  "repository_revision": "29e0e6b33605d4bd4e7853bcdd2c6c93a7c6b89e",
+  "instances": [
+    {
+      "id": "fr-cada",
+      "base_url": "https://www.madada.fr",
+      "country": "FR",
+      "locale": "fr-FR",
+      "capture_status": "generic_alaveteli_capture_supported",
+      "live_source_status": "blocked_external_access"
+    }
+  ],
+  "capabilities": [
+    "profile-selected Alaveteli base URL",
+    "bounded read-only discovery",
+    "request JSON capture",
+    "rendered request HTML capture",
+    "attachment discovery from JSON and HTML",
+    "bounded transport and server-error retries",
+    "byte, runtime, and disk caps",
+    "content-addressed WARC and WACZ output",
+    "derived request view with resource SHA-256",
+    "checkpointed resumable export path"
+  ],
+  "limitations": [
+    "Ma Dada origin availability is external to fyi-cli",
+    "non-empty live capture requires separate operator authorization and policy checks",
+    "bounded capability verification is implementation readiness evidence, not legal evidence"
+  ],
+  "no_fallback_assertion": "profile id must be explicit and capture must not silently fall back across profiles",
+  "live_capture_performed": false,
+  "archive_handoff_status": "implementation_ready_requires_authorized_nonempty_capture",
+  "prohibitions": [
+    "live_capture_without_operator_authorization",
+    "cross_profile_fallback",
+    "infer_jurisdiction_from_request_text",
+    "treat_platform_state_as_legal_evidence",
+    "publication",
+    "redistribution",
+    "training",
+    "legal_certification",
+    "profile_promotion"
+  ]
+}
