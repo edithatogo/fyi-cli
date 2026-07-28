@@ -72,6 +72,8 @@ BINSTALL_METADATA_ASSETS: tuple[str, ...] = (
     "crates/fyi-cli/Cargo.toml",
     "crates/fyi-mcp/Cargo.toml",
 )
+README_PATH = "README.md"
+README_BINSTALL_READY_PHRASE = "| **cargo-binstall** | `cargo binstall fyi-cli` | **assets-ready**"
 
 # Files expected to embed a concrete release version string (e.g. 0.1.2).
 # Paths relative to repo root. Checked only when the file exists.
@@ -240,6 +242,52 @@ def check_binstall_metadata(
     return results
 
 
+def check_packaging_readme(
+    repo_root: Path, relative: str | None = README_PATH
+) -> list[CheckResult]:
+    """Ensure README packaging copy matches cargo-binstall's assets-ready state."""
+    if relative is None:
+        return []
+    path = repo_root / relative
+    if not path.is_file():
+        return [
+            CheckResult(
+                path=relative,
+                kind="docs",
+                ok=False,
+                message="missing",
+                severity="error",
+            )
+        ]
+    text = path.read_text(encoding="utf-8", errors="replace")
+    errors: list[str] = []
+    if README_BINSTALL_READY_PHRASE not in text:
+        errors.append("missing assets-ready cargo-binstall install row")
+    for line in text.splitlines():
+        if line.startswith("**Draft / not yet submitted:**") and "cargo-binstall" in line:
+            errors.append("draft/unsubmitted list still includes cargo-binstall")
+            break
+    if errors:
+        return [
+            CheckResult(
+                path=relative,
+                kind="docs",
+                ok=False,
+                message="; ".join(errors),
+                severity="error",
+            )
+        ]
+    return [
+        CheckResult(
+            path=relative,
+            kind="docs",
+            ok=True,
+            message="README cargo-binstall wording aligned",
+            severity="info",
+        )
+    ]
+
+
 def check_versions(
     repo_root: Path,
     expected_version: str,
@@ -291,6 +339,7 @@ def verify_packaging_assets(
     optional: Iterable[str] = OPTIONAL_ASSETS,
     versioned: Iterable[str] = VERSIONED_ASSETS,
     binstall_assets: Iterable[str] = BINSTALL_METADATA_ASSETS,
+    readme_path: str | None = README_PATH,
 ) -> VerificationReport:
     """Run all packaging asset checks and return a structured report."""
     repo_root = repo_root.resolve()
@@ -306,6 +355,7 @@ def verify_packaging_assets(
     )
     report.results.extend(check_versions(repo_root, version, versioned))
     report.results.extend(check_binstall_metadata(repo_root, binstall_assets))
+    report.results.extend(check_packaging_readme(repo_root, readme_path))
     return report
 
 
@@ -324,6 +374,7 @@ def format_human_report(report: VerificationReport) -> str:
     ]
     version_fail = [r for r in report.results if r.kind == "version" and not r.ok]
     binstall_fail = [r for r in report.results if r.kind == "binstall" and not r.ok]
+    docs_fail = [r for r in report.results if r.kind == "docs" and not r.ok]
     optional_missing = [
         r for r in report.results if r.kind == "optional" and not r.ok
     ]
@@ -343,6 +394,12 @@ def format_human_report(report: VerificationReport) -> str:
     if binstall_fail:
         lines.append("cargo-binstall wiring issues:")
         for r in binstall_fail:
+            lines.append(f"  - {r.path}: {r.message}")
+        lines.append("")
+
+    if docs_fail:
+        lines.append("Packaging README issues:")
+        for r in docs_fail:
             lines.append(f"  - {r.path}: {r.message}")
         lines.append("")
 
