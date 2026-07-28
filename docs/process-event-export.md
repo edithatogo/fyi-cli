@@ -2,7 +2,7 @@
 
 `fyi export-process-events` creates a deterministic, public-safe NDJSON projection for `fyi-archive` and `foi-process`.
 
-The contract is versioned as `1.0.0` in `schemas/process-event.schema.json` and `schemas/attachment-metadata.schema.json`. Source order is retained in `source_order`; timestamps are used for analysis but never for reordering. Request titles, message bodies, requester identity, OCR text, attachment names, and attachment bytes are excluded. Attachment rows contain only metadata and an optional public locator/WARC record reference.
+The contract is versioned as `1.0.0` in `schemas/process-event.schema.json` and `schemas/attachment-metadata.schema.json`. Source order is retained in `source_order`; timestamps are used for analysis but never for reordering. Request titles, message bodies, requester identity, OCR text, attachment names, and attachment bytes are excluded. Attachment rows contain only metadata and an optional public locator/WARC record reference. When a captured request directory contains a sibling `attachments.json` sidecar, the exporter loads that sidecar so archive-captured attachment digests, sizes, and WARC references are not silently dropped.
 
 Use `--checkpoint` for resumable continuation. A changed source activity with the same source reference retains its `event_id` and increments `revision`. Removed events produce one `operation=delete` tombstone. Re-running against the same checkpoint is a no-op.
 
