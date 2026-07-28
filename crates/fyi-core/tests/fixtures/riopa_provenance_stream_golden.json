@@ -1,0 +1,85 @@
+{
+  "profile": "riopa.provenance.capture.v1",
+  "generated_at": "2026-07-01T00:02:00Z",
+  "source": "fyi-cli://capture",
+  "input_ref": "urn:fyi:capture-input:synthetic",
+  "output_ref": "urn:fyi:capture-output:synthetic",
+  "agent": "fyi-cli/0.1.0",
+  "rights": "operator-authorized-read-only",
+  "schema_refs": [
+    "https://example.invalid/riopa/provenance/v1",
+    "https://github.com/edithatogo/fyi-cli/crates/fyi-core/src/provenance.rs"
+  ],
+  "semantic_gaps": [
+    "payload bytes are not embedded; only content hashes are emitted",
+    "no external timestamp authority attestation is captured",
+    "no stream-level cryptographic signature is currently emitted"
+  ],
+  "unsupported_fields": [
+    "signature",
+    "witness_log",
+    "retention_policy_id"
+  ],
+  "events": [
+    {
+      "event_id": "riopa:0:4c14696ff3ec5531bc60827a5095f45cf9564bbfeb918e370c50638ade3ab343",
+      "event_type": "capture.artifact.recorded",
+      "recorded_at": "2026-07-01T00:00:00Z",
+      "source": "fyi-cli://capture",
+      "input": {
+        "reference": "urn:fyi:capture-input:synthetic",
+        "hash": "d14eccd7caab56bb1b0042546d728172943278dedbb869603a0be39dd3b5d9e6"
+      },
+      "output": {
+        "reference": "urn:fyi:capture-output:synthetic",
+        "hash": "4c14696ff3ec5531bc60827a5095f45cf9564bbfeb918e370c50638ade3ab343"
+      },
+      "agent": "fyi-cli/0.1.0",
+      "rights": "operator-authorized-read-only",
+      "schema_refs": [
+        "https://example.invalid/riopa/provenance/v1",
+        "https://github.com/edithatogo/fyi-cli/crates/fyi-core/src/provenance.rs"
+      ],
+      "integrity": {
+        "chain_algorithm": "sha256-prev-hash-v1",
+        "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "payload_hash": "d14eccd7caab56bb1b0042546d728172943278dedbb869603a0be39dd3b5d9e6",
+        "record_hash": "4c14696ff3ec5531bc60827a5095f45cf9564bbfeb918e370c50638ade3ab343"
+      },
+      "chain": {
+        "sequence": 0,
+        "payload_id": "capture/request-42.json"
+      }
+    },
+    {
+      "event_id": "riopa:1:80750420f1e34537daf87f292dfbb99cadb1fee17640d0db458f679c57d239f2",
+      "event_type": "capture.artifact.recorded",
+      "recorded_at": "2026-07-01T00:01:00Z",
+      "source": "fyi-cli://capture",
+      "input": {
+        "reference": "urn:fyi:capture-input:synthetic",
+        "hash": "aa9cd89cd79ad9b3d0671d41e86efc58cfb38a8208659373cc7ee0e85e43e5b7"
+      },
+      "output": {
+        "reference": "urn:fyi:capture-output:synthetic",
+        "hash": "80750420f1e34537daf87f292dfbb99cadb1fee17640d0db458f679c57d239f2"
+      },
+      "agent": "fyi-cli/0.1.0",
+      "rights": "operator-authorized-read-only",
+      "schema_refs": [
+        "https://example.invalid/riopa/provenance/v1",
+        "https://github.com/edithatogo/fyi-cli/crates/fyi-core/src/provenance.rs"
+      ],
+      "integrity": {
+        "chain_algorithm": "sha256-prev-hash-v1",
+        "prev_hash": "4c14696ff3ec5531bc60827a5095f45cf9564bbfeb918e370c50638ade3ab343",
+        "payload_hash": "aa9cd89cd79ad9b3d0671d41e86efc58cfb38a8208659373cc7ee0e85e43e5b7",
+        "record_hash": "80750420f1e34537daf87f292dfbb99cadb1fee17640d0db458f679c57d239f2"
+      },
+      "chain": {
+        "sequence": 1,
+        "payload_id": "capture/request-42-attachment-1.bin"
+      }
+    }
+  ]
+}

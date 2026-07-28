@@ -29,6 +29,70 @@ pub struct ProvenanceRecord {
     pub record_hash: String,
 }
 
+/// Context fields required to emit RIOPA-compatible provenance events.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RiopaEmissionContext {
+    pub generated_at: String,
+    pub source: String,
+    pub input_ref: String,
+    pub output_ref: String,
+    pub agent: String,
+    pub rights: String,
+    pub schema_refs: Vec<String>,
+}
+
+/// One emitted RIOPA-compatible artifact/capture event.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RiopaArtifactEvent {
+    pub event_id: String,
+    pub event_type: String,
+    pub recorded_at: String,
+    pub source: String,
+    pub input: RiopaIoRef,
+    pub output: RiopaIoRef,
+    pub agent: String,
+    pub rights: String,
+    pub schema_refs: Vec<String>,
+    pub integrity: RiopaIntegrity,
+    pub chain: RiopaChainLink,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RiopaIoRef {
+    pub reference: String,
+    pub hash: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RiopaIntegrity {
+    pub chain_algorithm: String,
+    pub prev_hash: String,
+    pub payload_hash: String,
+    pub record_hash: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RiopaChainLink {
+    pub sequence: u64,
+    pub payload_id: String,
+}
+
+/// Captured RIOPA emission payload including semantic-loss notes.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RiopaEventStream {
+    pub profile: String,
+    pub generated_at: String,
+    pub source: String,
+    pub input_ref: String,
+    pub output_ref: String,
+    pub agent: String,
+    pub rights: String,
+    pub schema_refs: Vec<String>,
+    pub semantic_gaps: Vec<String>,
+    pub unsupported_fields: Vec<String>,
+    pub events: Vec<RiopaArtifactEvent>,
+}
+
 /// Compute SHA-256 hex digest of arbitrary bytes.
 pub fn sha256_hex(data: &[u8]) -> String {
     let mut hasher = Sha256::new();
@@ -184,6 +248,66 @@ pub fn verify_chain_with_payloads(
     Ok(())
 }
 
+/// Emit a RIOPA-compatible event stream from a validated provenance chain.
+pub fn emit_riopa_event_stream(
+    chain: &[ProvenanceRecord],
+    context: &RiopaEmissionContext,
+) -> Result<RiopaEventStream, ProvenanceError> {
+    verify_chain(chain)?;
+    let events = chain
+        .iter()
+        .map(|record| RiopaArtifactEvent {
+            event_id: format!("riopa:{}:{}", record.sequence, record.record_hash),
+            event_type: "capture.artifact.recorded".to_string(),
+            recorded_at: record.recorded_at.clone(),
+            source: context.source.clone(),
+            input: RiopaIoRef {
+                reference: context.input_ref.clone(),
+                hash: record.payload_hash.clone(),
+            },
+            output: RiopaIoRef {
+                reference: context.output_ref.clone(),
+                hash: record.record_hash.clone(),
+            },
+            agent: context.agent.clone(),
+            rights: context.rights.clone(),
+            schema_refs: context.schema_refs.clone(),
+            integrity: RiopaIntegrity {
+                chain_algorithm: "sha256-prev-hash-v1".to_string(),
+                prev_hash: record.prev_hash.clone(),
+                payload_hash: record.payload_hash.clone(),
+                record_hash: record.record_hash.clone(),
+            },
+            chain: RiopaChainLink {
+                sequence: record.sequence,
+                payload_id: record.payload_id.clone(),
+            },
+        })
+        .collect();
+
+    Ok(RiopaEventStream {
+        profile: "riopa.provenance.capture.v1".to_string(),
+        generated_at: context.generated_at.clone(),
+        source: context.source.clone(),
+        input_ref: context.input_ref.clone(),
+        output_ref: context.output_ref.clone(),
+        agent: context.agent.clone(),
+        rights: context.rights.clone(),
+        schema_refs: context.schema_refs.clone(),
+        semantic_gaps: vec![
+            "payload bytes are not embedded; only content hashes are emitted".to_string(),
+            "no external timestamp authority attestation is captured".to_string(),
+            "no stream-level cryptographic signature is currently emitted".to_string(),
+        ],
+        unsupported_fields: vec![
+            "signature".to_string(),
+            "witness_log".to_string(),
+            "retention_policy_id".to_string(),
+        ],
+        events,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -256,5 +380,47 @@ mod tests {
         let restored: Vec<ProvenanceRecord> = serde_json::from_str(&json).unwrap();
         assert_eq!(chain, restored);
         assert!(verify_chain(&restored).is_ok());
+    }
+
+    #[test]
+    fn emit_riopa_stream_preserves_chain_integrity_fields() {
+        let first = append_record(
+            &[],
+            "2026-07-01T00:00:00Z",
+            "capture/request-42.json",
+            b"payload-a",
+        );
+        let second = append_record(
+            std::slice::from_ref(&first),
+            "2026-07-01T00:01:00Z",
+            "capture/request-42-attachment-1.bin",
+            b"payload-b",
+        );
+        let chain = vec![first, second];
+        let context = RiopaEmissionContext {
+            generated_at: "2026-07-01T00:02:00Z".to_string(),
+            source: "fyi-cli://capture".to_string(),
+            input_ref: "urn:fyi:capture-input:synthetic".to_string(),
+            output_ref: "urn:fyi:capture-output:synthetic".to_string(),
+            agent: "fyi-cli/0.1.0".to_string(),
+            rights: "operator-authorized-read-only".to_string(),
+            schema_refs: vec![
+                "https://example.invalid/riopa/provenance/v1".to_string(),
+                "https://github.com/edithatogo/fyi-cli/crates/fyi-core/src/provenance.rs"
+                    .to_string(),
+            ],
+        };
+
+        let stream = emit_riopa_event_stream(&chain, &context).unwrap();
+        assert_eq!(stream.events.len(), 2);
+        assert_eq!(stream.events[0].integrity.prev_hash, GENESIS_PREV_HASH);
+        assert_eq!(
+            stream.events[1].integrity.prev_hash,
+            stream.events[0].integrity.record_hash
+        );
+        assert_eq!(
+            stream.events[1].chain.payload_id,
+            "capture/request-42-attachment-1.bin"
+        );
     }
 }
