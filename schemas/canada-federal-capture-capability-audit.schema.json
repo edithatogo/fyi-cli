@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/edithatogo/fyi-cli/schemas/canada-federal-capture-capability-audit.schema.json",
+  "title": "Canada federal bounded capture capability audit",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "recorded_at",
+    "repository_revision",
+    "platform",
+    "support_matrix",
+    "capabilities",
+    "limitations",
+    "explicit_route_assertion",
+    "live_capture_performed",
+    "archive_handoff_status",
+    "prohibitions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "fyi-cli.canada-federal-capture-capability-audit.v0.1.0"
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "repository_revision": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "platform": {
+      "const": {
+        "id": "ca-atip-online-request",
+        "base_url": "https://atip-aiprp.apps.gc.ca/atip/",
+        "country": "CA",
+        "locale": "en-CA",
+        "surface": "manual_online_request_portal"
+      }
+    },
+    "support_matrix": {
+      "const": [
+        {
+          "route": "manual_online_request_portal",
+          "capture_status": "manual_route_only_no_public_api",
+          "live_source_status": "public_portal_visible"
+        },
+        {
+          "route": "automated_request_submission",
+          "capture_status": "explicitly_prohibited_identity_consent_surface",
+          "live_source_status": "blocked_external_access"
+        },
+        {
+          "route": "public_request_response_capture",
+          "capture_status": "unsupported_no_public_listing_api",
+          "live_source_status": "blocked_external_access"
+        },
+        {
+          "route": "public_attachment_timeline_capture",
+          "capture_status": "unsupported_no_public_listing_api",
+          "live_source_status": "blocked_external_access"
+        }
+      ]
+    },
+    "capabilities": {
+      "type": "array",
+      "minItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 3
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 10
+      }
+    },
+    "explicit_route_assertion": {
+      "const": "platform id and route must be explicit and capture must not silently fall back to scraping, browser automation, or another provider"
+    },
+    "live_capture_performed": {
+      "const": false
+    },
+    "archive_handoff_status": {
+      "const": "blocked_pending_lawful_machine_readable_source"
+    },
+    "prohibitions": {
+      "const": [
+        "live_capture_without_operator_authorization",
+        "automated_form_submission",
+        "browser_automation_submission",
+        "cross_provider_fallback",
+        "treat_platform_state_as_legal_evidence",
+        "publication",
+        "redistribution",
+        "training",
+        "legal_certification",
+        "profile_promotion"
+      ]
+    }
+  }
+}

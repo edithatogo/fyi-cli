@@ -36,6 +36,7 @@
   - [x] Record US federal FOIA.gov as a bounded discovery-only target with explicit blocked
     request/attachment/timeline capture status and no POST fallback assumptions.
     (`us_federal_capture_capability_audit.json`)
-  - [ ] Record Canada federal as a discovery-only or manual-route target with stable blockers.
+  - [x] Record Canada federal as a discovery-only or manual-route target with stable blockers.
+    (`canada_federal_capture_capability_audit.json`)
   - [ ] Record South Africa as a bounded unsupported/blocked target with stable blockers.
 - [ ] At each increment, stop before live capture without operator authorization and record archive/NLP/process dependencies.

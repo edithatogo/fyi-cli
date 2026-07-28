@@ -24,7 +24,7 @@ Research snapshot: 2026-07-12. This inventory deliberately excludes Alaveteli de
 - FragDenStaat API and OpenAPI schema: <https://fragdenstaat.de/en/api/>; platform overview: <https://fragdenstaat.de/en/about-us/>
 - FOIA.gov portal API: <https://www.foia.gov/swagger.html>; agency API contract: <https://www.foia.gov/developer/agency-api/>
 - USCIS FOIA/PA API: <https://developer.uscis.gov/api/foia-request-and-status>
-- Canada ATIP context: <https://www.canada.ca/en/treasury-board-secretariat/news/2022/07/canada-launches-updated-access-to-information-and-privacy-online-request-service-platform.html>
+- Canada ATIP portal: <https://atip-aiprp.apps.gc.ca/atip/>
 - India RTI portal context: <https://services.india.gov.in/service/detail/submit-a-new-rti-request-online-1>
 
 ## Integration decision
