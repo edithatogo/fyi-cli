@@ -1,6 +1,11 @@
 from pathlib import Path
 
-from scripts.validate_ai_plugin_packets import validate, validate_packet
+from scripts.validate_ai_plugin_packets import (
+    readme_status_line,
+    validate,
+    validate_packet,
+    validate_readme,
+)
 
 
 ROOT = Path(__file__).parents[1]
@@ -24,3 +29,24 @@ def test_packets_cannot_enable_remote_writes():
     }
     errors = validate_packet(packet, "openai-codex-plugins", Path("codex/submission.json"))
     assert any("remote_authority_writes must remain false" in error for error in errors)
+
+
+def test_readme_status_must_match_ledger():
+    errors = validate_readme(
+        "Current repo-side status: `planned`.\n",
+        "assets-ready",
+        Path("packaging/ai-plugins/codex/README.md"),
+    )
+    assert any("missing status line" in error for error in errors)
+    assert any("legacy planned-status wording must be removed" in error for error in errors)
+
+
+def test_readme_status_accepts_matching_ledger_state():
+    assert (
+        validate_readme(
+            f"{readme_status_line('assets-ready')}\n",
+            "assets-ready",
+            Path("packaging/ai-plugins/codex/README.md"),
+        )
+        == []
+    )

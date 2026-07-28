@@ -28,6 +28,11 @@ REQUIRED_KEYS = {
     "review_checklist",
     "rollback",
 }
+LEGACY_PLANNED_PHRASE = "remains `planned`"
+
+
+def readme_status_line(status: str) -> str:
+    return f"Current repo-side status: `{status}`."
 
 
 def validate_packet(packet: dict, target_name: str, relative: Path) -> list[str]:
@@ -56,6 +61,20 @@ def validate_packet(packet: dict, target_name: str, relative: Path) -> list[str]
     return errors
 
 
+def validate_readme(readme_text: str, ledger_status: str, relative: Path) -> list[str]:
+    errors: list[str] = []
+    expected_status_line = readme_status_line(ledger_status)
+    if expected_status_line not in readme_text:
+        errors.append(f"{relative}: missing status line {expected_status_line!r}")
+    if ledger_status != "planned" and (
+        LEGACY_PLANNED_PHRASE in readme_text or "`planned`" in readme_text
+    ):
+        errors.append(
+            f"{relative}: legacy planned-status wording must be removed once the ledger is {ledger_status}"
+        )
+    return errors
+
+
 def validate(repo_root: Path) -> list[str]:
     errors: list[str] = []
     ledger = json.loads(
@@ -65,18 +84,32 @@ def validate(repo_root: Path) -> list[str]:
     )
     targets = {target["id"]: target for target in ledger["targets"]}
     for name, (target_name, ledger_id) in PACKETS.items():
-        relative = Path("packaging") / "ai-plugins" / name / "submission.json"
-        path = repo_root / relative
-        if not path.is_file():
-            errors.append(f"{relative} is missing")
+        relative = Path("packaging") / "ai-plugins" / name
+        packet_relative = relative / "submission.json"
+        packet_path = repo_root / packet_relative
+        if not packet_path.is_file():
+            errors.append(f"{packet_relative} is missing")
             continue
-        packet = json.loads(path.read_text(encoding="utf-8"))
-        errors.extend(validate_packet(packet, target_name, relative))
+        packet = json.loads(packet_path.read_text(encoding="utf-8"))
+        errors.extend(validate_packet(packet, target_name, packet_relative))
         target = targets.get(ledger_id)
         if target is None:
             errors.append(f"ledger target missing: {ledger_id}")
-        elif target.get("status") != "assets-ready":
+            continue
+        if target.get("status") != "assets-ready":
             errors.append(f"ledger target {ledger_id} must remain assets-ready until external evidence")
+        readme_relative = relative / "README.md"
+        readme_path = repo_root / readme_relative
+        if not readme_path.is_file():
+            errors.append(f"{readme_relative} is missing")
+            continue
+        errors.extend(
+            validate_readme(
+                readme_path.read_text(encoding="utf-8"),
+                target["status"],
+                readme_relative,
+            )
+        )
     return errors
 
 
