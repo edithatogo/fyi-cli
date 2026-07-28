@@ -264,7 +264,7 @@ This file tracks all major tracks for the project. Each track has its own detail
   *GitHub issue: [#195](https://github.com/edithatogo/fyi-cli/issues/195); child [#199](https://github.com/edithatogo/fyi-cli/issues/199)*
   *Description: Map non-Alaveteli FOI request platforms and rank safe integration opportunities.*
 
-- [~] **Track: foi-adapter-pilots_20260712**
+- [x] **Track: foi-adapter-pilots_20260712** (COMPLETED 2026-07-28)
   *Link: [./tracks/foi-adapter-pilots_20260712/](./tracks/foi-adapter-pilots_20260712/)*
   *GitHub issue: [#196](https://github.com/edithatogo/fyi-cli/issues/196); children [#200](https://github.com/edithatogo/fyi-cli/issues/200), [#201](https://github.com/edithatogo/fyi-cli/issues/201), [#203](https://github.com/edithatogo/fyi-cli/issues/203)*
   *Description: Implement safe read-only MuckRock and FragDenStaat pilots, then evaluate FOIA.gov and USCIS.*
