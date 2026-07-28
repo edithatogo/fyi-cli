@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/edithatogo/fyi-cli/schemas/us-federal-capture-capability-audit.schema.json",
+  "title": "US federal bounded capture capability audit",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "recorded_at",
+    "repository_revision",
+    "platform",
+    "support_matrix",
+    "capabilities",
+    "limitations",
+    "explicit_route_assertion",
+    "live_capture_performed",
+    "archive_handoff_status",
+    "prohibitions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "fyi-cli.us-federal-capture-capability-audit.v0.1.0"
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "repository_revision": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "platform": {
+      "const": {
+        "id": "us-foia-gov",
+        "base_url": "https://api.foia.gov/api/agency_components",
+        "country": "US",
+        "locale": "en-US",
+        "surface": "agency_component_catalog"
+      }
+    },
+    "support_matrix": {
+      "const": [
+        {
+          "route": "agency_component_catalog",
+          "capture_status": "discovery_only_authorized_api_key_required",
+          "live_source_status": "blocked_external_access"
+        },
+        {
+          "route": "agency_request_submission",
+          "capture_status": "explicitly_prohibited_write_surface",
+          "live_source_status": "blocked_external_access"
+        },
+        {
+          "route": "public_request_response_capture",
+          "capture_status": "unsupported_decentralized_agency_delivery",
+          "live_source_status": "blocked_external_access"
+        },
+        {
+          "route": "public_attachment_timeline_capture",
+          "capture_status": "unsupported_no_general_public_api",
+          "live_source_status": "blocked_external_access"
+        }
+      ]
+    },
+    "capabilities": {
+      "type": "array",
+      "minItems": 6,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 3
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 10
+      }
+    },
+    "explicit_route_assertion": {
+      "const": "platform id and discovery route must be explicit and capture must not silently fall back to non-federal providers or agency POST surfaces"
+    },
+    "live_capture_performed": {
+      "const": false
+    },
+    "archive_handoff_status": {
+      "const": "blocked_pending_authorized_api_key_and_nonempty_catalog_evidence"
+    },
+    "prohibitions": {
+      "const": [
+        "live_capture_without_operator_authorization",
+        "agency_api_post_calls",
+        "cross_provider_fallback",
+        "assume_public_request_api",
+        "treat_platform_state_as_legal_evidence",
+        "publication",
+        "redistribution",
+        "training",
+        "legal_certification",
+        "profile_promotion"
+      ]
+    }
+  }
+}
