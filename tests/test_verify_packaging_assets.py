@@ -40,6 +40,7 @@ def test_missing_critical_fails(tmp_path: Path):
         expected_version="0.1.2",
         optional=(),
         versioned=(),
+        binstall_assets=(),
     )
     assert not report.ok
     assert report.errors
@@ -63,6 +64,50 @@ def test_version_mismatch_detected(tmp_path: Path):
     )
     assert not report.ok
     assert any(r.kind == "version" and not r.ok for r in report.results)
+
+
+def test_missing_binstall_metadata_detected(tmp_path: Path):
+    module = load_module()
+    rel = "crates/fyi-cli/Cargo.toml"
+    path = tmp_path / rel
+    path.parent.mkdir(parents=True)
+    path.write_text('[package]\nname = "fyi-cli"\nversion = "0.1.2"\n', encoding="utf-8")
+
+    report = module.verify_packaging_assets(
+        tmp_path,
+        expected_version="0.1.2",
+        critical=(),
+        optional=(),
+        versioned=(),
+        binstall_assets=(rel,),
+    )
+    assert not report.ok
+    assert any(
+        r.kind == "binstall" and not r.ok and "package.metadata.binstall" in r.message
+        for r in report.results
+    )
+
+
+def test_binstall_metadata_passes_when_present(tmp_path: Path):
+    module = load_module()
+    rel = "crates/fyi-cli/Cargo.toml"
+    path = tmp_path / rel
+    path.parent.mkdir(parents=True)
+    path.write_text(
+        '[package]\nname = "fyi-cli"\nversion = "0.1.2"\n\n[package.metadata.binstall]\npkg-fmt = "tgz"\n',
+        encoding="utf-8",
+    )
+
+    report = module.verify_packaging_assets(
+        tmp_path,
+        expected_version="0.1.2",
+        critical=(),
+        optional=(),
+        versioned=(),
+        binstall_assets=(rel,),
+    )
+    assert report.ok
+    assert any(r.kind == "binstall" and r.ok for r in report.results)
 
 
 def test_file_mentions_version():
