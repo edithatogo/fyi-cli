@@ -41,6 +41,7 @@ def test_missing_critical_fails(tmp_path: Path):
         optional=(),
         versioned=(),
         binstall_assets=(),
+        readme_path=None,
     )
     assert not report.ok
     assert report.errors
@@ -61,6 +62,7 @@ def test_version_mismatch_detected(tmp_path: Path):
         critical=(),
         optional=(),
         versioned=(rel,),
+        readme_path=None,
     )
     assert not report.ok
     assert any(r.kind == "version" and not r.ok for r in report.results)
@@ -80,6 +82,7 @@ def test_missing_binstall_metadata_detected(tmp_path: Path):
         optional=(),
         versioned=(),
         binstall_assets=(rel,),
+        readme_path=None,
     )
     assert not report.ok
     assert any(
@@ -105,9 +108,38 @@ def test_binstall_metadata_passes_when_present(tmp_path: Path):
         optional=(),
         versioned=(),
         binstall_assets=(rel,),
+        readme_path=None,
     )
     assert report.ok
     assert any(r.kind == "binstall" and r.ok for r in report.results)
+
+
+def test_readme_cargo_binstall_drift_detected(tmp_path: Path):
+    module = load_module()
+    readme = tmp_path / "README.md"
+    readme.write_text(
+        "**Draft / not yet submitted:** cargo-binstall metadata, Homebrew\n",
+        encoding="utf-8",
+    )
+
+    results = module.check_packaging_readme(tmp_path)
+    assert any(
+        r.kind == "docs" and not r.ok and "draft/unsubmitted list still includes cargo-binstall" in r.message
+        for r in results
+    )
+
+
+def test_readme_cargo_binstall_alignment_passes(tmp_path: Path):
+    module = load_module()
+    readme = tmp_path / "README.md"
+    readme.write_text(
+        "| **cargo-binstall** | `cargo binstall fyi-cli` | **assets-ready** |\n"
+        "**Draft / not yet submitted:** Homebrew, Scoop\n",
+        encoding="utf-8",
+    )
+
+    results = module.check_packaging_readme(tmp_path)
+    assert any(r.kind == "docs" and r.ok for r in results)
 
 
 def test_file_mentions_version():

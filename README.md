@@ -32,7 +32,9 @@ package (`fyi_system`) remains available as a reference implementation but is no
 | **Awesome-MCP-Servers** | Legal section entry | PR submitted | [PR #9693](https://github.com/punkpeye/awesome-mcp-servers/pull/9693) |
 | **GitHub curated MCP** (`github.com/mcp`) | — | Blocked external (manual onboarding) | Tracked in [#32](https://github.com/edithatogo/fyi-cli/issues/32) |
 
-**Draft / not yet submitted:** Scoop, WinGet, Homebrew, Chocolatey, cargo-binstall metadata, GHCR multi-arch workflow, PulseMCP, mcp.so, Docker MCP Catalog, mcp-get, OpenTools, AUR, nixpkgs, Snap, Flatpak, asdf/mise, Debian/PPA, Fedora/COPR. Codex and Anthropic packets are assets-ready but still require external submission.
+**Draft / not yet submitted:** Scoop, WinGet, Homebrew, Chocolatey, GHCR multi-arch workflow, PulseMCP, mcp.so, Docker MCP Catalog, mcp-get, OpenTools, AUR, nixpkgs, Snap, Flatpak, asdf/mise, Debian/PPA, Fedora/COPR.
+
+`cargo-binstall` is already **assets-ready** and wired in-repo, but still depends on matching GitHub Release assets before it can be treated as a live distribution path. Codex and Anthropic packets are assets-ready but still require external submission.
 
 Full status matrix (including planned channels): [`docs/registry-distribution-matrix.md`](docs/registry-distribution-matrix.md).
 
