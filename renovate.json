@@ -12,8 +12,8 @@
     ":maintainLockFilesWeekly"
   ],
   "labels": ["dependencies"],
-  "reviewers": ["repo-owner"],
-  "assignees": ["repo-owner"],
+  "reviewers": ["edithatogo"],
+  "assignees": ["edithatogo"],
   "packageRules": [
     {
       "matchUpdateTypes": ["minor", "patch"],
@@ -62,8 +62,8 @@
   "internalChecksFilter": "strict",
   "vulnerabilityAlerts": {
     "labels": ["security"],
-    "assignees": ["repo-owner"],
-    "reviewers": ["repo-owner"]
+    "assignees": ["edithatogo"],
+    "reviewers": ["edithatogo"]
   },
   "osvVulnerabilityAlerts": true,
   "pip_requirements": {
