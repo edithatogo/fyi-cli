@@ -20,5 +20,5 @@
 + [x] Task: Add resumable bounded export over a derived request store. [checkpoint: c59079a]
 + [x] Task: Benchmark representative and full-corpus-shaped fixtures. [checkpoint: c59079a]
 + [x] Task: Publish the pinned contract fixture for `fyi-archive` and `foi-process` CI. [checkpoint: c59079a]
-+ [~] Task: Record the contract version and downstream acceptance evidence in GitHub issue #231. Contract evidence recorded; downstream acceptance remains open.
++ [~] Task: Record the contract version and downstream acceptance evidence in GitHub issue #231. Contract evidence recorded; sidecar attachment export fixed and live-probe acceptance passed; full-corpus downstream acceptance remains open.
 + [~] Task: Phase verification and checkpoint per `.conductor/workflow.md`. Awaiting downstream acceptance.

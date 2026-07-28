@@ -105,25 +105,30 @@ def export_process_events(
                 {"digest": str(value), "revision": 1} if isinstance(value, str) else value
             )
 
-    rows = []
+    rows: list[tuple[Path, dict[str, Any]]] = []
     for path in sorted(derived_dir.glob("*/*/request.json")):
         row = json.loads(path.read_text(encoding="utf-8"))
         if not isinstance(row, dict):
             raise ValueError(f"request record must be an object: {path}")
-        rows.append(row)
-    rows.sort(key=lambda row: _request_id(row))
+        rows.append((path, row))
+    rows.sort(key=lambda item: _request_id(item[1]))
 
     events: list[dict[str, Any]] = []
     attachments: list[dict[str, Any]] = []
     digests: dict[str, dict[str, Any]] = {}
     current_ids: set[str] = set()
-    for row in rows:
+    for request_path, row in rows:
         request_id = _request_id(row)
         logical_id = _logical_request_id(request_id, instance_id)
         source_events = _events(row)
         from .fetch import extract_request_artifacts
 
         source_attachments = row.get("attachments")
+        if not isinstance(source_attachments, list):
+            sidecar = request_path.parent / "attachments.json"
+            if sidecar.exists():
+                sidecar_value = json.loads(sidecar.read_text(encoding="utf-8"))
+                source_attachments = sidecar_value if isinstance(sidecar_value, list) else []
         if not isinstance(source_attachments, list):
             source_attachments = extract_request_artifacts(row).get("attachments", [])
         for index, raw in enumerate(source_events):
@@ -185,7 +190,10 @@ def export_process_events(
                 if isinstance(attachment.get("size"), int)
                 else None,
                 "locator": {"uri": url} if url else None,
-                "warc_record_id": row.get("warc_record_id") or row.get("warc_uri") or None,
+                "warc_record_id": attachment.get("warc_record_id")
+                or row.get("warc_record_id")
+                or row.get("warc_uri")
+                or None,
                 "provenance": {
                     "captured_at": captured_at,
                     "source_path": str(attachment.get("path") or ""),

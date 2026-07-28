@@ -153,6 +153,40 @@ def test_attachment_projection_contains_metadata_only(tmp_path):
     assert "private-name.pdf" not in attachment_output.read_text()
 
 
+def test_attachment_projection_loads_archive_sidecar(tmp_path):
+    path = tmp_path / "derived" / "Agency" / "10"
+    path.mkdir(parents=True)
+    path.joinpath("request.json").write_text(json.dumps({"id": 10}), encoding="utf-8")
+    path.joinpath("attachments.json").write_text(
+        json.dumps(
+            [
+                {
+                    "content_type": "application/pdf",
+                    "path": "data/attachments/abc/abc",
+                    "sha256": "a" * 64,
+                    "size": 388591,
+                    "url": "https://fyi.example/attach/10",
+                    "warc_record_id": "<urn:uuid:attachment-10>",
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    output = tmp_path / "attachments.ndjson"
+
+    export_process_events(
+        derived_dir=tmp_path / "derived",
+        output=tmp_path / "events.ndjson",
+        attachments_output=output,
+        captured_at="2026-02-01T00:00:00Z",
+    )
+
+    row = json.loads(output.read_text().splitlines()[0])
+    assert row["byte_size"] == 388591
+    assert row["warc_record_id"] == "<urn:uuid:attachment-10>"
+    assert row["provenance"]["source_path"].endswith("abc/abc")
+
+
 def test_public_event_validation_is_recursive():
     with pytest.raises(ValueError, match="excluded fields"):
         validate_public_event({"schema_version": "1.0.0", "provenance": {"body": "secret"}})
