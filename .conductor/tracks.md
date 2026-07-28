@@ -343,4 +343,4 @@ Potential tracks for future development:
 - [~] **Track: Incremental jurisdiction capture completion**
   *Link: [./tracks/jurisdiction-capture-completion-20260721/](./tracks/jurisdiction-capture-completion-20260721/)*
   *GitHub: [#234](https://github.com/edithatogo/fyi-cli/issues/234); programme parent [foi-o #81](https://github.com/edithatogo/foi-o/issues/81).*
-  *Current increment: UK + Ireland bounded capture planning (`uk_ie_bounded_capture_planning`).*
+  *Current increment: UK + Ireland bounded capability audited (`uk_ie_capability_audited_live_source_blocked`).*

@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/edithatogo/fyi-cli/schemas/uk-ie-capture-capability-audit.schema.json",
+  "title": "UK and Ireland bounded capture capability audit",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "recorded_at",
+    "repository_revision",
+    "instances",
+    "capabilities",
+    "limitations",
+    "no_fallback_assertion",
+    "live_capture_performed",
+    "archive_handoff_status",
+    "prohibitions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "fyi-cli.uk-ie-capture-capability-audit.v0.1.0"
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "repository_revision": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "instances": {
+      "const": [
+        {
+          "id": "uk-wdtk",
+          "base_url": "https://www.whatdotheyknow.com",
+          "country": "GB",
+          "locale": "en-GB",
+          "capture_status": "generic_alaveteli_capture_supported",
+          "live_source_status": "blocked_external_access"
+        },
+        {
+          "id": "ie-myrighttoknow",
+          "base_url": "https://www.myrighttoknow.org",
+          "country": "IE",
+          "locale": "en-IE",
+          "capture_status": "generic_alaveteli_capture_supported",
+          "live_source_status": "blocked_external_access"
+        }
+      ]
+    },
+    "capabilities": {
+      "type": "array",
+      "minItems": 8,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 3
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 10
+      }
+    },
+    "no_fallback_assertion": {
+      "const": "profile id must be explicit and capture must not silently fall back across profiles"
+    },
+    "live_capture_performed": {
+      "const": false
+    },
+    "archive_handoff_status": {
+      "const": "implementation_ready_requires_authorized_nonempty_capture"
+    },
+    "prohibitions": {
+      "const": [
+        "live_capture_without_operator_authorization",
+        "cross_profile_fallback",
+        "infer_jurisdiction_from_request_text",
+        "treat_platform_state_as_legal_evidence",
+        "publication",
+        "redistribution",
+        "training",
+        "legal_certification",
+        "profile_promotion"
+      ]
+    }
+  }
+}
