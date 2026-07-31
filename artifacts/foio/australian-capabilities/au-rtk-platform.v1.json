@@ -1,0 +1,127 @@
+{
+  "schema_version": "fyi-cli.australian-platform-capability-contract.v1.0.0",
+  "platform_id": "au-rtk",
+  "contract_status": "code_inspection_only",
+  "recorded_at": "2026-07-31T00:00:00Z",
+  "repository_revision": "2db4813da80d8c61f145c24b22ff4392830bcad5",
+  "adapter_revision": {
+    "repository_revision": "2db4813da80d8c61f145c24b22ff4392830bcad5",
+    "module_path": "src/fyi_system/archive_capture.py",
+    "module_sha256": "05bf9aa44722a5650c636cd98a05f46002f3a0623fe9a70210d75ae06f303ff2"
+  },
+  "bounded_url_scope": {
+    "scope_id": "au-rtk-canonical-request-v1",
+    "base_url": "https://www.righttoknow.org.au",
+    "path_template": "/request/{slug}",
+    "url_pattern": "^https://www\\.righttoknow\\.org\\.au/request/[a-z0-9_-]+(?:\\.json)?$",
+    "allowed_methods": [
+      "GET"
+    ],
+    "membership_source": "explicit_operator_supplied_slug",
+    "network_activation": "requires_separate_authorization",
+    "jurisdiction_classification": "not_provided_by_platform_contract"
+  },
+  "bounded_url_scope_sha256": "4d59c0e6d8b6b84fb2268cf8ca8de9052ec554f5ab5f3ef9f4fa6eabcd3ca46d",
+  "declared_capability_ids": [
+    "request_json_discovery",
+    "request_html_download",
+    "attachment_discovery_json",
+    "attachment_discovery_html",
+    "attachment_download",
+    "bounded_retry",
+    "raw_warc_wacz_preservation",
+    "content_addressed_handoff"
+  ],
+  "surfaces": {
+    "discovery": [
+      {
+        "id": "request_json",
+        "path_template": "/request/{slug}.json",
+        "status": "implemented_unexecuted"
+      },
+      {
+        "id": "attachment_from_json",
+        "path_template": "request JSON attachment references",
+        "status": "implemented_unexecuted"
+      },
+      {
+        "id": "attachment_from_html",
+        "path_template": "request HTML attachment references",
+        "status": "implemented_unexecuted"
+      }
+    ],
+    "download": [
+      {
+        "id": "request_json",
+        "path_template": "/request/{slug}.json",
+        "status": "implemented_unexecuted"
+      },
+      {
+        "id": "request_html",
+        "path_template": "/request/{slug}",
+        "status": "implemented_unexecuted"
+      },
+      {
+        "id": "attachment_payload",
+        "path_template": "exact discovered same-platform URL",
+        "status": "implemented_unexecuted"
+      }
+    ]
+  },
+  "raw_state_preservation": {
+    "warc": true,
+    "wacz": true,
+    "payload_sha256": true,
+    "derived_view_is_raw": false
+  },
+  "rate_and_terms_policy": {
+    "retry_attempts": 3,
+    "retryable_status_codes": [
+      429,
+      500,
+      502,
+      503,
+      504
+    ],
+    "backoff": "bounded_linear",
+    "terms_status": "unverified_no_endpoint_access",
+    "live_access_allowed": false
+  },
+  "resume_semantics": {
+    "checkpoint_resume": false,
+    "content_addressed_reuse": true,
+    "rerun_policy": "new_run_required_no_implicit_resume"
+  },
+  "handoff_shape": {
+    "shape_version": "fyi-cli.capture-handoff.v1",
+    "outputs": [
+      "warc",
+      "wacz",
+      "request_json",
+      "request_html",
+      "attachment_objects",
+      "derived_request_view",
+      "resource_sha256"
+    ],
+    "immutable_manifest_finalized": false
+  },
+  "unsupported_surfaces": [
+    "authority_import",
+    "jurisdiction_inference",
+    "legal_classification",
+    "rights_determination",
+    "internet_archive_replay",
+    "immutable_manifest_finalization",
+    "profile_promotion"
+  ],
+  "historical_regression_oracle": {
+    "path": "artifacts/foio/australian_capture_capability_audit.json",
+    "sha256": "d1af66697c173cfafd8de2dfd00a8d83f3be5a5401ece5fae2bac1e67c723d71",
+    "jurisdictions": [
+      "AU-CTH",
+      "AU-NSW"
+    ],
+    "disposition": "frozen_historical_regression_oracle"
+  },
+  "live_access_performed": false
+}
