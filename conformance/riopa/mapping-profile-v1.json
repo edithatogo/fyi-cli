@@ -1,5 +1,6 @@
 {
-  "repository": "https://github.com/edithatogo/fyi-cli",
+  "schema_version": "1.0.0",
+  "repository": "edithatogo/fyi-cli",
   "source_revision": "2db4813da80d8c61f145c24b22ff4392830bcad5",
   "profile_version": "1.0.0",
   "mappings": [

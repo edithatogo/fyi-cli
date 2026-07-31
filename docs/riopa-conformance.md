@@ -5,8 +5,10 @@ provenance chain maps to the RIOPA capture profile. The adapter is additive:
 native chain records remain the evidence of record, while the mapped event
 stream is a projection for interoperability.
 
-`mapping-profile-v1.json` is the language-neutral field map. Every entry names
-the native field, its nullable RIOPA destination, one of the classifications
+`mapping-profile-v1.json` is the language-neutral field map and conforms to
+RIOPA adapter-mapping schema version `1.0.0`. Its `repository` is the portable
+`owner/name` identifier required by that schema. Every entry names the native
+field, its nullable RIOPA destination, one of the classifications
 `exact`, `approximate`, `extension-only`, or `unmapped`, a rationale, and a
 JSON Pointer into the native evidence fixture. The profile's
 `source_revision` identifies the fyi-cli revision whose native contract was

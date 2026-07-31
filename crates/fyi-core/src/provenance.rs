@@ -440,6 +440,9 @@ mod tests {
         .unwrap();
 
         let mappings = profile["mappings"].as_array().unwrap();
+        assert_eq!(profile["schema_version"], "1.0.0");
+        assert_eq!(profile["repository"], "edithatogo/fyi-cli");
+        assert_eq!(profile["source_revision"].as_str().unwrap().len(), 40);
         let classifications = ["exact", "approximate", "extension-only", "unmapped"];
         for classification in classifications {
             assert!(mappings
@@ -455,6 +458,14 @@ mod tests {
             assert!(mapping["evidence_fixture"]
                 .as_str()
                 .is_some_and(|value| value.starts_with("native-provenance-fixture-v1.json#/")));
+            match mapping["classification"].as_str().unwrap() {
+                "exact" | "approximate" => assert!(mapping["riopa_field"].is_string()),
+                "extension-only" => {
+                    assert!(mapping["riopa_field"].is_string() || mapping["riopa_field"].is_null())
+                }
+                "unmapped" => assert!(mapping["riopa_field"].is_null()),
+                classification => panic!("unexpected classification: {classification}"),
+            }
         }
 
         let native_chain: Vec<ProvenanceRecord> =
