@@ -423,4 +423,58 @@ mod tests {
             "capture/request-42-attachment-1.bin"
         );
     }
+
+    #[test]
+    fn checked_in_riopa_conformance_profile_matches_native_fixture() {
+        let profile: serde_json::Value = serde_json::from_str(include_str!(
+            "../../../conformance/riopa/mapping-profile-v1.json"
+        ))
+        .unwrap();
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../../../conformance/riopa/native-provenance-fixture-v1.json"
+        ))
+        .unwrap();
+        let report: serde_json::Value = serde_json::from_str(include_str!(
+            "../../../conformance/riopa/conformance-report-v1.json"
+        ))
+        .unwrap();
+
+        let mappings = profile["mappings"].as_array().unwrap();
+        let classifications = ["exact", "approximate", "extension-only", "unmapped"];
+        for classification in classifications {
+            assert!(mappings
+                .iter()
+                .any(|mapping| { mapping["classification"].as_str() == Some(classification) }));
+        }
+        for mapping in mappings {
+            assert!(mapping["native_field"].is_string());
+            assert!(mapping["riopa_field"].is_string() || mapping["riopa_field"].is_null());
+            assert!(mapping["rationale"]
+                .as_str()
+                .is_some_and(|value| !value.is_empty()));
+            assert!(mapping["evidence_fixture"]
+                .as_str()
+                .is_some_and(|value| value.starts_with("native-provenance-fixture-v1.json#/")));
+        }
+
+        let native_chain: Vec<ProvenanceRecord> =
+            serde_json::from_value(fixture["chain"].clone()).unwrap();
+        let context: RiopaEmissionContext =
+            serde_json::from_value(fixture["context"].clone()).unwrap();
+        let emitted = emit_riopa_event_stream(&native_chain, &context).unwrap();
+        assert_eq!(
+            serde_json::to_value(emitted).unwrap(),
+            report["mapped_output"]
+        );
+        assert_eq!(report["native_evidence_preserved"], true);
+
+        let counts = &report["classification_counts"];
+        for classification in classifications {
+            let expected = mappings
+                .iter()
+                .filter(|mapping| mapping["classification"].as_str() == Some(classification))
+                .count() as u64;
+            assert_eq!(counts[classification].as_u64(), Some(expected));
+        }
+    }
 }

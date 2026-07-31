@@ -1,0 +1,33 @@
+{
+  "fixture_version": "1.0.0",
+  "synthetic": true,
+  "chain_algorithm": "sha256-prev-hash-v1",
+  "context": {
+    "generated_at": "2026-07-31T00:01:00Z",
+    "source": "fyi-cli://capture",
+    "input_ref": "urn:fyi:capture-input:synthetic-42",
+    "output_ref": "urn:fyi:capture-output:synthetic-42",
+    "agent": "fyi-cli/conformance-fixture",
+    "rights": "synthetic-test-data",
+    "schema_refs": [
+      "https://github.com/edithatogo/fyi-cli/blob/master/crates/fyi-core/src/provenance.rs"
+    ]
+  },
+  "chain": [
+    {
+      "sequence": 0,
+      "recorded_at": "2026-07-31T00:00:00Z",
+      "payload_id": "capture/request-42.json",
+      "payload_hash": "9a5df3729917cba86db1a823bdedea240ac08fd1cdacb93ac8d987c09b49bb08",
+      "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "record_hash": "f34d77dbf12757a901f28ee581574f9469f100e84c0293c1930354f2397de6e7"
+    }
+  ],
+  "excluded_native_evidence": [
+    {
+      "native_field": "append_record.payload_bytes",
+      "present_in_fixture": false,
+      "reason": "Raw payload bytes are intentionally not embedded; payload_hash proves the bytes used by the test."
+    }
+  ]
+}

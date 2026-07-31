@@ -1,0 +1,84 @@
+{
+  "repository": "https://github.com/edithatogo/fyi-cli",
+  "source_revision": "2db4813da80d8c61f145c24b22ff4392830bcad5",
+  "profile_version": "1.0.0",
+  "mappings": [
+    {
+      "native_field": "ProvenanceRecord.sequence",
+      "riopa_field": "events[].chain.sequence",
+      "classification": "exact",
+      "rationale": "The unsigned integer is copied without conversion.",
+      "evidence_fixture": "native-provenance-fixture-v1.json#/chain/0/sequence"
+    },
+    {
+      "native_field": "ProvenanceRecord.recorded_at",
+      "riopa_field": "events[].recorded_at",
+      "classification": "exact",
+      "rationale": "The caller-supplied timestamp string is copied without normalization.",
+      "evidence_fixture": "native-provenance-fixture-v1.json#/chain/0/recorded_at"
+    },
+    {
+      "native_field": "ProvenanceRecord.payload_hash",
+      "riopa_field": "events[].integrity.payload_hash",
+      "classification": "exact",
+      "rationale": "The lowercase SHA-256 digest is copied without conversion.",
+      "evidence_fixture": "native-provenance-fixture-v1.json#/chain/0/payload_hash"
+    },
+    {
+      "native_field": "ProvenanceRecord.prev_hash",
+      "riopa_field": "events[].integrity.prev_hash",
+      "classification": "exact",
+      "rationale": "The predecessor record hash or genesis value is copied without conversion.",
+      "evidence_fixture": "native-provenance-fixture-v1.json#/chain/0/prev_hash"
+    },
+    {
+      "native_field": "ProvenanceRecord.record_hash",
+      "riopa_field": "events[].integrity.record_hash",
+      "classification": "exact",
+      "rationale": "The native canonical-record digest is copied without conversion.",
+      "evidence_fixture": "native-provenance-fixture-v1.json#/chain/0/record_hash"
+    },
+    {
+      "native_field": "RiopaEmissionContext.source",
+      "riopa_field": "events[].source",
+      "classification": "exact",
+      "rationale": "The source identifier is copied to every emitted event.",
+      "evidence_fixture": "native-provenance-fixture-v1.json#/context/source"
+    },
+    {
+      "native_field": "RiopaEmissionContext.input_ref",
+      "riopa_field": "events[].input.reference",
+      "classification": "approximate",
+      "rationale": "A stream-level input reference is repeated on each record event; it does not identify record-specific input.",
+      "evidence_fixture": "native-provenance-fixture-v1.json#/context/input_ref"
+    },
+    {
+      "native_field": "RiopaEmissionContext.output_ref",
+      "riopa_field": "events[].output.reference",
+      "classification": "approximate",
+      "rationale": "A stream-level output reference is repeated on each record event; it does not identify record-specific output.",
+      "evidence_fixture": "native-provenance-fixture-v1.json#/context/output_ref"
+    },
+    {
+      "native_field": "ProvenanceRecord.payload_id",
+      "riopa_field": "extensions.fyi_cli.events[].chain.payload_id",
+      "classification": "extension-only",
+      "rationale": "The logical archive identifier is preserved in the fyi-cli chain extension because the common event fields have no lossless equivalent.",
+      "evidence_fixture": "native-provenance-fixture-v1.json#/chain/0/payload_id"
+    },
+    {
+      "native_field": "ProvenanceRecord.chain_algorithm",
+      "riopa_field": "extensions.fyi_cli.events[].integrity.chain_algorithm",
+      "classification": "extension-only",
+      "rationale": "The native algorithm label is retained as an fyi-cli extension alongside the exact digest fields.",
+      "evidence_fixture": "native-provenance-fixture-v1.json#/chain_algorithm"
+    },
+    {
+      "native_field": "append_record.payload_bytes",
+      "riopa_field": null,
+      "classification": "unmapped",
+      "rationale": "Raw payload bytes are deliberately excluded; the adapter emits their SHA-256 digest and records this semantic gap.",
+      "evidence_fixture": "native-provenance-fixture-v1.json#/excluded_native_evidence/0"
+    }
+  ]
+}
