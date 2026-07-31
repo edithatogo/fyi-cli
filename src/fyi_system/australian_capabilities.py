@@ -4,14 +4,25 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Never, cast
+
+from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema.exceptions import SchemaError, ValidationError
 
 PLATFORM_RELATIVE_PATH = Path(
     "artifacts/foio/australian-capabilities/au-rtk-platform.v1.json",
 )
 LEGACY_RELATIVE_PATH = Path("artifacts/foio/australian_capture_capability_audit.json")
 ADAPTER_RELATIVE_PATH = Path("src/fyi_system/archive_capture.py")
+PLATFORM_SCHEMA_RELATIVE_PATH = Path(
+    "schemas/australian-platform-capability-contract.schema.json",
+)
+RECORD_SCHEMA_RELATIVE_PATH = Path(
+    "schemas/australian-jurisdiction-capability-record.schema.json",
+)
 
 PLATFORM_SCHEMA_VERSION = "fyi-cli.australian-platform-capability-contract.v1.0.0"
 RECORD_SCHEMA_VERSION = "fyi-cli.australian-jurisdiction-capability-record.v1.0.0"
@@ -40,6 +51,25 @@ CAPABILITY_IDS = frozenset(
         "request_json_discovery",
     },
 )
+RFC3339_DATE_TIME = re.compile(
+    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$",
+)
+FORMAT_CHECKER = FormatChecker()
+
+
+def _is_rfc3339_date_time(value: object) -> bool:
+    if not isinstance(value, str):
+        return True
+    if RFC3339_DATE_TIME.fullmatch(value) is None:
+        return False
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    return parsed.tzinfo is not None
+
+
+FORMAT_CHECKER.checks("date-time")(_is_rfc3339_date_time)
 
 
 class CapabilityContractError(ValueError):
@@ -84,16 +114,31 @@ def require_explicit_jurisdiction(jurisdiction_id: str | None) -> str:
     return jurisdiction_id
 
 
-def _read_object(path: Path) -> dict[str, Any]:
+def _read_json(path: Path) -> object:
     try:
-        value = json.loads(path.read_text(encoding="utf-8"))
+        return json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         msg = f"unable to read capability contract {path}"
         raise CapabilityContractError(msg) from exc
-    if not isinstance(value, dict):
-        msg = f"capability contract must be an object: {path}"
-        raise CapabilityContractError(msg)
-    return value
+
+
+def _validate_schema_object(
+    value: object,
+    *,
+    schema_path: Path,
+    contract_name: str,
+) -> dict[str, Any]:
+    schema = _require_object(
+        _read_json(schema_path),
+        f"{contract_name} schema must be an object",
+    )
+    try:
+        Draft202012Validator.check_schema(schema)
+        Draft202012Validator(schema, format_checker=FORMAT_CHECKER).validate(value)
+    except (SchemaError, ValidationError) as exc:
+        msg = f"{contract_name} schema validation failed: {exc.message}"
+        raise CapabilityContractError(msg) from exc
+    return _require_object(value, f"{contract_name} schema must require an object")
 
 
 def _validate_platform_identity_and_scope(platform: dict[str, Any]) -> None:
@@ -142,7 +187,11 @@ def validate_platform_contract(platform: dict[str, Any], *, root: Path) -> None:
 
 def load_platform_contract(root: Path) -> dict[str, Any]:
     """Load and semantically validate the shared platform contract."""
-    platform = _read_object(root / PLATFORM_RELATIVE_PATH)
+    platform = _validate_schema_object(
+        _read_json(root / PLATFORM_RELATIVE_PATH),
+        schema_path=root / PLATFORM_SCHEMA_RELATIVE_PATH,
+        contract_name="platform contract",
+    )
     validate_platform_contract(platform, root=root)
     return platform
 
@@ -221,7 +270,11 @@ def load_jurisdiction_record(root: Path, jurisdiction_id: str | None) -> dict[st
     """Load one exact disabled jurisdiction record and all referenced pins."""
     platform = load_platform_contract(root)
     platform_sha256 = sha256_file(root / PLATFORM_RELATIVE_PATH)
-    record = _read_object(root / record_relative_path(jurisdiction_id))
+    record = _validate_schema_object(
+        _read_json(root / record_relative_path(jurisdiction_id)),
+        schema_path=root / RECORD_SCHEMA_RELATIVE_PATH,
+        contract_name="jurisdiction record",
+    )
     validate_jurisdiction_record(
         record,
         platform=platform,

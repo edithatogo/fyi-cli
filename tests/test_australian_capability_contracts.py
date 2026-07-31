@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -38,6 +39,28 @@ def read_json(path: Path) -> dict[str, Any]:
 
 def validator(path: Path) -> Draft202012Validator:
     return Draft202012Validator(read_json(path), format_checker=FormatChecker())
+
+
+def isolated_contract_root(tmp_path: Path) -> Path:
+    root = tmp_path / "repository"
+    for relative_path in (
+        PLATFORM_RELATIVE_PATH,
+        LEGACY_AUDIT.relative_to(ROOT),
+        Path("src/fyi_system/archive_capture.py"),
+        PLATFORM_SCHEMA.relative_to(ROOT),
+        RECORD_SCHEMA.relative_to(ROOT),
+    ):
+        destination = root / relative_path
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(ROOT / relative_path, destination)
+    records = ROOT / "artifacts" / "foio" / "australian-capabilities"
+    for source in records.glob("au-*.contract-only.json"):
+        shutil.copy2(source, root / source.relative_to(ROOT))
+    return root
+
+
+def write_json(path: Path, value: object) -> None:
+    path.write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
 
 
 def test_shared_platform_contract_is_schema_valid_and_semantically_pinned() -> None:
@@ -187,3 +210,72 @@ def test_schema_rejects_legal_claims_or_authentic_source_evidence() -> None:
 
     with pytest.raises(ValidationError):
         validator(RECORD_SCHEMA).validate(invalid)
+
+
+@pytest.mark.parametrize(
+    ("path", "value"),
+    [
+        (("rate_and_terms_policy", "live_access_allowed"), True),
+        (("live_access_performed",), True),
+        (("recorded_at",), "not-a-date-time"),
+    ],
+)
+def test_platform_loader_enforces_schema_before_semantic_pins(
+    tmp_path: Path,
+    path: tuple[str, ...],
+    value: object,
+) -> None:
+    root = isolated_contract_root(tmp_path)
+    contract_path = root / PLATFORM_RELATIVE_PATH
+    contract = read_json(contract_path)
+    target: dict[str, Any] = contract
+    for key in path[:-1]:
+        child = target[key]
+        assert isinstance(child, dict)
+        target = child
+    target[path[-1]] = value
+    write_json(contract_path, contract)
+
+    with pytest.raises(CapabilityContractError, match="platform contract schema"):
+        load_platform_contract(root)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("prohibitions", []),
+        ("activation", {"enabled": False, "prerequisites": []}),
+        (
+            "legal_context",
+            {
+                "status": "unverified_contract_only",
+                "regime_id": None,
+                "authority_registry": None,
+                "effective_date": None,
+                "source_evidence": ["invented-source"],
+            },
+        ),
+        ("recorded_at", "31 July 2026"),
+    ],
+)
+def test_jurisdiction_loader_enforces_schema_before_semantic_pins(
+    tmp_path: Path,
+    field: str,
+    value: object,
+) -> None:
+    root = isolated_contract_root(tmp_path)
+    record_path = root / "artifacts/foio/australian-capabilities/au-vic.contract-only.json"
+    record = read_json(record_path)
+    record[field] = value
+    write_json(record_path, record)
+
+    with pytest.raises(CapabilityContractError, match="jurisdiction record schema"):
+        load_jurisdiction_record(root, "AU-VIC")
+
+
+def test_loaders_reject_non_object_contracts_via_schema_boundary(tmp_path: Path) -> None:
+    root = isolated_contract_root(tmp_path)
+    write_json(root / PLATFORM_RELATIVE_PATH, [])
+
+    with pytest.raises(CapabilityContractError, match="platform contract schema"):
+        load_platform_contract(root)
