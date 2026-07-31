@@ -110,7 +110,7 @@ def test_platform_schema_and_semantic_validator_reject_unknown_capability() -> N
 
     with pytest.raises(ValidationError):
         validator(PLATFORM_SCHEMA).validate(invalid)
-    with pytest.raises(CapabilityContractError, match="unknown or missing"):
+    with pytest.raises(CapabilityContractError, match="platform contract schema"):
         validate_platform_contract(invalid, root=ROOT)
 
 
@@ -123,11 +123,12 @@ def test_record_schema_and_semantic_validator_reject_unknown_capability() -> Non
 
     with pytest.raises(ValidationError):
         validator(RECORD_SCHEMA).validate(invalid)
-    with pytest.raises(CapabilityContractError, match="unknown or missing"):
+    with pytest.raises(CapabilityContractError, match="jurisdiction record schema"):
         validate_jurisdiction_record(
             invalid,
             platform=platform,
             platform_sha256=platform_sha256,
+            root=ROOT,
         )
 
 
@@ -139,11 +140,12 @@ def test_record_rejects_cross_jurisdiction_profile_mapping() -> None:
 
     with pytest.raises(ValidationError):
         validator(RECORD_SCHEMA).validate(invalid)
-    with pytest.raises(CapabilityContractError, match="jurisdiction/profile"):
+    with pytest.raises(CapabilityContractError, match="jurisdiction record schema"):
         validate_jurisdiction_record(
             invalid,
             platform=platform,
             platform_sha256=sha256_file(ROOT / PLATFORM_RELATIVE_PATH),
+            root=ROOT,
         )
 
 
@@ -171,6 +173,7 @@ def test_record_rejects_activation_or_inferred_classification(
             invalid,
             platform=platform,
             platform_sha256=sha256_file(ROOT / PLATFORM_RELATIVE_PATH),
+            root=ROOT,
         )
 
 
@@ -185,15 +188,17 @@ def test_record_rejects_unpinned_platform_or_adapter_revision() -> None:
             wrong_platform,
             platform=platform,
             platform_sha256=sha256_file(ROOT / PLATFORM_RELATIVE_PATH),
+            root=ROOT,
         )
 
     wrong_adapter = copy.deepcopy(record)
     wrong_adapter["adapter_revision"]["module_sha256"] = "0" * 64
-    with pytest.raises(CapabilityContractError, match="adapter revision"):
+    with pytest.raises(CapabilityContractError, match="jurisdiction record schema"):
         validate_jurisdiction_record(
             wrong_adapter,
             platform=platform,
             platform_sha256=sha256_file(ROOT / PLATFORM_RELATIVE_PATH),
+            root=ROOT,
         )
 
 
@@ -278,4 +283,84 @@ def test_loaders_reject_non_object_contracts_via_schema_boundary(tmp_path: Path)
     write_json(root / PLATFORM_RELATIVE_PATH, [])
 
     with pytest.raises(CapabilityContractError, match="platform contract schema"):
+        load_platform_contract(root)
+
+
+def test_platform_loader_rejects_resealed_schema_and_live_access(tmp_path: Path) -> None:
+    root = isolated_contract_root(tmp_path)
+    schema_path = root / PLATFORM_SCHEMA.relative_to(ROOT)
+    schema = read_json(schema_path)
+    schema["properties"]["live_access_performed"] = {"type": "boolean"}
+    schema["properties"]["rate_and_terms_policy"]["properties"]["live_access_allowed"] = {
+        "type": "boolean",
+    }
+    write_json(schema_path, schema)
+
+    contract_path = root / PLATFORM_RELATIVE_PATH
+    contract = read_json(contract_path)
+    contract["live_access_performed"] = True
+    contract["rate_and_terms_policy"]["live_access_allowed"] = True
+    write_json(contract_path, contract)
+
+    with pytest.raises(CapabilityContractError, match="trusted platform schema pin"):
+        load_platform_contract(root)
+
+
+def test_record_loader_rejects_resealed_schema_and_policy_evidence_bypass(
+    tmp_path: Path,
+) -> None:
+    root = isolated_contract_root(tmp_path)
+    schema_path = root / RECORD_SCHEMA.relative_to(ROOT)
+    schema = read_json(schema_path)
+    schema["properties"]["prohibitions"] = {"type": "array"}
+    schema["properties"]["activation"] = {"type": "object"}
+    schema["properties"]["legal_context"] = {"type": "object"}
+    write_json(schema_path, schema)
+
+    record_path = root / "artifacts/foio/australian-capabilities/au-vic.contract-only.json"
+    record = read_json(record_path)
+    record["prohibitions"] = []
+    record["activation"] = {"enabled": False, "prerequisites": []}
+    record["legal_context"]["source_evidence"] = ["fabricated-source"]
+    write_json(record_path, record)
+
+    with pytest.raises(CapabilityContractError, match="trusted jurisdiction schema pin"):
+        load_jurisdiction_record(root, "AU-VIC")
+
+
+def test_public_platform_validator_rejects_live_access_without_loader() -> None:
+    platform = load_platform_contract(ROOT)
+    invalid = copy.deepcopy(platform)
+    invalid["live_access_performed"] = True
+    invalid["rate_and_terms_policy"]["live_access_allowed"] = True
+
+    with pytest.raises(CapabilityContractError, match="platform contract schema"):
+        validate_platform_contract(invalid, root=ROOT)
+
+
+def test_public_record_validator_rejects_policy_and_evidence_without_loader() -> None:
+    platform = load_platform_contract(ROOT)
+    record = load_jurisdiction_record(ROOT, "AU-VIC")
+    invalid = copy.deepcopy(record)
+    invalid["prohibitions"] = []
+    invalid["activation"]["prerequisites"] = []
+    invalid["legal_context"]["source_evidence"] = ["fabricated-source"]
+
+    with pytest.raises(CapabilityContractError, match="jurisdiction record schema"):
+        validate_jurisdiction_record(
+            invalid,
+            platform=platform,
+            platform_sha256=sha256_file(ROOT / PLATFORM_RELATIVE_PATH),
+            root=ROOT,
+        )
+
+
+def test_platform_loader_rejects_fabricated_repository_revision(tmp_path: Path) -> None:
+    root = isolated_contract_root(tmp_path)
+    contract_path = root / PLATFORM_RELATIVE_PATH
+    contract = read_json(contract_path)
+    contract["repository_revision"] = "f" * 40
+    write_json(contract_path, contract)
+
+    with pytest.raises(CapabilityContractError, match="registered repository revision"):
         load_platform_contract(root)

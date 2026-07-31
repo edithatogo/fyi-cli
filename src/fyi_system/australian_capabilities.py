@@ -12,6 +12,15 @@ from typing import Any, Never, cast
 from jsonschema import Draft202012Validator, FormatChecker
 from jsonschema.exceptions import SchemaError, ValidationError
 
+from fyi_system.australian_capability_registry import (
+    JURISDICTION_SCHEMA_SHA256,
+    PLATFORM_SCHEMA_SHA256,
+    REGISTERED_ADAPTER_PROVENANCE,
+    REGISTERED_AUTHENTIC_SOURCE_EVIDENCE,
+    REQUIRED_ACTIVATION_PREREQUISITES,
+    REQUIRED_PROHIBITIONS,
+)
+
 PLATFORM_RELATIVE_PATH = Path(
     "artifacts/foio/australian-capabilities/au-rtk-platform.v1.json",
 )
@@ -126,8 +135,17 @@ def _validate_schema_object(
     value: object,
     *,
     schema_path: Path,
+    schema_sha256: str,
+    schema_pin_name: str,
     contract_name: str,
 ) -> dict[str, Any]:
+    try:
+        actual_schema_sha256 = sha256_file(schema_path)
+    except OSError as exc:
+        msg = f"unable to read trusted {schema_pin_name} schema {schema_path}"
+        raise CapabilityContractError(msg) from exc
+    if actual_schema_sha256 != schema_sha256:
+        _fail(f"trusted {schema_pin_name} schema pin mismatch")
     schema = _require_object(
         _read_json(schema_path),
         f"{contract_name} schema must be an object",
@@ -157,16 +175,32 @@ def _validate_platform_identity_and_scope(platform: dict[str, Any]) -> None:
     if platform.get("bounded_url_scope_sha256") != EXPECTED_SCOPE_SHA256:
         _fail("bounded URL scope declaration mismatch")
 
+    if platform.get("repository_revision") != REGISTERED_ADAPTER_PROVENANCE.repository_revision:
+        _fail("registered repository revision mismatch")
+
+    rate_policy = _require_object(
+        platform.get("rate_and_terms_policy"),
+        "rate and terms policy is required",
+    )
+    if rate_policy.get("live_access_allowed") is not False:
+        _fail("live access must remain prohibited")
+    if platform.get("live_access_performed") is not False:
+        _fail("live access must remain unperformed")
+
 
 def _validate_platform_adapter(platform: dict[str, Any], *, root: Path) -> None:
     adapter = _require_object(
         platform.get("adapter_revision"),
         "adapter revision must be pinned",
     )
-    module_path = adapter.get("module_path")
-    if module_path != ADAPTER_RELATIVE_PATH.as_posix():
-        _fail("unknown adapter module")
-    if sha256_file(root / ADAPTER_RELATIVE_PATH) != adapter.get("module_sha256"):
+    registered_adapter = {
+        "repository_revision": REGISTERED_ADAPTER_PROVENANCE.repository_revision,
+        "module_path": REGISTERED_ADAPTER_PROVENANCE.module_path,
+        "module_sha256": REGISTERED_ADAPTER_PROVENANCE.module_sha256,
+    }
+    if adapter != registered_adapter:
+        _fail("adapter provenance differs from the external registry")
+    if sha256_file(root / ADAPTER_RELATIVE_PATH) != REGISTERED_ADAPTER_PROVENANCE.module_sha256:
         _fail("adapter module pin mismatch")
 
 
@@ -178,22 +212,25 @@ def _validate_platform_legacy_oracle(platform: dict[str, Any], *, root: Path) ->
         _fail("historical CTH/NSW artifact changed")
 
 
-def validate_platform_contract(platform: dict[str, Any], *, root: Path) -> None:
-    """Validate content pins and closed capability identifiers."""
-    _validate_platform_identity_and_scope(platform)
-    _validate_platform_adapter(platform, root=root)
-    _validate_platform_legacy_oracle(platform, root=root)
+def validate_platform_contract(platform: object, *, root: Path) -> None:
+    """Perform complete structural and semantic platform validation."""
+    validated = _validate_schema_object(
+        platform,
+        schema_path=root / PLATFORM_SCHEMA_RELATIVE_PATH,
+        schema_sha256=PLATFORM_SCHEMA_SHA256,
+        schema_pin_name="platform",
+        contract_name="platform contract",
+    )
+    _validate_platform_identity_and_scope(validated)
+    _validate_platform_adapter(validated, root=root)
+    _validate_platform_legacy_oracle(validated, root=root)
 
 
 def load_platform_contract(root: Path) -> dict[str, Any]:
     """Load and semantically validate the shared platform contract."""
-    platform = _validate_schema_object(
-        _read_json(root / PLATFORM_RELATIVE_PATH),
-        schema_path=root / PLATFORM_SCHEMA_RELATIVE_PATH,
-        contract_name="platform contract",
-    )
+    platform = _read_json(root / PLATFORM_RELATIVE_PATH)
     validate_platform_contract(platform, root=root)
-    return platform
+    return _require_object(platform, "platform contract must be an object")
 
 
 def record_relative_path(jurisdiction_id: str | None) -> Path:
@@ -245,39 +282,67 @@ def _validate_record_state(record: dict[str, Any]) -> None:
     classification = record.get("jurisdiction_classification")
     if not isinstance(classification, dict) or classification.get("mode") != "explicit_id_only":
         _fail("jurisdiction classification must fail closed")
-    activation = record.get("activation")
-    if not isinstance(activation, dict) or activation.get("enabled") is not False:
+    activation = _require_object(record.get("activation"), "activation policy is required")
+    if activation.get("enabled") is not False:
         _fail("contract-only jurisdiction cannot be activated")
+    prerequisites = activation.get("prerequisites")
+    if prerequisites != list(REQUIRED_ACTIVATION_PREREQUISITES):
+        _fail("activation prerequisites differ from the external registry")
+
+    if record.get("prohibitions") != list(REQUIRED_PROHIBITIONS):
+        _fail("prohibitions differ from the external registry")
+
+    jurisdiction_id = require_explicit_jurisdiction(record.get("jurisdiction_id"))
+    legal_context = _require_object(record.get("legal_context"), "legal context is required")
+    expected_sources = REGISTERED_AUTHENTIC_SOURCE_EVIDENCE[jurisdiction_id]
+    if legal_context.get("source_evidence") != list(expected_sources):
+        _fail("source evidence is not present in the external authenticity registry")
 
 
 def validate_jurisdiction_record(
-    record: dict[str, Any],
+    record: object,
     *,
     platform: dict[str, Any],
     platform_sha256: str,
+    root: Path,
 ) -> None:
-    """Validate a disabled jurisdiction record against its exact platform contract."""
-    _validate_record_identity(record)
-    _validate_record_platform_pins(
+    """Perform complete structural and semantic jurisdiction validation."""
+    validate_platform_contract(platform, root=root)
+    actual_platform_sha256 = sha256_file(root / PLATFORM_RELATIVE_PATH)
+    if platform_sha256 != actual_platform_sha256:
+        _fail("supplied platform digest differs from repository bytes")
+    repository_platform = _require_object(
+        _read_json(root / PLATFORM_RELATIVE_PATH),
+        "repository platform contract must be an object",
+    )
+    if platform != repository_platform:
+        _fail("supplied platform differs from repository contract")
+
+    validated = _validate_schema_object(
         record,
+        schema_path=root / RECORD_SCHEMA_RELATIVE_PATH,
+        schema_sha256=JURISDICTION_SCHEMA_SHA256,
+        schema_pin_name="jurisdiction",
+        contract_name="jurisdiction record",
+    )
+    _validate_record_identity(validated)
+    _validate_record_platform_pins(
+        validated,
         platform=platform,
         platform_sha256=platform_sha256,
     )
-    _validate_record_state(record)
+    _validate_record_state(validated)
 
 
 def load_jurisdiction_record(root: Path, jurisdiction_id: str | None) -> dict[str, Any]:
     """Load one exact disabled jurisdiction record and all referenced pins."""
     platform = load_platform_contract(root)
     platform_sha256 = sha256_file(root / PLATFORM_RELATIVE_PATH)
-    record = _validate_schema_object(
-        _read_json(root / record_relative_path(jurisdiction_id)),
-        schema_path=root / RECORD_SCHEMA_RELATIVE_PATH,
-        contract_name="jurisdiction record",
-    )
+    record = _read_json(root / record_relative_path(jurisdiction_id))
     validate_jurisdiction_record(
         record,
         platform=platform,
         platform_sha256=platform_sha256,
+        root=root,
     )
-    return record
+    return _require_object(record, "jurisdiction record must be an object")
