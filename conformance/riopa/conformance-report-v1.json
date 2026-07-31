@@ -1,0 +1,65 @@
+{
+  "report_version": "1.0.0",
+  "profile": "mapping-profile-v1.json",
+  "native_fixture": "native-provenance-fixture-v1.json",
+  "classification_counts": {
+    "exact": 6,
+    "approximate": 2,
+    "extension-only": 2,
+    "unmapped": 1
+  },
+  "native_evidence_preserved": true,
+  "mapped_output": {
+    "profile": "riopa.provenance.capture.v1",
+    "generated_at": "2026-07-31T00:01:00Z",
+    "source": "fyi-cli://capture",
+    "input_ref": "urn:fyi:capture-input:synthetic-42",
+    "output_ref": "urn:fyi:capture-output:synthetic-42",
+    "agent": "fyi-cli/conformance-fixture",
+    "rights": "synthetic-test-data",
+    "schema_refs": [
+      "https://github.com/edithatogo/fyi-cli/blob/master/crates/fyi-core/src/provenance.rs"
+    ],
+    "semantic_gaps": [
+      "payload bytes are not embedded; only content hashes are emitted",
+      "no external timestamp authority attestation is captured",
+      "no stream-level cryptographic signature is currently emitted"
+    ],
+    "unsupported_fields": [
+      "signature",
+      "witness_log",
+      "retention_policy_id"
+    ],
+    "events": [
+      {
+        "event_id": "riopa:0:f34d77dbf12757a901f28ee581574f9469f100e84c0293c1930354f2397de6e7",
+        "event_type": "capture.artifact.recorded",
+        "recorded_at": "2026-07-31T00:00:00Z",
+        "source": "fyi-cli://capture",
+        "input": {
+          "reference": "urn:fyi:capture-input:synthetic-42",
+          "hash": "9a5df3729917cba86db1a823bdedea240ac08fd1cdacb93ac8d987c09b49bb08"
+        },
+        "output": {
+          "reference": "urn:fyi:capture-output:synthetic-42",
+          "hash": "f34d77dbf12757a901f28ee581574f9469f100e84c0293c1930354f2397de6e7"
+        },
+        "agent": "fyi-cli/conformance-fixture",
+        "rights": "synthetic-test-data",
+        "schema_refs": [
+          "https://github.com/edithatogo/fyi-cli/blob/master/crates/fyi-core/src/provenance.rs"
+        ],
+        "integrity": {
+          "chain_algorithm": "sha256-prev-hash-v1",
+          "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+          "payload_hash": "9a5df3729917cba86db1a823bdedea240ac08fd1cdacb93ac8d987c09b49bb08",
+          "record_hash": "f34d77dbf12757a901f28ee581574f9469f100e84c0293c1930354f2397de6e7"
+        },
+        "chain": {
+          "sequence": 0,
+          "payload_id": "capture/request-42.json"
+        }
+      }
+    ]
+  }
+}
