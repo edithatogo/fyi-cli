@@ -1,0 +1,15 @@
+Australian capability trust-boundary remediation
+
+Commit: 3f3befa
+Parent reviewed candidate: e723f85ef032e27830ccd06e843364a6bc019e26
+
+Findings closed:
+- Caller-root schema resealing: platform and jurisdiction schemas are now SHA-256 pinned in an imported immutable registry.
+- Validator bypass: public validators now execute trusted-schema validation and semantic validation on every path.
+- Policy and evidence integrity: live access remains false; exact nonempty prerequisites and prohibitions are registered; source evidence must exactly match the external authenticity registry.
+- Provenance integrity: repository_revision and adapter path/hash are bound to registered adapter provenance.
+
+RED evidence: 5/5 adversarial tests failed before the fix.
+GREEN evidence: focused 36 passed; full pytest 740 passed and 2 opt-in network tests skipped; changed-file Ruff, format, basedpyright, and git diff checks passed.
+
+Boundaries: no endpoint access, source retrieval, credentials, capture, network operation, push, pull request, or merge.
