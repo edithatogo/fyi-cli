@@ -1,0 +1,1 @@
+Context: AU empirical capture audit found discovery safeguards were not applied to request capture. Decision: make every public capture resource robots-aware and paced through a named shared limiter, expose CLI controls, and retain bounded retry/caps. Validation: 78 focused tests passed (archive capture, CLI, discovery, importers).

@@ -1,0 +1,1 @@
+Added explicit baseline/degraded batch sizing to adaptive pacing and bounded load-memory pruning with status reporting; GNU-target core suite verified at 112 passing tests. Commit: 93339358ceeb3d72d0fb0398f9528f28d49c3164

@@ -1,0 +1,20 @@
+Task: Fuzzy search
+
+Summary:
+- Added slash-triggered fuzzy search state and key handling.
+- Added fuzzy matching across tracked requests, authorities, activity logs, and keyring entries.
+- Added search result navigation and modal overlay rendering.
+- Added tests for opening search, query entry, cross-entity matching, overlay rendering, and result navigation.
+
+Modified files:
+- crates/fyi-cli/src/tui.rs
+
+Verification:
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-cli search
+- rustfmt +stable-x86_64-pc-windows-gnu --edition 2021 --check crates\\fyi-cli\\src\\tui.rs
+- cargo +stable-x86_64-pc-windows-gnu check -p fyi-cli
+- git diff --check
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-cli
+
+Why:
+The enhanced navigation phase needs a keyboard-first search surface before bulk actions and help overlays are layered into the TUI.

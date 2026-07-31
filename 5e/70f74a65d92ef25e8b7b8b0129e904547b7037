@@ -1,0 +1,16 @@
+Task: 4.1 CLI commands
+
+Summary:
+- Added nested `fyi mfa` commands for setup, verify, status, and remove.
+- Wired setup to generate/store a TOTP secret, print an otpauth provisioning URI, and render terminal QR output.
+- Wired verify/status/remove to KeyringStore MFA APIs.
+- Added parser coverage for all MFA subcommands and default service/issuer/timestamp options.
+
+Modified files:
+- crates/fyi-cli/src/main.rs
+
+Verification:
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-cli test_parse_mfa_commands
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-cli
+- cargo +stable-x86_64-pc-windows-gnu check -p fyi-cli
+- rustfmt +stable-x86_64-pc-windows-gnu --check crates\fyi-cli\src\main.rs

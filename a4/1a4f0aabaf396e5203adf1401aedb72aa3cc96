@@ -1,0 +1,21 @@
+Task: Add full-text search across requests
+
+Summary:
+- Extracted the requests list into a client-side RequestsTable component.
+- Added local full-text search across title, body, status, requester, URL, and tags.
+- Preserved the existing requests table, status badges, links, and empty state behavior.
+- Added component coverage for query filtering.
+
+Modified files:
+- dashboard/src/app/requests/page.tsx
+- dashboard/src/components/RequestsTable.tsx
+- dashboard/src/components/RequestsTable.test.tsx
+
+Why:
+- Phase 5.1 requires search and filtering; full-text search is the first filtering capability for the request list.
+
+Verification:
+- npm test -- RequestsTable.test.tsx
+- npm test
+- npm run build
+- npx tsc --noEmit

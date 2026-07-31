@@ -1,0 +1,18 @@
+Conductor review fixes: release-readiness-audit-20260630
+
+Summary:
+- Fixed placeholder repository URLs in release-facing docs and GitHub templates.
+- Replaced stale Python-era fyi-system examples in release-facing docs with current fyi/fyi-cli wording.
+- Added CI workspace test and release package-smoke jobs.
+- Added docs/release-candidate-checklist.md with Windows/GNU Rust verification commands and secret-gated publishing notes.
+- Updated release_readiness scanner/test so the inventory now enforces zero release-surface issues.
+- Regenerated docs/release-readiness-inventory.md with 11 surfaces scanned and 0 issues.
+
+Verification:
+- .\.venv\Scripts\python.exe -m pytest tests/test_release_readiness.py: passed
+- .\.venv\Scripts\python.exe scripts\release_readiness.py --json: passed, 0 issues
+- cargo +stable-x86_64-pc-windows-gnu fmt --all -- --check: passed
+- cargo +stable-x86_64-pc-windows-gnu clippy --workspace --all-targets --all-features -- -D warnings: passed
+- cargo +stable-x86_64-pc-windows-gnu test --workspace --all-features: passed
+- cargo +stable-x86_64-pc-windows-gnu build --release --locked --package fyi-cli: passed
+- .\target\release\fyi-cli.exe --help: passed

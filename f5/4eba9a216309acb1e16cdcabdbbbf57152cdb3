@@ -1,0 +1,21 @@
+Task: Markdown preview and auto-save
+
+Summary:
+- Added a split editor layout with markdown draft and preview panes.
+- Added terminal-friendly markdown preview rendering for headings, bullets, and inline emphasis.
+- Added editor dirty tracking, autosave state, and autosave persistence through fyi-core DbPool.
+- Added draft management state and DB-backed draft refresh/open/discard helpers.
+- Added tests for preview rendering, autosave dirty-state behavior, and draft list loading.
+
+Modified files:
+- crates/fyi-cli/src/tui.rs
+
+Verification:
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-cli test_editor
+- rustfmt +stable-x86_64-pc-windows-gnu --edition 2021 --check crates\\fyi-cli\\src\\tui.rs
+- cargo +stable-x86_64-pc-windows-gnu check -p fyi-cli
+- git diff --check
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-cli
+
+Why:
+This turns the first editor tab into a draft-focused workflow with preview feedback and persistent autosave primitives before keyboard event wiring is added.

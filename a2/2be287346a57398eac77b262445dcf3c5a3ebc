@@ -1,0 +1,15 @@
+Task: Build request timeline bar/line chart
+
+Summary:
+- Added a Recharts RequestTimelineChart combining monthly bars with a line overlay.
+- Rendered a visible timeline list beside the chart for scannability and testability.
+- Added empty-state handling for missing timeline data.
+- Wired the timeline chart into the dashboard next to the status distribution chart.
+
+Files changed:
+- dashboard/src/components/DashboardSummary.tsx
+- dashboard/src/components/RequestTimelineChart.tsx
+- dashboard/src/components/RequestTimelineChart.test.tsx
+
+Why:
+- Phase 3.2 requires timeline analytics so operators can see request volume trends over time.

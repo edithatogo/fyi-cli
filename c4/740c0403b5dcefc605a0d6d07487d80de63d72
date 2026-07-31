@@ -1,0 +1,15 @@
+Conductor task: mfa-authentication-layer Task 1.2 provisioning URI and QR support
+
+Summary:
+- Added otpauth:// provisioning URI generation with issuer/account percent encoding.
+- Added terminal ASCII QR rendering for provisioning URIs using qrcode without image defaults.
+- Added focused tests for URI encoding and QR block rendering.
+
+Verification:
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-core --test security_tests
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-core --test property_tests
+- cargo +stable-x86_64-pc-windows-gnu check -p fyi-core
+- rustfmt +stable-x86_64-pc-windows-gnu --check crates/fyi-core/src/security.rs crates/fyi-core/tests/security_tests.rs crates/fyi-core/tests/property_tests.rs
+
+Notes:
+- Workspace-wide cargo fmt --check currently reports unrelated pre-existing formatting diffs in fyi-cli and Tor files, so targeted rustfmt was used for the files touched by this task.

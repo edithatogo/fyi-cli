@@ -1,0 +1,21 @@
+Task: Build correspondence timeline component
+
+Summary:
+- Added a reusable CorrespondenceTimeline component for request detail pages.
+- Renders correspondence in chronological order with request/response event labels, state badges, dates, body text, and attachment counts.
+- Replaced the request detail correspondence table with the new visual timeline.
+- Added component tests for chronological rendering and the empty state.
+
+Modified files:
+- dashboard/src/app/requests/[id]/page.tsx
+- dashboard/src/components/CorrespondenceTimeline.tsx
+- dashboard/src/components/CorrespondenceTimeline.test.tsx
+
+Why:
+- Phase 4.1 requires a timeline visualization for request lifecycle correspondence rather than a flat table.
+
+Verification:
+- npm test -- CorrespondenceTimeline.test.tsx
+- npm test
+- npm run build
+- npx tsc --noEmit

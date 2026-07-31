@@ -1,0 +1,1 @@
+Endorsed-client-route implementation slice: versioned fyi-endorsed-client/v1 capability document, fail-closed Rust/Python authorization, bounded bulk scope, shared fixture, and read-only MCP endorsed_route_status tool. Tests: Python 6 route tests; GNU MCP capability/tool-list tests passed. Upstream submission remains disabled.

@@ -1,0 +1,1 @@
+Added reproducible offline fyi-cli bot-contract harness validating endorsed-route fail-closed behavior and shared back-pressure fixtures. Live mode is explicit FYI_ALAVETELI_CONTRACT_LIVE=1 and remains operator-authorized/bounded.

@@ -1,0 +1,19 @@
+Task: Audit release-facing docs and metadata
+
+Summary:
+- Added scripts/release_readiness.py to scan release-facing docs, Cargo/Python metadata, and GitHub workflows.
+- Added tests/test_release_readiness.py covering placeholder URL, legacy command, and missing Rust release-check detection.
+- Generated docs/release-readiness-inventory.md with 11 scanned surfaces and 17 current release-readiness issues.
+
+Files:
+- scripts/release_readiness.py
+- tests/test_release_readiness.py
+- docs/release-readiness-inventory.md
+
+Why:
+This creates a repeatable release-surface inventory before changing release-facing docs, so later phases can fix stale Python-era and placeholder release content against a concrete checklist.
+
+Verification:
+- .\.venv\Scripts\python.exe -m pytest tests/test_release_readiness.py: passed
+- .\.venv\Scripts\python.exe scripts\release_readiness.py --json: passed
+- git diff --check: passed

@@ -1,0 +1,13 @@
+Conductor task: Task 5.2 bulk export
+
+Summary:
+- Added selected request CSV export using the existing blob download pattern.
+- Included CSV escaping and exported request metadata fields.
+- Added responsive request-card rendering and keyboard row selection support in RequestsTable.
+- Covered selected CSV export and keyboard selection behavior in RequestsTable tests.
+
+Verification:
+- npm test -- RequestsTable.test.tsx
+- npm test
+- npx tsc --noEmit
+- npm run build

@@ -1,0 +1,1 @@
+Offline contract harness now passes Ruff and basedpyright while retaining bounded fixture verification. Runtime report confirms offline mode and live smoke disabled by default.

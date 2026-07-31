@@ -1,0 +1,1 @@
+Recorded fork-only draft PR #146 for Issue #141 in the Alaveteli bot contract track. The PR remains draft because focused Rust tests require a Windows SDK linker environment.

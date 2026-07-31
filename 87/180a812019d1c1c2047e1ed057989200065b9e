@@ -1,0 +1,21 @@
+Task: Add visual status indicators on timeline
+
+Summary:
+- Added status-to-tone mapping for request lifecycle and correspondence events.
+- Applied tone-specific marker colors to the timeline rail indicators.
+- Added accessible labels for each status-aware marker.
+- Reused the same status tone mapping for event badges.
+- Added component coverage for overdue and partial status indicators.
+
+Modified files:
+- dashboard/src/components/CorrespondenceTimeline.tsx
+- dashboard/src/components/CorrespondenceTimeline.test.tsx
+
+Why:
+- Phase 4.1 requires visual status indicators so operators can scan the request lifecycle timeline by severity/state.
+
+Verification:
+- npm test -- CorrespondenceTimeline.test.tsx
+- npm test
+- npm run build
+- npx tsc --noEmit

@@ -1,0 +1,5 @@
+Task: Synchronize jurisdiction capture Track 234 with the AU-CTH/AU-NSW capability audit.
+
+Evidence: functional commit 3a878995015e8b0e3d1110e34c4d894d66c4d0d3; audit SHA-256 d1af66697c173cfafd8de2dfd00a8d83f3be5a5401ece5fae2bac1e67c723d71.
+
+Remaining boundary: no live capture occurred; a non-empty authorized source and authority evidence are required.

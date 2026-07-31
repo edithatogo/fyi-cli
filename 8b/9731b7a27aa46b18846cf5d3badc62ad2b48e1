@@ -1,0 +1,20 @@
+Task: Add attachment link previews
+
+Summary:
+- Added compact attachment link previews beneath correspondence timeline entries.
+- Derives readable file labels from URL paths or local/path-like attachment strings.
+- Preserves existing attachment count badges while making each attachment directly openable.
+- Added component coverage for absolute URL and relative attachment links.
+
+Modified files:
+- dashboard/src/components/CorrespondenceTimeline.tsx
+- dashboard/src/components/CorrespondenceTimeline.test.tsx
+
+Why:
+- Phase 4.2 requires attachment previews so operators can inspect linked correspondence artifacts directly from the request detail timeline.
+
+Verification:
+- npm test -- CorrespondenceTimeline.test.tsx
+- npm test
+- npm run build
+- npx tsc --noEmit

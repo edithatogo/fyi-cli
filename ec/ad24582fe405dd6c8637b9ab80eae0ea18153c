@@ -1,0 +1,18 @@
+Task: Inventory API contracts and coverage
+
+Summary:
+- Added a checked-in API contract inventory generator for Rust API payloads, Rust sync client boundaries, CLI sync commands, MCP sync tools, and archive public-web endpoints.
+- Added pytest coverage to require the inventory to include all track-required surfaces, map source/test evidence, and render a release-readable markdown matrix.
+- Generated docs/api-contract-inventory.md with current coverage and high-risk gaps for the next hardening phase.
+
+Files:
+- .conductor/tracks.md
+- .conductor/tracks/api-contract-hardening-20260630/metadata.json
+- .conductor/tracks/api-contract-hardening-20260630/plan.md
+- docs/api-contract-inventory.md
+- scripts/__init__.py
+- scripts/api_contract_inventory.py
+- tests/test_api_contract_inventory.py
+
+Why:
+Phase 1 needs an explicit, reviewable map of API contracts and coverage gaps before tightening response validation and sync error semantics.

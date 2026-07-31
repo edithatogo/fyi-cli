@@ -1,0 +1,18 @@
+Task: Build attention heatmap or trends chart
+
+Summary:
+- Added monthly attentionTrend chart data derived from the same attention status set as KPI cards.
+- Added a Recharts AttentionTrendChart with area trend rendering and visible monthly summary list.
+- Wired the attention trend chart into the dashboard chart grid.
+- Updated dashboard payload tests and shell test fixtures for the new chart series.
+
+Files changed:
+- dashboard/src/components/AttentionTrendChart.tsx
+- dashboard/src/components/AttentionTrendChart.test.tsx
+- dashboard/src/components/DashboardSummary.tsx
+- dashboard/src/components/DashboardSummaryShell.test.tsx
+- dashboard/src/lib/dashboard-summary.ts
+- dashboard/src/lib/dashboard-summary.test.ts
+
+Why:
+- Phase 3.2 requires an attention heatmap or trend view so operators can see whether request workload requiring intervention is rising or falling over time.

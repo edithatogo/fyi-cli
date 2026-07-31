@@ -1,0 +1,22 @@
+Task: Credential testing and session status
+
+Summary:
+- Added credential session status state and TUI header display for active account/session status.
+- Added a credential test command from the credential manager dialog.
+- Implemented active credential verification through KeyringStore credential retrieval without exposing secrets.
+- Added dialog status messaging for verified, missing, MFA-required, and error states.
+- Added render, keybinding, and keyring-backed credential verification tests.
+
+Modified files:
+- crates/fyi-cli/src/tui.rs
+
+Verification:
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-cli credential
+- rustfmt +stable-x86_64-pc-windows-gnu --edition 2021 --check crates\\fyi-cli\\src\\tui.rs
+- cargo +stable-x86_64-pc-windows-gnu check -p fyi-cli
+- git diff --check
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-cli (unit and CLI integration passed; e2e process exited abnormally once after timeout warning)
+- cargo +stable-x86_64-pc-windows-gnu test -p fyi-cli --test e2e_tests -- --no-capture (passed on rerun)
+
+Why:
+The TUI needs visible account/session state and a deterministic credential test hook before keyring browsing and management views can build on credential state.

@@ -1,0 +1,16 @@
+Task: Fetch dashboard data from MCP server
+
+Summary:
+- Added a dashboard-summary data module that builds KPI values from MCP request and authority data.
+- Wired the home page to instantiate FyiMcpClient and fetch live summary data at request time.
+- Added graceful fallback/error rendering when MCP data cannot be loaded.
+- Added unit tests for summary counting and MCP-compatible data fetching.
+
+Files changed:
+- dashboard/src/app/page.tsx
+- dashboard/src/components/DashboardSummary.tsx
+- dashboard/src/lib/dashboard-summary.ts
+- dashboard/src/lib/dashboard-summary.test.ts
+
+Why:
+- The dashboard landing page must show operational request and authority metrics from the Rust MCP backend instead of static placeholder data.

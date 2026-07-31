@@ -1,0 +1,1 @@
+Task 1.1 complete: Initialized Next.js dashboard scaffold with TypeScript, TailwindCSS v4 custom design tokens, base layout (Sidebar, Header, ThemeProvider), KPI DashboardSummary component, dark/light mode with system preference detection and localStorage persistence. Added vitest config with jsdom + React testing library, .eslintrc.json. All 13 tests passing.
