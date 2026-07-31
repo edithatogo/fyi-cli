@@ -1,0 +1,15 @@
+Issue: edithatogo/fyi-cli#283
+
+Independent review remediation: production platform and jurisdiction loaders now enforce their published Draft 2020-12 JSON Schemas with deterministic RFC 3339 date-time checking before semantic pins.
+
+Adversarial boundaries: reject live_access_allowed=true, live_access_performed=true, empty prohibitions, empty prerequisites, fabricated source evidence, malformed timestamps, and non-object contracts.
+
+Runtime dependency: jsonschema>=4.23.0 is direct and lock-pinned.
+
+Legacy oracle: artifacts/foio/australian_capture_capability_audit.json remains sha256 d1af66697c173cfafd8de2dfd00a8d83f3be5a5401ece5fae2bac1e67c723d71.
+
+Validation: RED 8 failures; focused 33 passed; full 735 passed and 2 opt-in network tests skipped; changed-file Ruff, format, and basedpyright passed; uv lock check passed. Repository-wide basedpyright baseline has 79 errors outside this change.
+
+Network/source boundary: no endpoint access, retrieval, authority import, credentials, capture, or legal claims.
+
+External actions: no push, pull request, or merge.
