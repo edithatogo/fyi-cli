@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/edithatogo/fyi-cli/schemas/australian-jurisdiction-capability-record.schema.json",
+  "title": "Australian jurisdiction capability record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "jurisdiction_id",
+    "profile_id",
+    "record_status",
+    "recorded_at",
+    "platform_contract",
+    "adapter_revision",
+    "bounded_url_scope",
+    "capability_ids",
+    "legal_context",
+    "jurisdiction_classification",
+    "activation",
+    "unsupported_surfaces",
+    "prohibitions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "fyi-cli.australian-jurisdiction-capability-record.v1.0.0"
+    },
+    "jurisdiction_id": {
+      "enum": ["AU-VIC", "AU-QLD", "AU-SA", "AU-WA", "AU-TAS", "AU-ACT", "AU-NT"]
+    },
+    "profile_id": {
+      "enum": [
+        "foi-o-au-vic",
+        "foi-o-au-qld",
+        "foi-o-au-sa",
+        "foi-o-au-wa",
+        "foi-o-au-tas",
+        "foi-o-au-act",
+        "foi-o-au-nt"
+      ]
+    },
+    "record_status": {"const": "contract_only_disabled"},
+    "recorded_at": {"type": "string", "format": "date-time"},
+    "platform_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["platform_id", "schema_version", "path", "sha256"],
+      "properties": {
+        "platform_id": {"const": "au-rtk"},
+        "schema_version": {
+          "const": "fyi-cli.australian-platform-capability-contract.v1.0.0"
+        },
+        "path": {
+          "const": "artifacts/foio/australian-capabilities/au-rtk-platform.v1.json"
+        },
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "adapter_revision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository_revision", "module_path", "module_sha256"],
+      "properties": {
+        "repository_revision": {"const": "2db4813da80d8c61f145c24b22ff4392830bcad5"},
+        "module_path": {"const": "src/fyi_system/archive_capture.py"},
+        "module_sha256": {
+          "const": "05bf9aa44722a5650c636cd98a05f46002f3a0623fe9a70210d75ae06f303ff2"
+        }
+      }
+    },
+    "bounded_url_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope_id", "scope_sha256", "classification_boundary"],
+      "properties": {
+        "scope_id": {"const": "au-rtk-canonical-request-v1"},
+        "scope_sha256": {
+          "const": "4d59c0e6d8b6b84fb2268cf8ca8de9052ec554f5ab5f3ef9f4fa6eabcd3ca46d"
+        },
+        "classification_boundary": {
+          "const": "scope_does_not_establish_jurisdiction_membership"
+        }
+      }
+    },
+    "capability_ids": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "request_json_discovery",
+          "request_html_download",
+          "attachment_discovery_json",
+          "attachment_discovery_html",
+          "attachment_download",
+          "bounded_retry",
+          "raw_warc_wacz_preservation",
+          "content_addressed_handoff"
+        ]
+      }
+    },
+    "legal_context": {
+      "const": {
+        "status": "unverified_contract_only",
+        "regime_id": null,
+        "authority_registry": null,
+        "effective_date": null,
+        "source_evidence": []
+      }
+    },
+    "jurisdiction_classification": {
+      "const": {
+        "mode": "explicit_id_only",
+        "authority_imported": false,
+        "text_inference_allowed": false,
+        "unknown_disposition": "reject"
+      }
+    },
+    "activation": {
+      "const": {
+        "enabled": false,
+        "prerequisites": [
+          "authentic_authority_pin",
+          "source_rights_review",
+          "effective_date_pin",
+          "separate_capture_authorization"
+        ]
+      }
+    },
+    "unsupported_surfaces": {
+      "const": [
+        "authority_import",
+        "jurisdiction_inference",
+        "legal_classification",
+        "rights_determination",
+        "internet_archive_replay",
+        "immutable_manifest_finalization",
+        "profile_promotion"
+      ]
+    },
+    "prohibitions": {
+      "const": [
+        "endpoint_access",
+        "source_retrieval",
+        "credential_use",
+        "capture",
+        "legal_claims",
+        "cross_jurisdiction_fallback",
+        "implicit_activation"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"jurisdiction_id": {"const": "AU-VIC"}}},
+      "then": {"properties": {"profile_id": {"const": "foi-o-au-vic"}}}
+    },
+    {
+      "if": {"properties": {"jurisdiction_id": {"const": "AU-QLD"}}},
+      "then": {"properties": {"profile_id": {"const": "foi-o-au-qld"}}}
+    },
+    {
+      "if": {"properties": {"jurisdiction_id": {"const": "AU-SA"}}},
+      "then": {"properties": {"profile_id": {"const": "foi-o-au-sa"}}}
+    },
+    {
+      "if": {"properties": {"jurisdiction_id": {"const": "AU-WA"}}},
+      "then": {"properties": {"profile_id": {"const": "foi-o-au-wa"}}}
+    },
+    {
+      "if": {"properties": {"jurisdiction_id": {"const": "AU-TAS"}}},
+      "then": {"properties": {"profile_id": {"const": "foi-o-au-tas"}}}
+    },
+    {
+      "if": {"properties": {"jurisdiction_id": {"const": "AU-ACT"}}},
+      "then": {"properties": {"profile_id": {"const": "foi-o-au-act"}}}
+    },
+    {
+      "if": {"properties": {"jurisdiction_id": {"const": "AU-NT"}}},
+      "then": {"properties": {"profile_id": {"const": "foi-o-au-nt"}}}
+    }
+  ]
+}

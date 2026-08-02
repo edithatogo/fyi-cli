@@ -1,0 +1,73 @@
+{
+  "schema_version": "fyi-cli.australian-jurisdiction-capability-record.v1.0.0",
+  "jurisdiction_id": "AU-ACT",
+  "profile_id": "foi-o-au-act",
+  "record_status": "contract_only_disabled",
+  "recorded_at": "2026-07-31T00:00:00Z",
+  "platform_contract": {
+    "platform_id": "au-rtk",
+    "schema_version": "fyi-cli.australian-platform-capability-contract.v1.0.0",
+    "path": "artifacts/foio/australian-capabilities/au-rtk-platform.v1.json",
+    "sha256": "276ffb397a14787bd855c019487b2ff30d7c7fb0649a95f502d3a89ab252382b"
+  },
+  "adapter_revision": {
+    "repository_revision": "2db4813da80d8c61f145c24b22ff4392830bcad5",
+    "module_path": "src/fyi_system/archive_capture.py",
+    "module_sha256": "05bf9aa44722a5650c636cd98a05f46002f3a0623fe9a70210d75ae06f303ff2"
+  },
+  "bounded_url_scope": {
+    "scope_id": "au-rtk-canonical-request-v1",
+    "scope_sha256": "4d59c0e6d8b6b84fb2268cf8ca8de9052ec554f5ab5f3ef9f4fa6eabcd3ca46d",
+    "classification_boundary": "scope_does_not_establish_jurisdiction_membership"
+  },
+  "capability_ids": [
+    "request_json_discovery",
+    "request_html_download",
+    "attachment_discovery_json",
+    "attachment_discovery_html",
+    "attachment_download",
+    "bounded_retry",
+    "raw_warc_wacz_preservation",
+    "content_addressed_handoff"
+  ],
+  "legal_context": {
+    "status": "unverified_contract_only",
+    "regime_id": null,
+    "authority_registry": null,
+    "effective_date": null,
+    "source_evidence": []
+  },
+  "jurisdiction_classification": {
+    "mode": "explicit_id_only",
+    "authority_imported": false,
+    "text_inference_allowed": false,
+    "unknown_disposition": "reject"
+  },
+  "activation": {
+    "enabled": false,
+    "prerequisites": [
+      "authentic_authority_pin",
+      "source_rights_review",
+      "effective_date_pin",
+      "separate_capture_authorization"
+    ]
+  },
+  "unsupported_surfaces": [
+    "authority_import",
+    "jurisdiction_inference",
+    "legal_classification",
+    "rights_determination",
+    "internet_archive_replay",
+    "immutable_manifest_finalization",
+    "profile_promotion"
+  ],
+  "prohibitions": [
+    "endpoint_access",
+    "source_retrieval",
+    "credential_use",
+    "capture",
+    "legal_claims",
+    "cross_jurisdiction_fallback",
+    "implicit_activation"
+  ]
+}

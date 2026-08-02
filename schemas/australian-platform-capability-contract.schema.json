@@ -1,0 +1,222 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/edithatogo/fyi-cli/schemas/australian-platform-capability-contract.schema.json",
+  "title": "Shared au-rtk platform capability contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "platform_id",
+    "contract_status",
+    "recorded_at",
+    "repository_revision",
+    "adapter_revision",
+    "bounded_url_scope",
+    "bounded_url_scope_sha256",
+    "declared_capability_ids",
+    "surfaces",
+    "raw_state_preservation",
+    "rate_and_terms_policy",
+    "resume_semantics",
+    "handoff_shape",
+    "unsupported_surfaces",
+    "historical_regression_oracle",
+    "live_access_performed"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "fyi-cli.australian-platform-capability-contract.v1.0.0"
+    },
+    "platform_id": {"const": "au-rtk"},
+    "contract_status": {"const": "code_inspection_only"},
+    "recorded_at": {"type": "string", "format": "date-time"},
+    "repository_revision": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+    "adapter_revision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository_revision", "module_path", "module_sha256"],
+      "properties": {
+        "repository_revision": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+        "module_path": {"const": "src/fyi_system/archive_capture.py"},
+        "module_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "bounded_url_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope_id",
+        "base_url",
+        "path_template",
+        "url_pattern",
+        "allowed_methods",
+        "membership_source",
+        "network_activation",
+        "jurisdiction_classification"
+      ],
+      "properties": {
+        "scope_id": {"const": "au-rtk-canonical-request-v1"},
+        "base_url": {"const": "https://www.righttoknow.org.au"},
+        "path_template": {"const": "/request/{slug}"},
+        "url_pattern": {"type": "string", "minLength": 20},
+        "allowed_methods": {"const": ["GET"]},
+        "membership_source": {"const": "explicit_operator_supplied_slug"},
+        "network_activation": {"const": "requires_separate_authorization"},
+        "jurisdiction_classification": {
+          "const": "not_provided_by_platform_contract"
+        }
+      }
+    },
+    "bounded_url_scope_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "declared_capability_ids": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "request_json_discovery",
+          "request_html_download",
+          "attachment_discovery_json",
+          "attachment_discovery_html",
+          "attachment_download",
+          "bounded_retry",
+          "raw_warc_wacz_preservation",
+          "content_addressed_handoff"
+        ]
+      }
+    },
+    "surfaces": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["discovery", "download"],
+      "properties": {
+        "discovery": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/surface"}
+        },
+        "download": {
+          "type": "array",
+          "minItems": 3,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/surface"}
+        }
+      }
+    },
+    "raw_state_preservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["warc", "wacz", "payload_sha256", "derived_view_is_raw"],
+      "properties": {
+        "warc": {"const": true},
+        "wacz": {"const": true},
+        "payload_sha256": {"const": true},
+        "derived_view_is_raw": {"const": false}
+      }
+    },
+    "rate_and_terms_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "retry_attempts",
+        "retryable_status_codes",
+        "backoff",
+        "terms_status",
+        "live_access_allowed"
+      ],
+      "properties": {
+        "retry_attempts": {"const": 3},
+        "retryable_status_codes": {"const": [429, 500, 502, 503, 504]},
+        "backoff": {"const": "bounded_linear"},
+        "terms_status": {"const": "unverified_no_endpoint_access"},
+        "live_access_allowed": {"const": false}
+      }
+    },
+    "resume_semantics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["checkpoint_resume", "content_addressed_reuse", "rerun_policy"],
+      "properties": {
+        "checkpoint_resume": {"const": false},
+        "content_addressed_reuse": {"const": true},
+        "rerun_policy": {"const": "new_run_required_no_implicit_resume"}
+      }
+    },
+    "handoff_shape": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["shape_version", "outputs", "immutable_manifest_finalized"],
+      "properties": {
+        "shape_version": {"const": "fyi-cli.capture-handoff.v1"},
+        "outputs": {
+          "const": [
+            "warc",
+            "wacz",
+            "request_json",
+            "request_html",
+            "attachment_objects",
+            "derived_request_view",
+            "resource_sha256"
+          ]
+        },
+        "immutable_manifest_finalized": {"const": false}
+      }
+    },
+    "unsupported_surfaces": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "authority_import",
+          "jurisdiction_inference",
+          "legal_classification",
+          "rights_determination",
+          "internet_archive_replay",
+          "immutable_manifest_finalization",
+          "profile_promotion"
+        ]
+      }
+    },
+    "historical_regression_oracle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "jurisdictions", "disposition"],
+      "properties": {
+        "path": {"const": "artifacts/foio/australian_capture_capability_audit.json"},
+        "sha256": {
+          "const": "d1af66697c173cfafd8de2dfd00a8d83f3be5a5401ece5fae2bac1e67c723d71"
+        },
+        "jurisdictions": {"const": ["AU-CTH", "AU-NSW"]},
+        "disposition": {"const": "frozen_historical_regression_oracle"}
+      }
+    },
+    "live_access_performed": {"const": false}
+  },
+  "$defs": {
+    "surface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "path_template", "status"],
+      "properties": {
+        "id": {
+          "enum": [
+            "request_json",
+            "request_html",
+            "attachment_from_json",
+            "attachment_from_html",
+            "attachment_payload"
+          ]
+        },
+        "path_template": {"type": "string", "minLength": 3},
+        "status": {"const": "implemented_unexecuted"}
+      }
+    }
+  }
+}
