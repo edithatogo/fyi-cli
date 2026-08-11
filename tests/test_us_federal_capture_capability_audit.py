@@ -41,7 +41,7 @@ def test_us_federal_audit_is_grounded_in_documented_platform_constraints() -> No
     assert "https://api.foia.gov/api/agency_components" in evaluation
     assert "API key" in evaluation
     assert "Agency API `POST` surface" in evaluation
-    assert "FOIA.gov" in landscape
+    assert "United States federal FOIA portal" in landscape
     for capability_symbol in (
         "CaptureCaps",
         "get_with_retry",
