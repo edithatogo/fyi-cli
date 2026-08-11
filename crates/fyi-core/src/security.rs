@@ -1,6 +1,6 @@
 use aes_gcm::{
-    aead::{Aead, AeadCore, KeyInit, OsRng},
-    Aes256Gcm, Key, Nonce,
+    aead::{Aead, KeyInit},
+    Aes256Gcm, Nonce,
 };
 use data_encoding::BASE32_NOPAD;
 use hmac::{Hmac, Mac};
@@ -119,10 +119,8 @@ type HmacSha1 = Hmac<Sha1>;
 
 /// Generates a cryptographically secure base32 TOTP secret.
 pub fn generate_totp_secret() -> Result<ZeroizedString, SecurityError> {
-    use aes_gcm::aead::rand_core::RngCore;
-
     let mut secret = [0u8; TOTP_SECRET_BYTES];
-    OsRng.fill_bytes(&mut secret);
+    getrandom::fill(&mut secret).map_err(|e| SecurityError::EncryptionError(e.to_string()))?;
     let encoded = BASE32_NOPAD.encode(&secret);
     secret.zeroize();
     Ok(ZeroizedString::new(encoded))
@@ -293,9 +291,8 @@ pub struct EncryptionKey(pub [u8; 32]);
 
 impl EncryptionKey {
     pub fn generate() -> Self {
-        use aes_gcm::aead::rand_core::RngCore;
         let mut key_bytes = [0u8; 32];
-        OsRng.fill_bytes(&mut key_bytes);
+        getrandom::fill(&mut key_bytes).expect("operating-system random source is unavailable");
         Self(key_bytes)
     }
 }
@@ -306,10 +303,14 @@ pub fn encrypt(
     plaintext: &ZeroizedBytes,
     key: &EncryptionKey,
 ) -> Result<ZeroizedBytes, SecurityError> {
-    let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&key.0));
+    let cipher = Aes256Gcm::new_from_slice(&key.0)
+        .map_err(|e| SecurityError::EncryptionError(e.to_string()))?;
 
-    // Generate a random 96-bit nonce
-    let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
+    // Generate an independent random 96-bit nonce for this encryption operation.
+    let mut nonce_bytes = [0u8; 12];
+    getrandom::fill(&mut nonce_bytes).map_err(|e| SecurityError::EncryptionError(e.to_string()))?;
+    let nonce = Nonce::try_from(nonce_bytes.as_slice())
+        .map_err(|e| SecurityError::EncryptionError(e.to_string()))?;
 
     let ciphertext = cipher
         .encrypt(&nonce, plaintext.as_slice())
@@ -333,11 +334,13 @@ pub fn decrypt(
     }
 
     let (nonce_bytes, ciphertext_bytes) = data.split_at(12);
-    let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&key.0));
-    let nonce = Nonce::from_slice(nonce_bytes);
+    let cipher = Aes256Gcm::new_from_slice(&key.0)
+        .map_err(|e| SecurityError::DecryptionError(e.to_string()))?;
+    let nonce =
+        Nonce::try_from(nonce_bytes).map_err(|e| SecurityError::DecryptionError(e.to_string()))?;
 
     let decrypted = cipher
-        .decrypt(nonce, ciphertext_bytes)
+        .decrypt(&nonce, ciphertext_bytes)
         .map_err(|e| SecurityError::DecryptionError(e.to_string()))?;
 
     Ok(ZeroizedBytes::new(decrypted))
