@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+COMMAND_TIMEOUT_SECONDS = 600
 
 
 def command_environment(command: tuple[str, ...]) -> dict[str, str]:
@@ -23,19 +24,28 @@ def command_environment(command: tuple[str, ...]) -> dict[str, str]:
 
 
 def run(command: tuple[str, ...]) -> int:
-    completed = subprocess.run(  # noqa: S603
-        command,
-        cwd=ROOT,
-        check=False,
-        env=command_environment(command),
-    )
+    print(f"Running property-test command: {' '.join(command)}", flush=True)
+    try:
+        completed = subprocess.run(  # noqa: S603
+            command,
+            cwd=ROOT,
+            check=False,
+            env=command_environment(command),
+            timeout=COMMAND_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired:
+        print(
+            f"Property-test command timed out after {COMMAND_TIMEOUT_SECONDS} seconds.",
+            file=sys.stderr,
+        )
+        return 1
     return completed.returncode
 
 
 def main() -> int:
     commands = (
         (sys.executable, "-m", "pytest", "tests/test_hypothesis.py", "tests/test_fuzz.py"),
-        ("cargo", "test", "-p", "fyi-core", "--test", "property_tests", "-q"),
+        ("cargo", "test", "-p", "fyi-core", "--test", "property_tests"),
     )
     for command in commands:
         if run(command):
