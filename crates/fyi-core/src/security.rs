@@ -317,7 +317,7 @@ pub fn encrypt(
         .map_err(|e| SecurityError::EncryptionError(e.to_string()))?;
 
     let mut result = Vec::with_capacity(nonce.len() + ciphertext.len());
-    result.extend_from_slice(nonce);
+    result.extend_from_slice(&nonce);
     result.extend_from_slice(&ciphertext);
 
     Ok(ZeroizedBytes::new(result))
@@ -340,7 +340,7 @@ pub fn decrypt(
         Nonce::try_from(nonce_bytes).map_err(|e| SecurityError::DecryptionError(e.to_string()))?;
 
     let decrypted = cipher
-        .decrypt(nonce, ciphertext_bytes)
+        .decrypt(&nonce, ciphertext_bytes)
         .map_err(|e| SecurityError::DecryptionError(e.to_string()))?;
 
     Ok(ZeroizedBytes::new(decrypted))
