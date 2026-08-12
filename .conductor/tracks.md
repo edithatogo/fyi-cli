@@ -4,6 +4,15 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
+## Active cross-repository tracks
+
+- [ ] **Track: source-adapter-boundary-20260812**
+  *Link: [./tracks/source-adapter-boundary-20260812/](./tracks/source-adapter-boundary-20260812/)*
+  *Issue: [#309](https://github.com/edithatogo/fyi-cli/issues/309), upstream of [fyi-archive #370](https://github.com/edithatogo/fyi-archive/issues/370).*
+  *Description: Make fyi-cli the exclusive receipt-producing network boundary for Alaveteli, Internet Archive, Wayback replay, source health, and approved external indexes.*
+
+---
+
 ## Completed Tracks
 
 - [x] **Track: integrate-fyi-cli-history** (COMPLETED 2026-03-08)
