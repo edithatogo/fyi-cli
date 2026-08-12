@@ -1,0 +1,18 @@
+{
+  "track_id": "source-adapter-boundary-20260812",
+  "type": "programme",
+  "status": "pending",
+  "created_at": "2026-08-12T00:00:00Z",
+  "updated_at": "2026-08-12T00:00:00Z",
+  "github_issue": "https://github.com/edithatogo/fyi-cli/issues/309",
+  "upstream_consumer": "https://github.com/edithatogo/fyi-archive/issues/370",
+  "downstream_consumer": "https://github.com/edithatogo/foi-process/issues/114",
+  "child_issues": [
+    "https://github.com/edithatogo/fyi-cli/issues/310",
+    "https://github.com/edithatogo/fyi-cli/issues/311",
+    "https://github.com/edithatogo/fyi-cli/issues/312",
+    "https://github.com/edithatogo/fyi-cli/issues/313",
+    "https://github.com/edithatogo/fyi-cli/issues/314"
+  ],
+  "archive_cutover_allowed": false
+}
