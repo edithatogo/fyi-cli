@@ -60,6 +60,15 @@ class TestBuildParser:
                 "--checkpoint", "checkpoint.json",
                 "--receipt", "receipt.json",
             ],
+            [
+                "internet-archive-replay",
+                "--selection", "selection.json",
+                "--allowed-target-host", "example.test",
+                "--output-dir", "objects",
+                "--result", "result.json",
+                "--checkpoint", "checkpoint.json",
+                "--receipt", "receipt.json",
+            ],
         ],
     )
     def test_network_acquisition_commands_accept_receipt(self, arguments):
@@ -81,6 +90,23 @@ class TestBuildParser:
         assert args.pagination_mode == "page_count"
         assert args.max_pages == 4
         assert args.max_rows == 20
+
+    def test_internet_archive_replay_parses_bounded_controls(self):
+        args = build_parser().parse_args([
+            "internet-archive-replay",
+            "--selection", "selection.json",
+            "--allowed-target-host", "example.test",
+            "--output-dir", "objects",
+            "--result", "result.json",
+            "--checkpoint", "checkpoint.json",
+            "--receipt", "receipt.json",
+            "--max-rows", "4",
+            "--max-payload-bytes", "4096",
+            "--max-redirects", "1",
+        ])
+        assert args.max_rows == 4
+        assert args.max_payload_bytes == 4096
+        assert args.max_redirects == 1
 
     def test_dry_plan_rejects_unbounded_without_network(self, capsys):
         args = build_parser().parse_args([

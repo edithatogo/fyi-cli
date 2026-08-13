@@ -6,7 +6,10 @@
   to every existing network command.
 - [~] #311: implement resumable Internet Archive CDX discovery with parity
   fixtures derived from the current `fyi-archive` behavior.
-- [ ] #312: implement bounded, allowlisted Wayback replay with byte receipts.
+- [~] #312: implement bounded, allowlisted Wayback replay with byte receipts.
+  Offline implementation and adversarial parity fixtures are present; hosted
+  smoke, downstream old/new parity, pinned release integration, NZ shadow
+  parity, and archive cutover remain open acceptance gates.
 - [ ] #313: add source probing, shared capture pacing, `Retry-After`, and
   checkpointed numeric-ID discovery.
 - [ ] #314: add narrowly allowlisted external historical-index retrieval.
