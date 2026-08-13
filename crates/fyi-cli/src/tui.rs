@@ -1163,7 +1163,7 @@ pub fn draw_ui(f: &mut Frame<'_>, state: &AppState) {
             Constraint::Min(10),   // Main Viewport
             Constraint::Length(3), // Bottom Info bar
         ])
-        .split(f.size());
+        .split(f.area());
 
     // Title and Tabs Block
     let tabs_titles: Vec<&str> = Tab::all().iter().map(|t| t.title()).collect();
@@ -1218,15 +1218,15 @@ pub fn draw_ui(f: &mut Frame<'_>, state: &AppState) {
     f.render_widget(help_paragraph, chunks[2]);
 
     if state.credential_dialog_open {
-        draw_credential_dialog(f, state, centered_rect(70, 55, f.size()));
+        draw_credential_dialog(f, state, centered_rect(70, 55, f.area()));
     }
 
     if state.search_open {
-        draw_search_overlay(f, state, centered_rect(76, 60, f.size()));
+        draw_search_overlay(f, state, centered_rect(76, 60, f.area()));
     }
 
     if state.help_open {
-        draw_help_overlay(f, centered_rect(72, 62, f.size()));
+        draw_help_overlay(f, centered_rect(72, 62, f.area()));
     }
 }
 
@@ -2697,8 +2697,9 @@ mod tests {
         let mut result = String::new();
         for y in 0..buffer.area.height {
             for x in 0..buffer.area.width {
-                let cell = buffer.get(x, y);
-                result.push_str(cell.symbol());
+                if let Some(cell) = buffer.cell((x, y)) {
+                    result.push_str(cell.symbol());
+                }
             }
             result.push('\n');
         }
