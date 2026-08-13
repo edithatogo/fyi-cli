@@ -1163,7 +1163,7 @@ pub fn draw_ui(f: &mut Frame<'_>, state: &AppState) {
             Constraint::Min(10),   // Main Viewport
             Constraint::Length(3), // Bottom Info bar
         ])
-        .split(f.size());
+        .split(f.area());
 
     // Title and Tabs Block
     let tabs_titles: Vec<&str> = Tab::all().iter().map(|t| t.title()).collect();
@@ -1218,15 +1218,15 @@ pub fn draw_ui(f: &mut Frame<'_>, state: &AppState) {
     f.render_widget(help_paragraph, chunks[2]);
 
     if state.credential_dialog_open {
-        draw_credential_dialog(f, state, centered_rect(70, 55, f.size()));
+        draw_credential_dialog(f, state, centered_rect(70, 55, f.area()));
     }
 
     if state.search_open {
-        draw_search_overlay(f, state, centered_rect(76, 60, f.size()));
+        draw_search_overlay(f, state, centered_rect(76, 60, f.area()));
     }
 
     if state.help_open {
-        draw_help_overlay(f, centered_rect(72, 62, f.size()));
+        draw_help_overlay(f, centered_rect(72, 62, f.area()));
     }
 }
 
@@ -1308,34 +1308,36 @@ fn draw_summary_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
         ])
     });
 
-    let table = Table::new(rows)
-        .header(
-            Row::new(vec![
-                "ID",
-                "Authority",
-                "Request Title",
-                "Status",
-                "Priority",
-            ])
-            .style(
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            )
-            .bottom_margin(1),
-        )
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title(" Needs Action Now "),
-        )
-        .widths(&[
+    let table = Table::new(
+        rows,
+        [
             Constraint::Length(6),
             Constraint::Percentage(25),
             Constraint::Percentage(45),
             Constraint::Percentage(15),
             Constraint::Length(10),
-        ]);
+        ],
+    )
+    .header(
+        Row::new(vec![
+            "ID",
+            "Authority",
+            "Request Title",
+            "Status",
+            "Priority",
+        ])
+        .style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        )
+        .bottom_margin(1),
+    )
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(" Needs Action Now "),
+    );
 
     f.render_widget(table, chunks[2]);
 }
@@ -1376,28 +1378,30 @@ fn draw_requests_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
             .style(style)
         });
 
-    let table = Table::new(rows)
-        .header(
-            Row::new(vec!["Sel", "ID", "Authority", "Title", "Status"])
-                .style(
-                    Style::default()
-                        .fg(Color::Yellow)
-                        .add_modifier(Modifier::BOLD),
-                )
-                .bottom_margin(1),
-        )
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title(" Tracked Requests "),
-        )
-        .widths(&[
+    let table = Table::new(
+        rows,
+        [
             Constraint::Length(4),
             Constraint::Length(6),
             Constraint::Percentage(30),
             Constraint::Percentage(45),
             Constraint::Percentage(20),
-        ]);
+        ],
+    )
+    .header(
+        Row::new(vec!["Sel", "ID", "Authority", "Title", "Status"])
+            .style(
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            )
+            .bottom_margin(1),
+    )
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(" Tracked Requests "),
+    );
 
     f.render_widget(table, chunks[0]);
 
@@ -1512,31 +1516,9 @@ fn draw_keyring_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
             .style(style)
         });
 
-    let table = Table::new(rows)
-        .header(
-            Row::new(vec![
-                "Kind",
-                "Username",
-                "Service",
-                "Created",
-                "Last Used",
-                "Security",
-                "Age",
-                "Rotation",
-            ])
-            .style(
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            )
-            .bottom_margin(1),
-        )
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title(" Keyring Browser "),
-        )
-        .widths(&[
+    let table = Table::new(
+        rows,
+        [
             Constraint::Length(14),
             Constraint::Percentage(35),
             Constraint::Length(16),
@@ -1545,7 +1527,31 @@ fn draw_keyring_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
             Constraint::Length(10),
             Constraint::Length(8),
             Constraint::Length(10),
-        ]);
+        ],
+    )
+    .header(
+        Row::new(vec![
+            "Kind",
+            "Username",
+            "Service",
+            "Created",
+            "Last Used",
+            "Security",
+            "Age",
+            "Rotation",
+        ])
+        .style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        )
+        .bottom_margin(1),
+    )
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(" Keyring Browser "),
+    );
 
     f.render_widget(table, chunks[0]);
 
@@ -1596,27 +1602,29 @@ fn draw_conflicts_tab(f: &mut Frame<'_>, state: &AppState, area: Rect) {
             .style(style)
         });
 
-    let table = Table::new(rows)
-        .header(
-            Row::new(vec!["ID", "Title", "Status", "Updated"])
-                .style(
-                    Style::default()
-                        .fg(Color::Yellow)
-                        .add_modifier(Modifier::BOLD),
-                )
-                .bottom_margin(1),
-        )
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title(" Sync Conflict Review "),
-        )
-        .widths(&[
+    let table = Table::new(
+        rows,
+        [
             Constraint::Length(8),
             Constraint::Percentage(55),
             Constraint::Percentage(20),
             Constraint::Percentage(25),
-        ]);
+        ],
+    )
+    .header(
+        Row::new(vec!["ID", "Title", "Status", "Updated"])
+            .style(
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            )
+            .bottom_margin(1),
+    )
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(" Sync Conflict Review "),
+    );
 
     f.render_widget(table, area);
 }
@@ -2689,8 +2697,9 @@ mod tests {
         let mut result = String::new();
         for y in 0..buffer.area.height {
             for x in 0..buffer.area.width {
-                let cell = buffer.get(x, y);
-                result.push_str(&cell.symbol);
+                if let Some(cell) = buffer.cell((x, y)) {
+                    result.push_str(cell.symbol());
+                }
             }
             result.push('\n');
         }
