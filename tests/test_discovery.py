@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 import httpx
 import pytest
 
+from fyi_system.acquisition_receipts import AcquisitionRecorder
 from fyi_system.db import acquire_shared_rate_limit
 from fyi_system.discovery import (
     PoliteRateLimiter,
@@ -96,6 +97,48 @@ def test_discover_feed_paginates_and_writes_checkpoint(tmp_path: Path) -> None:
 
     assert [row.request_id for row in rows] == [1, 2]
     assert json.loads(checkpoint.read_text(encoding="utf-8"))["next_page"] == 3
+
+
+def test_discover_feed_records_http_retry_and_checkpoint_lineage(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "checkpoint.json"
+    attempts = {"feed": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(200, text="User-agent: *\n", request=request)
+        attempts["feed"] += 1
+        if attempts["feed"] == 1:
+            return httpx.Response(429, headers={"retry-after": "0"}, request=request)
+        return httpx.Response(200, json={"entries": []}, request=request)
+
+    receipt = AcquisitionRecorder(
+        command="discover",
+        adapter_id="alaveteli-search-feed",
+        adapter_version="test",
+        source_url="https://fyi.example",
+        request_bounds={"max_pages": 1},
+        checkpoint_path=checkpoint,
+        started_at="2026-08-13T00:00:00Z",
+    )
+    discover_feed(
+        base_url="https://fyi.example",
+        checkpoint_path=checkpoint,
+        max_pages=1,
+        delay_seconds=0,
+        transport=httpx.MockTransport(handler),
+        recorder=receipt,
+    )
+    result = receipt.build(
+        result_projection=b"\n",
+        result_media_type="application/x-ndjson",
+        completed_at="2026-08-13T00:00:01Z",
+    )
+
+    assert result["totals"]["requests"] == 2
+    assert result["totals"]["retries"] == 1
+    assert result["responses"][1]["attempts"] == 2
+    assert result["checkpoint"]["before_sha256"] is None
+    assert result["checkpoint"]["after_sha256"] is not None
 
 
 def test_backfill_ids_follows_redirect_and_skips_404() -> None:

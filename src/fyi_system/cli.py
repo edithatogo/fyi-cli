@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from .acquisition_receipts import AcquisitionRecorder, canonical_json_bytes
 from .archive_capture import CaptureCaps, capture_request
 from .archive_diff import run_diff
 from .evidence_delta import emit_evidence_deltas
@@ -53,6 +54,45 @@ def _write_json_or_print(payload, output=None):
         print(json.dumps(payload, indent=2, ensure_ascii=False))
 
 
+def _recorder(
+    args,
+    *,
+    adapter_id: str,
+    source_url: str,
+    request_bounds: dict,
+    checkpoint_path: Path | None = None,
+) -> AcquisitionRecorder | None:
+    if not getattr(args, "receipt", None):
+        return None
+    return AcquisitionRecorder(
+        command=args.cmd,
+        adapter_id=adapter_id,
+        source_url=source_url,
+        request_bounds=request_bounds,
+        rate_limit_name=getattr(args, "rate_limit_name", None),
+        minimum_interval_seconds=getattr(args, "delay_seconds", None),
+        checkpoint_path=checkpoint_path,
+    )
+
+
+def _write_receipt(args, recorder, result_projection: bytes, media_type: str) -> None:
+    if recorder is not None:
+        recorder.write(
+            args.receipt,
+            result_projection=result_projection,
+            result_media_type=media_type,
+        )
+
+
+def _run_acquisition(args, recorder, operation):
+    try:
+        return operation()
+    except Exception as error:
+        if recorder is not None:
+            recorder.write_failure(args.receipt, failure_type=type(error).__name__)
+        raise
+
+
 def cmd_init_db(args):
     init_db(args.db)
     print(f"Initialized {args.db}")
@@ -60,20 +100,50 @@ def cmd_init_db(args):
 
 def cmd_import_authorities(args):
     if args.csv_path:
+        if args.receipt:
+            raise SystemExit("--receipt is only valid for network authority imports")
         n = import_authorities_csv(args.csv_path, db_path=args.db)
     else:
-        n = import_authorities_url(args.source_url, db_path=args.db)
+        recorder = _recorder(
+            args,
+            adapter_id="alaveteli-authority-catalog",
+            source_url=args.source_url,
+            request_bounds={"resource": "all-authorities.csv"},
+        )
+        n = _run_acquisition(
+            args,
+            recorder,
+            lambda: import_authorities_url(args.source_url, db_path=args.db, recorder=recorder),
+        )
+        _write_receipt(
+            args,
+            recorder,
+            canonical_json_bytes({"imported_authorities": n}),
+            "application/json",
+        )
     print(f"Imported {n} authorities")
 
 
 def cmd_discover_bodies(args):
-    rows, provenance = discover_bodies_with_provenance(
-        base_url=args.base_url,
-        catalog_url=args.catalog_url,
-        delay_seconds=args.delay_seconds,
-        shared_rate_limit_db_path=args.db,
-        shared_rate_limit_name=args.rate_limit_name,
-        transport=None,
+    source_url = args.catalog_url or f"{args.base_url.rstrip('/')}/body/all-authorities.csv"
+    recorder = _recorder(
+        args,
+        adapter_id="alaveteli-authority-catalog",
+        source_url=source_url,
+        request_bounds={"resource": "authority_catalog"},
+    )
+    rows, provenance = _run_acquisition(
+        args,
+        recorder,
+        lambda: discover_bodies_with_provenance(
+            base_url=args.base_url,
+            catalog_url=args.catalog_url,
+            delay_seconds=args.delay_seconds,
+            shared_rate_limit_db_path=args.db,
+            shared_rate_limit_name=args.rate_limit_name,
+            transport=None,
+            recorder=recorder,
+        ),
     )
     if args.format == "jsonl":
         rendered = format_bodies_jsonl(rows)
@@ -82,6 +152,7 @@ def cmd_discover_bodies(args):
             print(args.output)
         else:
             print(rendered, end="")
+        _write_receipt(args, recorder, rendered.encode("utf-8"), "application/x-ndjson")
         return
     payload = {
         "base_url": args.base_url.rstrip("/"),
@@ -91,6 +162,8 @@ def cmd_discover_bodies(args):
         "provenance": provenance,
     }
     _write_json_or_print(payload, args.output)
+    rendered = canonical_json_bytes(payload)
+    _write_receipt(args, recorder, rendered, "application/json")
 
 
 def cmd_list_authorities(args):
@@ -132,39 +205,88 @@ def cmd_reconcile(args):
 
 
 def cmd_fetch_request_page(args):
-    data = fetch_request_page(args.request_id, base_url=args.base_url, db_path=args.db)
-    print(json.dumps(summarize_request_json(data), indent=2, ensure_ascii=False))
+    recorder = _recorder(
+        args,
+        adapter_id="alaveteli-request-json",
+        source_url=f"{args.base_url.rstrip('/')}/request/{args.request_id}.json",
+        request_bounds={"request_id": args.request_id},
+    )
+    data = _run_acquisition(
+        args,
+        recorder,
+        lambda: fetch_request_page(
+            args.request_id,
+            base_url=args.base_url,
+            db_path=args.db,
+            recorder=recorder,
+        ),
+    )
+    summary = summarize_request_json(data)
+    print(json.dumps(summary, indent=2, ensure_ascii=False))
+    _write_receipt(args, recorder, canonical_json_bytes(summary), "application/json")
 
 
 def cmd_discover(args):
+    checkpoint_path = Path(args.checkpoint) if args.checkpoint else None
+    bounds = {
+        "mode": "numeric_ids" if args.backfill_ids else "search_feed",
+        "date_from": args.date_from,
+        "date_to": args.date_to,
+        "authority": args.authority,
+        "status": args.status,
+        "max_pages": args.max_pages,
+        "id_from": args.id_from,
+        "id_to": args.id_to,
+    }
+    recorder = _recorder(
+        args,
+        adapter_id="alaveteli-numeric-id" if args.backfill_ids else "alaveteli-search-feed",
+        source_url=args.base_url,
+        request_bounds=bounds,
+        checkpoint_path=checkpoint_path,
+    )
     if args.backfill_ids:
         if args.id_from is None or args.id_to is None:
             raise SystemExit("--backfill-ids requires --id-from and --id-to")
-        rows = backfill_ids(
-            id_from=args.id_from,
-            id_to=args.id_to,
-            base_url=args.base_url,
-            delay_seconds=args.delay_seconds,
-            shared_rate_limit_db_path=args.db,
+        rows = _run_acquisition(
+            args,
+            recorder,
+            lambda: backfill_ids(
+                id_from=args.id_from,
+                id_to=args.id_to,
+                base_url=args.base_url,
+                delay_seconds=args.delay_seconds,
+                shared_rate_limit_db_path=args.db,
+                shared_rate_limit_name=args.rate_limit_name,
+                recorder=recorder,
+            ),
         )
     else:
-        rows = discover_feed(
-            base_url=args.base_url,
-            date_from=args.date_from,
-            date_to=args.date_to,
-            authority=args.authority,
-            status=args.status,
-            checkpoint_path=Path(args.checkpoint) if args.checkpoint else None,
-            max_pages=args.max_pages,
-            delay_seconds=args.delay_seconds,
-            shared_rate_limit_db_path=args.db,
+        rows = _run_acquisition(
+            args,
+            recorder,
+            lambda: discover_feed(
+                base_url=args.base_url,
+                date_from=args.date_from,
+                date_to=args.date_to,
+                authority=args.authority,
+                status=args.status,
+                checkpoint_path=checkpoint_path,
+                max_pages=args.max_pages,
+                delay_seconds=args.delay_seconds,
+                shared_rate_limit_db_path=args.db,
+                shared_rate_limit_name=args.rate_limit_name,
+                recorder=recorder,
+            ),
         )
+    rendered = ("\n".join(row.to_json() for row in rows) + "\n").encode("utf-8")
     if args.output:
         write_jsonl(Path(args.output), rows)
         print(args.output)
     else:
         for row in rows:
             print(row.to_json())
+    _write_receipt(args, recorder, rendered, "application/x-ndjson")
 
 
 def cmd_discover_reconcile(args):
@@ -224,18 +346,30 @@ def cmd_archive_health(args):
 
 
 def cmd_capture(args):
-    summary = capture_request(
-        request_ref=str(args.request_ref),
-        base_url=args.base_url,
-        data_dir=Path(args.data_dir),
-        dist_dir=Path(args.dist_dir),
-        caps=CaptureCaps(
-            max_bytes=args.max_bytes,
-            max_runtime_minutes=args.max_runtime_minutes,
-            max_disk_gb=args.max_disk_gb,
+    recorder = _recorder(
+        args,
+        adapter_id="alaveteli-request-capture",
+        source_url=f"{args.base_url.rstrip('/')}/request/{args.request_ref}",
+        request_bounds={"request_ref": str(args.request_ref)},
+    )
+    summary = _run_acquisition(
+        args,
+        recorder,
+        lambda: capture_request(
+            request_ref=str(args.request_ref),
+            base_url=args.base_url,
+            data_dir=Path(args.data_dir),
+            dist_dir=Path(args.dist_dir),
+            caps=CaptureCaps(
+                max_bytes=args.max_bytes,
+                max_runtime_minutes=args.max_runtime_minutes,
+                max_disk_gb=args.max_disk_gb,
+            ),
+            recorder=recorder,
         ),
     )
     print(json.dumps(summary, indent=2, sort_keys=True))
+    _write_receipt(args, recorder, canonical_json_bytes(summary), "application/json")
 
 
 def cmd_diff(args):
@@ -425,6 +559,7 @@ def build_parser():
     sp.add_argument('csv_path', nargs='?')
     sp.add_argument('--source-url', default=DEFAULT_AUTHORITIES_URL)
     sp.add_argument('--db', default='fyi_system.db')
+    sp.add_argument('--receipt')
     sp.set_defaults(func=cmd_import_authorities)
 
     # Command: discover-bodies
@@ -436,6 +571,7 @@ def build_parser():
     sp.add_argument('--db', default='fyi_system.db')
     sp.add_argument('--output')
     sp.add_argument('--format', choices=('json', 'jsonl'), default='json')
+    sp.add_argument('--receipt')
     sp.set_defaults(func=cmd_discover_bodies)
     
     # Command: list-authorities
@@ -510,6 +646,7 @@ def build_parser():
     sp.add_argument('request_id', type=int)
     sp.add_argument('--base-url', default='https://fyi.org.nz')
     sp.add_argument('--db', default='fyi_system.db')
+    sp.add_argument('--receipt')
     sp.set_defaults(func=cmd_fetch_request_page)
 
     # Command: discover
@@ -526,7 +663,9 @@ def build_parser():
     sp.add_argument('--id-from', type=int)
     sp.add_argument('--id-to', type=int)
     sp.add_argument('--db', default='fyi_system.db')
+    sp.add_argument('--rate-limit-name', default='archive-discovery')
     sp.add_argument('--output')
+    sp.add_argument('--receipt')
     sp.set_defaults(func=cmd_discover)
 
     # Command: rate-limit-status
@@ -580,6 +719,7 @@ def build_parser():
     sp.add_argument('--max-bytes', type=int)
     sp.add_argument('--max-runtime-minutes', type=float)
     sp.add_argument('--max-disk-gb', type=float)
+    sp.add_argument('--receipt')
     sp.set_defaults(func=cmd_capture)
 
     # Command: diff

@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/edithatogo/fyi-cli/schemas/acquisition-receipt-v1.schema.json",
+  "title": "fyi-cli acquisition receipt v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "receipt_sha256",
+    "command",
+    "adapter",
+    "source",
+    "request_bounds",
+    "started_at",
+    "completed_at",
+    "status",
+    "responses",
+    "totals",
+    "rate_limit",
+    "checkpoint",
+    "result"
+  ],
+  "properties": {
+    "schema": { "const": "urn:fyi-cli:acquisition-receipt" },
+    "schema_version": { "const": "1.0.0" },
+    "receipt_sha256": { "$ref": "#/$defs/sha256" },
+    "command": { "type": "string", "minLength": 1 },
+    "adapter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+        "version": { "type": "string", "minLength": 1 }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url"],
+      "properties": {
+        "url": { "type": "string", "format": "uri", "pattern": "^https?://" }
+      }
+    },
+    "request_bounds": { "type": "object" },
+    "started_at": { "type": "string", "format": "date-time" },
+    "completed_at": { "type": "string", "format": "date-time" },
+    "status": { "enum": ["succeeded", "failed"] },
+    "responses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["url", "status", "bytes", "sha256", "attempts", "retry_delays_seconds"],
+        "properties": {
+          "url": { "type": "string", "format": "uri", "pattern": "^https?://" },
+          "status": { "type": "integer", "minimum": 100, "maximum": 599 },
+          "bytes": { "type": "integer", "minimum": 0 },
+          "sha256": { "$ref": "#/$defs/sha256" },
+          "attempts": { "type": "integer", "minimum": 1 },
+          "retry_delays_seconds": {
+            "type": "array",
+            "items": { "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "totals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requests", "bytes", "retries"],
+      "properties": {
+        "requests": { "type": "integer", "minimum": 0 },
+        "bytes": { "type": "integer", "minimum": 0 },
+        "retries": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "rate_limit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "minimum_interval_seconds"],
+      "properties": {
+        "name": { "type": ["string", "null"] },
+        "minimum_interval_seconds": { "type": ["number", "null"], "minimum": 0 }
+      }
+    },
+    "checkpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["before_sha256", "after_sha256"],
+      "properties": {
+        "before_sha256": { "anyOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+        "after_sha256": { "anyOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["representation", "media_type", "bytes", "sha256"],
+      "properties": {
+        "representation": { "const": "canonical_result_projection" },
+        "media_type": { "type": "string", "minLength": 1 },
+        "bytes": { "type": "integer", "minimum": 0 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "failure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": { "type": { "type": "string", "minLength": 1 } }
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "const": "failed" } } },
+      "then": { "required": ["failure"] },
+      "else": { "not": { "required": ["failure"] } }
+    }
+  ]
+}

@@ -14,6 +14,8 @@ from urllib.parse import urlencode
 
 import httpx
 
+from fyi_system.acquisition_receipts import observe_response
+
 from .agent_runtime import build_user_agent, retry_delay_seconds
 from .db import (
     acquire_shared_rate_limit,
@@ -254,9 +256,10 @@ def robots_allows(path: str, disallows: list[str]) -> bool:
     return not any(path.startswith(rule) for rule in disallows if rule != "/")
 
 
-def load_robots_disallow(http: httpx.Client) -> list[str]:
+def load_robots_disallow(http: httpx.Client, *, recorder: Any | None = None) -> list[str]:
     """Fetch robots.txt disallow rules, failing open when robots is unavailable."""
     response = http.get("/robots.txt")
+    observe_response(recorder, response)
     if response.status_code >= 400:
         return []
     return parse_robots_disallow(response.text)
@@ -303,6 +306,7 @@ def get_with_backoff(
     if not robots_allows(path, disallows):
         msg = f"robots.txt disallows fetching {path}"
         raise PermissionError(msg)
+    retry_delays: list[float] = []
     for attempt in range(retries + 1):
         _wait_with_shared_fallback(shared_rate_limiter, rate_limiter, backoff_seconds)
         try:
@@ -311,6 +315,7 @@ def get_with_backoff(
             if attempt == retries:
                 raise
             delay = min(float(backoff_seconds) * (2**attempt), 60.0)
+            retry_delays.append(delay)
             _record_shared_backoff(
                 shared_rate_limiter,
                 delay_seconds=delay,
@@ -320,12 +325,17 @@ def get_with_backoff(
                 sleeper(delay)
             continue
         if response.status_code not in {429, 500, 502, 503, 504}:
+            response.extensions["fyi_attempts"] = attempt + 1
+            response.extensions["fyi_retry_delays_seconds"] = retry_delays
             return response
         if attempt == retries:
+            response.extensions["fyi_attempts"] = attempt + 1
+            response.extensions["fyi_retry_delays_seconds"] = retry_delays
             return response
         delay = retry_delay_seconds(
             response.headers, attempt=attempt, max_seconds=max(1, int(backoff_seconds * 256))
         )
+        retry_delays.append(delay)
         _record_shared_backoff(
             shared_rate_limiter,
             delay_seconds=delay,
@@ -457,13 +467,14 @@ def discover_feed(
     shared_rate_limit_db_path: str | Path | None = None,
     shared_rate_limit_name: str = "archive-discovery",
     transport: httpx.BaseTransport | None = None,
+    recorder: Any | None = None,
 ) -> list[DiscoveredRequest]:
     """Walk paginated search feed pages and return deduplicated requests."""
     page = load_checkpoint(checkpoint_path)
     final_page = None if max_pages is None else page + max_pages - 1
     all_entries: list[DiscoveredRequest] = []
     with client(base_url, transport=transport) as http:
-        disallows = load_robots_disallow(http)
+        disallows = load_robots_disallow(http, recorder=recorder)
         shared_rate_limiter = (
             SharedRateLimiter(shared_rate_limit_db_path, name=shared_rate_limit_name)
             if shared_rate_limit_db_path is not None
@@ -487,6 +498,7 @@ def discover_feed(
                 rate_limiter=rate_limiter,
                 backoff_seconds=delay_seconds,
             )
+            observe_response(recorder, response)
             response.raise_for_status()
             entries, has_next = parse_feed_entries(response.json())
             all_entries.extend(entries)
@@ -506,11 +518,12 @@ def backfill_ids(
     shared_rate_limit_db_path: str | Path | None = None,
     shared_rate_limit_name: str = "archive-discovery",
     transport: httpx.BaseTransport | None = None,
+    recorder: Any | None = None,
 ) -> list[DiscoveredRequest]:
     """Probe numeric request IDs, following redirects to url_title slugs."""
     entries = []
     with client(base_url, transport=transport) as http:
-        disallows = load_robots_disallow(http)
+        disallows = load_robots_disallow(http, recorder=recorder)
         shared_rate_limiter = (
             SharedRateLimiter(shared_rate_limit_db_path, name=shared_rate_limit_name)
             if shared_rate_limit_db_path is not None
@@ -526,6 +539,7 @@ def backfill_ids(
                 rate_limiter=rate_limiter,
                 backoff_seconds=delay_seconds,
             )
+            observe_response(recorder, response)
             if response.status_code == 404:
                 continue
             response.raise_for_status()

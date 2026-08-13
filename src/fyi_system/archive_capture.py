@@ -19,6 +19,7 @@ import httpx
 from warcio.statusandheaders import StatusAndHeaders
 from warcio.warcwriter import WARCWriter
 
+from fyi_system.acquisition_receipts import observe_response
 from fyi_system.discovery import authority_name, client
 from fyi_system.fetch import extract_request_artifacts, normalize_request_payload
 
@@ -85,6 +86,7 @@ def get_with_retry(
     """GET with bounded retry for transient transport failures and server errors."""
     attempts = max(1, retries)
     response: httpx.Response | None = None
+    retry_delays: list[float] = []
     for attempt in range(1, attempts + 1):
         try:
             response = http.get(url)
@@ -92,14 +94,22 @@ def get_with_retry(
             if attempt >= attempts:
                 raise
             if backoff_seconds > 0:
-                sleeper(backoff_seconds * attempt)
+                delay = backoff_seconds * attempt
+                retry_delays.append(delay)
+                sleeper(delay)
             continue
         if response.status_code not in RETRYABLE_CAPTURE_STATUS_CODES:
+            response.extensions["fyi_attempts"] = attempt
+            response.extensions["fyi_retry_delays_seconds"] = retry_delays
             return response
         if attempt >= attempts:
+            response.extensions["fyi_attempts"] = attempt
+            response.extensions["fyi_retry_delays_seconds"] = retry_delays
             return response
         if backoff_seconds > 0:
-            sleeper(backoff_seconds * attempt)
+            delay = backoff_seconds * attempt
+            retry_delays.append(delay)
+            sleeper(delay)
     if response is None:
         msg = f"Failed to GET {url}"
         raise RuntimeError(msg)
@@ -238,6 +248,7 @@ def capture_request(
     dist_dir: Path = Path("dist"),
     caps: CaptureCaps | None = None,
     transport: httpx.BaseTransport | None = None,
+    recorder: Any | None = None,
 ) -> dict[str, Any]:
     """Capture request JSON, rendered HTML, attachments, WARC, WACZ, and derived view."""
     caps = caps or DEFAULT_CAPTURE_CAPS
@@ -291,6 +302,7 @@ def capture_request(
 
     with client(base_url, transport=transport) as http:
         json_response = get_with_retry(http, f"/request/{request_ref}.json")
+        observe_response(recorder, json_response)
         if json_response.status_code == 404:
             msg = f"Request {request_ref} was not found"
             raise FileNotFoundError(msg)
@@ -304,6 +316,7 @@ def capture_request(
             authority = "unknown"
 
         html_response = get_with_retry(http, f"/request/{url_title}")
+        observe_response(recorder, html_response)
         html_response.raise_for_status()
 
         warc_path.parent.mkdir(parents=True, exist_ok=True)
@@ -327,6 +340,7 @@ def capture_request(
             )["attachments"]:
                 attachment_url = urljoin(base_url.rstrip("/") + "/", str(attachment["url"]))
                 response = get_with_retry(http, attachment_url)
+                observe_response(recorder, response)
                 if response.status_code == 404:
                     continue
                 response.raise_for_status()
