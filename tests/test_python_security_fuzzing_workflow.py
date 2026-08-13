@@ -37,6 +37,14 @@ def test_quality_gate_covers_acquisition_boundaries_and_strict_types() -> None:
         assert path in workflow
     assert "uv run basedpyright" in workflow
     assert "uv run pip-audit" in workflow
+    assert "requirements-fuzz-audit.txt" in workflow
+    assert (
+        "atheris==3.1.0"
+        not in workflow.split("requirements-audit.txt", 1)[1].split(
+            "uv run pip-audit --requirement requirements-audit.txt",
+            1,
+        )[0]
+    )
 
 
 def test_atheris_matrix_is_bounded_and_retains_failures() -> None:

@@ -83,8 +83,9 @@ jobs:
       - name: Audit locked Python dependencies
         run: |
           uv export --frozen --extra dev --no-emit-project --output-file requirements-audit.txt
-          printf '\natheris==3.1.0\n' >> requirements-audit.txt
           uv run pip-audit --requirement requirements-audit.txt
+          printf 'atheris==3.1.0\n' > requirements-fuzz-audit.txt
+          uv run pip-audit --requirement requirements-fuzz-audit.txt
 
   atheris:
     name: Atheris (${{ matrix.target }})
