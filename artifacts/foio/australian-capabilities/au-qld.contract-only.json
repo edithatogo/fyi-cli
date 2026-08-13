@@ -8,12 +8,12 @@
     "platform_id": "au-rtk",
     "schema_version": "fyi-cli.australian-platform-capability-contract.v1.0.0",
     "path": "artifacts/foio/australian-capabilities/au-rtk-platform.v1.json",
-    "sha256": "276ffb397a14787bd855c019487b2ff30d7c7fb0649a95f502d3a89ab252382b"
+    "sha256": "dd9d36bda9674c5b7a9a387b1526ef9971c5061bbfc5e47975e579c895365cd7"
   },
   "adapter_revision": {
     "repository_revision": "2db4813da80d8c61f145c24b22ff4392830bcad5",
     "module_path": "src/fyi_system/archive_capture.py",
-    "module_sha256": "05bf9aa44722a5650c636cd98a05f46002f3a0623fe9a70210d75ae06f303ff2"
+    "module_sha256": "750074ccf35c9a7ed4df70fbf1ceb53f65a7919d2d8afdeb10047d0029f9937b"
   },
   "bounded_url_scope": {
     "scope_id": "au-rtk-canonical-request-v1",

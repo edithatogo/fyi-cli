@@ -8,10 +8,12 @@ import json
 import os
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 from urllib.parse import urlsplit
 
 import httpx
 
+from .acquisition_receipts import observe_response
 from .agent_runtime import build_user_agent
 from .db import connect
 from .discovery import (
@@ -132,6 +134,7 @@ def import_authorities_url(
     db_path: str | Path = "fyi_system.db",
     *,
     transport: httpx.BaseTransport | None = None,
+    recorder: Any | None = None,
 ) -> int:
     """Fetch and import authorities from the official FYI authorities CSV."""
     with httpx.Client(
@@ -140,6 +143,7 @@ def import_authorities_url(
         transport=transport,
     ) as client:
         response = client.get(source_url)
+        observe_response(recorder, response)
         response.raise_for_status()
     return import_authorities_rows(parse_authorities_csv(response.text), db_path=db_path)
 
@@ -151,6 +155,7 @@ def discover_bodies(
     shared_rate_limit_db_path: str | Path | None = None,
     shared_rate_limit_name: str = "authority-discovery",
     transport: httpx.BaseTransport | None = None,
+    recorder: Any | None = None,
 ) -> list[dict[str, str]]:
     """Discover public authorities without mutating the local database."""
     rows, _ = discover_bodies_with_provenance(
@@ -160,6 +165,7 @@ def discover_bodies(
         shared_rate_limit_db_path=shared_rate_limit_db_path,
         shared_rate_limit_name=shared_rate_limit_name,
         transport=transport,
+        recorder=recorder,
     )
     return rows
 
@@ -172,6 +178,7 @@ def discover_bodies_with_provenance(
     shared_rate_limit_db_path: str | Path | None = None,
     shared_rate_limit_name: str = "authority-discovery",
     transport: httpx.BaseTransport | None = None,
+    recorder: Any | None = None,
 ) -> tuple[list[dict[str, str]], dict[str, str | int]]:
     """Discover bodies and return auditable HTTP/payload provenance.
 
@@ -185,7 +192,7 @@ def discover_bodies_with_provenance(
         raise ValueError(message)
     catalog_origin = f"{parsed.scheme}://{parsed.netloc}"
     with client(catalog_origin, transport=transport) as http:
-        disallows = load_robots_disallow(http)
+        disallows = load_robots_disallow(http, recorder=recorder)
         shared_limiter = (
             SharedRateLimiter(shared_rate_limit_db_path, name=shared_rate_limit_name)
             if shared_rate_limit_db_path is not None
@@ -199,6 +206,7 @@ def discover_bodies_with_provenance(
             rate_limiter=PoliteRateLimiter(delay_seconds),
             backoff_seconds=delay_seconds,
         )
+        observe_response(recorder, response)
         response.raise_for_status()
         payload = response.content
         rows = parse_authorities_csv(payload.decode("utf-8-sig"))

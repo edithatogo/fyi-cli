@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import httpx
 
+from fyi_system.acquisition_receipts import AcquisitionRecorder
 from fyi_system.db import init_db, query_all
 from fyi_system.importers import (
     authorities_url,
@@ -113,6 +114,32 @@ def test_import_authorities_url_fetches_official_csv(tmp_path: Path) -> None:
     rows = query_all(db, "SELECT slug, name, url FROM authorities")
     assert count == 1
     assert rows[0]["name"] == "Remote Agency"
+
+
+def test_import_authorities_url_records_acquisition(tmp_path: Path) -> None:
+    db = tmp_path / "fyi.db"
+    init_db(db)
+    receipt = AcquisitionRecorder(
+        command="import-authorities",
+        adapter_id="alaveteli-authority-catalog",
+        adapter_version="test",
+        source_url="https://fyi.example/body/all-authorities.csv",
+        request_bounds={"resource": "all-authorities.csv"},
+        started_at="2026-08-13T00:00:00Z",
+    )
+    response_body = b"url_name,name\nremote,Remote Agency\n"
+
+    import_authorities_url(
+        "https://fyi.example/body/all-authorities.csv",
+        db_path=db,
+        transport=httpx.MockTransport(
+            lambda request: httpx.Response(200, content=response_body, request=request),
+        ),
+        recorder=receipt,
+    )
+
+    assert receipt.responses[0]["bytes"] == len(response_body)
+    assert receipt.responses[0]["status"] == 200
 
 
 def test_discover_bodies_is_read_only_and_parameterized() -> None:

@@ -1,17 +1,22 @@
 
 from __future__ import annotations
-from html.parser import HTMLParser
+
 import json
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urljoin, urlsplit
+
 import requests
+
+from .acquisition_receipts import observe_response
 from .db import connect, query_all
 
 
-def fetch_request_page(request_id: int, base_url: str = 'https://fyi.org.nz', db_path: str | Path = 'fyi_system.db', timeout: int = 20) -> dict:
+def fetch_request_page(request_id: int, base_url: str = 'https://fyi.org.nz', db_path: str | Path = 'fyi_system.db', timeout: int = 20, recorder: Any | None = None) -> dict:
     url = f"{base_url.rstrip('/')}/request/{request_id}.json"
     response = requests.get(url, timeout=timeout)
+    observe_response(recorder, response)
     response.raise_for_status()
     data = response.json()
     conn = connect(db_path)

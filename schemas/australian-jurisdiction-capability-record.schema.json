@@ -63,7 +63,7 @@
         "repository_revision": {"const": "2db4813da80d8c61f145c24b22ff4392830bcad5"},
         "module_path": {"const": "src/fyi_system/archive_capture.py"},
         "module_sha256": {
-          "const": "05bf9aa44722a5650c636cd98a05f46002f3a0623fe9a70210d75ae06f303ff2"
+          "const": "750074ccf35c9a7ed4df70fbf1ceb53f65a7919d2d8afdeb10047d0029f9937b"
         }
       }
     },

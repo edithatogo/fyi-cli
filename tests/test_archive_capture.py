@@ -11,6 +11,7 @@ import httpx
 import pytest
 from warcio.archiveiterator import ArchiveIterator
 
+from fyi_system.acquisition_receipts import AcquisitionRecorder
 from fyi_system.archive_capture import CaptureCaps, CapturedResource, capture_request, package_wacz
 from fyi_system.cli import build_parser
 
@@ -218,6 +219,28 @@ def test_capture_request_writes_warc_wacz_and_derived_store(tmp_path: Path) -> N
         names = set(archive.namelist())
     assert "datapackage.json" in names
     assert "indexes/index.cdxj" in names
+
+
+def test_capture_request_records_every_acquired_resource(tmp_path: Path) -> None:
+    receipt = AcquisitionRecorder(
+        command="capture",
+        adapter_id="alaveteli-request-capture",
+        adapter_version="test",
+        source_url="https://fyi.example/request/123",
+        request_bounds={"request_ref": "123"},
+        started_at="2026-08-13T00:00:00Z",
+    )
+    summary = capture_request(
+        request_ref="123",
+        base_url="https://fyi.example",
+        data_dir=tmp_path / "data",
+        dist_dir=tmp_path / "dist",
+        transport=capture_transport(),
+        recorder=receipt,
+    )
+
+    assert [item["status"] for item in receipt.responses] == [200, 200, 200]
+    assert sum(item["bytes"] for item in receipt.responses) == summary["bytes_written"]
 
 
 def test_capture_request_discovers_html_only_attachments(tmp_path: Path) -> None:

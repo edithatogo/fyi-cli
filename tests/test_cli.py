@@ -44,6 +44,20 @@ class TestBuildParser:
         assert args.format == 'jsonl'
         assert args.rate_limit_name == 'archive-discovery-au-rtk'
 
+    @pytest.mark.parametrize(
+        "arguments",
+        [
+            ["import-authorities", "--receipt", "receipt.json"],
+            ["discover-bodies", "--receipt", "receipt.json"],
+            ["fetch-request-page", "1", "--receipt", "receipt.json"],
+            ["discover", "--max-pages", "1", "--receipt", "receipt.json"],
+            ["capture", "1", "--receipt", "receipt.json"],
+        ],
+    )
+    def test_network_acquisition_commands_accept_receipt(self, arguments):
+        args = build_parser().parse_args(arguments)
+        assert args.receipt == "receipt.json"
+
     def test_dry_plan_rejects_unbounded_without_network(self, capsys):
         args = build_parser().parse_args([
             'dry-plan', '--instance-id', 'nz-fyi', '--recursive-unbounded',
