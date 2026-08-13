@@ -52,11 +52,35 @@ class TestBuildParser:
             ["fetch-request-page", "1", "--receipt", "receipt.json"],
             ["discover", "--max-pages", "1", "--receipt", "receipt.json"],
             ["capture", "1", "--receipt", "receipt.json"],
+            [
+                "internet-archive-cdx",
+                "--url-pattern", "example.test/request/*",
+                "--allowed-host", "example.test",
+                "--output", "cdx.json",
+                "--checkpoint", "checkpoint.json",
+                "--receipt", "receipt.json",
+            ],
         ],
     )
     def test_network_acquisition_commands_accept_receipt(self, arguments):
         args = build_parser().parse_args(arguments)
         assert args.receipt == "receipt.json"
+
+    def test_internet_archive_cdx_parses_bounded_modes(self):
+        args = build_parser().parse_args([
+            "internet-archive-cdx",
+            "--url-pattern", "example.test/request/*",
+            "--allowed-host", "example.test",
+            "--pagination-mode", "page_count",
+            "--max-pages", "4",
+            "--max-rows", "20",
+            "--output", "cdx.json",
+            "--checkpoint", "checkpoint.json",
+            "--receipt", "receipt.json",
+        ])
+        assert args.pagination_mode == "page_count"
+        assert args.max_pages == 4
+        assert args.max_rows == 20
 
     def test_dry_plan_rejects_unbounded_without_network(self, capsys):
         args = build_parser().parse_args([
