@@ -21,6 +21,14 @@ from .importers import (
     import_authorities_url,
 )
 from .internet_archive_cdx import CDX_ADAPTER_ID, CDX_ENDPOINT, CdxConfig, discover_cdx
+from .internet_archive_replay import (
+    REPLAY_ADAPTER_ID,
+    REPLAY_ORIGIN,
+    ReplayConfig,
+    replay_approved_rows,
+    validate_selection,
+    write_replay_result,
+)
 from .monitor import ingest_feed, reconcile_events
 from .fetch import fetch_request_page, summarize_request_json, latest_snapshot_summary
 from .reporting import (
@@ -336,6 +344,50 @@ def cmd_internet_archive_cdx(args):
     rendered = canonical_json_bytes(rows)
     _write_receipt(args, recorder, rendered, "application/json")
     print(args.output)
+
+
+def cmd_internet_archive_replay(args):
+    selection_path = Path(args.selection)
+    evidence_paths = [selection_path, Path(args.result), Path(args.checkpoint), Path(args.receipt)]
+    if len({path.resolve(strict=False) for path in evidence_paths}) != len(evidence_paths):
+        raise SystemExit("replay selection, result, checkpoint, and receipt paths must differ")
+    selection = validate_selection(json.loads(selection_path.read_text(encoding="utf-8")))
+    config = ReplayConfig(
+        allowed_target_host=args.allowed_target_host,
+        max_rows=args.max_rows,
+        max_payload_bytes=args.max_payload_bytes,
+        max_redirects=args.max_redirects,
+        max_runtime_seconds=args.max_runtime_seconds,
+        request_timeout_seconds=args.request_timeout_seconds,
+    )
+    checkpoint = Path(args.checkpoint)
+    recorder = _recorder(
+        args,
+        adapter_id=REPLAY_ADAPTER_ID,
+        source_url=REPLAY_ORIGIN,
+        request_bounds=config.request_bounds(selection),
+        checkpoint_path=checkpoint,
+    )
+
+    def acquire_and_persist():
+        result = replay_approved_rows(
+            selection,
+            config,
+            output_dir=args.output_dir,
+            checkpoint_path=checkpoint,
+            observer=recorder.observe_response if recorder is not None else None,
+        )
+        write_replay_result(args.result, result)
+        return result
+
+    result = _run_acquisition(
+        args,
+        recorder,
+        acquire_and_persist,
+    )
+    rendered = canonical_json_bytes(result)
+    _write_receipt(args, recorder, rendered, "application/json")
+    print(args.result)
 
 
 def cmd_rate_limit_status(args):
@@ -754,6 +806,21 @@ def build_parser():
     sp.add_argument('--checkpoint', required=True)
     sp.add_argument('--receipt', required=True)
     sp.set_defaults(func=cmd_internet_archive_cdx)
+
+    # Command: internet-archive-replay
+    sp = sub.add_parser('internet-archive-replay')
+    sp.add_argument('--selection', required=True)
+    sp.add_argument('--allowed-target-host', required=True)
+    sp.add_argument('--output-dir', required=True)
+    sp.add_argument('--result', required=True)
+    sp.add_argument('--checkpoint', required=True)
+    sp.add_argument('--receipt', required=True)
+    sp.add_argument('--max-rows', type=int, default=100)
+    sp.add_argument('--max-payload-bytes', type=int, default=16 * 1024 * 1024)
+    sp.add_argument('--max-redirects', type=int, default=3)
+    sp.add_argument('--max-runtime-seconds', type=float, default=180.0)
+    sp.add_argument('--request-timeout-seconds', type=float, default=30.0)
+    sp.set_defaults(func=cmd_internet_archive_replay)
 
     # Command: archive-health
     sp = sub.add_parser('archive-health')
