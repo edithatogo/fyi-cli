@@ -25,11 +25,11 @@ class AdapterProvenancePin:
 
 PLATFORM_SCHEMA_SHA256: Final = "00172f93df5f38e1358b96ab0df046da59587eba4880d8ad90d0c4393e6786d4"
 JURISDICTION_SCHEMA_SHA256: Final = (
-    "69d66d7bb25ff6d4612fc0fcd50e6328c65c5bd4ef0e729932ef76dcc6bcb4df"
+    "1c426feb34d52130237227e605db013f63f417835b8cc286c970572ec3c4f6d7"
 )
 
 REGISTERED_ADAPTER_PROVENANCE: Final = AdapterProvenancePin(
-    repository_revision="6d60605d2c270407bafdfece2901035450c02b80",
+    repository_revision="3402d82d8ac02033f7715156699a24c695abb32b",
     module_path="src/fyi_system/archive_capture.py",
     module_sha256="750074ccf35c9a7ed4df70fbf1ceb53f65a7919d2d8afdeb10047d0029f9937b",
 )
