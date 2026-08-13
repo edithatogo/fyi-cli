@@ -1,0 +1,142 @@
+name: Python Security and Fuzzing
+
+on:
+  pull_request:
+    branches: [main, master]
+  schedule:
+    - cron: "23 14 * * 1"
+  workflow_dispatch:
+    inputs:
+      fuzz_seconds:
+        description: Seconds per Atheris target (30-1800)
+        required: false
+        default: "300"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: python-security-fuzzing-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  PYTHONHASHSEED: "0"
+  PYTHON_KEYRING_BACKEND: keyrings.alt.file.PlaintextKeyring
+
+jobs:
+  hypothesis-pr-gate:
+    name: Hypothesis PR Gate
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+      - name: Install locked dependencies
+        run: uv sync --extra dev --frozen
+      - name: Run explicit Hypothesis gate
+        run: uv run pytest -q tests/test_hypothesis.py tests/test_fuzz.py
+
+  python-security-quality:
+    name: Python Security and Quality
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+      - name: Install locked dependencies
+        run: uv sync --extra dev --frozen
+      - name: Check Python quality
+        run: |
+          uv run ruff check \
+            src/fyi_system/acquisition_receipts.py \
+            src/fyi_system/internet_archive_cdx.py \
+            src/fyi_system/internet_archive_replay.py \
+            fuzzing \
+            tests/test_atheris_targets.py \
+            tests/test_python_security_fuzzing_workflow.py
+          uv run ruff format --check \
+            src/fyi_system/acquisition_receipts.py \
+            src/fyi_system/internet_archive_cdx.py \
+            src/fyi_system/internet_archive_replay.py \
+            fuzzing \
+            tests/test_atheris_targets.py \
+            tests/test_python_security_fuzzing_workflow.py
+          uv run basedpyright \
+            src/fyi_system/acquisition_receipts.py \
+            src/fyi_system/internet_archive_cdx.py \
+            src/fyi_system/internet_archive_replay.py \
+            fuzzing/targets.py
+      - name: Audit locked Python dependencies
+        run: |
+          uv export --frozen --extra dev --no-emit-project --output-file requirements-audit.txt
+          printf '\natheris==3.1.0\n' >> requirements-audit.txt
+          uv run pip-audit --requirement requirements-audit.txt
+
+  atheris:
+    name: Atheris (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [receipt, cdx, wayback, redaction]
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+      - name: Install locked fuzz dependencies
+        run: |
+          uv sync --extra dev --frozen
+          uv pip install --python .venv/bin/python atheris==3.1.0
+      - name: Select bounded duration
+        id: bounds
+        env:
+          REQUESTED_SECONDS: ${{ inputs.fuzz_seconds }}
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            seconds=30
+          elif [[ "$REQUESTED_SECONDS" =~ ^[0-9]+$ ]] && (( REQUESTED_SECONDS >= 30 && REQUESTED_SECONDS <= 1800 )); then
+            seconds="$REQUESTED_SECONDS"
+          else
+            seconds=300
+          fi
+          echo "seconds=$seconds" >> "$GITHUB_OUTPUT"
+      - name: Run bounded Atheris target
+        env:
+          TARGET: ${{ matrix.target }}
+          FUZZ_SECONDS: ${{ steps.bounds.outputs.seconds }}
+        run: |
+          mkdir -p "artifacts/fuzz/$TARGET" "artifacts/logs"
+          set -o pipefail
+          .venv/bin/python fuzzing/run_atheris.py --target "$TARGET" \
+            -max_total_time="$FUZZ_SECONDS" -timeout=5 -rss_limit_mb=2048 \
+            -max_len=65536 -artifact_prefix="artifacts/fuzz/$TARGET/" \
+            "artifacts/fuzz/$TARGET" "fuzzing/corpus/$TARGET" \
+            2>&1 | tee "artifacts/logs/$TARGET.log"
+      - name: Retain fuzzing evidence on failure
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: atheris-failure-${{ matrix.target }}-${{ github.run_id }}
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 14
