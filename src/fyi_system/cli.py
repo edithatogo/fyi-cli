@@ -20,6 +20,7 @@ from .importers import (
     import_authorities_csv,
     import_authorities_url,
 )
+from .internet_archive_cdx import CDX_ADAPTER_ID, CDX_ENDPOINT, CdxConfig, discover_cdx
 from .monitor import ingest_feed, reconcile_events
 from .fetch import fetch_request_page, summarize_request_json, latest_snapshot_summary
 from .reporting import (
@@ -297,6 +298,44 @@ def cmd_discover_reconcile(args):
         print(args.output)
     else:
         print(json.dumps(payload, indent=2, sort_keys=True))
+
+
+def cmd_internet_archive_cdx(args):
+    config = CdxConfig(
+        url_pattern=args.url_pattern,
+        allowed_host=args.allowed_host,
+        pagination_mode=args.pagination_mode,
+        capture_mode=args.capture_mode,
+        page_size=args.page_size,
+        max_pages=args.max_pages,
+        max_rows=args.max_rows,
+        max_runtime_seconds=args.max_runtime_seconds,
+        max_stall_seconds=args.max_stall_seconds,
+        from_timestamp=args.from_timestamp,
+        to_timestamp=args.to_timestamp,
+        include_urlkey=args.include_urlkey,
+    )
+    checkpoint = Path(args.checkpoint)
+    recorder = _recorder(
+        args,
+        adapter_id=CDX_ADAPTER_ID,
+        source_url=CDX_ENDPOINT,
+        request_bounds=config.request_bounds(),
+        checkpoint_path=checkpoint,
+    )
+    rows = _run_acquisition(
+        args,
+        recorder,
+        lambda: discover_cdx(
+            config,
+            output_path=args.output,
+            checkpoint_path=checkpoint,
+            observer=recorder.observe_response if recorder is not None else None,
+        ),
+    )
+    rendered = canonical_json_bytes(rows)
+    _write_receipt(args, recorder, rendered, "application/json")
+    print(args.output)
 
 
 def cmd_rate_limit_status(args):
@@ -696,6 +735,25 @@ def build_parser():
     sp.add_argument('--backfill', required=True)
     sp.add_argument('--output')
     sp.set_defaults(func=cmd_discover_reconcile)
+
+    # Command: internet-archive-cdx
+    sp = sub.add_parser('internet-archive-cdx')
+    sp.add_argument('--url-pattern', required=True)
+    sp.add_argument('--allowed-host', required=True)
+    sp.add_argument('--pagination-mode', choices=('page_count', 'resume_key'), default='resume_key')
+    sp.add_argument('--capture-mode', choices=('url_index', 'all_captures'), default='url_index')
+    sp.add_argument('--page-size', type=int, default=1000)
+    sp.add_argument('--max-pages', type=int, default=100)
+    sp.add_argument('--max-rows', type=int, default=1_000_000)
+    sp.add_argument('--max-runtime-seconds', type=float, default=180.0)
+    sp.add_argument('--max-stall-seconds', type=float)
+    sp.add_argument('--from-timestamp')
+    sp.add_argument('--to-timestamp')
+    sp.add_argument('--include-urlkey', action='store_true')
+    sp.add_argument('--output', required=True)
+    sp.add_argument('--checkpoint', required=True)
+    sp.add_argument('--receipt', required=True)
+    sp.set_defaults(func=cmd_internet_archive_cdx)
 
     # Command: archive-health
     sp = sub.add_parser('archive-health')

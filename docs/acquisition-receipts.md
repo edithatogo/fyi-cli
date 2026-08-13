@@ -2,6 +2,8 @@
 
 The network acquisition commands `import-authorities`, `discover-bodies`,
 `fetch-request-page`, `discover`, and `capture` accept `--receipt PATH`.
+`internet-archive-cdx` requires a receipt because its only operation is a
+source-network traversal.
 When requested, the command emits a version `1.0.0` acquisition receipt after
 the acquisition succeeds or fails. Failure receipts contain the exception type
 only, never its potentially sensitive message.
@@ -33,3 +35,7 @@ should retain both and verify `receipt_sha256` before accepting the acquisition
 downstream. An acquisition failure atomically replaces the prior receipt with a
 schema-valid failed receipt; interrupted or invalid receipt writes leave no
 partial temporary receipt.
+
+The CDX command additionally binds the receipt to the exact pagination mode,
+target host and URL pattern, capture mode, page and row caps, timestamp range,
+and hash-verified checkpoint. See [Internet Archive CDX discovery](internet-archive-cdx.md).

@@ -4,7 +4,7 @@
 
 - [ ] #310: define the acquisition-receipt schema and atomic writer, then add it
   to every existing network command.
-- [ ] #311: implement resumable Internet Archive CDX discovery with parity
+- [~] #311: implement resumable Internet Archive CDX discovery with parity
   fixtures derived from the current `fyi-archive` behavior.
 - [ ] #312: implement bounded, allowlisted Wayback replay with byte receipts.
 - [ ] #313: add source probing, shared capture pacing, `Retry-After`, and
