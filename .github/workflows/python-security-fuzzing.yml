@@ -127,7 +127,7 @@ jobs:
         run: |
           mkdir -p "artifacts/fuzz/$TARGET" "artifacts/logs"
           set -o pipefail
-          .venv/bin/python fuzzing/run_atheris.py --target "$TARGET" \
+          .venv/bin/python -m fuzzing.run_atheris --target "$TARGET" \
             -max_total_time="$FUZZ_SECONDS" -timeout=5 -rss_limit_mb=2048 \
             -max_len=65536 -artifact_prefix="artifacts/fuzz/$TARGET/" \
             "artifacts/fuzz/$TARGET" "fuzzing/corpus/$TARGET" \

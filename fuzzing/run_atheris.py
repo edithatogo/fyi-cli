@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Run one named Atheris target with caller-supplied libFuzzer bounds."""
 
 from __future__ import annotations

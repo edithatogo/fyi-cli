@@ -42,7 +42,7 @@ def test_quality_gate_covers_acquisition_boundaries_and_strict_types() -> None:
 def test_atheris_matrix_is_bounded_and_retains_failures() -> None:
     workflow = _workflow()
     assert "atheris==3.1.0" in workflow
-    assert ".venv/bin/python fuzzing/run_atheris.py" in workflow
+    assert ".venv/bin/python -m fuzzing.run_atheris" in workflow
     assert "target: [receipt, cdx, wayback, redaction]" in workflow
     for bound in (
         "-max_total_time=",
