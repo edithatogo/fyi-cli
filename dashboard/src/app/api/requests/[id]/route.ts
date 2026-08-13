@@ -5,9 +5,10 @@ export const dynamic = "force-dynamic";
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = Number(params.id);
+  const { id: requestId } = await params;
+  const id = Number(requestId);
   if (!Number.isFinite(id)) {
     return NextResponse.json({ error: "Invalid request ID" }, { status: 400 });
   }

@@ -129,7 +129,7 @@ impl TorAgentClient {
 }
 
 pub struct TorManager {
-    client: TorClient<PreferredRuntime>,
+    client: Arc<TorClient<PreferredRuntime>>,
     proxy_addr: Option<SocketAddr>,
 }
 
@@ -283,7 +283,7 @@ fn identity_headers(
 
 async fn handle_socks_connection(
     mut client_stream: TcpStream,
-    tor_client: TorClient<PreferredRuntime>,
+    tor_client: Arc<TorClient<PreferredRuntime>>,
 ) -> Result<(), TorError> {
     let mut header = [0u8; 2];
     client_stream.read_exact(&mut header).await?;

@@ -280,6 +280,11 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## Recently completed (2026-07-09)
 
+- [~] **Track: python-security-quality-fuzzing-20260813**
+  *Link: [./tracks/python-security-quality-fuzzing-20260813/](./tracks/python-security-quality-fuzzing-20260813/)*
+  *Description: Explicit Hypothesis PR gating plus bounded Atheris coverage-guided fuzzing and Python security/quality checks.*
+  *Status: Local implementation in progress; hosted PR evidence pending.*
+
 - [x] **Track: bleeding-edge-features** (COMPLETED 2026-07-09 — repo-side foundations)
   *Issue: #46*
   *Link: [./archive/bleeding-edge-features/](./archive/bleeding-edge-features/)*
