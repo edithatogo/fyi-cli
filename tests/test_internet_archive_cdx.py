@@ -12,8 +12,10 @@ import pytest
 from fyi_system.acquisition_receipts import AcquisitionRecorder, canonical_json_bytes
 from fyi_system.internet_archive_cdx import (
     CDX_ENDPOINT,
+    MAX_RESPONSE_BYTES,
     CdxConfig,
     CdxDiscoveryError,
+    default_transport,
     discover_cdx,
 )
 
@@ -222,12 +224,14 @@ def test_repeated_cursor_and_chunk_fail_closed(tmp_path: Path) -> None:
     def repeated_cursor(url: str, _timeout: float) -> httpx.Response:
         nonlocal calls
         calls += 1
-        payload = canonical_json_bytes([
-            ["original"],
-            [f"row-{calls}"],
-            [],
-            ["cursor"],
-        ])
+        payload = canonical_json_bytes(
+            [
+                ["original"],
+                [f"row-{calls}"],
+                [],
+                ["cursor"],
+            ],
+        )
         return _response(url, payload)
 
     with pytest.raises(CdxDiscoveryError, match="resumption key repeated"):
@@ -250,6 +254,29 @@ def test_response_redirect_or_query_drift_is_rejected(tmp_path: Path) -> None:
             checkpoint_path=tmp_path / "state.json",
             transport=escaped,
         )
+
+
+def test_default_transport_stops_streaming_at_response_byte_cap(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    request = httpx.Request("GET", CDX_ENDPOINT)
+    response = httpx.Response(
+        200,
+        request=request,
+        stream=httpx.ByteStream(b"x" * MAX_RESPONSE_BYTES + b"y"),
+    )
+
+    class ResponseContext:
+        def __enter__(self) -> httpx.Response:
+            return response
+
+        def __exit__(self, *_args: object) -> None:
+            response.close()
+
+    monkeypatch.setattr(httpx, "stream", lambda *_args, **_kwargs: ResponseContext())
+
+    with pytest.raises(CdxDiscoveryError, match="byte cap"):
+        default_transport(CDX_ENDPOINT, 10.0)
 
 
 def test_retry_after_and_response_digest_flow_into_receipt(tmp_path: Path) -> None:

@@ -165,12 +165,36 @@ def validate_time_range(from_timestamp: str | None, to_timestamp: str | None) ->
 
 def default_transport(url: str, timeout: float) -> httpx.Response:
     """Issue one redirect-free request to the fixed CDX endpoint."""
-    return httpx.get(
+    with httpx.stream(
+        "GET",
         url,
         headers={"User-Agent": "fyi-cli-cdx-discovery/1.0"},
         timeout=timeout,
         follow_redirects=False,
-    )
+    ) as response:
+        declared_length = response.headers.get("Content-Length")
+        if declared_length is not None:
+            try:
+                if int(declared_length) > MAX_RESPONSE_BYTES:
+                    raise CdxDiscoveryError("CDX response exceeded the byte cap")
+            except ValueError:
+                pass
+
+        chunks: list[bytes] = []
+        received = 0
+        for chunk in response.iter_bytes():
+            received += len(chunk)
+            if received > MAX_RESPONSE_BYTES:
+                raise CdxDiscoveryError("CDX response exceeded the byte cap")
+            chunks.append(chunk)
+
+        return httpx.Response(
+            response.status_code,
+            headers=response.headers,
+            content=b"".join(chunks),
+            request=response.request,
+            extensions=response.extensions,
+        )
 
 
 def _atomic_write(path: Path, payload: bytes) -> None:
@@ -178,7 +202,9 @@ def _atomic_write(path: Path, payload: bytes) -> None:
         raise ValueError(f"refusing to replace symlink: {path}")
     path.parent.mkdir(parents=True, exist_ok=True)
     handle, temporary_name = tempfile.mkstemp(
-        prefix=f".{path.name}.", suffix=".tmp", dir=path.parent,
+        prefix=f".{path.name}.",
+        suffix=".tmp",
+        dir=path.parent,
     )
     temporary = Path(temporary_name)
     try:
@@ -270,8 +296,7 @@ def _load_checkpoint(path: Path, config: CdxConfig) -> _State:  # noqa: C901
         raise ValueError("checkpoint exceeds configured row cap")
     fingerprints_value = value.get("fingerprints")
     if not isinstance(fingerprints_value, list) or not all(
-        isinstance(item, str) and re.fullmatch(r"[0-9a-f]{64}", item)
-        for item in fingerprints_value
+        isinstance(item, str) and re.fullmatch(r"[0-9a-f]{64}", item) for item in fingerprints_value
     ):
         raise ValueError("checkpoint fingerprints are invalid")
     fingerprints = set(fingerprints_value)
@@ -536,7 +561,8 @@ def _page_count_traversal(
 
 
 def _split_resume_payload(
-    payload: object, expected_header: list[str] | None,
+    payload: object,
+    expected_header: list[str] | None,
 ) -> tuple[list[str], list[list[str]], str | None]:
     if payload == []:
         return expected_header or DEFAULT_HEADER, [], None
