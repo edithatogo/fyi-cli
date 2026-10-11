@@ -17,7 +17,7 @@ getrandom = "0.3"
 zeroize = { version = "1.7", features = ["derive"] }
 keyring = "2.1"
 reqwest = { version = "0.13", features = ["json", "multipart", "query", "socks"] }
-arti-client = { version = "0.45.0" }
+arti-client = { version = "0.45.0, ||, ^0" }
 tor-rtcompat = { version = "0.45.0", features = ["rustls", "tokio"] }
 chrono = { version = "0.4", features = ["serde"] }
 thiserror = "1.0"
