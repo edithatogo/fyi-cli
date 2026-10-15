@@ -19,7 +19,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.12 || 3.15"
 
       - name: Poll external registries
         run: python scripts/check_external_registry_status.py --output registry-status.json
