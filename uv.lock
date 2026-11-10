@@ -10,28 +10,8 @@ resolution-markers = [
 
 [[package]]
 name = "aiofile"
-version = "3.9.0"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version < '3.11'",
-]
-dependencies = [
-    { name = "caio" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/67/e2/d7cb819de8df6b5c1968a2756c3cb4122d4fa2b8fc768b53b7c9e5edb646/aiofile-3.9.0.tar.gz", hash = "sha256:e5ad718bb148b265b6df1b3752c4d1d83024b93da9bd599df74b9d9ffcf7919b", size = 17943, upload-time = "2024-10-08T10:39:35.846Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/50/25/da1f0b4dd970e52bf5a36c204c107e11a0c6d3ed195eba0bfbc664c312b2/aiofile-3.9.0-py3-none-any.whl", hash = "sha256:ce2f6c1571538cbdfa0143b04e16b208ecb0e9cb4148e528af8a640ed51cc8aa", size = 19539, upload-time = "2024-10-08T10:39:32.955Z" },
-]
-
-[[package]]
-name = "aiofile"
 version = "3.11.1"
 source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.14'",
-    "python_full_version >= '3.12' and python_full_version < '3.14'",
-    "python_full_version == '3.11.*'",
-]
 dependencies = [
     { name = "caio" },
 ]
@@ -634,8 +614,6 @@ dependencies = [
     { name = "docstring-parser" },
     { name = "rich" },
     { name = "rich-rst" },
-    { name = "tomli", marker = "python_full_version < '3.11'" },
-    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/65/e7/4b3048094559b86a800e0f0de7faf8e6d8213727cf31553ec58453f25abc/cyclopts-4.19.0.tar.gz", hash = "sha256:c7532803ab8560d4de8600769793c3de4b2dc8c3b23ec707b989d84d9bae6ff4", size = 189274, upload-time = "2026-06-22T23:58:54.176Z" }
 wheels = [
@@ -653,11 +631,11 @@ wheels = [
 
 [[package]]
 name = "dnspython"
-version = "2.8.0"
+version = "2.9.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/8c/8b/57666417c0f90f08bcafa776861060426765fdb422eb10212086fb811d26/dnspython-2.8.0.tar.gz", hash = "sha256:181d3c6996452cb1189c4046c61599b84a5a86e099562ffde77d26984ff26d0f", size = 368251, upload-time = "2025-09-07T18:58:00.022Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ef/4a/50822184bd67cc6493f0fb6a880749158fcd31ab3fa07409acfd91f9fc85/dnspython-2.9.0.tar.gz", hash = "sha256:b44dc6b18f07a8b1c56676a19fbfdb5209415b046a9cece286baafa87ff3f7f1", size = 423560, upload-time = "2026-10-09T00:07:24.352Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ba/5a/18ad964b0086c6e62e2e7500f7edc89e3faa45033c71c1893d34eed2b2de/dnspython-2.8.0-py3-none-any.whl", hash = "sha256:01d9bbc4a2d76bf0db7c1f729812ded6d912bd318d3b1cf81d30c0f845dbf3af", size = 331094, upload-time = "2025-09-07T18:57:58.071Z" },
+    { url = "https://files.pythonhosted.org/packages/10/02/cdcc9b7c051786a103c3b09e1003a82fa0c66bcb91ffbdabcfbf7b4163b9/dnspython-2.9.0-py3-none-any.whl", hash = "sha256:9a4aedb833c3c1b49214d04d44d3032ab7a9135f7c1d29a549b4ff78fd82fda9", size = 354822, upload-time = "2026-10-09T00:07:22.622Z" },
 ]
 
 [[package]]
@@ -709,8 +687,35 @@ wheels = [
 
 [[package]]
 name = "fastmcp"
+version = "2.9.2"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version < '3.11'",
+]
+dependencies = [
+    { name = "authlib" },
+    { name = "exceptiongroup" },
+    { name = "httpx" },
+    { name = "mcp", version = "1.9.4", source = { registry = "https://pypi.org/simple" } },
+    { name = "openapi-pydantic" },
+    { name = "python-dotenv" },
+    { name = "rich" },
+    { name = "typer" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/68/17/d2b5981180717e6e689d0aaa6215d1ddcec6cb065c6f6b45c471ab7d2edb/fastmcp-2.9.2.tar.gz", hash = "sha256:c000eb0a2d50afcc7d26be4c867abf5c995ca0e0119f17417d50f61e2e17347c", size = 2663824, upload-time = "2025-06-26T15:03:15.395Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/89/60/223e1975e65ed7c6cead0fda947d4cdb4f7ee5ec60a7c8ea3b3787868f67/fastmcp-2.9.2-py3-none-any.whl", hash = "sha256:3626a3d9b1fa6325756273b6d1fe1ec610baafec957ac22f7aa1dc17c1db8b93", size = 162690, upload-time = "2025-06-26T15:03:13.553Z" },
+]
+
+[[package]]
+name = "fastmcp"
 version = "3.4.2"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.14'",
+    "python_full_version >= '3.12' and python_full_version < '3.14'",
+    "python_full_version == '3.11.*'",
+]
 dependencies = [
     { name = "fastmcp-slim", extra = ["client", "server"] },
 ]
@@ -741,7 +746,7 @@ client = [
     { name = "authlib" },
     { name = "exceptiongroup" },
     { name = "httpx" },
-    { name = "mcp" },
+    { name = "mcp", version = "1.28.1", source = { registry = "https://pypi.org/simple" } },
     { name = "opentelemetry-api" },
     { name = "py-key-value-aio", extra = ["filetree", "keyring", "memory"] },
     { name = "starlette" },
@@ -755,7 +760,7 @@ server = [
     { name = "joserfc" },
     { name = "jsonref" },
     { name = "jsonschema-path" },
-    { name = "mcp" },
+    { name = "mcp", version = "1.28.1", source = { registry = "https://pypi.org/simple" } },
     { name = "openapi-pydantic" },
     { name = "opentelemetry-api" },
     { name = "packaging" },
@@ -797,7 +802,8 @@ version = "1.2.1"
 source = { editable = "." }
 dependencies = [
     { name = "cryptography" },
-    { name = "fastmcp" },
+    { name = "fastmcp", version = "2.9.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "fastmcp", version = "3.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "feedparser" },
     { name = "httpx" },
     { name = "jinja2" },
@@ -1290,8 +1296,36 @@ wheels = [
 
 [[package]]
 name = "mcp"
+version = "1.9.4"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version < '3.11'",
+]
+dependencies = [
+    { name = "anyio" },
+    { name = "httpx" },
+    { name = "httpx-sse" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "python-multipart" },
+    { name = "sse-starlette" },
+    { name = "starlette" },
+    { name = "uvicorn", marker = "sys_platform != 'emscripten'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/06/f2/dc2450e566eeccf92d89a00c3e813234ad58e2ba1e31d11467a09ac4f3b9/mcp-1.9.4.tar.gz", hash = "sha256:cfb0bcd1a9535b42edaef89947b9e18a8feb49362e1cc059d6e7fc636f2cb09f", size = 333294, upload-time = "2025-06-12T08:20:30.158Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/97/fc/80e655c955137393c443842ffcc4feccab5b12fa7cb8de9ced90f90e6998/mcp-1.9.4-py3-none-any.whl", hash = "sha256:7fcf36b62936adb8e63f89346bccca1268eeca9bf6dfb562ee10b1dfbda9dac0", size = 130232, upload-time = "2025-06-12T08:20:28.551Z" },
+]
+
+[[package]]
+name = "mcp"
 version = "1.28.1"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.14'",
+    "python_full_version >= '3.12' and python_full_version < '3.14'",
+    "python_full_version == '3.11.*'",
+]
 dependencies = [
     { name = "anyio" },
     { name = "httpx" },
@@ -1823,8 +1857,7 @@ wheels = [
 
 [package.optional-dependencies]
 filetree = [
-    { name = "aiofile", version = "3.9.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "aiofile", version = "3.11.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "aiofile" },
     { name = "anyio" },
 ]
 keyring = [
@@ -2018,9 +2051,6 @@ wheels = [
 name = "pyjwt"
 version = "2.13.0"
 source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
-]
 sdist = { url = "https://files.pythonhosted.org/packages/3b/81/58d0ac84e1ef3a3843791d6954d94c0b33d526c75eeb1efbce9d0a4c4077/pyjwt-2.13.0.tar.gz", hash = "sha256:41571c89ca91598c79e8ef18a2d07367d4810fbbd6f637794879baf1b7703423", size = 107515, upload-time = "2026-05-21T19:54:36.618Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a3/5e/ecf12fdb62546d64385c158514e9b2b671f7832108ef2ecd2020ce0af2d1/pyjwt-2.13.0-py3-none-any.whl", hash = "sha256:66adcc2aff09b3f1bbd95fc1e1577df8ac8723c978552fd43304c8a290ac5728", size = 31274, upload-time = "2026-05-21T19:54:35.362Z" },
