@@ -36,6 +36,26 @@ ignore = [
   # recommended nonetheless." We only use the sqlite driver here. Revisit once
   # arti-client updates its rusqlite dependency.
   "RUSTSEC-2024-0363",
+  # RUSTSEC-2026-0387: crypto-bigint timing variability. Blocked because
+  # ssh-key-fork-arti 0.6.7 (latest) requires p256 ^0.13, which requires
+  # elliptic-curve ^0.13, which requires crypto-bigint ^0.5. Cannot upgrade
+  # to crypto-bigint >=0.7.6 without updating the entire chain. Revisit once
+  # ssh-key-fork-arti supports p256 0.14+.
+  "RUSTSEC-2026-0387",
+  # RUSTSEC-2026-0459: libsqlite3-sys SQLite CVE-2026-119375. Blocked because
+  # sqlx-sqlite 0.9.0 (latest) requires libsqlite3-sys <0.38.0, and rusqlite
+  # 0.39.0 (latest compatible with tor-dirmgr 0.48.0) requires libsqlite3-sys
+  # 0.37.0. Cannot upgrade to libsqlite3-sys >=0.39.0 without updating sqlx
+  # and rusqlite. Revisit once sqlx or rusqlite releases a version that
+  # supports libsqlite3-sys >=0.39.0.
+  "RUSTSEC-2026-0459",
+  # RUSTSEC-2026-0370/0371/0372: zbus_names, zvariant, zvariant_derive
+  # unmaintained. Merged into zbus 6.0.0, but keyring v2.3.3 depends on
+  # zbus v3.15.2 which still uses the unmaintained crates. Cannot upgrade
+  # without updating keyring. Revisit once keyring supports zbus 6+.
+  "RUSTSEC-2026-0370",
+  "RUSTSEC-2026-0371",
+  "RUSTSEC-2026-0372",
 ]
 
 [bans]
