@@ -7,7 +7,7 @@ name = "fyi-cli"
 version = "1.2.1"
 description = "Privacy-focused CLI tool for managing FYI.org.nz official information requests"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 authors = [
   {name = "FYI CLI Contributors", email = "support@fyi-cli.example.com"}
 ]
@@ -29,7 +29,6 @@ classifiers = [
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Topic :: Utilities",
@@ -59,7 +58,6 @@ dev = [
   "ruff>=0.6.0",
   "basedpyright>=1.13.0",
   "pip-audit>=2.0.0",
-  "safety>=2.0.0",
   "scalene>=1.5.0",
   "uv>=0.4.0",
 ]

@@ -3,7 +3,7 @@
   "type": "security-quality",
   "status": "in_progress",
   "created_at": "2026-08-13T00:00:00Z",
-  "updated_at": "2026-08-13T06:00:00Z",
+  "updated_at": "2026-11-12T22:28:00Z",
   "scope": [
     "hypothesis_pr_gate",
     "atheris_coverage_guided_fuzzing",
@@ -17,5 +17,19 @@
     "lock_check": "passed",
     "actionlint": "passed"
   },
-  "hosted_evidence": "pending"
+  "hosted_evidence": "pending",
+  "maintenance_verification": {
+    "date": "2026-11-13",
+    "base_commit": "e056640851fd4e4284ef517b4a4641653c8aac53",
+    "status": "draft_pending_python_311_compatibility_review",
+    "baseline_advisories": 48,
+    "baseline_affected_packages": 12,
+    "proposed_audit": "no_known_vulnerabilities_python_312",
+    "offline_tests": {
+      "python_311": 157,
+      "python_312": 157
+    },
+    "hosted_evidence": "pending",
+    "branch": "fix/python-security-baseline-20261113"
+  }
 }
