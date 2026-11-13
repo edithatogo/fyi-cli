@@ -1,7 +1,7 @@
 {
   "track_id": "quality-frontier-testing-cicd-20261113",
   "type": "quality-frontier",
-  "status": "in-progress",
+  "status": "completed",
   "created_at": "2026-11-13T00:00:00Z",
   "updated_at": "2026-11-13T00:00:00Z",
   "github_issue": "https://github.com/edithatogo/fyi-cli/issues/280",
@@ -10,5 +10,11 @@
   "ci_gaps": ["pinned_actions", "dependency_review", "workflow_lint"],
   "code_files": 227,
   "test_files": 109,
-  "workflow_files": 15
+  "workflow_files": 15,
+  "evidence": {
+    "dst_tests": "tests/test_monitor.py::TestIngestFeedDST (4 deterministic simulation tests, bounded runtime <1s)",
+    "mt_thresholds": "mutation_test.py --threshold 70 + mutation.yml CI enforcement",
+    "contract_tests": "tests/test_importers.py, test_api_contract.py, crates/fyi-core/tests/acquisition_receipts.rs (cross-runtime parity with conformance/acquisition/receipt-v1-python.json)",
+    "ci_hardening": "All GitHub Actions pinned to commit SHAs in ci.yml and mutation.yml; dependency-review.yml and actionlint.yml added"
+  }
 }

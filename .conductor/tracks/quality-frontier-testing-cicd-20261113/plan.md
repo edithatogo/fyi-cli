@@ -35,9 +35,9 @@
 
 ## Phase 6: Verification and closure
 
-- [ ] Run full CI locally and confirm all required checks pass.
-- [ ] Update track metadata status to `completed`.
-- [ ] Close issue #280.
+- [x] Run full CI locally and confirm all required checks pass. (55 Python tests pass, 13 Rust acquisition_receipts tests pass, all YAML workflows valid)
+- [x] Update track metadata status to `completed`. [checkpoint: dd6c469]
+- [~] Close issue #280. (Requires GitHub issue closure - track metadata marked completed)
 
 ## Task Order
 
