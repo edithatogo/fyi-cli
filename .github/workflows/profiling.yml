@@ -2,12 +2,12 @@ name: Profiling
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
     paths:
       - 'src/**'
       - 'tests/**'
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
   workflow_dispatch:
 
 permissions:

@@ -1,3 +1,4 @@
+pub mod acquisition_receipts;
 pub mod adapter;
 pub mod agent_runtime;
 pub mod api;

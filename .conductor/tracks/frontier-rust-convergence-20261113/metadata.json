@@ -1,0 +1,12 @@
+{
+  "track_id": "frontier-rust-convergence-20261113",
+  "type": "architecture-and-engineering",
+  "status": "in_progress",
+  "created_at": "2026-11-13T00:00:00Z",
+  "dependencies": [
+    "source-adapter-boundary-20260812"
+  ],
+  "proposal_pr": "https://github.com/edithatogo/fyi-cli/pull/403",
+  "implementation_evidence": "Pending hosted CI and runtime compatibility verification",
+  "archive_allowed": false
+}

@@ -4,6 +4,16 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
+## Active frontier convergence tracks
+
+- [~] **Track: frontier-rust-convergence-20261113**
+  *Link: [./tracks/frontier-rust-convergence-20261113/](./tracks/frontier-rust-convergence-20261113/)*
+  *Status: specification and plan committed; implementation not yet verified.*
+  *Scope: evidence provenance, statutory rules, provider contracts, grounded agents, reproducible transformation, legacy Python to Rust migration, Python >=3.15 and Rust MSRV 1.99 compatibility gates, maximal risk-based single-developer CI, and Conductor repair.*
+  *Dependency: existing source-adapter-boundary-20260812 track (#309, #310–#314), not a replacement for it. Reconcile PR #402 before altering completed-track status.*
+
+---
+
 ## Active cross-repository tracks
 
 - [~] **Track: source-adapter-boundary-20260812**

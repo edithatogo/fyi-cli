@@ -2,6 +2,7 @@
 name = "fyi-mcp"
 version = "0.1.2"
 edition = "2021"
+rust-version = "1.99"
 description = "MCP server for FYI request management"
 license = "MIT"
 repository = "https://github.com/edithatogo/fyi-cli"

@@ -277,4 +277,150 @@ mod tests {
         assert!(provider.get_request("42").await.is_err());
         assert!(provider.get_request("../secrets").await.is_err());
     }
+
+    #[tokio::test]
+    async fn search_maps_alias_fields_tags_and_timestamps() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/api_v2/requests/"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "results": [{
+                    "pk": 7,
+                    "subject": "Water quality",
+                    "description": "Release inspections",
+                    "absolute_url": "https://example.test/records/7",
+                    "status_display": "Completed",
+                    "created_at": "2026-10-21T10:30:00+10:00",
+                    "updated_at": "2026-10-22T00:30:00Z",
+                    "tags": ["water", 23, "quality"]
+                }]
+            })))
+            .mount(&server)
+            .await;
+        let provider = MuckRockProvider::with_api_base(
+            instance(server.uri()),
+            Client::new(),
+            format!("{}/api_v2", server.uri()),
+        );
+        let records = provider.search_requests("water").await.unwrap();
+        assert_eq!(records.len(), 1);
+        let record = &records[0];
+        assert_eq!(record.provider_id, "muckrock-7");
+        assert_eq!(record.title, "Water quality");
+        assert_eq!(record.body, "Release inspections");
+        assert_eq!(record.status.as_deref(), Some("Completed"));
+        assert_eq!(record.tags, vec!["water", "quality"]);
+        assert_eq!(
+            record.created_at.as_ref().unwrap().to_rfc3339(),
+            "2026-10-21T00:30:00+00:00"
+        );
+        assert_eq!(
+            record.updated_at.as_ref().unwrap().to_rfc3339(),
+            "2026-10-22T00:30:00+00:00"
+        );
+        assert_eq!(
+            record.source_url.as_deref(),
+            Some("https://example.test/records/7")
+        );
+    }
+
+    #[tokio::test]
+    async fn authorities_map_aliases_and_fail_closed_on_missing_name() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/api_v2/agencies/"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "results": [{"pk": 13, "name_display": "Water agency", "absolute_url": "https://example.test/a/13"}]
+            })))
+            .mount(&server)
+            .await;
+        let provider = MuckRockProvider::with_api_base(
+            instance(server.uri()),
+            Client::new(),
+            format!("{}/api_v2", server.uri()),
+        );
+        let authorities = provider.list_authorities().await.unwrap();
+        assert_eq!(authorities.len(), 1);
+        assert_eq!(authorities[0].provider_id, "muckrock-agency-13");
+        assert_eq!(authorities[0].name, "Water agency");
+        assert_eq!(
+            authorities[0].url.as_deref(),
+            Some("https://example.test/a/13")
+        );
+        assert!(normalize_authority(&serde_json::json!({"pk": 13})).is_err());
+        assert!(normalize_authority(&serde_json::json!({"pk": -3, "name": "Signed"})).is_ok());
+    }
+
+    #[tokio::test]
+    async fn provider_surfaces_http_and_json_errors_without_leaking_bodies() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/api_v2/requests/1/"))
+            .respond_with(ResponseTemplate::new(403).set_body_string("SECRET_RESPONSE_BODY"))
+            .mount(&server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/api_v2/requests/2/"))
+            .respond_with(ResponseTemplate::new(200).set_body_string("{invalid"))
+            .mount(&server)
+            .await;
+        let provider = MuckRockProvider::with_api_base(
+            instance(server.uri()),
+            Client::new(),
+            format!("{}/api_v2", server.uri()),
+        );
+        let denied = provider.get_request("1").await.unwrap_err().to_string();
+        assert!(denied.contains("403"));
+        assert!(!denied.contains("SECRET_RESPONSE_BODY"));
+        assert!(provider
+            .get_request("2")
+            .await
+            .unwrap_err()
+            .to_string()
+            .contains("invalid JSON"));
+    }
+
+    #[test]
+    fn requires_https_and_preserves_capability_boundary() {
+        let rejected = MuckRockProvider::new(instance("http://example.test".into()), Client::new());
+        assert!(rejected.is_err());
+        let provider =
+            MuckRockProvider::new(instance("https://example.test/".into()), Client::new()).unwrap();
+        assert_eq!(provider.instance().id, "us-muckrock");
+        let caps = provider.capabilities();
+        assert!(caps.request && caps.search && caps.authorities);
+        assert!(!caps.correspondence && !caps.attachments && !caps.health);
+        assert_eq!(provider.api_base_url, "https://example.test/api_v2");
+    }
+
+    #[test]
+    fn normalization_is_order_invariant_but_detects_content_changes() {
+        // Metamorphic contract: JSON map ordering must not change the receipt hash.
+        let left: Value =
+            serde_json::from_str(r#"{"id":4,"title":"A","body":"B","tags":["c"]}"#).unwrap();
+        let reordered: Value =
+            serde_json::from_str(r#"{"tags":["c"],"body":"B","title":"A","id":4}"#).unwrap();
+        let changed: Value =
+            serde_json::from_str(r#"{"id":4,"title":"A","body":"Different","tags":["c"]}"#)
+                .unwrap();
+        let a = normalize_request(&left).unwrap();
+        let b = normalize_request(&reordered).unwrap();
+        let c = normalize_request(&changed).unwrap();
+        assert_eq!(a, b);
+        assert_eq!(a.raw_source_hash, b.raw_source_hash);
+        assert_ne!(a.raw_source_hash, c.raw_source_hash);
+        assert_ne!(a.body, c.body);
+    }
+
+    #[test]
+    fn required_fields_reject_missing_empty_or_nonnumeric_objects() {
+        for bad in [
+            serde_json::json!({"title": "A", "body": "B"}),
+            serde_json::json!({"id": 1, "title": "", "body": "B"}),
+            serde_json::json!({"id": 1, "title": "A", "body": "  "}),
+            serde_json::json!({"id": {"not": "scalar"}, "title": "A", "body": "B"}),
+        ] {
+            assert!(normalize_request(&bad).is_err());
+        }
+    }
 }

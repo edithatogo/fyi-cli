@@ -399,6 +399,11 @@ pub enum Commands {
         #[command(subcommand)]
         command: ProvenanceCommand,
     },
+    #[command(about = "Offline verification of a versioned acquisition receipt")]
+    VerifyAcquisitionReceipt {
+        #[arg(help = "Path to an acquisition-receipt-v1 JSON file")]
+        path: String,
+    },
     #[command(about = "Run Model Context Protocol (MCP) server")]
     McpServer,
     #[command(about = "Launch Ratatui Dashboard TUI")]
@@ -906,6 +911,25 @@ fn main() {
             if let Err(error) = handle_provenance_command(command) {
                 eprintln!("Provenance command failed: {error}");
                 std::process::exit(1);
+            }
+        }
+        Commands::VerifyAcquisitionReceipt { path } => {
+            let result = std::fs::read(path)
+                .map_err(|error| format!("reading receipt failed: {error}"))
+                .and_then(|bytes| {
+                    serde_json::from_slice::<serde_json::Value>(&bytes)
+                        .map_err(|error| format!("invalid receipt JSON: {error}"))
+                })
+                .and_then(|receipt| {
+                    fyi_core::acquisition_receipts::verify_receipt(&receipt)
+                        .map_err(|error| error.to_string())
+                });
+            match result {
+                Ok(()) => println!("Acquisition receipt verified"),
+                Err(error) => {
+                    eprintln!("Acquisition receipt verification failed: {error}");
+                    std::process::exit(1);
+                }
             }
         }
         Commands::McpServer => {

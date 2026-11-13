@@ -221,3 +221,21 @@ def test_legacy_request_fetch_contributes_response_evidence(
 
     assert item.responses[0]["url"] == "https://fyi.example/request/7.json?REDACTED"
     assert item.responses[0]["sha256"] == sha256_bytes(Response.content)
+
+
+def test_rust_cross_language_golden_fixture_matches_python_v1_schema() -> None:
+    """Prove Rust's pinned golden v1 example was constructed as Python defines it."""
+    from pathlib import Path
+
+    fixture = (
+        Path(__file__).resolve().parents[1]
+        / "conformance"
+        / "acquisition"
+        / "receipt-v1-python.json"
+    )
+    receipt = json.loads(fixture.read_text(encoding="utf-8"))
+    validate_receipt(receipt)
+    unsigned = dict(receipt)
+    digest = unsigned.pop("receipt_sha256")
+    assert digest == sha256_bytes(canonical_json_bytes(unsigned))
+    assert receipt["rate_limit"]["minimum_interval_seconds"] == 1.0

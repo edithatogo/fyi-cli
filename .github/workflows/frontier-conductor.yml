@@ -1,0 +1,60 @@
+name: Frontier Conductor and MSRV contracts
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - ".conductor/**"
+      - "crates/**/Cargo.toml"
+      - "rust-toolchain.toml"
+      - "scripts/verify_frontier_conductor.py"
+      - "tests/test_frontier_conductor.py"
+      - "scripts/verify_cli_parity.py"
+      - "conformance/cli/**"
+      - "src/fyi_system/cli.py"
+      - "crates/fyi-cli/src/main.rs"
+      - ".github/workflows/frontier-conductor.yml"
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: Conductor contracts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+      - name: Conductor contract and migration inventory
+        run: python scripts/verify_frontier_conductor.py --json --inventory
+      - name: Verify command-name parity baseline
+        run: python scripts/verify_cli_parity.py
+      - name: Offline regression tests
+        run: python -m pip install pytest && python -m pytest -q tests/test_frontier_conductor.py
+
+  rust-msrv:
+    name: Rust 1.99.1 MSRV
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Install MSRV compiler
+        run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt --component clippy
+      - name: Version evidence
+        run: cargo +1.99.1 --version && rustc +1.99.1 --version
+      - name: Verify workspace on declared MSRV
+        run: |
+          cargo +1.99.1 fmt --all -- --check
+          cargo +1.99.1 clippy --workspace --all-targets --all-features --locked -- -D warnings
+          cargo +1.99.1 test --workspace --all-features --locked
+          cargo +1.99.1 run --locked --package fyi-cli -- verify-acquisition-receipt conformance/acquisition/receipt-v1-python.json
