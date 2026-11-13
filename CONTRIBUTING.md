@@ -141,7 +141,7 @@ the Rust workspace; the Python code is not being extended.
 
 - Rust (stable toolchain) via [rustup](https://rustup.rs/)
 - Git
-- Python 3.10+ (only needed for the legacy `fyi_system` package and its tests)
+- Python 3.11+ (only needed for the legacy `fyi_system` package and its tests)
 
 ### Clone the Repository
 
