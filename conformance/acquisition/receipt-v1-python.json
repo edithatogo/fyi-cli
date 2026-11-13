@@ -10,7 +10,7 @@
   "command": "discover",
   "completed_at": "2026-08-13T00:00:01Z",
   "rate_limit": {
-    "minimum_interval_seconds": 1,
+    "minimum_interval_seconds": 1.0,
     "name": "archive-discovery-test"
   },
   "receipt_sha256": "f946aebdd22c01c625d97f48fb1bb91ec3a6ffb761a681848bdb1d25b13306ca",
