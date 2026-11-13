@@ -70,3 +70,15 @@ Merged evidence: PR #403 (Rust verifier baseline and migration contracts), PR #4
 - PR #405 — immutable Rust receipt writer, strict field validation, concurrency/corruption/symlink tests; merged commit `593fedb6b768526d8e45204f1b23171167826b33` after full hosted CI including security, coverage and MSRV.
 - PR #406 — offline result projection byte-length/hash verification and CLI/fixture smoke; merged commit `5c5bf30d646540ec39835559100a7375e40b4688` after full hosted CI including security, coverage and MSRV.
 - No corresponding automatic close-out of #310: remaining work is raw-response/WARC/WACZ byte linkage, Rust source-adapter writer integration, external release pinning, parity with `fyi-archive`, comprehensive fault/replay testing and signed provenance.
+
+## Guarded Alaveteli network acquisition increment (PR pending, 13 Nov 2026)
+
+- [~] Extend the existing `SyncClient::send_guarded` boundary with `fetch_request_evidence` for an explicit single-request read. It retains original HTTP entity body bytes, captures actual source status/final URL and a canonical typed projection, then produces a Python-compatible acquisition receipt v1. Reject cache-replayed 304 responses rather than misreporting them as fresh network evidence.
+- [~] Add `build_single_get_receipt` and `verify_receipt_raw_bytes`: source and normalized result hashes are kept separate, and the receipt self-digest covers both. Tests require successful hash and length checks and rejection of modified raw/normalized bodies.
+- [~] Share private no-clobber atomic publication for receipt and raw/normalized blobs. The user-invoked Rust `fetch-request-page` no longer only prints a placeholder: it uses the guarded client and supports explicit `--raw-file`, `--result-file` and `--receipt` together. Existing `verify-acquisition-receipt` adds optional `--raw-file` verification.
+- [~] Run offline Rust MSRV 1.99.1 conformance with Python-origin `raw-v1.bin`, `result-v1.json`, `receipt-v1-python.json`, including tampering rejection. Dedicated mocked GET, HTTP 403 and cached 304 tests. Hosted PR checks are required before marking this increment verified.
+- [ ] Extend original HTTP/WARC/WACZ linkage to archive headers, attachments, redirect chain and preservation format. The network entity bytes captured here are **not** the complete WARC response bytes.
+- [ ] Migrate the other Rust source commands behind the same boundary and finish downstream fyi-archive pinned release/shadow parity; do not close #310 or enable archive cutover.
+- [ ] Compare Python and Rust request endpoint, SQLite effects, output/error codes and reconcilers; Rust fetch-request-page is not yet functionally identical to the Python command.
+
+See `docs/rust-alaveteli-receipt-acquisition.md`. Retain prior merged PR evidence and `archive_cutover_allowed=false`.
