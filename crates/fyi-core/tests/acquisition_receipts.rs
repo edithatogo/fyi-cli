@@ -53,7 +53,6 @@ fn canonicalization_is_order_independent() {
     );
 }
 
-
 #[test]
 fn atomic_receipt_writer_is_idempotent_and_rejects_replacement() {
     use fyi_core::acquisition_receipts::write_receipt_atomic;
@@ -140,8 +139,9 @@ fn resign(receipt: &mut Value) {
     let object = receipt.as_object_mut().unwrap();
     object.remove("receipt_sha256");
     let unsigned = Value::Object(object.clone());
-    receipt["receipt_sha256"] =
-        json!(fyi_core::provenance::sha256_hex(&canonical_json_bytes(&unsigned).unwrap()));
+    receipt["receipt_sha256"] = json!(fyi_core::provenance::sha256_hex(
+        &canonical_json_bytes(&unsigned).unwrap()
+    ));
 }
 
 #[test]
