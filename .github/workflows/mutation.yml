@@ -36,4 +36,4 @@ jobs:
       - name: Install Python dependencies
         run: uv sync --extra dev --frozen
       - name: Run Python mutation analysis
-        run: python mutation_test.py
+        run: python mutation_test.py --threshold 70
