@@ -66,14 +66,14 @@
       "groupSlug": "security-dependencies"
     },
     {
-      "matchPackagePatterns": [
-        "*"
-      ],
       "matchUpdateTypes": [
         "major"
       ],
       "labels": [
         "breaking-change"
+      ],
+      "matchPackageNames": [
+        "*"
       ]
     }
   ],
@@ -87,7 +87,7 @@
   "separateMajorMinor": true,
   "separateMultipleMajor": true,
   "separateMinorPatch": true,
-  "stabilityDays": 3,
+  "minimumReleaseAge": "3 days",
   "internalChecksFilter": "strict",
   "vulnerabilityAlerts": {
     "labels": [
@@ -96,14 +96,14 @@
   },
   "osvVulnerabilityAlerts": true,
   "pip_requirements": {
-    "fileMatch": [
-      "requirements\\.txt$",
-      "requirements-.*\\.txt$"
+    "managerFilePatterns": [
+      "/requirements\\.txt$/",
+      "/requirements-.*\\.txt$/"
     ]
   },
   "pip_setup": {
-    "fileMatch": [
-      "setup\\.py$"
+    "managerFilePatterns": [
+      "/setup\\.py$/"
     ]
   }
 }
