@@ -47,5 +47,8 @@ fn rejects_sensitive_urls_even_with_recalculated_digest() {
 fn canonicalization_is_order_independent() {
     let a: Value = serde_json::from_str(r#"{"b":2,"a":{"z":1,"c":3}}"#).unwrap();
     let b: Value = serde_json::from_str(r#"{"a":{"c":3,"z":1},"b":2}"#).unwrap();
-    assert_eq!(canonical_json_bytes(&a).unwrap(), canonical_json_bytes(&b).unwrap());
+    assert_eq!(
+        canonical_json_bytes(&a).unwrap(),
+        canonical_json_bytes(&b).unwrap()
+    );
 }
