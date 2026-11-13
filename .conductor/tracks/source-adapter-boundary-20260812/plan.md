@@ -113,6 +113,10 @@ See `docs/rust-alaveteli-receipt-acquisition.md`. Retain prior merged PR evidenc
 - Local Rust 1.99.1 verification passed 331 tests across 15 suites, all-target and
   all-feature workspace Clippy, formatting and the required repository contract
   checks. Hosted PR verification follows this source checkpoint.
+- All 12 required hosted checks passed at `b50bbec`. After incorporating main's
+  receipt scalar fixes from #420, source checkpoint `60e240c` passed 333 Rust
+  tests and 42 focused Python 3.15.1 schema/repository contract tests. Updated
+  hosted checks remain required for final integration.
 - [ ] Finish Rust probing/capture, queued-reservation backoff handling, downstream
   archive parity and the remaining source acceptance evidence before retiring
   the Python source adapters.

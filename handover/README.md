@@ -39,3 +39,18 @@ Generated handovers can be written here.
 - The next operation is a scoped stacked PR, followed by hosted verification.
   Queued-reservation backoff, archive acquisition and existing-data migration
   remain open under the existing source-boundary and Rust cutover tracks.
+
+### Receipt-schema integration — 2026-11-13
+
+- All 12 required checks passed on the initial PR #421 head `b50bbec`.
+- Main advanced with receipt scalar conformance in PR #420 at `4e8e694`.
+  Merge checkpoint `9e3bfd6` updates safety PR #419, and `60e240c` incorporates
+  that branch into the pacing increment. Both merges completed without conflicts.
+- The combined source passed 333 Rust tests in 16 suites, all-target/all-feature
+  Clippy, Rustfmt and 42 focused Python 3.15.1 contract tests. The new scalar
+  schema tests use jsonschema 4.26.0 in this lane's existing local environment.
+- The integrated workspace test log SHA-256 is
+  `d6720822bb5581e50a6cdf485c49a3cd4b9cf9afcbbea53caf8e67fc21d377b3`.
+- The next operation is hosted verification of the updated PR heads and a
+  terminal source-evidence handoff. The proposed integration order is #419,
+  followed by #421.
