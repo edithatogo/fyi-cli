@@ -182,7 +182,6 @@ fn writer_does_not_accept_symlink_as_committed_evidence() {
     std::fs::remove_dir_all(&root).unwrap();
 }
 
-
 #[test]
 fn checks_saved_result_bytes_against_receipt_projection() {
     use fyi_core::acquisition_receipts::verify_receipt_result_bytes;
