@@ -3,7 +3,7 @@ import json
 import re
 from datetime import datetime
 
-workspace_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+workspace_dir = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 conductor_dir = os.path.join(workspace_dir, ".conductor")
 
 # 1. Check required files
