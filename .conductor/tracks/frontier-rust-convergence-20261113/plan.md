@@ -67,7 +67,7 @@ No item is done simply because files, tests or badges exist. Each claimed capabi
 - [ ] Extend Conductor validation across legacy tracks with warning-only grandfathering initially; migrate old metadata and eliminate duplicate/stale states through reviewed PRs.
 - [ ] Complete Python ↔ Rust CLI, network and archive parity matrix and consumer migration, then deprecate legacy package.
 - [ ] Enforce evidence provenance and source boundary handoff through existing #309–#314 track and release-pinned archive shadow tests.
-- [~] Coverage gate on run 43366742716 failed: 89.66% Rust line coverage against >=90% threshold. Added offline provider adapter contract tests in commit 0f52bd53; current-commit hosted coverage still must pass. Do not lower threshold or exclude additional code.\n- [ ] Introduce risk-based metamorphic/mutation/fuzz/benchmark target selection and full release evidence gates.
+- [~] Coverage gate on run 43366742716 failed: 89.66% Rust line coverage against >=90% threshold. Added MuckRock provider parser/security tests in 0f52bd53 and deterministic metamorphic hash/normalization tests in dd0d7425; current-commit hosted coverage still must pass. Do not lower threshold or exclude additional code.\n- [ ] Introduce risk-based metamorphic/mutation/fuzz/benchmark target selection and full release evidence gates.
 - [ ] Implement law/rule state machine and research-frontier extensions after foundational contracts.
 
 No checkbox above asserting full CI pass, runtime compatibility or Rust-only application migration should be considered complete until corresponding hosted evidence is linked.
