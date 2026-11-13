@@ -144,9 +144,11 @@
     "discover-reconcile",
     "dry-plan",
     "emit-evidence-delta",
+    "historical-index",
     "internet-archive-cdx",
     "internet-archive-replay",
     "rate-limit-status",
+    "source-probe",
     "validate-process-events"
   ],
   "rust_only": [
