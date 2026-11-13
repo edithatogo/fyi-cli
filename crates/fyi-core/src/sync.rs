@@ -1,5 +1,5 @@
 use crate::acquisition_receipts::{
-    build_single_get_receipt, canonical_json_bytes, SingleGetReceiptInput,
+    build_single_get_receipt_with_rate_limit, canonical_json_bytes, SingleGetReceiptInput,
 };
 use crate::api::{
     AddCorrespondencePayload, AlaveteliRequest, Authority, CorrespondenceResponse,
@@ -99,6 +99,14 @@ pub struct SyncClient {
     concurrency: Arc<Semaphore>,
     validator_cache: Arc<Mutex<HashMap<String, ValidatorCacheEntry>>>,
     bot_token: Option<String>,
+    shared_pacing: Option<SharedPacing>,
+}
+
+#[derive(Clone)]
+struct SharedPacing {
+    db: DbPool,
+    name: String,
+    minimum_interval: Duration,
 }
 
 #[derive(Debug, Clone)]
@@ -198,6 +206,7 @@ impl SyncClient {
             concurrency,
             validator_cache: Arc::new(Mutex::new(HashMap::new())),
             bot_token: None,
+            shared_pacing: None,
         })
     }
 
@@ -206,6 +215,52 @@ impl SyncClient {
     pub fn with_bot_token(mut self, token: Option<String>) -> Self {
         self.bot_token = token.filter(|value| !value.trim().is_empty());
         self
+    }
+
+    /// Coordinate request slots and Retry-After backoff through the existing
+    /// Python-compatible SQLite pacing tables. Storage failures block HTTP.
+    pub fn with_shared_pacing(
+        mut self,
+        db: DbPool,
+        name: impl Into<String>,
+        minimum_interval: Duration,
+    ) -> Self {
+        self.shared_pacing = Some(SharedPacing {
+            db,
+            name: name.into(),
+            minimum_interval,
+        });
+        self
+    }
+
+    async fn reserve_shared_slot(
+        &self,
+        status_code: Option<u16>,
+        interval: Duration,
+    ) -> Result<Duration> {
+        let Some(shared) = &self.shared_pacing else {
+            return Ok(Duration::ZERO);
+        };
+        let mut random = [0_u8; 8];
+        getrandom::fill(&mut random)
+            .map_err(|_| anyhow!("shared pacing randomness unavailable"))?;
+        let owner = format!("pid:{}", std::process::id());
+        let slot = crate::shared_pacing::reserve_slot(
+            shared.db.pool(),
+            &crate::shared_pacing::ReservationInput {
+                name: &shared.name,
+                owner_id: &owner,
+                now: Utc::now().timestamp_millis() as f64 / 1_000.0,
+                interval_seconds: interval.as_secs_f64(),
+                jitter_seconds: 0.25,
+                jitter_fraction: u64::from_le_bytes(random) as f64 / u64::MAX as f64,
+                status_code,
+            },
+        )
+        .await
+        .context("shared pacing reservation failed")?;
+        Duration::try_from_secs_f64(slot.sleep_seconds)
+            .context("shared pacing delay is outside the supported range")
     }
 
     #[cfg(test)]
@@ -234,6 +289,7 @@ impl SyncClient {
             concurrency: Arc::new(Semaphore::new(guardrails.max_concurrency as usize)),
             validator_cache: Arc::new(Mutex::new(HashMap::new())),
             bot_token: None,
+            shared_pacing: None,
         })
     }
 
@@ -305,13 +361,29 @@ impl SyncClient {
         if !wait.wait.is_zero() {
             tokio::time::sleep(wait.wait).await;
         }
-
         let permit = self
             .concurrency
             .clone()
             .acquire_owned()
             .await
             .map_err(|_| anyhow!("outbound request concurrency guard unavailable"))?;
+        if let Some(shared) = &self.shared_pacing {
+            let shared_wait = self
+                .reserve_shared_slot(None, shared.minimum_interval)
+                .await?;
+            let budget = self.middleware.lock().await.guardrails.snapshot();
+            let remaining =
+                Duration::from_millis(budget.max_runtime_ms.saturating_sub(budget.elapsed_ms));
+            if shared_wait >= remaining {
+                return Err(anyhow!(
+                    "shared pacing wait exceeds the remaining runtime budget"
+                ));
+            }
+            if !shared_wait.is_zero() {
+                tokio::time::sleep(shared_wait).await;
+            }
+        }
+
         let started = Instant::now();
         let mut response = self
             .http
@@ -321,6 +393,19 @@ impl SyncClient {
         let status = response.status();
         let final_url = response.url().clone();
         let headers = response.headers().clone();
+        let header_values = headers
+            .iter()
+            .filter_map(|(name, value)| value.to_str().ok().map(|value| (name.as_str(), value)))
+            .collect::<Vec<_>>();
+        if status == StatusCode::TOO_MANY_REQUESTS || status == StatusCode::SERVICE_UNAVAILABLE {
+            let signals = crate::agent_runtime::RateLimitSnapshot::from_headers(
+                header_values.iter().copied(),
+            );
+            if let Some(seconds) = signals.retry_after_seconds {
+                self.reserve_shared_slot(Some(status.as_u16()), Duration::from_secs(seconds))
+                    .await?;
+            }
+        }
         let max_response_bytes = self
             .middleware
             .lock()
@@ -384,10 +469,6 @@ impl SyncClient {
             }
         }
 
-        let header_values = headers
-            .iter()
-            .filter_map(|(name, value)| value.to_str().ok().map(|value| (name.as_str(), value)))
-            .collect::<Vec<_>>();
         let feedback = self.middleware.lock().await.after_response(
             &meta,
             status.as_u16(),
@@ -592,16 +673,21 @@ impl SyncClient {
         )?;
         let started_at = started.to_rfc3339_opts(SecondsFormat::Millis, true);
         let completed_at = completed.to_rfc3339_opts(SecondsFormat::Millis, true);
-        let receipt = build_single_get_receipt(SingleGetReceiptInput {
-            source_url: &url,
-            response_url: &response.final_url,
-            http_status: response.status.as_u16(),
-            raw_response: &response.body,
-            result_projection: &result_projection,
-            request_id,
-            started_at: &started_at,
-            completed_at: &completed_at,
-        })?;
+        let receipt = build_single_get_receipt_with_rate_limit(
+            SingleGetReceiptInput {
+                source_url: &url,
+                response_url: &response.final_url,
+                http_status: response.status.as_u16(),
+                raw_response: &response.body,
+                result_projection: &result_projection,
+                request_id,
+                started_at: &started_at,
+                completed_at: &completed_at,
+            },
+            self.shared_pacing
+                .as_ref()
+                .map(|shared| (shared.name.as_str(), shared.minimum_interval.as_secs_f64())),
+        )?;
         Ok(FetchedRequestEvidence {
             request,
             raw_body: response.body,
@@ -3188,5 +3274,107 @@ mod tests {
         assert_eq!(client.fetch_request(42).await.unwrap().id, 42);
         let message = format!("{:#}", client.fetch_request_evidence(42).await.unwrap_err());
         assert!(message.contains("cached"));
+    }
+
+    #[tokio::test]
+    async fn shared_pacing_storage_failure_blocks_the_http_request() {
+        let server = MockServer::start().await;
+        let db = DbPool::new_in_memory().await.unwrap();
+        sqlx::query("CREATE TABLE shared_rate_limit_events (invalid_column TEXT)")
+            .execute(db.pool())
+            .await
+            .unwrap();
+        let client = SyncClient::new_for_testing(&server.uri())
+            .unwrap()
+            .with_shared_pacing(db, "archive-discovery", Duration::ZERO);
+        let message = format!("{:#}", client.fetch_request(42).await.unwrap_err());
+        assert!(message.contains("shared pacing reservation failed"));
+        assert!(server.received_requests().await.unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn shared_pacing_records_a_successful_guarded_request() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/api/v2/request/42.json"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "id": 42, "title": "Example", "body": "Records"
+            })))
+            .mount(&server)
+            .await;
+        let db = DbPool::new_in_memory().await.unwrap();
+        let client = SyncClient::new_for_testing(&server.uri())
+            .unwrap()
+            .with_shared_pacing(db.clone(), "archive-discovery", Duration::ZERO);
+        let evidence = client.fetch_request_evidence(42).await.unwrap();
+        assert_eq!(evidence.request.id, 42);
+        assert_eq!(evidence.receipt["rate_limit"]["name"], "archive-discovery");
+        assert_eq!(
+            evidence.receipt["rate_limit"]["minimum_interval_seconds"],
+            0.0
+        );
+        crate::acquisition_receipts::verify_receipt(&evidence.receipt).unwrap();
+        let status = crate::shared_pacing::read_status(db.pool(), "archive-discovery")
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(status.recent_events.len(), 1);
+        assert_eq!(status.recent_events[0].kind, "acquired");
+        assert!(status.last_owner_id.starts_with("pid:"));
+    }
+
+    #[tokio::test]
+    async fn shared_pacing_propagates_retry_after_to_other_clients() {
+        for status_code in [429, 503] {
+            let server = MockServer::start().await;
+            Mock::given(method("GET"))
+                .and(path("/api/v2/request/42.json"))
+                .respond_with(ResponseTemplate::new(status_code).insert_header("Retry-After", "2"))
+                .mount(&server)
+                .await;
+            let db = DbPool::new_in_memory().await.unwrap();
+            let client = SyncClient::new_for_testing(&server.uri())
+                .unwrap()
+                .with_shared_pacing(db.clone(), "archive-discovery", Duration::ZERO);
+            assert!(client.fetch_request(42).await.is_err());
+            let status = crate::shared_pacing::read_status(db.pool(), "archive-discovery")
+                .await
+                .unwrap()
+                .unwrap();
+            assert_eq!(status.recent_events.len(), 2);
+            assert_eq!(status.recent_events[0].kind, "backoff");
+            assert_eq!(
+                status.recent_events[0].status_code,
+                Some(i64::from(status_code))
+            );
+            assert_eq!(status.recent_events[0].delay_seconds, 2.0);
+            assert!(status.next_allowed_at >= status.recent_events[1].next_allowed_at + 2.0);
+        }
+    }
+
+    #[tokio::test]
+    async fn shared_pacing_blocks_a_wait_beyond_the_runtime_budget() {
+        let server = MockServer::start().await;
+        let db = DbPool::new_in_memory().await.unwrap();
+        crate::shared_pacing::reserve_slot(
+            db.pool(),
+            &crate::shared_pacing::ReservationInput {
+                name: "archive-discovery",
+                owner_id: "other-worker",
+                now: Utc::now().timestamp_millis() as f64 / 1_000.0,
+                interval_seconds: 7_200.0,
+                jitter_seconds: 0.0,
+                jitter_fraction: 0.0,
+                status_code: None,
+            },
+        )
+        .await
+        .unwrap();
+        let client = SyncClient::new_for_testing(&server.uri())
+            .unwrap()
+            .with_shared_pacing(db, "archive-discovery", Duration::ZERO);
+        let message = format!("{:#}", client.fetch_request(42).await.unwrap_err());
+        assert!(message.contains("remaining runtime budget"));
+        assert!(server.received_requests().await.unwrap().is_empty());
     }
 }

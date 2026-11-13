@@ -85,6 +85,7 @@
     "next-best-action",
     "privacy-audit",
     "provenance",
+    "rate-limit-status",
     "reconcile-events",
     "register-request",
     "request-detail",
@@ -125,6 +126,7 @@
     "list-requests",
     "next-best-action",
     "privacy-audit",
+    "rate-limit-status",
     "reconcile-events",
     "register-request",
     "request-detail",
@@ -149,7 +151,6 @@
     "historical-index",
     "internet-archive-cdx",
     "internet-archive-replay",
-    "rate-limit-status",
     "source-probe",
     "validate-process-events"
   ],
