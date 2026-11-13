@@ -4,8 +4,8 @@ Scope: top-level parser names on PR #403: `src/fyi_system/cli.py` calls to `.add
 
 ## Coverage summary
 - Python: **46** top-level subcommands, exposed through **three** Python package executables (`fyi`, `fyi-cli`, `fyi-system`).
-- Rust: **43** top-level clap variants, exposed as the native `fyi-cli` binary (plus `fyi-mcp` separately).
-- **34 names overlap**; **12 Python commands have no matching Rust top-level name**; **9 Rust commands have no matching Python top-level name**.
+- Rust: **44** top-level clap variants, exposed as the native `fyi-cli` binary (plus `fyi-mcp` separately).
+- **34 names overlap**; **12 Python commands have no matching Rust top-level name**; **10 Rust commands have no matching Python top-level name**.
 - **Important:** Rust implementation for many name-matched commands contains diagnostic `println!` placeholders rather than actual DB/network/report processing. The matching 34 names are **syntax-only potential parity**, not proven behavioural parity.
 
 ## Python-only commands: port or replace with contract-tested Rust implementation
@@ -74,6 +74,7 @@ The `capture`, `internet-archive-cdx`, `internet-archive-replay`, `discover` and
 - `provenance`: native-only; not a reason to retire a Python command.
 - `mcp-server`: native-only; not a reason to retire a Python command.
 - `tui`: native-only; not a reason to retire a Python command.
+- `verify-acquisition-receipt`: native, offline verification of a Python-compatible v1 receipt, not yet an acquisition writer.
 
 ## Contract-driven migration rules
 1. Capture checked-in Rust `--help` and Python `--help` command manifests on the release runner; compare flags, defaults, stdout/stderr, exit codes, JSON schemas, SQLite mutations, filesystem effects, network effects and retries.
