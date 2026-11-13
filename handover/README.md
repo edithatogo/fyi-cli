@@ -19,3 +19,22 @@ Generated handovers can be written here.
   runtime identity, the initial failures, final results and the local log hash.
 - Next operation is to prepare the scoped PR and continue the retained Rust
   capabilities under the existing migration track.
+
+## Active ownership — shared Rust pacing, 2026-11-13
+
+- The same chat and managed worktree now use branch
+  `feat/rust-shared-pacing-20261113`, based on the correction in draft PR #419.
+- This increment owns the Rust shared pacing module, its tests, guarded-client
+  integration and the `rate-limit-status` CLI command.
+- Local verification passed 331 tests in 15 Rust suites with all features,
+  workspace Clippy with all targets/features, Rustfmt and 21 focused repository
+  validator tests on Python 3.15.1. The Python-origin fixture freezes the retained
+  SQLite scheduling and complete status JSON contract.
+- The first CLI test run exposed a parallel temporary-directory collision. An
+  atomic per-process sequence fixed isolation, and all seven CLI tests passed.
+- The workspace test log SHA-256 is
+  `a8020d76aef242c3827042acc39da691f839b1a998c19cda8ec02857e133e9e3`.
+- Safety PR #419 is ready with all 12 required checks passing at `7f0f475`.
+- The next operation is a scoped stacked PR, followed by hosted verification.
+  Queued-reservation backoff, archive acquisition and existing-data migration
+  remain open under the existing source-boundary and Rust cutover tracks.

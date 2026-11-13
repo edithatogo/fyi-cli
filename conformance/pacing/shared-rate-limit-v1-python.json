@@ -1,0 +1,124 @@
+{
+  "generator_runtime": "3.15.1",
+  "inputs": [
+    {
+      "interval_seconds": 2.0,
+      "kind": "acquired",
+      "owner_id": "worker-a",
+      "status_code": null
+    },
+    {
+      "interval_seconds": 2.0,
+      "kind": "acquired",
+      "owner_id": "worker-b",
+      "status_code": null
+    },
+    {
+      "interval_seconds": 10.0,
+      "kind": "backoff",
+      "owner_id": "worker-a",
+      "status_code": 429
+    },
+    {
+      "interval_seconds": 0.0,
+      "kind": "acquired",
+      "owner_id": "worker-c",
+      "status_code": null
+    }
+  ],
+  "jitter_fraction": 0.5,
+  "jitter_seconds": 0.25,
+  "now": 1000.0,
+  "reservations": [
+    {
+      "interval_seconds": 2.0,
+      "jitter_seconds": 0.25,
+      "kind": "acquired",
+      "name": "archive-discovery",
+      "next_allowed_at": 1002.125,
+      "owner_id": "worker-a",
+      "previous_next_allowed_at": 0.0,
+      "sleep_seconds": 0.0,
+      "status_code": null
+    },
+    {
+      "interval_seconds": 2.0,
+      "jitter_seconds": 0.25,
+      "kind": "acquired",
+      "name": "archive-discovery",
+      "next_allowed_at": 1004.25,
+      "owner_id": "worker-b",
+      "previous_next_allowed_at": 1002.125,
+      "sleep_seconds": 2.125,
+      "status_code": null
+    },
+    {
+      "interval_seconds": 10.0,
+      "jitter_seconds": 0.25,
+      "kind": "backoff",
+      "name": "archive-discovery",
+      "next_allowed_at": 1014.375,
+      "owner_id": "worker-a",
+      "previous_next_allowed_at": 1004.25,
+      "sleep_seconds": 4.25,
+      "status_code": 429
+    },
+    {
+      "interval_seconds": 0.0,
+      "jitter_seconds": 0.25,
+      "kind": "acquired",
+      "name": "archive-discovery",
+      "next_allowed_at": 1014.375,
+      "owner_id": "worker-c",
+      "previous_next_allowed_at": 1014.375,
+      "sleep_seconds": 14.375,
+      "status_code": null
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source": "src/fyi_system/db.py",
+  "source_sha256": "3e0b3bb58bb2f8200a88335ae25074566a60ece9746df2a4e91e6cd899da0dc7",
+  "status": {
+    "interval_seconds": 0.0,
+    "jitter_seconds": 0.25,
+    "last_acquired_at": "1970-01-01T00:16:40.000000+00:00",
+    "last_owner_id": "worker-c",
+    "last_sleep_seconds": 14.375,
+    "name": "archive-discovery",
+    "next_allowed_at": 1014.375,
+    "recent_events": [
+      {
+        "delay_seconds": 14.375,
+        "kind": "acquired",
+        "next_allowed_at": 1014.375,
+        "observed_at": "1970-01-01T00:16:40.000000+00:00",
+        "owner_id": "worker-c",
+        "status_code": null
+      },
+      {
+        "delay_seconds": 10.0,
+        "kind": "backoff",
+        "next_allowed_at": 1014.375,
+        "observed_at": "1970-01-01T00:16:40.000000+00:00",
+        "owner_id": "worker-a",
+        "status_code": 429
+      },
+      {
+        "delay_seconds": 2.125,
+        "kind": "acquired",
+        "next_allowed_at": 1004.25,
+        "observed_at": "1970-01-01T00:16:40.000000+00:00",
+        "owner_id": "worker-b",
+        "status_code": null
+      },
+      {
+        "delay_seconds": 0.0,
+        "kind": "acquired",
+        "next_allowed_at": 1002.125,
+        "observed_at": "1970-01-01T00:16:40.000000+00:00",
+        "owner_id": "worker-a",
+        "status_code": null
+      }
+    ]
+  }
+}
