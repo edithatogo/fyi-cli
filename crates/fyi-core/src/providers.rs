@@ -311,11 +311,11 @@ mod tests {
         assert_eq!(record.status.as_deref(), Some("Completed"));
         assert_eq!(record.tags, vec!["water", "quality"]);
         assert_eq!(
-            record.created_at.unwrap().to_rfc3339(),
+            record.created_at.as_ref().unwrap().to_rfc3339(),
             "2026-10-21T00:30:00+00:00"
         );
         assert_eq!(
-            record.updated_at.unwrap().to_rfc3339(),
+            record.updated_at.as_ref().unwrap().to_rfc3339(),
             "2026-10-22T00:30:00+00:00"
         );
         assert_eq!(
