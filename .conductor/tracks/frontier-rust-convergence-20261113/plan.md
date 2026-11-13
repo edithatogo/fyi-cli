@@ -74,8 +74,14 @@ No checkbox above asserting full CI pass, runtime compatibility or Rust-only app
 
 ## Implementation ledger: additional delivery and evidence (2026-11-13)
 
-- [x] Audit Python and Rust top-level CLI: 46 Python, 43 Rust, 34 overlapping names, 12 Python-only, 9 Rust-only. Evidence and per-command plan: `docs/rust-python-command-parity-20261113.md`; overlap is **not** functional parity because Rust placeholders remain.
+- [x] Audit Python and Rust top-level CLI: 46 Python, 44 Rust, 34 overlapping names, 12 Python-only, 10 Rust-only. Evidence and per-command plan: `docs/rust-python-command-parity-20261113.md`; overlap is **not** functional parity because Rust placeholders remain.
 - [x] Extend Python 3.15 compatibility sensor with isolated `pip-audit`, Ruff, BasedPyright and Atheris install/bounded fuzz probes. These are diagnostic; existing Python 3.12 security/fuzzing gates remain mandatory until replacements prove green. Review hosted output before enforcing >=3.15.
 - [~] Introduce Rust receipt-v1 verifier and Python golden equivalence fixture/test; root/source boundary track `source-adapter-boundary-20260812` remains authoritative and #310 is not closed.
 - [x] Historic PR #403 run 43369010175: Rustfmt failed on metamorphic test formatting; all other main CI jobs passed. Subsequent formatting fix committed; current-head required CI must be verified.
 - [ ] Audit published command/flag/output and side effect parity with fixture-driven Rust/Python tests; migrate Rust placeholder commands before retiring Python entrypoints.
+
+### Additional hosted evidence
+
+- Rust 1.99.1 receipt core tests verified by hosted workflow `43372075554`; the newer native receipt verification CLI smoke and full latest-head CI remain to be verified.
+- Python 3.15 installed package audit via Python 3.12 isolated `pip-audit` reported **no known vulnerabilities** (`43372190314`). Python 3.15 application environment and typed/lint checks passed; native Atheris 3.1.0 remains unavailable (no cp315 wheel), and native `pip-audit` still fails through removed `sre_constants`. Keep Python >=3.11 and existing 3.12 Atheris/Presidio infrastructure pending a compatible alternative.
+- Update command parity to 44 Rust variants after adding `verify-acquisition-receipt`. The new CI drift test intentionally fails on stale command inventories; current manifest and regression count were reconciled in the same PR.
