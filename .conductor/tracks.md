@@ -12,13 +12,19 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Scope: evidence provenance, statutory rules, provider contracts, grounded agents, reproducible transformation, legacy Python to Rust migration, Python >=3.15 and Rust MSRV 1.99 compatibility gates, maximal risk-based single-developer CI, and Conductor repair.*
   *Dependency: existing source-adapter-boundary-20260812 track (#309, #310–#314), not a replacement for it. Reconcile PR #402 before altering completed-track status.*
 
-- [~] **Track: quality-frontier-testing-cicd-20261113**
+- [x] **Track: quality-frontier-testing-cicd-20261113**
   *Link: [./tracks/quality-frontier-testing-cicd-20261113/](./tracks/quality-frontier-testing-cicd-20261113/)*
-  *Issue: [#280](https://github.com/edithatogo/fyi-cli/issues/280).*
+  *Issue: [#280](https://github.com/edithatogo/fyi-cli/issues/280) (closed via PR #414).*
   *Parent: [#282](https://github.com/edithatogo/fyi-cli/issues/282) (quality frontier umbrella).*
   *Warranted gaps: DST, MT, Contract.*
   *CI gaps: pinned_actions, dependency_review, workflow_lint.*
   *Description: Close warranted testing and CI/CD gaps — deterministic simulation testing, mutation testing, contract testing, pinned actions, dependency review, and workflow linting.*
+
+- [x] **Track: solo-maintainer-security-20261113**
+  *Link: [./tracks/solo-maintainer-security-20261113/](./tracks/solo-maintainer-security-20261113/)*
+  *Issue: [#281](https://github.com/edithatogo/fyi-cli/issues/281).*
+  *Parent: [#282](https://github.com/edithatogo/fyi-cli/issues/282) (quality frontier umbrella).*
+  *Description: Solo-maintainer security — additive ruleset blocking force-push/deletion (`solo-maintainer-default-branch`, id 27191113), canonical AGENTS.md context, one-command validation with committed drift receipt, Renovate preset inheritance, Codecov OIDC verification.*
 
 ---
 
@@ -365,8 +371,7 @@ Potential tracks for future development:
 
 These open issues are not yet covered by a Conductor track. They are listed here so the registry and GitHub do not drift silently.
 
-- [#281](https://github.com/edithatogo/fyi-cli/issues/281) — Quality frontier: security and solo-maintainer context.
-- [#282](https://github.com/edithatogo/fyi-cli/issues/282) — Quality frontier umbrella; close only when #280 and #281 are complete.
+- [#282](https://github.com/edithatogo/fyi-cli/issues/282) — Quality frontier umbrella; close only when #280 (closed via PR #414) and #281 (track `solo-maintainer-security-20261113`) are complete.
 - [#322](https://github.com/edithatogo/fyi-cli/issues/322) — Adopt bounded test-acceleration profiles (slow marker, xdist, testmon, bounded mutation and VCR trials).
 - [#325](https://github.com/edithatogo/fyi-cli/issues/325) — Renovate Dependency Dashboard; operational, not a delivery track.
 - [#32](https://github.com/edithatogo/fyi-cli/issues/32) — Deliberately open external-registry monitor follow-up referenced by completed registry tracks.

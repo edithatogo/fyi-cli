@@ -1,6 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
+    "github>edithatogo/renovate-config",
     "config:recommended",
     ":semanticCommits",
     ":semanticPrefixFixDepsChoreOthers",
@@ -11,44 +12,74 @@
     ":dependencyDashboard",
     ":maintainLockFilesWeekly"
   ],
-  "labels": ["dependencies"],
+  "labels": [
+    "dependencies"
+  ],
   "packageRules": [
     {
-      "matchUpdateTypes": ["minor", "patch"],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
       "matchCurrentVersion": "!/^0/",
       "automerge": true
     },
     {
-      "matchDepTypes": ["devDependencies"],
+      "matchDepTypes": [
+        "devDependencies"
+      ],
       "automerge": true
     },
     {
-      "matchPackageNames": ["ruff", "basedpyright"],
+      "matchPackageNames": [
+        "ruff",
+        "basedpyright"
+      ],
       "groupName": "linters",
       "groupSlug": "linters"
     },
     {
-      "matchPackageNames": ["pytest", "pytest-*"],
+      "matchPackageNames": [
+        "pytest",
+        "pytest-*"
+      ],
       "groupName": "pytest",
       "groupSlug": "pytest"
     },
     {
-      "matchPackageNames": ["typer", "rich", "httpx", "pydantic", "fastmcp"],
+      "matchPackageNames": [
+        "typer",
+        "rich",
+        "httpx",
+        "pydantic",
+        "fastmcp"
+      ],
       "groupName": "core-dependencies",
       "groupSlug": "core-dependencies"
     },
     {
-      "matchPackageNames": ["cryptography", "keyring"],
+      "matchPackageNames": [
+        "cryptography",
+        "keyring"
+      ],
       "groupName": "security-dependencies",
       "groupSlug": "security-dependencies"
     },
     {
-      "matchPackagePatterns": ["*"],
-      "matchUpdateTypes": ["major"],
-      "labels": ["breaking-change"]
+      "matchPackagePatterns": [
+        "*"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "labels": [
+        "breaking-change"
+      ]
     }
   ],
-  "schedule": ["before 6am on Monday"],
+  "schedule": [
+    "before 6am on Monday"
+  ],
   "timezone": "Pacific/Auckland",
   "prConcurrentLimit": 10,
   "prHourlyLimit": 2,
@@ -59,13 +90,20 @@
   "stabilityDays": 3,
   "internalChecksFilter": "strict",
   "vulnerabilityAlerts": {
-    "labels": ["security"]
+    "labels": [
+      "security"
+    ]
   },
   "osvVulnerabilityAlerts": true,
   "pip_requirements": {
-    "fileMatch": ["requirements\\.txt$", "requirements-.*\\.txt$"]
+    "fileMatch": [
+      "requirements\\.txt$",
+      "requirements-.*\\.txt$"
+    ]
   },
   "pip_setup": {
-    "fileMatch": ["setup\\.py$"]
+    "fileMatch": [
+      "setup\\.py$"
+    ]
   }
 }
