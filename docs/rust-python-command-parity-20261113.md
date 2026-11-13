@@ -41,7 +41,7 @@ The `capture`, `internet-archive-cdx`, `internet-archive-replay`, `discover` and
 | `build-prefilled-url` | Named Rust handler exists; implementation equivalence not established | Independent output/state equivalence, failure semantics and side-effect parity |
 | `ingest-feed` | Rust match arm currently prints a placeholder (not functional parity) | Independent output/state equivalence, failure semantics and side-effect parity |
 | `reconcile-events` | Rust match arm currently prints a placeholder (not functional parity) | Independent output/state equivalence, failure semantics and side-effect parity |
-| `fetch-request-page` | Rust match arm currently prints a placeholder (not functional parity) | Independent output/state equivalence, failure semantics and side-effect parity |
+| `fetch-request-page` | Rust guarded HTTP read and receipt/byte output implemented; **partial parity**, Python endpoint/SQLite/output semantics differ | Offline response, DB side-effect and CLI/error cross-language parity |
 | `export-process-events` | Named Rust handler exists; implementation equivalence not established | Independent output/state equivalence, failure semantics and side-effect parity |
 | `attention-report` | Rust match arm currently prints a placeholder (not functional parity) | Independent output/state equivalence, failure semantics and side-effect parity |
 | `handover` | Rust match arm currently prints a placeholder (not functional parity) | Independent output/state equivalence, failure semantics and side-effect parity |
