@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0.0",
+  "cases": [
+    {"name": "adapter-lowercase", "pointer": "/adapter/id", "value": "a", "valid": true},
+    {"name": "adapter-digit", "pointer": "/adapter/id", "value": "0", "valid": true},
+    {"name": "adapter-punctuation", "pointer": "/adapter/id", "value": "adapter.v1_x-2", "valid": true},
+    {"name": "adapter-uppercase", "pointer": "/adapter/id", "value": "Upper", "valid": false},
+    {"name": "adapter-leading-hyphen", "pointer": "/adapter/id", "value": "-adapter", "valid": false},
+    {"name": "adapter-leading-period", "pointer": "/adapter/id", "value": ".adapter", "valid": false},
+    {"name": "adapter-leading-underscore", "pointer": "/adapter/id", "value": "_adapter", "valid": false},
+    {"name": "adapter-slash", "pointer": "/adapter/id", "value": "adapter/path", "valid": false},
+    {"name": "adapter-space", "pointer": "/adapter/id", "value": "adapter name", "valid": false},
+    {"name": "adapter-unicode", "pointer": "/adapter/id", "value": "adaptér", "valid": false},
+    {"name": "adapter-empty", "pointer": "/adapter/id", "value": "", "valid": false},
+    {"name": "adapter-null", "pointer": "/adapter/id", "value": null, "valid": false},
+    {"name": "adapter-number", "pointer": "/adapter/id", "value": 7, "valid": false},
+    {"name": "rate-name-null", "pointer": "/rate_limit/name", "value": null, "valid": true},
+    {"name": "rate-name-empty", "pointer": "/rate_limit/name", "value": "", "valid": true},
+    {"name": "rate-name-named", "pointer": "/rate_limit/name", "value": "archive-discovery-test", "valid": true},
+    {"name": "rate-name-unicode", "pointer": "/rate_limit/name", "value": "shared-μ", "valid": true},
+    {"name": "rate-name-number", "pointer": "/rate_limit/name", "value": 7, "valid": false},
+    {"name": "rate-name-boolean", "pointer": "/rate_limit/name", "value": false, "valid": false},
+    {"name": "rate-name-array", "pointer": "/rate_limit/name", "value": [], "valid": false},
+    {"name": "rate-name-object", "pointer": "/rate_limit/name", "value": {}, "valid": false}
+  ]
+}
