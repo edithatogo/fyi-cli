@@ -378,3 +378,120 @@ pub fn verify_receipt_result_bytes(receipt: &Value, result_bytes: &[u8]) -> Resu
     );
     Ok(())
 }
+
+
+/// Build a Python v1-compatible receipt from one successful guarded GET.
+///
+/// Source content is represented twice, deliberately: the network response
+/// digest covers the *original response bytes*, whereas the result digest
+/// covers the normalized canonical JSON output. No network I/O occurs here.
+pub fn build_single_get_receipt(
+    source_url: &reqwest::Url,
+    response_url: &reqwest::Url,
+    http_status: u16,
+    raw_response: &[u8],
+    result_projection: &[u8],
+    request_id: i64,
+    started_at: &str,
+    completed_at: &str,
+) -> Result<Value> {
+    ensure!(request_id > 0, "request ID must be positive");
+    ensure!(
+        (200..300).contains(&http_status),
+        "acquisition receipt requires successful HTTP response"
+    );
+    let sanitized_source = sanitize_for_receipt(source_url)?;
+    let sanitized_response = sanitize_for_receipt(response_url)?;
+    let mut receipt = serde_json::json!({
+        "schema": "urn:fyi-cli:acquisition-receipt",
+        "schema_version": "1.0.0",
+        "command": "fetch-request",
+        "adapter": {
+            "id": "alaveteli-request-json",
+            "version": env!("CARGO_PKG_VERSION"),
+        },
+        "source": {"url": sanitized_source},
+        "request_bounds": {"request_id": request_id},
+        "started_at": started_at,
+        "completed_at": completed_at,
+        "status": "succeeded",
+        "responses": [{
+            "url": sanitized_response,
+            "status": http_status,
+            "bytes": raw_response.len(),
+            "sha256": sha256_hex(raw_response),
+            "attempts": 1,
+            "retry_delays_seconds": [],
+        }],
+        "totals": {
+            "requests": 1,
+            "bytes": raw_response.len(),
+            "retries": 0,
+        },
+        "rate_limit": {
+            "name": null,
+            "minimum_interval_seconds": null,
+        },
+        "checkpoint": {
+            "before_sha256": null,
+            "after_sha256": null,
+        },
+        "result": {
+            "representation": "canonical_result_projection",
+            "media_type": "application/json",
+            "bytes": result_projection.len(),
+            "sha256": sha256_hex(result_projection),
+        },
+    });
+    let canonical = canonical_json_bytes(&receipt)?;
+    receipt["receipt_sha256"] = Value::String(sha256_hex(&canonical));
+    verify_receipt(&receipt)?;
+    verify_receipt_raw_bytes(&receipt, raw_response)?;
+    verify_receipt_result_bytes(&receipt, result_projection)?;
+    Ok(receipt)
+}
+
+/// Preserve the host and path while redacting credential-bearing URL fields.
+fn sanitize_for_receipt(input: &reqwest::Url) -> Result<String> {
+    ensure!(
+        input.scheme() == "http" || input.scheme() == "https",
+        "acquisition receipt URL requires HTTP(S)"
+    );
+    ensure!(input.host_str().is_some(), "acquisition receipt URL missing host");
+    let mut safe = input.clone();
+    safe.set_username("")
+        .map_err(|_| anyhow::anyhow!("cannot clear receipt URL username"))?;
+    safe.set_password(None)
+        .map_err(|_| anyhow::anyhow!("cannot clear receipt URL password"))?;
+    if input.query().is_some() {
+        safe.set_query(Some("REDACTED"));
+    }
+    safe.set_fragment(None);
+    Ok(safe.into())
+}
+
+/// Verify that a *single* recorded network response matches the original
+/// HTTP entity body bytes. A result projection hash cannot substitute for it.
+///
+/// In a multi-response receipt, callers must use a separate ordered payload
+/// contract; pairing the first payload with all responses would be misleading.
+pub fn verify_receipt_raw_bytes(receipt: &Value, raw_body: &[u8]) -> Result<()> {
+    verify_receipt(receipt)?;
+    let responses = receipt["responses"]
+        .as_array()
+        .context("receipt responses must be an array")?;
+    ensure!(
+        responses.len() == 1,
+        "raw response verification requires exactly one HTTP response"
+    );
+    let first = &responses[0];
+    ensure!(
+        integer(first, "bytes")? == raw_body.len() as u64,
+        "raw HTTP response byte count mismatch"
+    );
+    ensure!(
+        string(first, "sha256")? == sha256_hex(raw_body),
+        "raw HTTP response SHA-256 mismatch"
+    );
+    Ok(())
+}
