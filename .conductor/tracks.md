@@ -9,6 +9,7 @@ This file tracks all major tracks for the project. Each track has its own detail
 - [~] **Track: source-adapter-boundary-20260812**
   *Link: [./tracks/source-adapter-boundary-20260812/](./tracks/source-adapter-boundary-20260812/)*
   *Issue: [#309](https://github.com/edithatogo/fyi-cli/issues/309), upstream of [fyi-archive #370](https://github.com/edithatogo/fyi-archive/issues/370).*
+  *Child issues: [#310](https://github.com/edithatogo/fyi-cli/issues/310) receipt contract, [#311](https://github.com/edithatogo/fyi-cli/issues/311) CDX discovery (closed), [#312](https://github.com/edithatogo/fyi-cli/issues/312) Wayback replay, [#313](https://github.com/edithatogo/fyi-cli/issues/313) source health/pacing, [#314](https://github.com/edithatogo/fyi-cli/issues/314) historical index.*
   *Description: Make fyi-cli the exclusive receipt-producing network boundary for Alaveteli, Internet Archive, Wayback replay, source health, and approved external indexes.*
 
 ---
@@ -272,18 +273,19 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Link: [./tracks/foi-platform-landscape_20260712/](./tracks/foi-platform-landscape_20260712/)*
   *GitHub issue: [#195](https://github.com/edithatogo/fyi-cli/issues/195); child [#199](https://github.com/edithatogo/fyi-cli/issues/199)*
   *Description: Map non-Alaveteli FOI request platforms and rank safe integration opportunities.*
+  *Reconciliation: #195 was reopened on 2026-11-13 because Phase 3 maintenance and drift monitoring remain open in the track plan; #199 is complete.*
 
 - [x] **Track: foi-adapter-pilots_20260712** (COMPLETED 2026-07-28)
   *Link: [./tracks/foi-adapter-pilots_20260712/](./tracks/foi-adapter-pilots_20260712/)*
   *GitHub issue: [#196](https://github.com/edithatogo/fyi-cli/issues/196); children [#200](https://github.com/edithatogo/fyi-cli/issues/200), [#201](https://github.com/edithatogo/fyi-cli/issues/201), [#203](https://github.com/edithatogo/fyi-cli/issues/203)*
   *Description: Implement safe read-only MuckRock and FragDenStaat pilots, then evaluate FOIA.gov and USCIS.*
 
-## Recently completed (2026-07-09)
+## Additional tracks
 
-- [~] **Track: python-security-quality-fuzzing-20260813**
+- [x] **Track: python-security-quality-fuzzing-20260813** (COMPLETED 2026-11-13, PR #390)
   *Link: [./tracks/python-security-quality-fuzzing-20260813/](./tracks/python-security-quality-fuzzing-20260813/)*
   *Description: Explicit Hypothesis PR gating plus bounded Atheris coverage-guided fuzzing and Python security/quality checks.*
-  *Status: Local implementation in progress; hosted PR evidence pending.*
+  *Status: Hosted PR checks passed, including Python Security and Quality, Atheris, Workspace Tests and Security Audit. Python minimum raised to 3.11 with a zero-vulnerability pip-audit baseline. `offline-ai-security` remains infrastructure-blocked because its self-hosted runner is unavailable; it is not a required check.*
 
 - [x] **Track: bleeding-edge-features** (COMPLETED 2026-07-09 — repo-side foundations)
   *Issue: #46*
@@ -341,6 +343,21 @@ Potential tracks for future development:
 
 ---
 
+## Open Issues Without an Active Track (reconciled 2026-11-13)
+
+These open issues are not yet covered by a Conductor track. They are listed here so the registry and GitHub do not drift silently.
+
+- [#280](https://github.com/edithatogo/fyi-cli/issues/280) — Quality frontier: testing and CI/CD gaps (DST, MT, contract; pinned actions, dependency review, workflow lint).
+- [#281](https://github.com/edithatogo/fyi-cli/issues/281) — Quality frontier: security and solo-maintainer context.
+- [#282](https://github.com/edithatogo/fyi-cli/issues/282) — Quality frontier umbrella; close only when #280 and #281 are complete.
+- [#322](https://github.com/edithatogo/fyi-cli/issues/322) — Adopt bounded test-acceleration profiles (slow marker, xdist, testmon, bounded mutation and VCR trials).
+- [#325](https://github.com/edithatogo/fyi-cli/issues/325) — Renovate Dependency Dashboard; operational, not a delivery track.
+- [#32](https://github.com/edithatogo/fyi-cli/issues/32) — Deliberately open external-registry monitor follow-up referenced by completed registry tracks.
+
+Reconciled closures: [#283](https://github.com/edithatogo/fyi-cli/issues/283) (seven AU capability records now in `artifacts/foio/australian-capabilities/`) and [#284](https://github.com/edithatogo/fyi-cli/issues/284) (RIOPA mapping profile in `conformance/riopa/`).
+
+---
+
 ## Track Status Legend
 
 - `[ ]` - Not started
@@ -357,4 +374,5 @@ Potential tracks for future development:
 - [~] **Track: Incremental jurisdiction capture completion**
   *Link: [./tracks/jurisdiction-capture-completion-20260721/](./tracks/jurisdiction-capture-completion-20260721/)*
   *GitHub: [#234](https://github.com/edithatogo/fyi-cli/issues/234); programme parent [foi-o #81](https://github.com/edithatogo/foi-o/issues/81).*
+  *Child issue: [#283](https://github.com/edithatogo/fyi-cli/issues/283) seven remaining Australian capability records (completed 2026-11-13).*
   *Current increment: France bounded capability audited (`fr_capability_audited_live_source_blocked`).*

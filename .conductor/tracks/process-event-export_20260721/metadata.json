@@ -1,7 +1,7 @@
 {
   "track_id": "process-event-export_20260721",
   "type": "feature",
-  "status": "new",
+  "status": "completed",
   "created_at": "2026-07-21T00:00:00+10:00",
   "updated_at": "2026-07-21T00:00:00+10:00",
   "description": "Emit a versioned, deterministic, public-safe Alaveteli process-event stream for full-corpus process mining.",
