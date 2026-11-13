@@ -7,6 +7,8 @@ import sys
 import pytest
 from pathlib import Path
 
+pytestmark = pytest.mark.slow
+
 
 class TestCLIInitDB:
     """Test fyi-system init-db command."""

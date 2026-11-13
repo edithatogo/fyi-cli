@@ -27,7 +27,8 @@ This directory contains the canonical Conductor project context and management f
 ### Active Tracks
 - **frontier-rust-convergence-20261113** — Frontier capability contract, Rust convergence, 3.15/1.99 compatibility gates, CI/harness and Conductor self-repair (planning; not yet implemented)
 - **quality-frontier-testing-cicd-20261113** — Quality frontier: testing and CI/CD gaps (DST, MT, contract; pinned actions, dependency review, workflow lint) for issue #280 (completed via PR #414)
-- **solo-maintainer-security-20261113** — Quality frontier: security and solo-maintainer context (additive ruleset, AGENTS.md, one-command validation + drift receipt, Renovate preset inheritance, Codecov OIDC verification) for issue #281
+- **test-acceleration-20261113** — Bounded local test-acceleration profiles (slow marker, xdist, testmon, bounded gremlins trial, VCR/Freezegun/pytest-picked decisions) for issue #322 (completed via PR; CI full suite authoritative)
+- **solo-maintainer-security-20261113** — Quality frontier: security and solo-maintainer context (additive ruleset, AGENTS.md, one-command validation + drift receipt, Renovate preset inheritance, Codecov OIDC verification) for issue #281 (completed via PR #415)
 - **source-adapter-boundary-20260812** - Exclusive receipt-producing network boundary for Alaveteli, Archive, Wayback and approved indexes
 - **ai-plugin-registry-submissions_20260712** - Prepare, submit, verify and monitor fyi-mcp in AI plugin and MCP registries
 - **package-registry-submissions_20260712** - Reproducible package, container and developer distribution submissions

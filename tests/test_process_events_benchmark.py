@@ -2,6 +2,8 @@ import pytest
 
 from scripts.benchmark_process_events import run
 
+pytestmark = pytest.mark.slow
+
 
 @pytest.mark.performance
 def test_representative_process_event_fixture_is_bounded():
