@@ -399,16 +399,30 @@ pub fn verify_receipt_result_bytes(receipt: &Value, result_bytes: &[u8]) -> Resu
 /// Source content is represented twice, deliberately: the network response
 /// digest covers the *original response bytes*, whereas the result digest
 /// covers the normalized canonical JSON output. No network I/O occurs here.
-pub fn build_single_get_receipt(
-    source_url: &reqwest::Url,
-    response_url: &reqwest::Url,
-    http_status: u16,
-    raw_response: &[u8],
-    result_projection: &[u8],
-    request_id: i64,
-    started_at: &str,
-    completed_at: &str,
-) -> Result<Value> {
+/// Explicit inputs for one guarded GET receipt. Grouping these fields makes
+/// the source/response boundary reviewable without positional arguments.
+pub struct SingleGetReceiptInput<'a> {
+    pub source_url: &'a reqwest::Url,
+    pub response_url: &'a reqwest::Url,
+    pub http_status: u16,
+    pub raw_response: &'a [u8],
+    pub result_projection: &'a [u8],
+    pub request_id: i64,
+    pub started_at: &'a str,
+    pub completed_at: &'a str,
+}
+
+pub fn build_single_get_receipt(input: SingleGetReceiptInput<'_>) -> Result<Value> {
+    let SingleGetReceiptInput {
+        source_url,
+        response_url,
+        http_status,
+        raw_response,
+        result_projection,
+        request_id,
+        started_at,
+        completed_at,
+    } = input;
     ensure!(request_id > 0, "request ID must be positive");
     ensure!(
         (200..300).contains(&http_status),

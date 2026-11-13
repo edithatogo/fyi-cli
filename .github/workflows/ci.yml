@@ -204,10 +204,12 @@ jobs:
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
-            target/
           key: ${{ runner.os }}-cargo-cov-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-cov-
+
+      - name: Discard stale instrumented builds
+        run: rm -rf target/llvm-cov-target
 
       - name: Run tests with coverage
         # Produce LCOV for Codecov and enforce the project target. An 83%

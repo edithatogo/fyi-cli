@@ -1,4 +1,4 @@
-use crate::acquisition_receipts::{build_single_get_receipt, canonical_json_bytes};
+use crate::acquisition_receipts::{build_single_get_receipt, canonical_json_bytes, SingleGetReceiptInput};
 use crate::api::{
     AddCorrespondencePayload, AlaveteliRequest, Authority, CorrespondenceResponse,
     CreateRequestPayload, CreateRequestResponse, UpdateRequestStatePayload,
@@ -588,16 +588,18 @@ impl SyncClient {
         let result_projection = canonical_json_bytes(
             &serde_json::to_value(&request).context("failed to normalize request JSON")?,
         )?;
-        let receipt = build_single_get_receipt(
-            &url,
-            &response.final_url,
-            response.status.as_u16(),
-            &response.body,
-            &result_projection,
+        let started_at = started.to_rfc3339_opts(SecondsFormat::Millis, true);
+        let completed_at = completed.to_rfc3339_opts(SecondsFormat::Millis, true);
+        let receipt = build_single_get_receipt(SingleGetReceiptInput {
+            source_url: &url,
+            response_url: &response.final_url,
+            http_status: response.status.as_u16(),
+            raw_response: &response.body,
+            result_projection: &result_projection,
             request_id,
-            &started.to_rfc3339_opts(SecondsFormat::Millis, true),
-            &completed.to_rfc3339_opts(SecondsFormat::Millis, true),
-        )?;
+            started_at: &started_at,
+            completed_at: &completed_at,
+        })?;
         Ok(FetchedRequestEvidence {
             request,
             raw_body: response.body,
