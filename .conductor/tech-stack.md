@@ -13,7 +13,7 @@ This project supports two technology stacks:
 The active stack uses Rust for enhanced performance, memory safety, and single-binary deployment.
 
 ### Core Language
-**Python 3.10+**
+**Python 3.11+**
 - Rapid development and prototyping
 - Excellent library ecosystem for API integration
 - Strong support for data processing and automation
@@ -22,6 +22,23 @@ The active stack uses Rust for enhanced performance, memory safety, and single-b
 - **feedparser>=6.0.11**: RSS/Atom feed parsing
 - **requests>=2.32.0**: HTTP client for API calls
 - **jinja2>=3.1.4**: Template engine for document generation
+
+### Dependency maintenance — 13 November 2026
+
+The Python security baseline refresh adopts a Python 3.11+ minimum and uses
+secured releases within FastMCP 3 and MCP 1.
+The universal lock remains authoritative for interpreter-specific versions.
+Local verification uses mocked client/authentication contracts with sockets
+disabled; live FYI/Alaveteli requests are outside this maintenance validation.
+The unused Safety development dependency is removed because its current graph
+constrains Filelock below the secured release family. The enforced `pip-audit`
+workflow remains intact, without advisory exclusions; no scripts, workflows or
+tests invoke Safety.
+The fixed dnspython release (2.9+) and secured Filelock toolchain require Python
+3.11+. Retaining Python 3.10 selects dnspython 2.8.0 with CVE-2026-114605.
+Python 3.11+ was adopted for the legacy Python package on 13 November 2026. A
+reviewed secure Python 3.10 backport remains the alternative if that runtime is
+required again; advisory exclusions are not an acceptable substitute.
 
 ### Data Storage
 **SQLite**
