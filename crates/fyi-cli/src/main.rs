@@ -1845,4 +1845,37 @@ mod tests {
         assert!(!hits.is_empty());
         assert_eq!(hits[0].id, "1");
     }
+
+    #[test]
+    fn rust_fetch_request_page_accepts_explicit_receipt_artifact_paths() {
+        let parsed = Cli::try_parse_from([
+            "fyi-cli",
+            "fetch-request-page",
+            "42",
+            "--base-url",
+            "https://example.test",
+            "--receipt",
+            "evidence/42-receipt.json",
+            "--result-file",
+            "evidence/42-result.json",
+            "--raw-file",
+            "evidence/42-response.bin",
+        ])
+        .unwrap();
+        match parsed.command {
+            Commands::FetchRequestPage {
+                request_id,
+                receipt,
+                result_file,
+                raw_file,
+                ..
+            } => {
+                assert_eq!(request_id, 42);
+                assert_eq!(receipt.as_deref(), Some("evidence/42-receipt.json"));
+                assert_eq!(result_file.as_deref(), Some("evidence/42-result.json"));
+                assert_eq!(raw_file.as_deref(), Some("evidence/42-response.bin"));
+            }
+            _ => panic!("Expected FetchRequestPage"),
+        }
+    }
 }
