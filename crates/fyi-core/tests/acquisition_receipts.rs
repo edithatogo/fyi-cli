@@ -212,7 +212,6 @@ fn raw_http_bytes_are_independently_checked_against_receipt() {
     assert!(verify_receipt_raw_bytes(&receipt, b"").is_err());
 }
 
-
 #[test]
 fn raw_evidence_bytes_use_no_clobber_private_file_publication() {
     use fyi_core::acquisition_receipts::write_evidence_bytes_atomic;
