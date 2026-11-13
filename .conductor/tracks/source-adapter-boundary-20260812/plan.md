@@ -37,3 +37,9 @@ contract. Merge #310 first or use its fixture branch as the temporary base.
 - [ ] Verify WARC/WACZ raw byte capture linkage and publish independently reproducible signed manifests.
 
 The new Rust verifier is read-only and does not claim write-path or network acquisition parity. Keep #310 active and do not alter archive cutover gate.
+
+### 2026-11-13 receipt command and compatibility status
+
+- [~] A Rust read-only `verify-acquisition-receipt` CLI command has been added and is smoke-tested on Rust 1.99.1 in dedicated CI. The verifier checks Python v1 canonical self-digest, timestamps, URLs, retry/byte totals and shape invariants. This does **not** validate the captured response payload bytes or replace the Python acquisition writer. Full schema parity, atomic Rust writer, and source-network integration remain open.
+- [x] Machine-readable Python/Rust command-name parity manifest and CI drift check added. Rust now exposes 44 top-level commands versus 46 Python; 34 names overlap, but meaningful behaviour is not asserted.
+- [~] Python 3.15 security compatibility: Ruff and BasedPyright succeed; `pip-audit` crashes on removed `sre_constants` in vendored `pip-api`/pyparsing, and Atheris 3.1.0 provides cp312–cp314 wheels but no cp315. A separate installed-dependency audit using an isolated Python 3.12 scanner is being validated; Atheris 3.12 remains enforced. Do not increase Python minimum until security parity or a documented independent scanner/fuzz replacement is implemented.
