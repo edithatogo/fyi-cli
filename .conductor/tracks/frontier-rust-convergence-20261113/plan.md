@@ -90,7 +90,7 @@ No checkbox above asserting full CI pass, runtime compatibility or Rust-only app
 
 This section supersedes prior pending-check statements without rewriting historical evidence.
 
-- [x] PR #403 merged: verified Rust 1.99.1 MSRV, Condutor registry/validator, Python 3.15 compatibility sensor, command-name parity inventory and coverage remediation. Security/fuzzing tooling remains isolated where native 3.15 compatibility is unavailable.
+- [x] PR #403 merged: verified Rust 1.99.1 MSRV, Conductor registry/validator, Python 3.15 compatibility sensor, command-name parity inventory and coverage remediation. Security/fuzzing tooling remains isolated where native 3.15 compatibility is unavailable.
 - [x] PR #405 merged as `593fedb6b768526d8e45204f1b23171167826b33`: Rust v1 no-overwrite atomic receipt publication, idempotency, cleanup, malformed existing receipt rejection, concurrency and symlink tests. Hosted mandatory CI, Rust MSRV, CodeQL, privacy, profiling and Python security all passed.
 - [x] PR #406 merged as `5c5bf30d646540ec39835559100a7375e40b4688`: verify saved result projection bytes against v1 receipt, Rust CLI `--result-file`, negative fixtures and MSRV smoke. Hosted mandatory CI, Rust MSRV, CodeQL, privacy, profiling and Python security all passed.
 - [ ] Continue 46 Python ↔ 44 Rust CLI **behavioural** parity: 34 overlapping names are only name parity and some Rust handlers are still placeholders.
