@@ -1940,7 +1940,10 @@ mod tests {
 
     #[tokio::test]
     async fn guarded_default_http_client_never_follows_cross_origin_redirects() {
-        use wiremock::{matchers::{method, path}, Mock, MockServer, ResponseTemplate};
+        use wiremock::{
+            matchers::{method, path},
+            Mock, MockServer, ResponseTemplate,
+        };
         let target = MockServer::start().await;
         let origin = MockServer::start().await;
         Mock::given(method("GET"))
@@ -1969,7 +1972,10 @@ mod tests {
 
     #[tokio::test]
     async fn guarded_default_http_client_allows_same_origin_relative_redirects() {
-        use wiremock::{matchers::{method, path}, Mock, MockServer, ResponseTemplate};
+        use wiremock::{
+            matchers::{method, path},
+            Mock, MockServer, ResponseTemplate,
+        };
         let origin = MockServer::start().await;
         Mock::given(method("GET"))
             .and(path("/start"))

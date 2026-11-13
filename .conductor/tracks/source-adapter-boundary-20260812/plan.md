@@ -86,3 +86,9 @@ See `docs/rust-alaveteli-receipt-acquisition.md`. Retain prior merged PR evidenc
 ### Network redirect boundary hardening — 13 November 2026
 - [~] The shared Rust agent HTTP client now refuses cross-origin or credential-bearing redirect targets and caps same-origin redirect hops; mocked tests cover a refused cross-port redirect and an accepted relative same-origin redirect. This is part of the source-adapter threat boundary, not a substitute for DNS rebinding protection or authorised upstream policies.
 - [ ] Validate this change against real but bounded approved provider smoke fixtures and retain error/deny evidence without storing response bodies in logs.
+
+### Parent/child GitHub issue state reconciliation (2026-11-13)
+
+- `fyi-cli` #311 (CDX discovery adapter) is **closed** as of 2026-08-13. That represents issue-level implementation status, not evidence that Rust has replaced its Python command or that `fyi-archive` has passed operational shadow parity.
+- `fyi-archive` #370 (generic instance acquisition controller) is **closed** but still describes the source ownership split and downstream shadow-parity acceptance. A closed parent issue is not an archive-cutover authorisation.
+- `fyi-cli` #309, #310, #312, #313 and #314 remain **open**. Do not relabel those as complete or set `archive_cutover_allowed=true` without verified end-to-end evidence.
