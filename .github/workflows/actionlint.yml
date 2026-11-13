@@ -1,0 +1,22 @@
+name: Actionlint
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  actionlint:
+    name: Workflow Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+
+      - name: Run actionlint
+        uses: reviewdog/action-actionlint@14c77d7b3f9227e5a1d1e3c2e6b7da4e0c4db1a0
