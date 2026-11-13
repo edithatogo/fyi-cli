@@ -26,10 +26,10 @@
 
 ## Phase 5: CI hardening
 
-- [ ] Pin all GitHub Actions to full commit SHAs (pinned_actions).
-- [ ] Add dependency_review workflow for PRs.
-- [ ] Add actionlint workflow linting.
-- [ ] Add least-privilege, concurrency, immutable actions.
+- [x] Pin all GitHub Actions to full commit SHAs (pinned_actions). [checkpoint: 253428b]
+- [x] Add dependency_review workflow for PRs. [checkpoint: 253428b]
+- [x] Add actionlint workflow linting. [checkpoint: 253428b]
+- [~] Add least-privilege, concurrency, immutable actions.
 - [ ] Schedule expensive lanes (mutation, E2E) to keep PR checks fast.
 - [ ] Retain CI evidence (artifacts, logs).
 
