@@ -23,9 +23,14 @@ pub fn canonical_json_bytes(value: &Value) -> Result<Vec<u8>> {
 }
 
 fn restrict_fields(value: &Value, permitted: &[&str], location: &str) -> Result<()> {
-    let map = value.as_object().with_context(|| format!("{location} must be an object"))?;
+    let map = value
+        .as_object()
+        .with_context(|| format!("{location} must be an object"))?;
     for field in map.keys() {
-        ensure!(permitted.contains(&field.as_str()), "unexpected field in {location}: {field}");
+        ensure!(
+            permitted.contains(&field.as_str()),
+            "unexpected field in {location}: {field}"
+        );
     }
     Ok(())
 }
@@ -99,9 +104,22 @@ pub fn verify_receipt(receipt: &Value) -> Result<()> {
     restrict_fields(
         receipt,
         &[
-            "schema", "schema_version", "receipt_sha256", "command", "adapter",
-            "source", "request_bounds", "started_at", "completed_at", "status",
-            "responses", "totals", "rate_limit", "checkpoint", "result", "failure",
+            "schema",
+            "schema_version",
+            "receipt_sha256",
+            "command",
+            "adapter",
+            "source",
+            "request_bounds",
+            "started_at",
+            "completed_at",
+            "status",
+            "responses",
+            "totals",
+            "rate_limit",
+            "checkpoint",
+            "result",
+            "failure",
         ],
         "receipt",
     )?;
@@ -144,7 +162,11 @@ pub fn verify_receipt(receipt: &Value) -> Result<()> {
         );
     }
     let rate_limit = object_field(receipt, "rate_limit")?;
-    restrict_fields(rate_limit, &["name", "minimum_interval_seconds"], "rate_limit")?;
+    restrict_fields(
+        rate_limit,
+        &["name", "minimum_interval_seconds"],
+        "rate_limit",
+    )?;
     ensure!(rate_limit.get("name").is_some(), "missing rate limit name");
     ensure!(
         rate_limit.get("minimum_interval_seconds").is_some_and(|v| {
@@ -157,7 +179,11 @@ pub fn verify_receipt(receipt: &Value) -> Result<()> {
     optional_hash(checkpoint, "before_sha256")?;
     optional_hash(checkpoint, "after_sha256")?;
     let projection = object_field(receipt, "result")?;
-    restrict_fields(projection, &["representation", "media_type", "bytes", "sha256"], "result")?;
+    restrict_fields(
+        projection,
+        &["representation", "media_type", "bytes", "sha256"],
+        "result",
+    )?;
     ensure!(
         projection.get("representation").and_then(Value::as_str)
             == Some("canonical_result_projection"),
@@ -175,7 +201,14 @@ pub fn verify_receipt(receipt: &Value) -> Result<()> {
     for response in responses {
         restrict_fields(
             response,
-            &["url", "status", "bytes", "sha256", "attempts", "retry_delays_seconds"],
+            &[
+                "url",
+                "status",
+                "bytes",
+                "sha256",
+                "attempts",
+                "retry_delays_seconds",
+            ],
             "response",
         )?;
         safe_url(response, "url")?;
@@ -239,14 +272,19 @@ static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
 pub fn write_receipt_atomic(path: &Path, receipt: &Value) -> Result<()> {
     verify_receipt(receipt)?;
     let canonical = canonical_json_bytes(receipt)?;
-    let parent = path.parent().filter(|p| !p.as_os_str().is_empty()).unwrap_or_else(|| Path::new("."));
+    let parent = path
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
     fs::create_dir_all(parent).context("unable to create receipt directory")?;
 
     if path.exists() {
         return check_existing(path, &canonical);
     }
 
-    let name = path.file_name().context("receipt path is missing a filename")?;
+    let name = path
+        .file_name()
+        .context("receipt path is missing a filename")?;
     let mut created = None;
     for _ in 0..32 {
         let serial = TEMP_COUNTER.fetch_add(1, Ordering::Relaxed);
@@ -275,8 +313,10 @@ pub fn write_receipt_atomic(path: &Path, receipt: &Value) -> Result<()> {
     }
     let (temp, mut file) = created.context("unable to allocate unique receipt tempfile")?;
     let result = (|| -> Result<()> {
-        file.write_all(&canonical).context("unable to write receipt tempfile")?;
-        file.sync_all().context("unable to flush receipt tempfile")?;
+        file.write_all(&canonical)
+            .context("unable to write receipt tempfile")?;
+        file.sync_all()
+            .context("unable to flush receipt tempfile")?;
         drop(file);
         match fs::hard_link(&temp, path) {
             Ok(()) => {
@@ -303,9 +343,12 @@ pub fn write_receipt_atomic(path: &Path, receipt: &Value) -> Result<()> {
 
 fn check_existing(path: &Path, canonical: &[u8]) -> Result<()> {
     let stored = fs::read(path).context("unable to read existing receipt")?;
-    let value: Value = serde_json::from_slice(&stored)
-        .context("existing receipt is not valid JSON")?;
+    let value: Value =
+        serde_json::from_slice(&stored).context("existing receipt is not valid JSON")?;
     verify_receipt(&value).context("existing receipt is not valid evidence")?;
-    ensure!(stored == canonical, "different receipt already exists; refusing to overwrite evidence");
+    ensure!(
+        stored == canonical,
+        "different receipt already exists; refusing to overwrite evidence"
+    );
     Ok(())
 }
