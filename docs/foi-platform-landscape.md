@@ -39,8 +39,8 @@ throttle limit, or endpoint availability. Do not carry old framework-auth advice
 into a deployment without checking it. Sources: [operator developer guidance][fds],
 [framework API documentation][froide].
 
-**FOIA.gov.** The public developer documentation describes API-key-protected agency
-components and annual-report XML. The separate agency specification describes
+**FOIA.gov — United States federal FOIA portal.** The public developer
+documentation describes API-key-protected agency components and annual-report XML. The separate agency specification describes
 portal-to-agency delivery with agency-specific security controls; it is not an
 unrestricted third-party filing endpoint. The reviewed draft leaves rate limits
 unspecified. Sources: [developer resources][foia], [agency specification][agency].
