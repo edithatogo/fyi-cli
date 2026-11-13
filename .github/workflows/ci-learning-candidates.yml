@@ -20,22 +20,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Record CI failure candidate
+        env:
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+          WORKFLOW_RUN_URL: ${{ github.event.workflow_run.html_url }}
+          WORKFLOW_ACTOR: ${{ github.event.workflow_run.actor.login }}
+          WORKFLOW_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           python3 scripts/record_learning_candidate.py \
             --backlog .conductor/improvement-backlog.md \
-            --snapshot .conductor/.tmp/ci-learning-candidates-${{ github.event.workflow_run.id }}.md \
-            --message "CI failure summary candidate for `${{ github.event.workflow_run.name }}`" \
-            --evidence "workflow=${{ github.event.workflow_run.name }}" \
-            --evidence "run_id=${{ github.event.workflow_run.id }}" \
-            --evidence "run_url=${{ github.event.workflow_run.html_url }}" \
-            --evidence "actor=${{ github.event.workflow_run.actor.login }}" \
-            --evidence "head_sha=${{ github.event.workflow_run.head_sha }}"
+            --snapshot .conductor/.tmp/ci-learning-candidates-${WORKFLOW_RUN_ID}.md \
+            --message "CI failure summary candidate for ${WORKFLOW_NAME}" \
+            --evidence "workflow=${WORKFLOW_NAME}" \
+            --evidence "run_id=${WORKFLOW_RUN_ID}" \
+            --evidence "run_url=${WORKFLOW_RUN_URL}" \
+            --evidence "actor=${WORKFLOW_ACTOR}" \
+            --evidence "head_sha=${WORKFLOW_HEAD_SHA}"
 
       - name: Upload non-committing learning candidate artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: always()
         with:
           name: ci-learning-candidates-${{ github.event.workflow_run.id }}
