@@ -195,7 +195,6 @@ fn checks_saved_result_bytes_against_receipt_projection() {
     assert!(verify_receipt_result_bytes(&tampered, b"bad").is_err());
 }
 
-
 #[test]
 fn raw_http_bytes_are_independently_checked_against_receipt() {
     use fyi_core::acquisition_receipts::verify_receipt_raw_bytes;

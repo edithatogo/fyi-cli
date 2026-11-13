@@ -417,7 +417,10 @@ pub enum Commands {
             help = "Saved canonical result projection to verify by size and SHA-256"
         )]
         result_file: Option<String>,
-        #[arg(long, help = "Original HTTP response bytes to verify against the receipt")]
+        #[arg(
+            long,
+            help = "Original HTTP response bytes to verify against the receipt"
+        )]
         raw_file: Option<String>,
     },
     #[command(about = "Run Model Context Protocol (MCP) server")]
@@ -696,9 +699,11 @@ fn main() {
                 eprintln!("--receipt, --result-file and --raw-file must be used together");
                 std::process::exit(2);
             }
-            if let (Some(receipt), Some(result), Some(raw)) =
-                (receipt.as_deref(), result_file.as_deref(), raw_file.as_deref())
-            {
+            if let (Some(receipt), Some(result), Some(raw)) = (
+                receipt.as_deref(),
+                result_file.as_deref(),
+                raw_file.as_deref(),
+            ) {
                 let paths = [Path::new(receipt), Path::new(result), Path::new(raw)];
                 if paths[0] == paths[1] || paths[0] == paths[2] || paths[1] == paths[2] {
                     eprintln!("receipt, raw and normalized result output paths must be distinct");
@@ -708,21 +713,27 @@ fn main() {
             let result = (|| -> Result<(), Box<dyn std::error::Error>> {
                 let client = SyncClient::new(base_url)?;
                 let runtime = Runtime::new()?;
-                let evidence = runtime.block_on(client.fetch_request_evidence(i64::from(*request_id)))?;
-                if let (Some(receipt), Some(result), Some(raw)) =
-                    (receipt.as_deref(), result_file.as_deref(), raw_file.as_deref())
-                {
+                let evidence =
+                    runtime.block_on(client.fetch_request_evidence(i64::from(*request_id)))?;
+                if let (Some(receipt), Some(result), Some(raw)) = (
+                    receipt.as_deref(),
+                    result_file.as_deref(),
+                    raw_file.as_deref(),
+                ) {
                     // Raw and projection blobs are committed before the receipt.
                     // A failed partial acquisition cannot publish a false
                     // completed receipt; retrying is byte-identical and safe.
                     fyi_core::acquisition_receipts::write_evidence_bytes_atomic(
-                        Path::new(raw), &evidence.raw_body,
+                        Path::new(raw),
+                        &evidence.raw_body,
                     )?;
                     fyi_core::acquisition_receipts::write_evidence_bytes_atomic(
-                        Path::new(result), &evidence.result_projection,
+                        Path::new(result),
+                        &evidence.result_projection,
                     )?;
                     fyi_core::acquisition_receipts::write_receipt_atomic(
-                        Path::new(receipt), &evidence.receipt,
+                        Path::new(receipt),
+                        &evidence.receipt,
                     )?;
                 }
                 println!("{}", serde_json::to_string_pretty(&evidence.request)?);
@@ -998,10 +1009,8 @@ fn main() {
                     if let Some(raw_body) = raw_file {
                         let bytes = std::fs::read(raw_body)
                             .map_err(|error| format!("reading raw HTTP body failed: {error}"))?;
-                        fyi_core::acquisition_receipts::verify_receipt_raw_bytes(
-                            &receipt, &bytes,
-                        )
-                        .map_err(|error| error.to_string())?;
+                        fyi_core::acquisition_receipts::verify_receipt_raw_bytes(&receipt, &bytes)
+                            .map_err(|error| error.to_string())?;
                     }
                     Ok(())
                 });

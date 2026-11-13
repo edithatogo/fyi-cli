@@ -1,10 +1,10 @@
+use crate::acquisition_receipts::{build_single_get_receipt, canonical_json_bytes};
 use crate::api::{
     AddCorrespondencePayload, AlaveteliRequest, Authority, CorrespondenceResponse,
     CreateRequestPayload, CreateRequestResponse, UpdateRequestStatePayload,
     UpdateRequestStateResponse,
 };
 use crate::db::{DbPool, FieldChange, SyncStatus};
-use crate::acquisition_receipts::{build_single_get_receipt, canonical_json_bytes};
 use anyhow::{anyhow, Context, Result};
 use chrono::{SecondsFormat, Utc};
 use reqwest::{header, Client, RequestBuilder, StatusCode, Url};
@@ -558,10 +558,7 @@ impl SyncClient {
     /// A 304 replay from the conditional GET cache is explicitly rejected:
     /// representing cached bytes as newly acquired network evidence would be
     /// misleading. The regular `fetch_request` API retains its cache semantics.
-    pub async fn fetch_request_evidence(
-        &self,
-        request_id: i64,
-    ) -> Result<FetchedRequestEvidence> {
+    pub async fn fetch_request_evidence(&self, request_id: i64) -> Result<FetchedRequestEvidence> {
         if request_id <= 0 {
             return Err(anyhow!("request ID must be positive"));
         }
@@ -584,7 +581,9 @@ impl SyncClient {
         let request: AlaveteliRequest = serde_json::from_slice(&response.body)
             .context("failed to parse public request JSON")?;
         if request.id != request_id {
-            return Err(anyhow!("upstream request identifier does not match requested ID"));
+            return Err(anyhow!(
+                "upstream request identifier does not match requested ID"
+            ));
         }
         let result_projection = canonical_json_bytes(
             &serde_json::to_value(&request).context("failed to normalize request JSON")?,
@@ -3139,7 +3138,10 @@ mod tests {
         assert_eq!(evidence.receipt["responses"][0]["status"], 200);
         assert_eq!(evidence.receipt["request_bounds"]["request_id"], 42);
         assert_eq!(evidence.receipt["command"], "fetch-request");
-        assert_eq!(evidence.receipt["source"]["url"], format!("{}/api/v2/request/42.json", server.uri()));
+        assert_eq!(
+            evidence.receipt["source"]["url"],
+            format!("{}/api/v2/request/42.json", server.uri())
+        );
     }
 
     #[tokio::test]

@@ -362,8 +362,8 @@ fn check_existing(path: &Path, expected: &[u8], receipt_mode: bool) -> Result<()
     );
     let stored = fs::read(path).context("unable to read existing evidence")?;
     if receipt_mode {
-        let value: Value = serde_json::from_slice(&stored)
-            .context("existing receipt is not valid JSON")?;
+        let value: Value =
+            serde_json::from_slice(&stored).context("existing receipt is not valid JSON")?;
         verify_receipt(&value).context("existing receipt is not valid evidence")?;
     }
     ensure!(
@@ -393,7 +393,6 @@ pub fn verify_receipt_result_bytes(receipt: &Value, result_bytes: &[u8]) -> Resu
     );
     Ok(())
 }
-
 
 /// Build a Python v1-compatible receipt from one successful guarded GET.
 ///
@@ -472,7 +471,10 @@ fn sanitize_for_receipt(input: &reqwest::Url) -> Result<String> {
         input.scheme() == "http" || input.scheme() == "https",
         "acquisition receipt URL requires HTTP(S)"
     );
-    ensure!(input.host_str().is_some(), "acquisition receipt URL missing host");
+    ensure!(
+        input.host_str().is_some(),
+        "acquisition receipt URL missing host"
+    );
     let mut safe = input.clone();
     safe.set_username("")
         .map_err(|_| anyhow::anyhow!("cannot clear receipt URL username"))?;
