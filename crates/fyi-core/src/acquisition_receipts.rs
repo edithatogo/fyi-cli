@@ -357,3 +357,24 @@ fn check_existing(path: &Path, canonical: &[u8]) -> Result<()> {
     );
     Ok(())
 }
+
+/// Verify the actual saved canonical result bytes against a valid receipt.
+///
+/// The ordinary v1 receipt self-hash authenticates *metadata*, but it does not
+/// prove that separately stored result bytes are present or intact. Use this
+/// function when consuming saved result projections; it is offline and does not
+/// trust external filenames or attempt network retrieval.
+pub fn verify_receipt_result_bytes(receipt: &Value, result_bytes: &[u8]) -> Result<()> {
+    verify_receipt(receipt)?;
+    let result = object_field(receipt, "result")?;
+    let expected_size = integer(result, "bytes")?;
+    ensure!(
+        expected_size == result_bytes.len() as u64,
+        "result projection byte length mismatch"
+    );
+    ensure!(
+        sha256_hex(result_bytes) == string(result, "sha256")?,
+        "result projection SHA-256 mismatch"
+    );
+    Ok(())
+}
