@@ -310,9 +310,18 @@ mod tests {
         assert_eq!(record.body, "Release inspections");
         assert_eq!(record.status.as_deref(), Some("Completed"));
         assert_eq!(record.tags, vec!["water", "quality"]);
-        assert_eq!(record.created_at.unwrap().to_rfc3339(), "2026-10-21T00:30:00+00:00");
-        assert_eq!(record.updated_at.unwrap().to_rfc3339(), "2026-10-22T00:30:00+00:00");
-        assert_eq!(record.source_url.as_deref(), Some("https://example.test/records/7"));
+        assert_eq!(
+            record.created_at.unwrap().to_rfc3339(),
+            "2026-10-21T00:30:00+00:00"
+        );
+        assert_eq!(
+            record.updated_at.unwrap().to_rfc3339(),
+            "2026-10-22T00:30:00+00:00"
+        );
+        assert_eq!(
+            record.source_url.as_deref(),
+            Some("https://example.test/records/7")
+        );
     }
 
     #[tokio::test]
@@ -334,7 +343,10 @@ mod tests {
         assert_eq!(authorities.len(), 1);
         assert_eq!(authorities[0].provider_id, "muckrock-agency-13");
         assert_eq!(authorities[0].name, "Water agency");
-        assert_eq!(authorities[0].url.as_deref(), Some("https://example.test/a/13"));
+        assert_eq!(
+            authorities[0].url.as_deref(),
+            Some("https://example.test/a/13")
+        );
         assert!(normalize_authority(&serde_json::json!({"pk": 13})).is_err());
         assert!(normalize_authority(&serde_json::json!({"pk": -3, "name": "Signed"})).is_ok());
     }
@@ -360,19 +372,24 @@ mod tests {
         let denied = provider.get_request("1").await.unwrap_err().to_string();
         assert!(denied.contains("403"));
         assert!(!denied.contains("SECRET_RESPONSE_BODY"));
-        assert!(provider.get_request("2").await.unwrap_err().to_string().contains("invalid JSON"));
+        assert!(provider
+            .get_request("2")
+            .await
+            .unwrap_err()
+            .to_string()
+            .contains("invalid JSON"));
     }
 
     #[test]
     fn requires_https_and_preserves_capability_boundary() {
         let rejected = MuckRockProvider::new(instance("http://example.test".into()), Client::new());
         assert!(rejected.is_err());
-        let provider = MuckRockProvider::new(instance("https://example.test/".into()), Client::new()).unwrap();
+        let provider =
+            MuckRockProvider::new(instance("https://example.test/".into()), Client::new()).unwrap();
         assert_eq!(provider.instance().id, "us-muckrock");
         let caps = provider.capabilities();
         assert!(caps.request && caps.search && caps.authorities);
         assert!(!caps.correspondence && !caps.attachments && !caps.health);
         assert_eq!(provider.api_base_url, "https://example.test/api_v2");
     }
-
 }
