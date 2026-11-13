@@ -103,7 +103,7 @@ markers = [
 ]
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py311"
 line-length = 100
 extend-exclude = ["build", "dist", ".eggs"]
 
@@ -191,7 +191,7 @@ max-returns = 10
 max-statements = 60
 
 [tool.pyright]
-pythonVersion = "3.10"
+pythonVersion = "3.11"
 typeCheckingMode = "strict"
 include = ["src"]
 exclude = ["**/__pycache__", "build", "dist", ".eggs"]
