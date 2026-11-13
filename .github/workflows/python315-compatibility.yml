@@ -78,8 +78,12 @@ jobs:
           atheris_status=99
           fuzz_status=99
           if [ "$sync_status" -eq 0 ]; then
-            uv export --frozen --extra dev --no-emit-project --output-file python315-audit.txt >> python315-security.log 2>&1
-            uv run --python 3.15 pip-audit --requirement python315-audit.txt >> python315-security.log 2>&1
+            # pip-audit's pinned pip-api imports removed sre_constants on
+            # CPython 3.15. Audit the ACTUAL 3.15 installed package versions
+            # using an isolated 3.12 scanner; do not assume 3.12 resolution.
+            uv pip freeze --python .venv/bin/python > python315-installed-all.txt 2>> python315-security.log
+            grep -E '^[A-Za-z0-9_.-]+==' python315-installed-all.txt > python315-installed.txt
+            uvx --python 3.12 --from pip-audit pip-audit --no-deps --requirement python315-installed.txt >> python315-security.log 2>&1
             audit_status=$?
             uv run --python 3.15 ruff check src/fyi_system/acquisition_receipts.py src/fyi_system/internet_archive_cdx.py src/fyi_system/internet_archive_replay.py fuzzing >> python315-security.log 2>&1
             lint_status=$?
@@ -93,7 +97,7 @@ jobs:
               fuzz_status=$?
             fi
           fi
-          printf 'sync=%s\naudit=%s\nruff=%s\nbasedpyright=%s\natheris_install=%s\natheris_fuzz=%s\n' "$sync_status" "$audit_status" "$lint_status" "$typing_status" "$atheris_status" "$fuzz_status" | tee python315-security-status.txt
+          printf 'sync=%s\naudit_installed_315_using_312=%s\nruff=%s\nbasedpyright=%s\natheris_install=%s\natheris_fuzz=%s\n' "$sync_status" "$audit_status" "$lint_status" "$typing_status" "$atheris_status" "$fuzz_status" | tee python315-security-status.txt
           tail -n 90 python315-security.log
           # Compatibility sensor: a tool failing is recorded as an explicit
           # migration blocker; supported Python CI/security gates stay mandatory.
