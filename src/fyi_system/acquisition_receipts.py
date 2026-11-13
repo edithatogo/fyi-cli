@@ -131,14 +131,17 @@ def write_receipt_atomic(path: Path, receipt: Mapping[str, Any]) -> None:
             os.link(temporary, path)
         except FileExistsError:
             if path.is_symlink() or not path.is_file():
-                raise FileExistsError("existing acquisition receipt is not a regular file") from None
+                message = "existing acquisition receipt is not a regular file"
+                raise FileExistsError(message) from None
             existing = path.read_bytes()
             try:
                 validate_receipt(json.loads(existing))
             except (ValueError, TypeError, UnicodeDecodeError) as error:
-                raise FileExistsError("existing acquisition receipt is invalid") from error
+                message = "existing acquisition receipt is invalid"
+                raise FileExistsError(message) from error
             if existing != payload:
-                raise FileExistsError("different acquisition receipt already exists") from None
+                message = "different acquisition receipt already exists"
+                raise FileExistsError(message) from None
         if os.name == "posix":
             directory_fd = os.open(path.parent, os.O_RDONLY)
             try:
