@@ -12,10 +12,12 @@ from fyi_system.acquisition_receipts import AcquisitionRecorder
 from fyi_system.db import acquire_shared_rate_limit
 from fyi_system.discovery import (
     PoliteRateLimiter,
+    SourceProbeResult,
     backfill_ids,
     discover_feed,
     get_with_backoff,
     parse_feed_entries,
+    probe_source,
     reconcile_discovery_files,
     shared_rate_limit_status,
     write_jsonl,
@@ -428,3 +430,64 @@ def test_reconcile_discovery_files_reports_set_gaps(tmp_path: Path) -> None:
     assert report.missing_from_feed == [3]
     assert report.missing_from_backfill == [1]
     assert report.is_complete is False
+
+
+def test_probe_source_reachable(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A reachable source with robots allowing / returns a healthy probe result."""
+    result = probe_source(
+        "https://fyi.example",
+        transport=httpx.MockTransport(
+            lambda request: httpx.Response(
+                200,
+                json={"ok": True},
+                request=request,
+                headers={"content-type": "application/json"},
+            )
+        ),
+    )
+    assert result.reachable is True
+    assert result.status_code == 200
+    assert result.robots_allowed is True
+    assert result.content_type == "application/json"
+    assert result.error is None
+    assert result.latency_seconds is not None
+    assert result.latency_seconds >= 0
+
+
+def test_probe_source_unreachable(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """An unreachable source returns a failed probe result without raising."""
+    result = probe_source(
+        "https://unreachable.example",
+        transport=httpx.MockTransport(
+            lambda request: (_ for _ in ()).throw(
+                httpx.ConnectError("boom", request=httpx.Request("GET", "https://unreachable.example/"))
+            )
+        ),
+    )
+    assert result.reachable is False
+    assert result.status_code is None
+    assert result.error == "ConnectError"
+    assert result.latency_seconds is not None
+
+
+def test_probe_source_non_success_status(tmp_path: Path) -> None:
+    """A source returning 503 is probed as reachable=False with the status recorded."""
+    result = probe_source(
+        "https://fyi.example",
+        transport=httpx.MockTransport(
+            lambda request: httpx.Response(
+                503,
+                json={"error": "busy"},
+                request=request,
+                headers={"content-type": "application/json"},
+            )
+        ),
+    )
+    assert result.reachable is False
+    assert result.status_code == 503
+    assert result.error == "HTTP 503"
+
+    result_dict = result.to_dict()
+    assert result_dict["reachable"] is False
+    assert result_dict["status_code"] == 503
+    assert result_dict["error"] == "HTTP 503"

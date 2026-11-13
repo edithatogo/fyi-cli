@@ -10,7 +10,15 @@ from .evidence_delta import emit_evidence_deltas
 from .process_events import export_process_events, validate_process_event_file
 from .archive_health import build_archive_health, write_archive_health
 from .db import init_db, query_all, connect, get_tracked_request, export_tracked_requests, import_tracked_requests, request_timeline, update_request_status
-from .discovery import backfill_ids, discover_feed, reconcile_discovery_files, shared_rate_limit_status, write_jsonl
+from .discovery import (
+    SourceProbeResult,
+    backfill_ids,
+    discover_feed,
+    probe_source,
+    reconcile_discovery_files,
+    shared_rate_limit_status,
+    write_jsonl,
+)
 from .agent_runtime import RetrievalPlan, agent_status_report, reflect_plan
 from .fyi import build_prefilled_url
 from .importers import (
@@ -20,7 +28,7 @@ from .importers import (
     import_authorities_csv,
     import_authorities_url,
 )
-from .internet_archive_cdx import CDX_ADAPTER_ID, CDX_ENDPOINT, CdxConfig, discover_cdx
+from .internet_archive_cdx import CDX_ADAPTER_ID, CDX_ENDPOINT, CdxConfig, default_transport, discover_cdx
 from .internet_archive_replay import (
     REPLAY_ADAPTER_ID,
     REPLAY_ORIGIN,
@@ -28,6 +36,11 @@ from .internet_archive_replay import (
     replay_approved_rows,
     validate_selection,
     write_replay_result,
+)
+from .historical_index import (
+    HISTORICAL_INDEX_ADAPTER_ID,
+    HistoricalIndexConfig,
+    retrieve_historical_index,
 )
 from .monitor import ingest_feed, reconcile_events
 from .fetch import fetch_request_page, summarize_request_json, latest_snapshot_summary
@@ -390,6 +403,54 @@ def cmd_internet_archive_replay(args):
     print(args.result)
 
 
+def cmd_historical_index(args):
+    output_path = Path(args.output)
+    checkpoint_path = Path(args.checkpoint)
+    evidence_paths = [output_path, checkpoint_path]
+    if args.receipt:
+        evidence_paths.append(Path(args.receipt))
+    if len({path.resolve(strict=False) for path in evidence_paths}) != len(evidence_paths):
+        raise SystemExit("historical index output, checkpoint, and receipt paths must differ")
+    config = HistoricalIndexConfig(
+        base_url=args.base_url,
+        index_path=args.index_path,
+        query={k: v for k, v in (("format", args.format),) if v},
+        page_size=args.page_size,
+        max_pages=args.max_pages,
+        max_rows=args.max_rows,
+        max_runtime_seconds=args.max_runtime_seconds,
+        max_stall_seconds=args.max_stall_seconds,
+        cursor_param=args.cursor_param,
+    )
+    checkpoint = Path(args.checkpoint)
+    recorder = _recorder(
+        args,
+        adapter_id=HISTORICAL_INDEX_ADAPTER_ID,
+        source_url=f"{config.base_url.rstrip('/')}/{config.index_path.lstrip('/')}",
+        request_bounds=config.request_bounds(),
+        checkpoint_path=checkpoint,
+    )
+
+    def acquire_and_persist():
+        result = retrieve_historical_index(
+            config,
+            output_path=output_path,
+            checkpoint_path=checkpoint,
+            transport=default_transport,
+            observer=recorder.observe_response if recorder is not None else None,
+        )
+        return result
+
+    result = _run_acquisition(
+        args,
+        recorder,
+        acquire_and_persist,
+    )
+    rendered = canonical_json_bytes(result)
+    _write_receipt(args, recorder, rendered, "application/json")
+    print(args.output)
+
+
 def cmd_rate_limit_status(args):
     payload = shared_rate_limit_status(args.db, name=args.name)
     if args.agent_memory:
@@ -400,6 +461,18 @@ def cmd_rate_limit_status(args):
         print(args.output)
     else:
         print(json.dumps(payload, indent=2, sort_keys=True))
+
+
+def cmd_source_probe(args):
+    result = probe_source(args.base_url)
+    payload = result.to_dict()
+    if args.output:
+        Path(args.output).write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(args.output)
+    else:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    if not result.reachable:
+        raise SystemExit(1)
 
 
 def cmd_dry_plan(args):
@@ -767,6 +840,12 @@ def build_parser():
     sp.add_argument('--agent-memory')
     sp.set_defaults(func=cmd_rate_limit_status)
 
+    # Command: source-probe
+    sp = sub.add_parser('source-probe')
+    sp.add_argument('--base-url', required=True)
+    sp.add_argument('--output')
+    sp.set_defaults(func=cmd_source_probe)
+
     # Command: dry-plan (offline plan-and-solve reflection)
     sp = sub.add_parser('dry-plan')
     sp.add_argument('--instance-id', required=True)
@@ -821,6 +900,22 @@ def build_parser():
     sp.add_argument('--max-runtime-seconds', type=float, default=180.0)
     sp.add_argument('--request-timeout-seconds', type=float, default=30.0)
     sp.set_defaults(func=cmd_internet_archive_replay)
+
+    # Command: historical-index
+    sp = sub.add_parser('historical-index')
+    sp.add_argument('--base-url', required=True)
+    sp.add_argument('--index-path', required=True)
+    sp.add_argument('--format')
+    sp.add_argument('--page-size', type=int, default=1000)
+    sp.add_argument('--max-pages', type=int, default=100)
+    sp.add_argument('--max-rows', type=int, default=1_000_000)
+    sp.add_argument('--max-runtime-seconds', type=float, default=180.0)
+    sp.add_argument('--max-stall-seconds', type=float)
+    sp.add_argument('--cursor-param', default='cursor')
+    sp.add_argument('--output', required=True)
+    sp.add_argument('--checkpoint', required=True)
+    sp.add_argument('--receipt')
+    sp.set_defaults(func=cmd_historical_index)
 
     # Command: archive-health
     sp = sub.add_parser('archive-health')
