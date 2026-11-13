@@ -181,3 +181,16 @@ fn writer_does_not_accept_symlink_as_committed_evidence() {
         .is_symlink());
     std::fs::remove_dir_all(&root).unwrap();
 }
+
+#[test]
+fn checks_saved_result_bytes_against_receipt_projection() {
+    use fyi_core::acquisition_receipts::verify_receipt_result_bytes;
+    let receipt = golden();
+    verify_receipt_result_bytes(&receipt, b"[]\n").unwrap();
+    assert!(verify_receipt_result_bytes(&receipt, b"[]").is_err());
+    assert!(verify_receipt_result_bytes(&receipt, b"{}\n").is_err());
+    let mut tampered = receipt.clone();
+    tampered["result"]["bytes"] = json!(3);
+    tampered["result"]["sha256"] = json!(fyi_core::provenance::sha256_hex(b"bad"));
+    assert!(verify_receipt_result_bytes(&tampered, b"bad").is_err());
+}

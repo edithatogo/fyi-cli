@@ -58,3 +58,9 @@ jobs:
           cargo +1.99.1 clippy --workspace --all-targets --all-features --locked -- -D warnings
           cargo +1.99.1 test --workspace --all-features --locked
           cargo +1.99.1 run --locked --package fyi-cli -- verify-acquisition-receipt conformance/acquisition/receipt-v1-python.json
+          cargo +1.99.1 run --locked --package fyi-cli -- verify-acquisition-receipt conformance/acquisition/receipt-v1-python.json --result-file conformance/acquisition/result-v1.json
+          printf 'tampered-result\n' > tampered-result.txt
+          if cargo +1.99.1 run --locked --package fyi-cli -- verify-acquisition-receipt conformance/acquisition/receipt-v1-python.json --result-file tampered-result.txt; then
+            echo "Corrupted result unexpectedly verified" >&2
+            exit 1
+          fi

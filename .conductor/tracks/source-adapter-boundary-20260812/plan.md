@@ -44,13 +44,29 @@ The new Rust verifier is read-only and does not claim write-path or network acqu
 - [x] Machine-readable Python/Rust command-name parity manifest and CI drift check added. Rust now exposes 44 top-level commands versus 46 Python; 34 names overlap, but meaningful behaviour is not asserted.
 - [~] Python 3.15 security compatibility: Ruff and BasedPyright succeed; `pip-audit` crashes on removed `sre_constants` in vendored `pip-api`/pyparsing, and Atheris 3.1.0 provides cp312–cp314 wheels but no cp315. The isolated Python 3.12 `pip-audit` successfully audited the actual Python 3.15 installed set with **no known vulnerabilities** on run 43372190314 (audit=0); Atheris 3.12 remains enforced. Do not increase Python minimum until security parity or a documented independent scanner/fuzz replacement is implemented.
 
-## Incremental implementation — immutable Rust writer (PR pending, 2026-11-13)
+## Incremental implementation — immutable Rust writer (PR #405 merged, 2026-11-13)
 
 - [~] #310 Rust `write_receipt_atomic` added to `fyi-core`: verifies the Python-compatible v1 receipt, writes private same-directory temporary bytes, calls `sync_all`, uses `hard_link` for no-overwrite atomic publish, permits only byte-identical idempotent repeats, rejects a divergent or corrupted pre-existing receipt, and cleans temporary evidence. On filesystems without hard-link support it fails closed instead of replacing evidence.
 - [~] Rust verifier now rejects unknown fields in the receipt and nested typed structures, matching the v1 `additionalProperties:false` policy (full Schema 2020-12 parity remains open).
-- [~] Added negative and concurrency tests for divergent valid receipts, malformed existing evidence, unknown schema properties, identical concurrent writes and temporary-file cleanup. Pending hosted Rust 1.99 CI; do not claim completion before current-commit checks.
+- [~] Added negative and concurrency tests for divergent valid receipts, malformed existing evidence, unknown schema properties, identical concurrent writes and temporary-file cleanup. Verified by PR #405 hosted Rust 1.99 CI, coverage, security audit and mutation-adjacent regression checks; merge commit `593fedb6`.
 - [ ] Integrate writer with source-network Rust adapters and add offline input/output parity; the existing Python acquisition recorder and its tests remain authoritative until cutover.
 - [ ] Cross-platform Windows publication/flush verification, filesystem fault injection, process crash/corruption recovery, real bytes WARC linkage and downstream `fyi-archive` NZ shadow parity.
 - [ ] Sign release evidence and pin upstream/downstream client versions before archive cutover.
 
 No existing #310–#314 issue is closed by this incremental Rust implementation.
+
+## Result-byte verification tranche (PR #406 merged, 2026-11-13)
+
+- [x] Rust `verify_receipt_result_bytes` independently checks stored canonical result projection length and SHA-256 after verifying the receipt's own integrity (PR #406, merge `5c5bf30d`).
+- [x] `fyi-cli verify-acquisition-receipt <receipt> --result-file <path>` supports optional offline byte verification, retaining metadata-only compatibility. Golden `conformance/acquisition/result-v1.json`, negative tests and Rust 1.99.1 CLI smoke passed on PR #406 final-head CI.
+- [ ] Add raw HTTP response/WARC/WACZ payload byte linkage and independent archival verification. Result projection bytes are **not** the raw network response and must not be described as equivalent.
+- [ ] Full cross-language JSON canonicalization and schema fixture corpus, Rust network writer integration and downstream shadow parity remain open; do not close #310 or enable `fyi-archive` cutover.
+
+Merged evidence: PR #403 (Rust verifier baseline and migration contracts), PR #405 (Rust immutable writer and tests). New work stays in this existing source-adapter track.
+
+### Merged acceptance evidence (2026-11-13)
+
+- PR #403 — architecture/Conductor contracts, Rust 1.99.1 and Python 3.15 compatibility diagnostics; merged.
+- PR #405 — immutable Rust receipt writer, strict field validation, concurrency/corruption/symlink tests; merged commit `593fedb6b768526d8e45204f1b23171167826b33` after full hosted CI including security, coverage and MSRV.
+- PR #406 — offline result projection byte-length/hash verification and CLI/fixture smoke; merged commit `5c5bf30d646540ec39835559100a7375e40b4688` after full hosted CI including security, coverage and MSRV.
+- No corresponding automatic close-out of #310: remaining work is raw-response/WARC/WACZ byte linkage, Rust source-adapter writer integration, external release pinning, parity with `fyi-archive`, comprehensive fault/replay testing and signed provenance.

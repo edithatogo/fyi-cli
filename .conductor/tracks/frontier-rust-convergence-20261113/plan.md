@@ -85,3 +85,17 @@ No checkbox above asserting full CI pass, runtime compatibility or Rust-only app
 - Rust 1.99.1 receipt core tests verified by hosted workflow `43372075554`; the newer native receipt verification CLI smoke and full latest-head CI remain to be verified.
 - Python 3.15 installed package audit via Python 3.12 isolated `pip-audit` reported **no known vulnerabilities** (`43372190314`). Python 3.15 application environment and typed/lint checks passed; native Atheris 3.1.0 remains unavailable (no cp315 wheel), and native `pip-audit` still fails through removed `sre_constants`. Keep Python >=3.11 and existing 3.12 Atheris/Presidio infrastructure pending a compatible alternative.
 - Update command parity to 44 Rust variants after adding `verify-acquisition-receipt`. The new CI drift test intentionally fails on stale command inventories; current manifest and regression count were reconciled in the same PR.
+
+## Verified merge reconciliation — 13 November 2026
+
+This section supersedes prior pending-check statements without rewriting historical evidence.
+
+- [x] PR #403 merged: verified Rust 1.99.1 MSRV, Conductor registry/validator, Python 3.15 compatibility sensor, command-name parity inventory and coverage remediation. Security/fuzzing tooling remains isolated where native 3.15 compatibility is unavailable.
+- [x] PR #405 merged as `593fedb6b768526d8e45204f1b23171167826b33`: Rust v1 no-overwrite atomic receipt publication, idempotency, cleanup, malformed existing receipt rejection, concurrency and symlink tests. Hosted mandatory CI, Rust MSRV, CodeQL, privacy, profiling and Python security all passed.
+- [x] PR #406 merged as `5c5bf30d646540ec39835559100a7375e40b4688`: verify saved result projection bytes against v1 receipt, Rust CLI `--result-file`, negative fixtures and MSRV smoke. Hosted mandatory CI, Rust MSRV, CodeQL, privacy, profiling and Python security all passed.
+- [ ] Continue 46 Python ↔ 44 Rust CLI **behavioural** parity: 34 overlapping names are only name parity and some Rust handlers are still placeholders.
+- [ ] Implement real raw-response/archival byte provenance and Rust acquisition boundary end to end; maintain `source-adapter-boundary-20260812` ownership of #310–#314 and `archive_cutover_allowed=false`.
+- [ ] No claim of native CPython 3.15 Atheris support; keep existing Python 3.12 Atheris/Presidio and compatibility gates until a replacement is proven. Do not retire the Python CLI or raise the published minimum solely on the strength of application tests.
+- [ ] Full cross-platform release, source adapter consumer parity, sign/verify manifests and external fyi-archive NZ shadow verification remain unmet.
+
+Track stays **in_progress**. No new manual approval layer is introduced.
