@@ -1,4 +1,6 @@
-use crate::acquisition_receipts::{build_single_get_receipt, canonical_json_bytes, SingleGetReceiptInput};
+use crate::acquisition_receipts::{
+    build_single_get_receipt, canonical_json_bytes, SingleGetReceiptInput,
+};
 use crate::api::{
     AddCorrespondencePayload, AlaveteliRequest, Authority, CorrespondenceResponse,
     CreateRequestPayload, CreateRequestResponse, UpdateRequestStatePayload,
