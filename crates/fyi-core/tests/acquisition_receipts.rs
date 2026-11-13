@@ -212,3 +212,50 @@ fn raw_http_bytes_are_independently_checked_against_receipt() {
     assert!(verify_receipt_raw_bytes(&receipt, b"payloaD").is_err());
     assert!(verify_receipt_raw_bytes(&receipt, b"").is_err());
 }
+
+
+#[test]
+fn raw_evidence_bytes_use_no_clobber_private_file_publication() {
+    use fyi_core::acquisition_receipts::write_evidence_bytes_atomic;
+    let root = std::env::temp_dir().join(format!(
+        "fyi-raw-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    let path = root.join("capture.bin");
+    let original = b"original HTTP payload with binary: \0\xFF";
+    write_evidence_bytes_atomic(&path, original).unwrap();
+    write_evidence_bytes_atomic(&path, original).unwrap();
+    assert_eq!(std::fs::read(&path).unwrap(), original);
+    assert!(write_evidence_bytes_atomic(&path, b"different").is_err());
+    assert_eq!(std::fs::read_dir(&root).unwrap().count(), 1);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn raw_evidence_writes_fail_closed_on_existing_symlink() {
+    use fyi_core::acquisition_receipts::write_evidence_bytes_atomic;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::symlink;
+        let root = std::env::temp_dir().join(format!(
+            "fyi-raw-symlink-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&root).unwrap();
+        let original = root.join("original");
+        std::fs::write(&original, b"real").unwrap();
+        let link = root.join("link");
+        symlink(&original, &link).unwrap();
+        assert!(write_evidence_bytes_atomic(&link, b"real").is_err());
+        assert_eq!(std::fs::read(&original).unwrap(), b"real");
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
