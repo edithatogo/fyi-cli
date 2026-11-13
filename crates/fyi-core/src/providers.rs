@@ -392,4 +392,40 @@ mod tests {
         assert!(!caps.correspondence && !caps.attachments && !caps.health);
         assert_eq!(provider.api_base_url, "https://example.test/api_v2");
     }
+
+    #[test]
+    fn normalization_is_order_invariant_but_detects_content_changes() {
+        // Metamorphic contract: JSON map ordering must not change the receipt hash.
+        let left: Value = serde_json::from_str(
+            r#"{"id":4,"title":"A","body":"B","tags":["c"]}"#,
+        )
+        .unwrap();
+        let reordered: Value = serde_json::from_str(
+            r#"{"tags":["c"],"body":"B","title":"A","id":4}"#,
+        )
+        .unwrap();
+        let changed: Value = serde_json::from_str(
+            r#"{"id":4,"title":"A","body":"Different","tags":["c"]}"#,
+        )
+        .unwrap();
+        let a = normalize_request(&left).unwrap();
+        let b = normalize_request(&reordered).unwrap();
+        let c = normalize_request(&changed).unwrap();
+        assert_eq!(a, b);
+        assert_eq!(a.raw_source_hash, b.raw_source_hash);
+        assert_ne!(a.raw_source_hash, c.raw_source_hash);
+        assert_ne!(a.body, c.body);
+    }
+
+    #[test]
+    fn required_fields_reject_missing_empty_or_nonnumeric_objects() {
+        for bad in [
+            serde_json::json!({"title": "A", "body": "B"}),
+            serde_json::json!({"id": 1, "title": "", "body": "B"}),
+            serde_json::json!({"id": 1, "title": "A", "body": "  "}),
+            serde_json::json!({"id": {"not": "scalar"}, "title": "A", "body": "B"}),
+        ] {
+            assert!(normalize_request(&bad).is_err());
+        }
+    }
 }
