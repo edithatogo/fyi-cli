@@ -1383,6 +1383,26 @@ pub fn build_http_client(identity: &ClientIdentity) -> Result<reqwest::Client, A
     reqwest::Client::builder()
         .user_agent(identity.user_agent())
         .timeout(Duration::from_secs(60))
+        // Never let a remote source redirect the validated URL to another
+        // host, scheme or port. Cross-origin redirects would bypass the
+        // SyncClient's initial SSRF/credential destination checks.
+        .redirect(reqwest::redirect::Policy::custom(|attempt| {
+            let next = attempt.url();
+            let Some(previous) = attempt.previous().last() else {
+                return attempt.stop();
+            };
+            if attempt.previous().len() >= 5
+                || next.scheme() != previous.scheme()
+                || next.host_str() != previous.host_str()
+                || next.port_or_known_default() != previous.port_or_known_default()
+                || !next.username().is_empty()
+                || next.password().is_some()
+            {
+                attempt.stop()
+            } else {
+                attempt.follow()
+            }
+        }))
         .build()
         .map_err(|e| AgentRuntimeError::InvalidIdentity(e.to_string()))
 }
@@ -1916,5 +1936,59 @@ mod tests {
         let client = build_http_client(&id).unwrap();
         // Client builds successfully with UA; detailed header assert needs a request.
         let _ = client;
+    }
+
+    #[tokio::test]
+    async fn guarded_default_http_client_never_follows_cross_origin_redirects() {
+        use wiremock::{matchers::{method, path}, Mock, MockServer, ResponseTemplate};
+        let target = MockServer::start().await;
+        let origin = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/start"))
+            .respond_with(
+                ResponseTemplate::new(302)
+                    .insert_header("Location", format!("{}/secret", target.uri())),
+            )
+            .mount(&origin)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/secret"))
+            .respond_with(ResponseTemplate::new(200).set_body_string("sensitive"))
+            .mount(&target)
+            .await;
+        let identity = ClientIdentity::default_identity(None).unwrap();
+        let http = build_http_client(&identity).unwrap();
+        let response = http
+            .get(format!("{}/start", origin.uri()))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(response.status().as_u16(), 302);
+        assert!(target.received_requests().await.unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn guarded_default_http_client_allows_same_origin_relative_redirects() {
+        use wiremock::{matchers::{method, path}, Mock, MockServer, ResponseTemplate};
+        let origin = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/start"))
+            .respond_with(ResponseTemplate::new(302).insert_header("Location", "/done"))
+            .mount(&origin)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/done"))
+            .respond_with(ResponseTemplate::new(200).set_body_string("safe"))
+            .mount(&origin)
+            .await;
+        let identity = ClientIdentity::default_identity(None).unwrap();
+        let http = build_http_client(&identity).unwrap();
+        let response = http
+            .get(format!("{}/start", origin.uri()))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(response.status().as_u16(), 200);
+        assert_eq!(response.text().await.unwrap(), "safe");
     }
 }
