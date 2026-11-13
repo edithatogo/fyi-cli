@@ -1,0 +1,51 @@
+{
+  "adapter": {
+    "id": "alaveteli-search-feed",
+    "version": "test-adapter-v1"
+  },
+  "checkpoint": {
+    "after_sha256": null,
+    "before_sha256": null
+  },
+  "command": "discover",
+  "completed_at": "2026-08-13T00:00:01Z",
+  "rate_limit": {
+    "minimum_interval_seconds": 1,
+    "name": "archive-discovery-test"
+  },
+  "receipt_sha256": "f946aebdd22c01c625d97f48fb1bb91ec3a6ffb761a681848bdb1d25b13306ca",
+  "request_bounds": {
+    "max_pages": 1,
+    "page_from": 2
+  },
+  "responses": [
+    {
+      "attempts": 2,
+      "bytes": 7,
+      "retry_delays_seconds": [
+        1.5
+      ],
+      "sha256": "239f59ed55e737c77147cf55ad0c1b030b6d7ee748a7426952f9b852d5a935e5",
+      "status": 200,
+      "url": "https://example.test/request/1?REDACTED"
+    }
+  ],
+  "result": {
+    "bytes": 3,
+    "media_type": "application/json",
+    "representation": "canonical_result_projection",
+    "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+  },
+  "schema": "urn:fyi-cli:acquisition-receipt",
+  "schema_version": "1.0.0",
+  "source": {
+    "url": "https://example.test/search?REDACTED"
+  },
+  "started_at": "2026-08-13T00:00:00Z",
+  "status": "succeeded",
+  "totals": {
+    "bytes": 7,
+    "requests": 1,
+    "retries": 1
+  }
+}
