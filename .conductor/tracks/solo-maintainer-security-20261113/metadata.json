@@ -1,0 +1,30 @@
+{
+  "track_id": "solo-maintainer-security-20261113",
+  "type": "quality-frontier",
+  "status": "completed",
+  "created_at": "2026-11-13T00:00:00Z",
+  "updated_at": "2026-11-13T00:00:00Z",
+  "github_issue": "https://github.com/edithatogo/fyi-cli/issues/281",
+  "parent_issue": "https://github.com/edithatogo/fyi-cli/issues/282",
+  "bot_inventory": {
+    "collaborators": ["edithatogo (User)"],
+    "renovate": "active (Dependency Dashboard #325; merged #321)",
+    "dependabot": "historical only (1 PR); .github/dependabot.yml never existed"
+  },
+  "branch_protection": {
+    "required_contexts": 12,
+    "strict": true,
+    "enforce_admins": true,
+    "allow_force_pushes": false,
+    "allow_deletions": false,
+    "required_approving_review_count": 0
+  },
+  "rulesets": 1,
+  "evidence": {
+    "ruleset": "solo-maintainer-default-branch (id 27191113), active, deletion + non_fast_forward, no status/approval rules",
+    "validation": "scripts/verify_solo_maintainer.py — 11/11 checks PASS (live mode)",
+    "drift_receipt": ".conductor/tracks/solo-maintainer-security-20261113/drift-receipt.json",
+    "renovate_preset": "github>edithatogo/renovate-config inherited as first extends entry",
+    "codecov": "OIDC upload configured (use_oidc, id-token: write, fail_ci_if_error); codecov/patch status success on master"
+  }
+}
