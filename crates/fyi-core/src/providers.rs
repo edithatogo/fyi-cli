@@ -396,18 +396,13 @@ mod tests {
     #[test]
     fn normalization_is_order_invariant_but_detects_content_changes() {
         // Metamorphic contract: JSON map ordering must not change the receipt hash.
-        let left: Value = serde_json::from_str(
-            r#"{"id":4,"title":"A","body":"B","tags":["c"]}"#,
-        )
-        .unwrap();
-        let reordered: Value = serde_json::from_str(
-            r#"{"tags":["c"],"body":"B","title":"A","id":4}"#,
-        )
-        .unwrap();
-        let changed: Value = serde_json::from_str(
-            r#"{"id":4,"title":"A","body":"Different","tags":["c"]}"#,
-        )
-        .unwrap();
+        let left: Value =
+            serde_json::from_str(r#"{"id":4,"title":"A","body":"B","tags":["c"]}"#).unwrap();
+        let reordered: Value =
+            serde_json::from_str(r#"{"tags":["c"],"body":"B","title":"A","id":4}"#).unwrap();
+        let changed: Value =
+            serde_json::from_str(r#"{"id":4,"title":"A","body":"Different","tags":["c"]}"#)
+                .unwrap();
         let a = normalize_request(&left).unwrap();
         let b = normalize_request(&reordered).unwrap();
         let c = normalize_request(&changed).unwrap();
