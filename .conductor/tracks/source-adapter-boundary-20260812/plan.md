@@ -43,3 +43,14 @@ The new Rust verifier is read-only and does not claim write-path or network acqu
 - [~] A Rust read-only `verify-acquisition-receipt` CLI command has been added and is smoke-tested on Rust 1.99.1 in dedicated CI. The verifier checks Python v1 canonical self-digest, timestamps, URLs, retry/byte totals and shape invariants. This does **not** validate the captured response payload bytes or replace the Python acquisition writer. Full schema parity, atomic Rust writer, and source-network integration remain open.
 - [x] Machine-readable Python/Rust command-name parity manifest and CI drift check added. Rust now exposes 44 top-level commands versus 46 Python; 34 names overlap, but meaningful behaviour is not asserted.
 - [~] Python 3.15 security compatibility: Ruff and BasedPyright succeed; `pip-audit` crashes on removed `sre_constants` in vendored `pip-api`/pyparsing, and Atheris 3.1.0 provides cp312–cp314 wheels but no cp315. The isolated Python 3.12 `pip-audit` successfully audited the actual Python 3.15 installed set with **no known vulnerabilities** on run 43372190314 (audit=0); Atheris 3.12 remains enforced. Do not increase Python minimum until security parity or a documented independent scanner/fuzz replacement is implemented.
+
+## Incremental implementation — immutable Rust writer (PR pending, 2026-11-13)
+
+- [~] #310 Rust `write_receipt_atomic` added to `fyi-core`: verifies the Python-compatible v1 receipt, writes private same-directory temporary bytes, calls `sync_all`, uses `hard_link` for no-overwrite atomic publish, permits only byte-identical idempotent repeats, rejects a divergent or corrupted pre-existing receipt, and cleans temporary evidence. On filesystems without hard-link support it fails closed instead of replacing evidence.
+- [~] Rust verifier now rejects unknown fields in the receipt and nested typed structures, matching the v1 `additionalProperties:false` policy (full Schema 2020-12 parity remains open).
+- [~] Added negative and concurrency tests for divergent valid receipts, malformed existing evidence, unknown schema properties, identical concurrent writes and temporary-file cleanup. Pending hosted Rust 1.99 CI; do not claim completion before current-commit checks.
+- [ ] Integrate writer with source-network Rust adapters and add offline input/output parity; the existing Python acquisition recorder and its tests remain authoritative until cutover.
+- [ ] Cross-platform Windows publication/flush verification, filesystem fault injection, process crash/corruption recovery, real bytes WARC linkage and downstream `fyi-archive` NZ shadow parity.
+- [ ] Sign release evidence and pin upstream/downstream client versions before archive cutover.
+
+No existing #310–#314 issue is closed by this incremental Rust implementation.
