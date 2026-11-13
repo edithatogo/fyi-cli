@@ -272,19 +272,32 @@ static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
 pub fn write_receipt_atomic(path: &Path, receipt: &Value) -> Result<()> {
     verify_receipt(receipt)?;
     let canonical = canonical_json_bytes(receipt)?;
+    write_bytes_no_clobber(path, &canonical, true)
+}
+
+/// Persist original HTTP bytes or a normalized projection as a private,
+/// immutable file without overwriting any pre-existing evidence.
+///
+/// This uses the same atomic publication primitive as the v1 receipt writer.
+/// The caller must separately verify the recorded SHA-256 against the receipt.
+pub fn write_evidence_bytes_atomic(path: &Path, data: &[u8]) -> Result<()> {
+    write_bytes_no_clobber(path, data, false)
+}
+
+fn write_bytes_no_clobber(path: &Path, data: &[u8], receipt_mode: bool) -> Result<()> {
     let parent = path
         .parent()
         .filter(|p| !p.as_os_str().is_empty())
         .unwrap_or_else(|| Path::new("."));
-    fs::create_dir_all(parent).context("unable to create receipt directory")?;
+    fs::create_dir_all(parent).context("unable to create evidence directory")?;
 
     if path.exists() {
-        return check_existing(path, &canonical);
+        return check_existing(path, data, receipt_mode);
     }
 
     let name = path
         .file_name()
-        .context("receipt path is missing a filename")?;
+        .context("evidence path is missing a filename")?;
     let mut created = None;
     for _ in 0..32 {
         let serial = TEMP_COUNTER.fetch_add(1, Ordering::Relaxed);
@@ -308,52 +321,54 @@ pub fn write_receipt_atomic(path: &Path, receipt: &Value) -> Result<()> {
                 break;
             }
             Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
-            Err(error) => return Err(error).context("unable to create private receipt tempfile"),
+            Err(error) => {
+                return Err(error).context("unable to create private evidence tempfile");
+            }
         }
     }
-    let (temp, mut file) = created.context("unable to allocate unique receipt tempfile")?;
+    let (temp, mut file) = created.context("unable to allocate unique evidence tempfile")?;
     let result = (|| -> Result<()> {
-        file.write_all(&canonical)
-            .context("unable to write receipt tempfile")?;
+        file.write_all(data)
+            .context("unable to write evidence tempfile")?;
         file.sync_all()
-            .context("unable to flush receipt tempfile")?;
+            .context("unable to flush evidence tempfile")?;
         drop(file);
         match fs::hard_link(&temp, path) {
             Ok(()) => {
-                // Persist directory metadata on POSIX where supported.
                 #[cfg(unix)]
                 fs::File::open(parent)
                     .and_then(|directory| directory.sync_all())
-                    .context("unable to persist receipt directory")?;
+                    .context("unable to persist evidence directory")?;
                 Ok(())
             }
             Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
-                check_existing(path, &canonical)
+                check_existing(path, data, receipt_mode)
             }
-            Err(error) => Err(error).context("atomic receipt publication failed"),
+            Err(error) => Err(error).context("atomic evidence publication failed"),
         }
     })();
-    // Cleanup must happen even when publication or verification fails.
     let cleanup = fs::remove_file(&temp);
     if result.is_ok() {
-        cleanup.context("unable to clean up receipt tempfile")?;
+        cleanup.context("unable to clean evidence tempfile")?;
     }
     result
 }
 
-fn check_existing(path: &Path, canonical: &[u8]) -> Result<()> {
-    let metadata = fs::symlink_metadata(path).context("unable to stat existing receipt")?;
+fn check_existing(path: &Path, expected: &[u8], receipt_mode: bool) -> Result<()> {
+    let metadata = fs::symlink_metadata(path).context("unable to stat existing evidence")?;
     ensure!(
         metadata.file_type().is_file(),
-        "existing receipt must be a regular file, not a symlink or directory"
+        "existing evidence must be a regular file, not a symlink or directory"
     );
-    let stored = fs::read(path).context("unable to read existing receipt")?;
-    let value: Value =
-        serde_json::from_slice(&stored).context("existing receipt is not valid JSON")?;
-    verify_receipt(&value).context("existing receipt is not valid evidence")?;
+    let stored = fs::read(path).context("unable to read existing evidence")?;
+    if receipt_mode {
+        let value: Value = serde_json::from_slice(&stored)
+            .context("existing receipt is not valid JSON")?;
+        verify_receipt(&value).context("existing receipt is not valid evidence")?;
+    }
     ensure!(
-        stored == canonical,
-        "different receipt already exists; refusing to overwrite evidence"
+        stored == expected,
+        "different evidence already exists; refusing to overwrite"
     );
     Ok(())
 }
