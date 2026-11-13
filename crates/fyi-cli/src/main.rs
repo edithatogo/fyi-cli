@@ -176,6 +176,15 @@ pub enum Commands {
         base_url: String,
         #[arg(long, default_value = "fyi_system.db")]
         db: String,
+        /// Optional path for a v1 acquisition receipt.
+        #[arg(long)]
+        receipt: Option<String>,
+        /// Optional canonical parsed JSON output; requires receipt and raw-file.
+        #[arg(long)]
+        result_file: Option<String>,
+        /// Optional original HTTP response bytes; requires receipt and result-file.
+        #[arg(long)]
+        raw_file: Option<String>,
     },
     #[command(about = "Generate attention report")]
     AttentionReport {
@@ -672,12 +681,55 @@ fn main() {
         Commands::FetchRequestPage {
             request_id,
             base_url,
-            db,
+            db: _,
+            receipt,
+            result_file,
+            raw_file,
         } => {
-            println!(
-                "Fetching request page {} from {} in {}",
-                request_id, base_url, db
-            );
+            let provided = [receipt, result_file, raw_file]
+                .iter()
+                .filter(|item| item.is_some())
+                .count();
+            if provided != 0 && provided != 3 {
+                eprintln!("--receipt, --result-file and --raw-file must be used together");
+                std::process::exit(2);
+            }
+            if let (Some(receipt), Some(result), Some(raw)) =
+                (receipt.as_deref(), result_file.as_deref(), raw_file.as_deref())
+            {
+                let paths = [Path::new(receipt), Path::new(result), Path::new(raw)];
+                if paths[0] == paths[1] || paths[0] == paths[2] || paths[1] == paths[2] {
+                    eprintln!("receipt, raw and normalized result output paths must be distinct");
+                    std::process::exit(2);
+                }
+            }
+            let result = (|| -> Result<(), Box<dyn std::error::Error>> {
+                let client = SyncClient::new(base_url)?;
+                let runtime = Runtime::new()?;
+                let evidence = runtime.block_on(client.fetch_request_evidence(i64::from(*request_id)))?;
+                if let (Some(receipt), Some(result), Some(raw)) =
+                    (receipt.as_deref(), result_file.as_deref(), raw_file.as_deref())
+                {
+                    // Raw and projection blobs are committed before the receipt.
+                    // A failed partial acquisition cannot publish a false
+                    // completed receipt; retrying is byte-identical and safe.
+                    fyi_core::acquisition_receipts::write_evidence_bytes_atomic(
+                        Path::new(raw), &evidence.raw_body,
+                    )?;
+                    fyi_core::acquisition_receipts::write_evidence_bytes_atomic(
+                        Path::new(result), &evidence.result_projection,
+                    )?;
+                    fyi_core::acquisition_receipts::write_receipt_atomic(
+                        Path::new(receipt), &evidence.receipt,
+                    )?;
+                }
+                println!("{}", serde_json::to_string_pretty(&evidence.request)?);
+                Ok(())
+            })();
+            if let Err(error) = result {
+                eprintln!("Failed to acquire request with evidence: {error}");
+                std::process::exit(1);
+            }
         }
         Commands::AttentionReport { output, db } => {
             println!("Attention report generated at {} from {}", output, db);
