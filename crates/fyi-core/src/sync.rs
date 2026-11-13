@@ -4,7 +4,9 @@ use crate::api::{
     UpdateRequestStateResponse,
 };
 use crate::db::{DbPool, FieldChange, SyncStatus};
+use crate::acquisition_receipts::{build_single_get_receipt, canonical_json_bytes};
 use anyhow::{anyhow, Context, Result};
+use chrono::{SecondsFormat, Utc};
 use reqwest::{header, Client, RequestBuilder, StatusCode, Url};
 use serde_json::Value;
 use std::collections::{BTreeSet, HashMap};
@@ -74,6 +76,19 @@ pub struct SearchOptions {
     pub filter: Option<String>,
 }
 
+/// A single read-only Alaveteli GET and its independently verifiable evidence.
+///
+/// The network entity bytes and canonical parsed projection are distinct.
+/// Nothing is stored automatically: callers select their own retention and
+/// privacy policy before persisting these fields.
+#[derive(Debug, Clone)]
+pub struct FetchedRequestEvidence {
+    pub request: AlaveteliRequest,
+    pub raw_body: Vec<u8>,
+    pub result_projection: Vec<u8>,
+    pub receipt: Value,
+}
+
 #[derive(Clone)]
 pub struct SyncClient {
     base_url: Url,
@@ -111,6 +126,10 @@ impl Default for BulkExportLimits {
 
 struct GuardedResponse {
     status: StatusCode,
+    /// Actual upstream status (unmodified, including 304), unlike status
+    /// which retains legacy effective-cache behavior.
+    source_status: StatusCode,
+    final_url: Url,
     headers: reqwest::header::HeaderMap,
     body: Vec<u8>,
     _permit: OwnedSemaphorePermit,
@@ -298,6 +317,7 @@ impl SyncClient {
             .await
             .context("outbound request failed")?;
         let status = response.status();
+        let final_url = response.url().clone();
         let headers = response.headers().clone();
         let max_response_bytes = self
             .middleware
@@ -390,6 +410,8 @@ impl SyncClient {
             } else {
                 status
             },
+            source_status: status,
+            final_url,
             headers,
             body,
             _permit: permit,
@@ -527,6 +549,62 @@ impl SyncClient {
             .json::<AlaveteliRequest>()
             .await
             .context("failed to parse request JSON")
+    }
+
+    /// Fetch one Alaveteli public request through the existing guarded network
+    /// boundary and build v1 provenance for the exact HTTP body and normalized
+    /// result projection. This method does not send any write request.
+    ///
+    /// A 304 replay from the conditional GET cache is explicitly rejected:
+    /// representing cached bytes as newly acquired network evidence would be
+    /// misleading. The regular `fetch_request` API retains its cache semantics.
+    pub async fn fetch_request_evidence(
+        &self,
+        request_id: i64,
+    ) -> Result<FetchedRequestEvidence> {
+        if request_id <= 0 {
+            return Err(anyhow!("request ID must be positive"));
+        }
+        let url = self
+            .base_url
+            .join(&format!("api/v2/request/{request_id}.json"))
+            .context("failed to build request URL")?;
+        let started = Utc::now();
+        let response = self
+            .send_guarded(self.http.get(url.clone()))
+            .await
+            .context("failed to acquire public request")?;
+        if response.source_status == StatusCode::NOT_MODIFIED {
+            return Err(anyhow!(
+                "cached 304 is not fresh HTTP evidence; use a new client for a new acquisition"
+            ));
+        }
+        let response = ensure_success(response, "request endpoint").await?;
+        let completed = Utc::now();
+        let request: AlaveteliRequest = serde_json::from_slice(&response.body)
+            .context("failed to parse public request JSON")?;
+        if request.id != request_id {
+            return Err(anyhow!("upstream request identifier does not match requested ID"));
+        }
+        let result_projection = canonical_json_bytes(
+            &serde_json::to_value(&request).context("failed to normalize request JSON")?,
+        )?;
+        let receipt = build_single_get_receipt(
+            &url,
+            &response.final_url,
+            response.status.as_u16(),
+            &response.body,
+            &result_projection,
+            request_id,
+            &started.to_rfc3339_opts(SecondsFormat::Millis, true),
+            &completed.to_rfc3339_opts(SecondsFormat::Millis, true),
+        )?;
+        Ok(FetchedRequestEvidence {
+            request,
+            raw_body: response.body,
+            result_projection,
+            receipt,
+        })
     }
 
     pub async fn search_requests(&self, query: &str) -> Result<Vec<AlaveteliRequest>> {
