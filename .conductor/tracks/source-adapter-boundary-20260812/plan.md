@@ -103,13 +103,16 @@ See `docs/rust-alaveteli-receipt-acquisition.md`. Retain prior merged PR evidenc
 
 ## Rust shared pacing increment — #313
 
-- [~] Add the Python-compatible SQLite reservation and status contract to
+- [x] Add the Python-compatible SQLite reservation and status contract to
   `fyi-core`, with an immediate transaction for state and event writes, rollback
-  on event failures and a frozen Python 3.15.1 conformance fixture.
-- [~] Integrate optional shared pacing and HTTP 429/503 `Retry-After` feedback
-  into the guarded Rust client and record limiter configuration in receipts.
-- [~] Add read-only `rate-limit-status` and explicit `fetch-request-page` pacing
-  options. Validate command inventory, CLI errors and output-file preservation.
+  on event failures and a frozen Python 3.15.1 conformance fixture. [checkpoint: 7dc6ef9]
+- [x] Integrate optional shared pacing and HTTP 429/503 `Retry-After` feedback
+  into the guarded Rust client and record limiter configuration in receipts. [checkpoint: 7dc6ef9]
+- [x] Add read-only `rate-limit-status` and explicit `fetch-request-page` pacing
+  options. Validate command inventory, CLI errors and output-file preservation. [checkpoint: 7dc6ef9]
+- Local Rust 1.99.1 verification passed 331 tests across 15 suites, all-target and
+  all-feature workspace Clippy, formatting and the required repository contract
+  checks. Hosted PR verification follows this source checkpoint.
 - [ ] Finish Rust probing/capture, queued-reservation backoff handling, downstream
   archive parity and the remaining source acceptance evidence before retiring
   the Python source adapters.

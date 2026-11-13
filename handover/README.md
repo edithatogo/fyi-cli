@@ -34,6 +34,7 @@ Generated handovers can be written here.
   atomic per-process sequence fixed isolation, and all seven CLI tests passed.
 - The workspace test log SHA-256 is
   `a8020d76aef242c3827042acc39da691f839b1a998c19cda8ec02857e133e9e3`.
+- Source checkpoint `7dc6ef9` contains the verified Rust pacing increment.
 - Safety PR #419 is ready with all 12 required checks passing at `7f0f475`.
 - The next operation is a scoped stacked PR, followed by hosted verification.
   Queued-reservation backoff, archive acquisition and existing-data migration
