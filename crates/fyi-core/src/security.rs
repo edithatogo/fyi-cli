@@ -683,7 +683,7 @@ impl KeyringStore {
             CredentialBackend::System => {
                 let entry = Entry::new(&self.service, key)
                     .map_err(|e| SecurityError::KeyringError(e.to_string()))?;
-                match entry.delete_password() {
+                match entry.delete_credential() {
                     Ok(()) | Err(KeyringBackendError::NoEntry) => Ok(()),
                     Err(error) => Err(SecurityError::KeyringError(error.to_string())),
                 }
