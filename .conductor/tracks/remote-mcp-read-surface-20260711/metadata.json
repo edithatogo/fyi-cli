@@ -1,7 +1,7 @@
 {
   "track_id": "remote-mcp-read-surface-20260711",
   "type": "feature",
-  "status": "new",
+  "status": "completed",
   "created_at": "2026-07-11T08:34:24Z",
   "updated_at": "2026-07-11T08:34:24Z",
   "description": "Guarded opt-in read-only MCP tools backed by SyncClient",

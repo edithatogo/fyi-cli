@@ -25,12 +25,18 @@ This directory contains the canonical Conductor project context and management f
 - [Tracks Directory](./tracks/) - Individual track specifications and plans
 
 ### Active Tracks
+- **source-adapter-boundary-20260812** - Exclusive receipt-producing network boundary for Alaveteli, Archive, Wayback and approved indexes
+- **ai-plugin-registry-submissions_20260712** - Prepare, submit, verify and monitor fyi-mcp in AI plugin and MCP registries
+- **package-registry-submissions_20260712** - Reproducible package, container and developer distribution submissions
+- **foi-platform-landscape_20260712** - Source-backed map of non-Alaveteli FOI platforms, with Phase 3 drift monitoring still open
+- **jurisdiction-capture-completion-20260721** - Bounded jurisdiction capture increments; live runs remain operator-authorised
+
+### Completed Tracks
+- **python-security-quality-fuzzing-20260813** - Hypothesis gate, bounded Atheris fuzzing, and zero-vulnerability Python security baseline (PR #390)
 - **remote-mcp-observability-security-20260711** - Default-deny policy, observability, and operator controls
 - **remote-mcp-read-surface-20260711** - Guarded read-only remote SyncClient tools
 - **remote-mcp-contract-harness-20260711** - Compatibility contracts and aggressive layered harnesses
 - **remote-mcp-write-governance-20260711** - Governed prepare/commit remote writes
-
-### Completed Tracks
 - **resource-aware-autonomous-agent** - Header-aware adaptive pacing, load memory, plan reflection, identity hygiene, filesystem cache, and local traces for sustainable Alaveteli access
 - **research-grade-quality** - >95% test coverage, >90% mutation score, and load/performance testing baseline
 - **integrate-fyi-cli-history** - Migration from 14 versioned archives

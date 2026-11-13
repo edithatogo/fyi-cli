@@ -13,10 +13,10 @@
 - [x] Run local verification: 34 Hypothesis tests and 12 focused contract tests
   passed; scoped Ruff lint/format and strict basedpyright passed; `uv lock
   --check`, `actionlint`, and `git diff --check` passed.
-- [ ] Obtain a successful hosted PR run before marking the track complete.
-- [ ] Confirm the upgraded Rust graph compiles and passes `cargo audit` on the
+- [x] Obtain a successful hosted PR run before marking the track complete. (PR #390: required checks plus Python Security and Quality and all four Atheris targets passed.)
+- [x] Confirm the upgraded Rust graph compiles and passes `cargo audit` on the
   hosted Linux runner; the local Windows SDK/linker environment cannot provide
-  authoritative compile evidence.
+  authoritative compile evidence. (Workspace Tests and Security Audit passed on PR #390.)
 
 ## Dependency maintenance — 13 November 2026
 

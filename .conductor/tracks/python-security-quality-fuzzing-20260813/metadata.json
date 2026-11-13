@@ -1,9 +1,9 @@
 {
   "track_id": "python-security-quality-fuzzing-20260813",
   "type": "security-quality",
-  "status": "in_progress",
+  "status": "completed",
   "created_at": "2026-08-13T00:00:00Z",
-  "updated_at": "2026-11-12T22:28:00Z",
+  "updated_at": "2026-11-13T04:10:00Z",
   "scope": [
     "hypothesis_pr_gate",
     "atheris_coverage_guided_fuzzing",
@@ -17,7 +17,7 @@
     "lock_check": "passed",
     "actionlint": "passed"
   },
-  "hosted_evidence": "pending",
+  "hosted_evidence": "https://github.com/edithatogo/fyi-cli/pull/390",
   "maintenance_verification": {
     "date": "2026-11-13",
     "base_commit": "e056640851fd4e4284ef517b4a4641653c8aac53",
@@ -29,7 +29,8 @@
       "python_311": 157,
       "python_312": 157
     },
-    "hosted_evidence": "pending",
+    "hosted_evidence": "https://github.com/edithatogo/fyi-cli/pull/390",
     "branch": "fix/python-security-baseline-20261113"
-  }
+  },
+  "hosted_checks": "Python Security and Quality, Atheris (4 targets), Workspace Tests, Security Audit passed; offline-ai-security self-hosted runner unavailable (non-required)"
 }
