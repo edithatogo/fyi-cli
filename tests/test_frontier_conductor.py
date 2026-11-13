@@ -84,3 +84,17 @@ def test_conductor_status_runs_from_unrelated_working_directory(tmp_path: Path) 
     )
     assert proc.returncode == 0, proc.stderr
     assert "PRODUCT:" in proc.stdout
+
+
+def test_cli_command_parity_manifest_matches_actual_parsers() -> None:
+    from scripts.verify_cli_parity import commands
+
+    root = Path(__file__).resolve().parents[1]
+    manifest = json.loads(
+        (root / "conformance/cli/command-name-parity.json").read_text(encoding="utf-8")
+    )
+    actual = commands(root)
+    assert actual == manifest
+    assert len(actual["python_commands"]) == 46
+    assert len(actual["rust_commands"]) == 43
+    assert len(actual["shared_commands"]) == 34
