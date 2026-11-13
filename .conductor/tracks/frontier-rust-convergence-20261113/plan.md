@@ -62,12 +62,12 @@ No item is done simply because files, tests or badges exist. Each claimed capabi
 - [x] Declare Rust 1.99 MSRV in all three Rust crate manifests and pin the 1.99.1 toolchain; dedicated MSRV CI executes all-target/all-feature Clippy, formatting and tests. Full hosted result pending.
 - [x] Correct profiling branch trigger from `main` to `master`.
 - [x] Add non-blocking Python 3.15 compatibility sensor: full frozen install and test report, retaining old supported runtime until proven.
-- [ ] Verify Rust MSRV CI and repair transitive dependency/build errors without disabling quality gates.
-- [ ] Review Python 3.15 sensor output, update lock and interpreter minimum only when dependency/fuzzer/privacy compatibility permits.
+- [x] Verify Rust 1.99.1 MSRV on GitHub PR #403 (2026-11-13): fmt, all-target/all-feature Clippy and all-feature tests succeeded on workflow run 43366742657. Keep gate permanently enabled.
+- [~] Python 3.15 sensor succeeded: frozen lock installed and 824 tests passed (2 skipped) on hosted run 43366742659. Full interpreter-minimum change remains pending Atheris, Presidio, packaging compatibility and security-tool validation.
 - [ ] Extend Conductor validation across legacy tracks with warning-only grandfathering initially; migrate old metadata and eliminate duplicate/stale states through reviewed PRs.
 - [ ] Complete Python ↔ Rust CLI, network and archive parity matrix and consumer migration, then deprecate legacy package.
 - [ ] Enforce evidence provenance and source boundary handoff through existing #309–#314 track and release-pinned archive shadow tests.
-- [ ] Introduce risk-based metamorphic/mutation/fuzz/benchmark target selection and full release evidence gates.
+- [~] Coverage gate on run 43366742716 failed: 89.66% Rust line coverage against >=90% threshold. Added offline provider adapter contract tests in commit 0f52bd53; current-commit hosted coverage still must pass. Do not lower threshold or exclude additional code.\n- [ ] Introduce risk-based metamorphic/mutation/fuzz/benchmark target selection and full release evidence gates.
 - [ ] Implement law/rule state machine and research-frontier extensions after foundational contracts.
 
 No checkbox above asserting full CI pass, runtime compatibility or Rust-only application migration should be considered complete until corresponding hosted evidence is linked.
