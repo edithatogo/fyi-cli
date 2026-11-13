@@ -55,11 +55,18 @@ The new Rust verifier is read-only and does not claim write-path or network acqu
 
 No existing #310–#314 issue is closed by this incremental Rust implementation.
 
-## Result-byte verification tranche (PR pending, 2026-11-13)
+## Result-byte verification tranche (PR #406 merged, 2026-11-13)
 
-- [~] Rust `verify_receipt_result_bytes` independently checks stored canonical result projection length and SHA-256 after verifying the receipt's own integrity.
-- [~] `fyi-cli verify-acquisition-receipt <receipt> --result-file <path>` supports optional offline byte verification, retaining metadata-only compatibility. Golden `conformance/acquisition/result-v1.json` plus valid, missing/short, altered and tampered-receipt negative tests; hosted verification pending.
+- [x] Rust `verify_receipt_result_bytes` independently checks stored canonical result projection length and SHA-256 after verifying the receipt's own integrity (PR #406, merge `5c5bf30d`).
+- [x] `fyi-cli verify-acquisition-receipt <receipt> --result-file <path>` supports optional offline byte verification, retaining metadata-only compatibility. Golden `conformance/acquisition/result-v1.json`, negative tests and Rust 1.99.1 CLI smoke passed on PR #406 final-head CI.
 - [ ] Add raw HTTP response/WARC/WACZ payload byte linkage and independent archival verification. Result projection bytes are **not** the raw network response and must not be described as equivalent.
 - [ ] Full cross-language JSON canonicalization and schema fixture corpus, Rust network writer integration and downstream shadow parity remain open; do not close #310 or enable `fyi-archive` cutover.
 
 Merged evidence: PR #403 (Rust verifier baseline and migration contracts), PR #405 (Rust immutable writer and tests). New work stays in this existing source-adapter track.
+
+### Merged acceptance evidence (2026-11-13)
+
+- PR #403 — architecture/Conductor contracts, Rust 1.99.1 and Python 3.15 compatibility diagnostics; merged.
+- PR #405 — immutable Rust receipt writer, strict field validation, concurrency/corruption/symlink tests; merged commit `593fedb6b768526d8e45204f1b23171167826b33` after full hosted CI including security, coverage and MSRV.
+- PR #406 — offline result projection byte-length/hash verification and CLI/fixture smoke; merged commit `5c5bf30d646540ec39835559100a7375e40b4688` after full hosted CI including security, coverage and MSRV.
+- No corresponding automatic close-out of #310: remaining work is raw-response/WARC/WACZ byte linkage, Rust source-adapter writer integration, external release pinning, parity with `fyi-archive`, comprehensive fault/replay testing and signed provenance.
