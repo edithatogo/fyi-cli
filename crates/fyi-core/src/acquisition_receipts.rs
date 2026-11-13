@@ -403,7 +403,7 @@ pub fn verify_receipt_result_bytes(receipt: &Value, result_bytes: &[u8]) -> Resu
         "result projection byte length mismatch"
     );
     ensure!(
-        sha256_hex(result_bytes) == string(receipt, "sha256")?,
+        sha256_hex(result_bytes) == string(result, "sha256")?,
         "result projection SHA-256 mismatch"
     );
     Ok(())
