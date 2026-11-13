@@ -71,3 +71,11 @@ No item is done simply because files, tests or badges exist. Each claimed capabi
 - [ ] Implement law/rule state machine and research-frontier extensions after foundational contracts.
 
 No checkbox above asserting full CI pass, runtime compatibility or Rust-only application migration should be considered complete until corresponding hosted evidence is linked.
+
+## Implementation ledger: additional delivery and evidence (2026-11-13)
+
+- [x] Audit Python and Rust top-level CLI: 46 Python, 43 Rust, 34 overlapping names, 12 Python-only, 9 Rust-only. Evidence and per-command plan: `docs/rust-python-command-parity-20261113.md`; overlap is **not** functional parity because Rust placeholders remain.
+- [x] Extend Python 3.15 compatibility sensor with isolated `pip-audit`, Ruff, BasedPyright and Atheris install/bounded fuzz probes. These are diagnostic; existing Python 3.12 security/fuzzing gates remain mandatory until replacements prove green. Review hosted output before enforcing >=3.15.
+- [~] Introduce Rust receipt-v1 verifier and Python golden equivalence fixture/test; root/source boundary track `source-adapter-boundary-20260812` remains authoritative and #310 is not closed.
+- [x] Historic PR #403 run 43369010175: Rustfmt failed on metamorphic test formatting; all other main CI jobs passed. Subsequent formatting fix committed; current-head required CI must be verified.
+- [ ] Audit published command/flag/output and side effect parity with fixture-driven Rust/Python tests; migrate Rust placeholder commands before retiring Python entrypoints.
