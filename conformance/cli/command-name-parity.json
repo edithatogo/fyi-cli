@@ -96,7 +96,8 @@
     "show-settings",
     "sync",
     "triage-report",
-    "tui"
+    "tui",
+    "verify-acquisition-receipt"
   ],
   "shared_commands": [
     "attachment-manifest",
@@ -157,7 +158,8 @@
     "provenance",
     "search",
     "sync",
-    "tui"
+    "tui",
+    "verify-acquisition-receipt"
   ],
   "statement": "Command names only: behavioral equivalence not established; many Rust variants are placeholders."
 }
