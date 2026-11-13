@@ -9,7 +9,7 @@ the acquisition succeeds or fails. Failure receipts contain the exception type
 only, never its potentially sensitive message.
 
 Receipts use canonical UTF-8 JSON, carry a self-digest, and are validated
-against the packaged Draft 2020-12 schema before an atomic replacement. A
+against the packaged Draft 2020-12 schema before immutable, atomic no-clobber publication. A
 failed validation leaves any prior receipt intact. Receipt URLs omit userinfo
 and fragments and replace every query value with `REDACTED`; response headers,
 cookies, authorization values, and credential material are never recorded.
