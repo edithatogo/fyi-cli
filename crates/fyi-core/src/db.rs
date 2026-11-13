@@ -120,6 +120,22 @@ impl DbPool {
         sqlx::migrate!("./migrations").run(&self.pool).await
     }
 
+    /// Initialize the Rust schema without silently adopting a legacy Python database.
+    pub async fn initialize_rust_schema(&self) -> anyhow::Result<()> {
+        let legacy_tables: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'tracked_requests'",
+        )
+        .fetch_one(&self.pool)
+        .await?;
+        if legacy_tables != 0 {
+            anyhow::bail!(
+                "legacy Python database detected; preserve it and use a separate Rust database until migration is supported"
+            );
+        }
+        self.run_migrations().await?;
+        Ok(())
+    }
+
     /// Returns a reference to the underlying `SqlitePool`.
     pub fn pool(&self) -> &SqlitePool {
         &self.pool

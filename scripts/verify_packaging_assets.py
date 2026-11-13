@@ -73,7 +73,7 @@ BINSTALL_METADATA_ASSETS: tuple[str, ...] = (
     "crates/fyi-mcp/Cargo.toml",
 )
 README_PATH = "README.md"
-README_BINSTALL_READY_PHRASE = "| **cargo-binstall** | `cargo binstall fyi-cli` | **assets-ready**"
+README_BINSTALL_BLOCKED_PHRASE = "| **cargo-binstall** | Blocked |"
 
 # Files expected to embed a concrete release version string (e.g. 0.1.2).
 # Paths relative to repo root. Checked only when the file exists.
@@ -245,7 +245,7 @@ def check_binstall_metadata(
 def check_packaging_readme(
     repo_root: Path, relative: str | None = README_PATH
 ) -> list[CheckResult]:
-    """Ensure README packaging copy matches cargo-binstall's assets-ready state."""
+    """Keep the confirmed cargo-binstall crate-name collision visible."""
     if relative is None:
         return []
     path = repo_root / relative
@@ -261,9 +261,11 @@ def check_packaging_readme(
         ]
     text = path.read_text(encoding="utf-8", errors="replace")
     errors: list[str] = []
-    if README_BINSTALL_READY_PHRASE not in text:
-        errors.append("missing assets-ready cargo-binstall install row")
+    if README_BINSTALL_BLOCKED_PHRASE not in text:
+        errors.append("missing blocked cargo-binstall row")
     for line in text.splitlines():
+        if line.startswith("| **cargo-binstall**") and "`cargo binstall fyi-cli`" in line:
+            errors.append("cargo-binstall row recommends a conflicting crate")
         if line.startswith("**Draft / not yet submitted:**") and "cargo-binstall" in line:
             errors.append("draft/unsubmitted list still includes cargo-binstall")
             break

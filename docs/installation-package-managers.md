@@ -335,7 +335,7 @@ mise use cargo:fyi-cli@0.1.2
 
 ---
 
-## cargo-binstall — **assets-ready**
+## cargo-binstall — **blocked**
 
 Documented also in [INSTALL.md](../INSTALL.md#2-cargo-binstall-prebuilt-no-local-compile).
 
@@ -344,13 +344,9 @@ Documented also in [INSTALL.md](../INSTALL.md#2-cargo-binstall-prebuilt-no-local
 | Reference metadata | [`packaging/cargo-binstall/metadata.toml`](../packaging/cargo-binstall/metadata.toml) |
 | Wired in | `crates/fyi-cli/Cargo.toml`, `crates/fyi-mcp/Cargo.toml` (`package.metadata.binstall`) |
 
-```bash
-cargo install cargo-binstall   # once
-cargo binstall fyi-cli
-# cargo binstall fyi-mcp
-```
-
-Windows MCP override may resolve the **MCPB** asset for `fyi-mcp` — that is intentional for MCP packaging, not a full CLI zip.
+The current `fyi-cli` and `fyi-core` crates on crates.io belong to a different
+project. Do not use the current crate names to install this project; resolve the
+name collision and verify release-asset resolution first.
 
 ---
 

@@ -121,7 +121,7 @@ async fn test_e2e_cli_and_api_flow() {
     assert_eq!(retrieved_updated.id, 10042);
     assert_eq!(retrieved_updated.status, Some("sent".to_string()));
 
-    // 5. Invoke another CLI subcommand to verify arguments parse correctly
+    // 5. The not-yet-implemented CLI handler must not claim to register a request.
     let mut cmd2 = Command::new(env!("CARGO_BIN_EXE_fyi-cli"));
     cmd2.args([
         "--db",
@@ -138,9 +138,10 @@ async fn test_e2e_cli_and_api_flow() {
     let output2 = cmd2
         .output()
         .expect("Failed to execute register-request subcommand");
-    assert!(output2.status.success());
-    let stdout2 = String::from_utf8_lossy(&output2.stdout);
-    assert!(stdout2.contains("Registering request: 'My CLI Req'"));
+    assert!(!output2.status.success());
+    assert!(String::from_utf8_lossy(&output2.stderr).contains("not yet implemented"));
+    assert!(output2.stdout.is_empty());
+    assert_eq!(pool.list_requests(100).await.unwrap().len(), 2);
 
     // Clean up temporary database file
     let _ = fs::remove_file(db_path);

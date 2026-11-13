@@ -133,13 +133,28 @@ def test_readme_cargo_binstall_alignment_passes(tmp_path: Path):
     module = load_module()
     readme = tmp_path / "README.md"
     readme.write_text(
-        "| **cargo-binstall** | `cargo binstall fyi-cli` | **assets-ready** |\n"
+        "| **cargo-binstall** | Blocked | Resolve crate-name ownership |\n"
         "**Draft / not yet submitted:** Homebrew, Scoop\n",
         encoding="utf-8",
     )
 
     results = module.check_packaging_readme(tmp_path)
     assert any(r.kind == "docs" and r.ok for r in results)
+
+
+def test_readme_rejects_installing_the_conflicting_crate(tmp_path: Path):
+    module = load_module()
+    (tmp_path / "README.md").write_text(
+        "| **cargo-binstall** | Blocked | Resolve crate-name ownership |\n"
+        "| **cargo-binstall** | `cargo binstall fyi-cli` | **assets-ready** |\n",
+        encoding="utf-8",
+    )
+
+    results = module.check_packaging_readme(tmp_path)
+    assert any(
+        r.kind == "docs" and not r.ok and "conflicting crate" in r.message
+        for r in results
+    )
 
 
 def test_file_mentions_version():

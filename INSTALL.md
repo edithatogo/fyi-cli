@@ -6,9 +6,9 @@ Install **fyi-cli** (FOI/OIA CLI) and **fyi-mcp** (Model Context Protocol server
 |--|--|
 | **Version (this doc)** | `0.1.2` |
 | **Homepage** | https://github.com/edithatogo/fyi-cli |
-| **Last updated** | 2026-07-09 |
+| **Last updated** | 2026-11-13 |
 | **Primary stack** | Rust workspace (`fyi-cli`, `fyi-mcp`, `fyi-core`) |
-| **Legacy** | Python package on PyPI (`fyi-cli` / `fyi_system`) — still installable, not extended |
+| **Legacy** | Python package (`fyi-cli` / `fyi_system`) — frozen for existing consumers during migration |
 
 **Status discipline:** many package-manager and catalog channels are **draft / assets-ready** only (manifests live under [`packaging/`](packaging/)). Do **not** treat them as published until the matrix says **live**.
 
@@ -26,7 +26,7 @@ Install **fyi-cli** (FOI/OIA CLI) and **fyi-mcp** (Model Context Protocol server
 | Goal | Method | Status |
 |------|--------|--------|
 | Fastest from source | `cargo install --path crates/fyi-cli` | Works from a clone |
-| Binary without compiling (when crates.io + release assets align) | `cargo binstall fyi-cli` | **assets-ready** (metadata in-repo) |
+| Crates.io / cargo-binstall | Blocked | `fyi-cli` and `fyi-core` are names of a different project on crates.io |
 | Prebuilt CLI / MCPB | [GitHub Releases](https://github.com/edithatogo/fyi-cli/releases) | Releases live; asset names evolve with cargo-dist |
 | MCP in AI clients | Official MCP Registry / Glama / Smithery | **live** (see below) |
 | Legacy Python CLI | `pip install fyi-cli` | **live** (legacy) |
@@ -51,7 +51,8 @@ fyi-cli init-db
 fyi-cli --help
 ```
 
-See [QUICKSTART.md](QUICKSTART.md) and [CONFIGURATION.md](CONFIGURATION.md).
+The [legacy quick start](QUICKSTART.md) describes the Python application. Rust
+request management, reporting and archive capture are not yet equivalent.
 
 ---
 
@@ -71,7 +72,7 @@ cargo --version
 
 ### Legacy Python package only
 
-- **Python:** 3.10+ (3.11+ recommended)
+- **Python:** use a qualified repository-local Python 3.15 for any retained development or automation
 - **pip** (or `uv` / `pipx`)
 
 ```bash
@@ -81,9 +82,9 @@ pip --version
 
 ---
 
-## 1. Cargo install (from source or crates.io)
+## 1. Cargo install from source
 
-### From a local clone (always works)
+### From a local clone
 
 ```bash
 git clone https://github.com/edithatogo/fyi-cli.git
@@ -101,17 +102,12 @@ cargo build --workspace --release --locked
 ./target/release/fyi-mcp --help   # Windows: target\release\fyi-cli.exe
 ```
 
-### From crates.io
+### Crates.io name collision
 
-When the crate version you want is published:
-
-```bash
-cargo install fyi-cli --locked
-# MCP crate name if published separately:
-# cargo install fyi-mcp --locked
-```
-
-If `cargo install fyi-cli` fails with “could not find”, use a git/path install or GitHub Releases instead. Publication status is tracked in [docs/registry-distribution-matrix.md](docs/registry-distribution-matrix.md).
+Do not install this project with `cargo install fyi-cli` or `cargo binstall fyi-cli`:
+the published `fyi-cli` and `fyi-core` crates belong to a different project.
+Use the local clone above until this project's release identity is resolved and
+verified. See the [distribution matrix](docs/registry-distribution-matrix.md).
 
 ### Development build (contributors)
 
@@ -130,18 +126,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 [cargo-binstall](https://github.com/cargo-bins/cargo-binstall) downloads release binaries instead of compiling.
 
-**Status:** **assets-ready** — package metadata lives in crate `Cargo.toml` files and [`packaging/cargo-binstall/metadata.toml`](packaging/cargo-binstall/metadata.toml). Resolution depends on matching GitHub Release asset names.
-
-```bash
-# Install cargo-binstall once (if needed)
-cargo install cargo-binstall
-
-# Then:
-cargo binstall fyi-cli
-# cargo binstall fyi-mcp
-```
-
-If binstall cannot find a suitable archive, fall back to `cargo install` or manual release download.
+**Status:** blocked by the crates.io name collision. The in-repository metadata
+is not evidence that the current crate names resolve to this project.
 
 ---
 
@@ -189,7 +175,7 @@ cargo-dist may also publish one-liner installers on the release; use those when 
 
 **Status:** **live** — https://pypi.org/project/fyi-cli/  
 
-This installs the **legacy Python** implementation (`fyi_system`), not the Rust workspace. Suitable for existing scripts; new development should prefer Rust `fyi-cli` / `fyi-mcp`.
+This installs the **legacy Python** implementation (`fyi_system`), not the Rust workspace. It is retained for existing consumers while selected functionality migrates. The published PyPI release and the Git revision pinned by `fyi-archive` are separate artifacts.
 
 ```bash
 pip install fyi-cli
@@ -228,7 +214,7 @@ Optional: Conda packaging notes remain in [CONDA_PUBLISHING.md](CONDA_PUBLISHING
 | **Fedora / COPR** | [`packaging/fedora/fyi-cli.spec`](packaging/fedora/fyi-cli.spec) | `dnf install fyi-cli` | **draft** |
 | **asdf** | [`packaging/asdf/`](packaging/asdf/) | `asdf install fyi-cli 0.1.2` (local plugin) | **draft** |
 | **mise** | [`packaging/mise/`](packaging/mise/) | `mise install fyi-cli@0.1.2` (local plugin) | **draft** |
-| **cargo-binstall** | [`packaging/cargo-binstall/`](packaging/cargo-binstall/) | `cargo binstall fyi-cli` | **assets-ready** |
+| **cargo-binstall** | [`packaging/cargo-binstall/`](packaging/cargo-binstall/) | Not available for this project under the current crate names | **blocked** |
 
 ---
 
@@ -318,8 +304,6 @@ fyi --version
 | Install method | Upgrade |
 |----------------|---------|
 | `cargo install --path …` | `git pull` then re-run `cargo install --path crates/fyi-cli --locked --force` |
-| `cargo install fyi-cli` | `cargo install fyi-cli --locked --force` |
-| `cargo binstall` | `cargo binstall fyi-cli` (or reinstall after new release) |
 | GitHub Releases | Download newer assets; replace binary on PATH |
 | PyPI | `pip install --upgrade fyi-cli` |
 | Package managers | Use the manager’s upgrade command once published |

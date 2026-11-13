@@ -17,9 +17,15 @@ fn test_help_message() {
 
 #[test]
 fn test_init_db_defaults() {
+    let work_dir =
+        std::env::temp_dir().join(format!("fyi-cli-default-init-{}", std::process::id()));
+    std::fs::create_dir(&work_dir).expect("create isolated test directory");
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_fyi-cli"));
-    cmd.args(["init-db"]);
+    cmd.current_dir(&work_dir).args(["init-db"]);
     let output = cmd.output().expect("failed to execute process");
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(output.status.success() || stdout.contains("Initialized"));
+    assert!(output.status.success());
+    assert!(stdout.contains("Initialized"));
+    assert!(work_dir.join("fyi_system.db").exists());
+    std::fs::remove_dir_all(work_dir).expect("remove isolated test directory");
 }
