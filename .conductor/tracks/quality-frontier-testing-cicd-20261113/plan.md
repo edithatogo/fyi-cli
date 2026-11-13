@@ -2,9 +2,9 @@
 
 ## Phase 1: Applicability and exclusions
 
-- [x] Confirm DST applicability: which code paths benefit from deterministic simulation (document exclusions). [checkpoint: TBD]
-- [ ] Confirm MT applicability: which units are suitable for mutation testing (document exclusions).
-- [ ] Confirm contract testing applicability: which API boundaries need contract tests.
+- [x] Confirm DST applicability: which code paths benefit from deterministic simulation (document exclusions). [checkpoint: b250b49]
+- [x] Confirm MT applicability: which units are suitable for mutation testing (document exclusions). [checkpoint: 329e6b2]
+- [~] Confirm contract testing applicability: which API boundaries need contract tests.
 - [ ] Document all exclusions in `QUALITY_FRONTIER_EXCLUSIONS.md` or equivalent.
 
 ## Phase 2: Deterministic simulation testing (DST)
