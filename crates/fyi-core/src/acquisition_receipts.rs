@@ -135,7 +135,17 @@ pub fn verify_receipt(receipt: &Value) -> Result<()> {
     string(receipt, "command")?;
     let adapter = object_field(receipt, "adapter")?;
     restrict_fields(adapter, &["id", "version"], "adapter")?;
-    string(adapter, "id")?;
+    let adapter_id = string(adapter, "id")?;
+    ensure!(
+        adapter_id
+            .bytes()
+            .next()
+            .is_some_and(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
+            && adapter_id
+                .bytes()
+                .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || b"._-".contains(&c)),
+        "invalid adapter identifier"
+    );
     string(adapter, "version")?;
     let origin = object_field(receipt, "source")?;
     restrict_fields(origin, &["url"], "source")?;
@@ -167,7 +177,12 @@ pub fn verify_receipt(receipt: &Value) -> Result<()> {
         &["name", "minimum_interval_seconds"],
         "rate_limit",
     )?;
-    ensure!(rate_limit.get("name").is_some(), "missing rate limit name");
+    ensure!(
+        rate_limit
+            .get("name")
+            .is_some_and(|value| value.is_null() || value.is_string()),
+        "rate limit name must be a string or null"
+    );
     ensure!(
         rate_limit.get("minimum_interval_seconds").is_some_and(|v| {
             v.is_null() || v.as_f64().is_some_and(|f| f.is_finite() && f >= 0.0)
@@ -388,7 +403,7 @@ pub fn verify_receipt_result_bytes(receipt: &Value, result_bytes: &[u8]) -> Resu
         "result projection byte length mismatch"
     );
     ensure!(
-        sha256_hex(result_bytes) == string(result, "sha256")?,
+        sha256_hex(result_bytes) == string(receipt, "sha256")?,
         "result projection SHA-256 mismatch"
     );
     Ok(())
