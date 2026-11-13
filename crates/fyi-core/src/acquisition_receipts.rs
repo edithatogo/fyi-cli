@@ -467,7 +467,7 @@ fn sanitize_for_receipt(input: &reqwest::Url) -> Result<String> {
         safe.set_query(Some("REDACTED"));
     }
     safe.set_fragment(None);
-    Ok(safe.into())
+    Ok(safe.to_string())
 }
 
 /// Verify that a *single* recorded network response matches the original
