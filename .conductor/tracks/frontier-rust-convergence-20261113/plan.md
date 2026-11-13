@@ -99,3 +99,10 @@ This section supersedes prior pending-check statements without rewriting histori
 - [ ] Full cross-platform release, source adapter consumer parity, sign/verify manifests and external fyi-archive NZ shadow verification remain unmet.
 
 Track stays **in_progress**. No new manual approval layer is introduced.
+
+## Incremental executable Rust parity — 13 November 2026
+
+- [~] One Rust name-matched command, `fetch-request-page`, has been advanced from a print-only stub to a guarded read-only acquisition with explicit evidence outputs and offline integrity verification. This is **partial** semantic parity because Python's command differs in endpoint selection, SQLite effects and output projection.
+- [~] Raw HTTP entity-body hash and normalized JSON result hash can now be verified separately. The underlying request client reuses the existing resource-aware middleware instead of introducing a second HTTP transport.
+- [ ] Keep the other Python-only commands and stub handlers in the migration inventory; no unverified Python code deletion, Python >=3.15 minimum enforcement, fyi-archive cutover or unbounded network commands.
+- [ ] Verify this PR's final-head hosted tests, coverage, Clippy, Rustfmt, security audit, Conductor consistency and Rust 1.99.1 MSRV before merge.

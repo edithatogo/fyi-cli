@@ -18,6 +18,10 @@ on:
     branches: [master]
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 
@@ -59,6 +63,13 @@ jobs:
           cargo +1.99.1 test --workspace --all-features --locked
           cargo +1.99.1 run --locked --package fyi-cli -- verify-acquisition-receipt conformance/acquisition/receipt-v1-python.json
           cargo +1.99.1 run --locked --package fyi-cli -- verify-acquisition-receipt conformance/acquisition/receipt-v1-python.json --result-file conformance/acquisition/result-v1.json
+          cargo +1.99.1 run --locked --package fyi-cli -- verify-acquisition-receipt conformance/acquisition/receipt-v1-python.json --raw-file conformance/acquisition/raw-v1.bin
+          cargo +1.99.1 run --locked --package fyi-cli -- verify-acquisition-receipt conformance/acquisition/receipt-v1-python.json --result-file conformance/acquisition/result-v1.json --raw-file conformance/acquisition/raw-v1.bin
+          printf 'tampered-raw' > tampered-raw.bin
+          if cargo +1.99.1 run --locked --package fyi-cli -- verify-acquisition-receipt conformance/acquisition/receipt-v1-python.json --raw-file tampered-raw.bin; then
+            echo "Corrupted raw HTTP body unexpectedly verified" >&2
+            exit 1
+          fi
           printf 'tampered-result\n' > tampered-result.txt
           if cargo +1.99.1 run --locked --package fyi-cli -- verify-acquisition-receipt conformance/acquisition/receipt-v1-python.json --result-file tampered-result.txt; then
             echo "Corrupted result unexpectedly verified" >&2

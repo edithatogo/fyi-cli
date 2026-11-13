@@ -272,19 +272,32 @@ static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
 pub fn write_receipt_atomic(path: &Path, receipt: &Value) -> Result<()> {
     verify_receipt(receipt)?;
     let canonical = canonical_json_bytes(receipt)?;
+    write_bytes_no_clobber(path, &canonical, true)
+}
+
+/// Persist original HTTP bytes or a normalized projection as a private,
+/// immutable file without overwriting any pre-existing evidence.
+///
+/// This uses the same atomic publication primitive as the v1 receipt writer.
+/// The caller must separately verify the recorded SHA-256 against the receipt.
+pub fn write_evidence_bytes_atomic(path: &Path, data: &[u8]) -> Result<()> {
+    write_bytes_no_clobber(path, data, false)
+}
+
+fn write_bytes_no_clobber(path: &Path, data: &[u8], receipt_mode: bool) -> Result<()> {
     let parent = path
         .parent()
         .filter(|p| !p.as_os_str().is_empty())
         .unwrap_or_else(|| Path::new("."));
-    fs::create_dir_all(parent).context("unable to create receipt directory")?;
+    fs::create_dir_all(parent).context("unable to create evidence directory")?;
 
     if path.exists() {
-        return check_existing(path, &canonical);
+        return check_existing(path, data, receipt_mode);
     }
 
     let name = path
         .file_name()
-        .context("receipt path is missing a filename")?;
+        .context("evidence path is missing a filename")?;
     let mut created = None;
     for _ in 0..32 {
         let serial = TEMP_COUNTER.fetch_add(1, Ordering::Relaxed);
@@ -308,52 +321,54 @@ pub fn write_receipt_atomic(path: &Path, receipt: &Value) -> Result<()> {
                 break;
             }
             Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
-            Err(error) => return Err(error).context("unable to create private receipt tempfile"),
+            Err(error) => {
+                return Err(error).context("unable to create private evidence tempfile");
+            }
         }
     }
-    let (temp, mut file) = created.context("unable to allocate unique receipt tempfile")?;
+    let (temp, mut file) = created.context("unable to allocate unique evidence tempfile")?;
     let result = (|| -> Result<()> {
-        file.write_all(&canonical)
-            .context("unable to write receipt tempfile")?;
+        file.write_all(data)
+            .context("unable to write evidence tempfile")?;
         file.sync_all()
-            .context("unable to flush receipt tempfile")?;
+            .context("unable to flush evidence tempfile")?;
         drop(file);
         match fs::hard_link(&temp, path) {
             Ok(()) => {
-                // Persist directory metadata on POSIX where supported.
                 #[cfg(unix)]
                 fs::File::open(parent)
                     .and_then(|directory| directory.sync_all())
-                    .context("unable to persist receipt directory")?;
+                    .context("unable to persist evidence directory")?;
                 Ok(())
             }
             Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
-                check_existing(path, &canonical)
+                check_existing(path, data, receipt_mode)
             }
-            Err(error) => Err(error).context("atomic receipt publication failed"),
+            Err(error) => Err(error).context("atomic evidence publication failed"),
         }
     })();
-    // Cleanup must happen even when publication or verification fails.
     let cleanup = fs::remove_file(&temp);
     if result.is_ok() {
-        cleanup.context("unable to clean up receipt tempfile")?;
+        cleanup.context("unable to clean evidence tempfile")?;
     }
     result
 }
 
-fn check_existing(path: &Path, canonical: &[u8]) -> Result<()> {
-    let metadata = fs::symlink_metadata(path).context("unable to stat existing receipt")?;
+fn check_existing(path: &Path, expected: &[u8], receipt_mode: bool) -> Result<()> {
+    let metadata = fs::symlink_metadata(path).context("unable to stat existing evidence")?;
     ensure!(
         metadata.file_type().is_file(),
-        "existing receipt must be a regular file, not a symlink or directory"
+        "existing evidence must be a regular file, not a symlink or directory"
     );
-    let stored = fs::read(path).context("unable to read existing receipt")?;
-    let value: Value =
-        serde_json::from_slice(&stored).context("existing receipt is not valid JSON")?;
-    verify_receipt(&value).context("existing receipt is not valid evidence")?;
+    let stored = fs::read(path).context("unable to read existing evidence")?;
+    if receipt_mode {
+        let value: Value =
+            serde_json::from_slice(&stored).context("existing receipt is not valid JSON")?;
+        verify_receipt(&value).context("existing receipt is not valid evidence")?;
+    }
     ensure!(
-        stored == canonical,
-        "different receipt already exists; refusing to overwrite evidence"
+        stored == expected,
+        "different evidence already exists; refusing to overwrite"
     );
     Ok(())
 }
@@ -375,6 +390,139 @@ pub fn verify_receipt_result_bytes(receipt: &Value, result_bytes: &[u8]) -> Resu
     ensure!(
         sha256_hex(result_bytes) == string(result, "sha256")?,
         "result projection SHA-256 mismatch"
+    );
+    Ok(())
+}
+
+/// Build a Python v1-compatible receipt from one successful guarded GET.
+///
+/// Source content is represented twice, deliberately: the network response
+/// digest covers the *original response bytes*, whereas the result digest
+/// covers the normalized canonical JSON output. No network I/O occurs here.
+/// Explicit inputs for one guarded GET receipt. Grouping these fields makes
+/// the source/response boundary reviewable without positional arguments.
+pub struct SingleGetReceiptInput<'a> {
+    pub source_url: &'a reqwest::Url,
+    pub response_url: &'a reqwest::Url,
+    pub http_status: u16,
+    pub raw_response: &'a [u8],
+    pub result_projection: &'a [u8],
+    pub request_id: i64,
+    pub started_at: &'a str,
+    pub completed_at: &'a str,
+}
+
+pub fn build_single_get_receipt(input: SingleGetReceiptInput<'_>) -> Result<Value> {
+    let SingleGetReceiptInput {
+        source_url,
+        response_url,
+        http_status,
+        raw_response,
+        result_projection,
+        request_id,
+        started_at,
+        completed_at,
+    } = input;
+    ensure!(request_id > 0, "request ID must be positive");
+    ensure!(
+        (200..300).contains(&http_status),
+        "acquisition receipt requires successful HTTP response"
+    );
+    let sanitized_source = sanitize_for_receipt(source_url)?;
+    let sanitized_response = sanitize_for_receipt(response_url)?;
+    let mut receipt = serde_json::json!({
+        "schema": "urn:fyi-cli:acquisition-receipt",
+        "schema_version": "1.0.0",
+        "command": "fetch-request",
+        "adapter": {
+            "id": "alaveteli-request-json",
+            "version": env!("CARGO_PKG_VERSION"),
+        },
+        "source": {"url": sanitized_source},
+        "request_bounds": {"request_id": request_id},
+        "started_at": started_at,
+        "completed_at": completed_at,
+        "status": "succeeded",
+        "responses": [{
+            "url": sanitized_response,
+            "status": http_status,
+            "bytes": raw_response.len(),
+            "sha256": sha256_hex(raw_response),
+            "attempts": 1,
+            "retry_delays_seconds": [],
+        }],
+        "totals": {
+            "requests": 1,
+            "bytes": raw_response.len(),
+            "retries": 0,
+        },
+        "rate_limit": {
+            "name": null,
+            "minimum_interval_seconds": null,
+        },
+        "checkpoint": {
+            "before_sha256": null,
+            "after_sha256": null,
+        },
+        "result": {
+            "representation": "canonical_result_projection",
+            "media_type": "application/json",
+            "bytes": result_projection.len(),
+            "sha256": sha256_hex(result_projection),
+        },
+    });
+    let canonical = canonical_json_bytes(&receipt)?;
+    receipt["receipt_sha256"] = Value::String(sha256_hex(&canonical));
+    verify_receipt(&receipt)?;
+    verify_receipt_raw_bytes(&receipt, raw_response)?;
+    verify_receipt_result_bytes(&receipt, result_projection)?;
+    Ok(receipt)
+}
+
+/// Preserve the host and path while redacting credential-bearing URL fields.
+fn sanitize_for_receipt(input: &reqwest::Url) -> Result<String> {
+    ensure!(
+        input.scheme() == "http" || input.scheme() == "https",
+        "acquisition receipt URL requires HTTP(S)"
+    );
+    ensure!(
+        input.host_str().is_some(),
+        "acquisition receipt URL missing host"
+    );
+    let mut safe = input.clone();
+    safe.set_username("")
+        .map_err(|_| anyhow::anyhow!("cannot clear receipt URL username"))?;
+    safe.set_password(None)
+        .map_err(|_| anyhow::anyhow!("cannot clear receipt URL password"))?;
+    if input.query().is_some() {
+        safe.set_query(Some("REDACTED"));
+    }
+    safe.set_fragment(None);
+    Ok(safe.to_string())
+}
+
+/// Verify that a *single* recorded network response matches the original
+/// HTTP entity body bytes. A result projection hash cannot substitute for it.
+///
+/// In a multi-response receipt, callers must use a separate ordered payload
+/// contract; pairing the first payload with all responses would be misleading.
+pub fn verify_receipt_raw_bytes(receipt: &Value, raw_body: &[u8]) -> Result<()> {
+    verify_receipt(receipt)?;
+    let responses = receipt["responses"]
+        .as_array()
+        .context("receipt responses must be an array")?;
+    ensure!(
+        responses.len() == 1,
+        "raw response verification requires exactly one HTTP response"
+    );
+    let first = &responses[0];
+    ensure!(
+        integer(first, "bytes")? == raw_body.len() as u64,
+        "raw HTTP response byte count mismatch"
+    );
+    ensure!(
+        string(first, "sha256")? == sha256_hex(raw_body),
+        "raw HTTP response SHA-256 mismatch"
     );
     Ok(())
 }
