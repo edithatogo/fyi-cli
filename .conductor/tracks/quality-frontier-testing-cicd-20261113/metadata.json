@@ -1,0 +1,14 @@
+{
+  "track_id": "quality-frontier-testing-cicd-20261113",
+  "type": "quality-frontier",
+  "status": "in-progress",
+  "created_at": "2026-11-13T00:00:00Z",
+  "updated_at": "2026-11-13T00:00:00Z",
+  "github_issue": "https://github.com/edithatogo/fyi-cli/issues/280",
+  "parent_issue": "https://github.com/edithatogo/fyi-cli/issues/282",
+  "warranted_gaps": ["DST", "MT", "Contract"],
+  "ci_gaps": ["pinned_actions", "dependency_review", "workflow_lint"],
+  "code_files": 227,
+  "test_files": 109,
+  "workflow_files": 15
+}

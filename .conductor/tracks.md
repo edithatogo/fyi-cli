@@ -12,6 +12,14 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Scope: evidence provenance, statutory rules, provider contracts, grounded agents, reproducible transformation, legacy Python to Rust migration, Python >=3.15 and Rust MSRV 1.99 compatibility gates, maximal risk-based single-developer CI, and Conductor repair.*
   *Dependency: existing source-adapter-boundary-20260812 track (#309, #310–#314), not a replacement for it. Reconcile PR #402 before altering completed-track status.*
 
+- [~] **Track: quality-frontier-testing-cicd-20261113**
+  *Link: [./tracks/quality-frontier-testing-cicd-20261113/](./tracks/quality-frontier-testing-cicd-20261113/)*
+  *Issue: [#280](https://github.com/edithatogo/fyi-cli/issues/280).*
+  *Parent: [#282](https://github.com/edithatogo/fyi-cli/issues/282) (quality frontier umbrella).*
+  *Warranted gaps: DST, MT, Contract.*
+  *CI gaps: pinned_actions, dependency_review, workflow_lint.*
+  *Description: Close warranted testing and CI/CD gaps — deterministic simulation testing, mutation testing, contract testing, pinned actions, dependency review, and workflow linting.*
+
 ---
 
 ## Active cross-repository tracks
@@ -357,7 +365,6 @@ Potential tracks for future development:
 
 These open issues are not yet covered by a Conductor track. They are listed here so the registry and GitHub do not drift silently.
 
-- [#280](https://github.com/edithatogo/fyi-cli/issues/280) — Quality frontier: testing and CI/CD gaps (DST, MT, contract; pinned actions, dependency review, workflow lint).
 - [#281](https://github.com/edithatogo/fyi-cli/issues/281) — Quality frontier: security and solo-maintainer context.
 - [#282](https://github.com/edithatogo/fyi-cli/issues/282) — Quality frontier umbrella; close only when #280 and #281 are complete.
 - [#322](https://github.com/edithatogo/fyi-cli/issues/322) — Adopt bounded test-acceleration profiles (slow marker, xdist, testmon, bounded mutation and VCR trials).
