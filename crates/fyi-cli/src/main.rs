@@ -403,6 +403,8 @@ pub enum Commands {
     VerifyAcquisitionReceipt {
         #[arg(help = "Path to an acquisition-receipt-v1 JSON file")]
         path: String,
+        #[arg(long, help = "Saved canonical result projection to verify by size and SHA-256")]
+        result_file: Option<String>,
     },
     #[command(about = "Run Model Context Protocol (MCP) server")]
     McpServer,
@@ -913,7 +915,7 @@ fn main() {
                 std::process::exit(1);
             }
         }
-        Commands::VerifyAcquisitionReceipt { path } => {
+        Commands::VerifyAcquisitionReceipt { path, result_file } => {
             let result = std::fs::read(path)
                 .map_err(|error| format!("reading receipt failed: {error}"))
                 .and_then(|bytes| {
@@ -921,8 +923,15 @@ fn main() {
                         .map_err(|error| format!("invalid receipt JSON: {error}"))
                 })
                 .and_then(|receipt| {
-                    fyi_core::acquisition_receipts::verify_receipt(&receipt)
-                        .map_err(|error| error.to_string())
+                    if let Some(saved_result) = result_file {
+                        let bytes = std::fs::read(saved_result)
+                            .map_err(|error| format!("reading result projection failed: {error}"))?;
+                        fyi_core::acquisition_receipts::verify_receipt_result_bytes(&receipt, &bytes)
+                            .map_err(|error| error.to_string())
+                    } else {
+                        fyi_core::acquisition_receipts::verify_receipt(&receipt)
+                            .map_err(|error| error.to_string())
+                    }
                 });
             match result {
                 Ok(()) => println!("Acquisition receipt verified"),
