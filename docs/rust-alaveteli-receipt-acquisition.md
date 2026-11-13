@@ -12,7 +12,7 @@ The receipt v1 stores **two distinct digests**:
 
 These bytes are **not a WARC HTTP exchange**; headers, redirect chain, original compressed wire encoding, attestation and signing are not yet captured. A 304 conditional response backed by local cache is rejected as fresh acquisition evidence.
 
-The response URL stored in receipts has any username, password, fragment and query parameter values removed or redacted. Authentication headers and response bodies are never included in error messages. The existing network guardrails constrain request concurrency, rate limits, bytes and time.
+The response URL stored in receipts has any username, password, fragment and query parameter values removed or redacted. Authentication headers and response bodies are never included in error messages. The existing network guardrails constrain request concurrency, rate limits, bytes and time. The default Rust outbound HTTP client now enforces a bounded same-origin redirect policy: redirects to another scheme, hostname or effective port are not followed. This reduces the risk of redirect-based SSRF after initial instance URL validation; it does not by itself prevent DNS rebinding and is not a substitute for upstream rate limits or access rules.
 
 ## CLI
 

@@ -82,3 +82,7 @@ Merged evidence: PR #403 (Rust verifier baseline and migration contracts), PR #4
 - [ ] Compare Python and Rust request endpoint, SQLite effects, output/error codes and reconcilers; Rust fetch-request-page is not yet functionally identical to the Python command.
 
 See `docs/rust-alaveteli-receipt-acquisition.md`. Retain prior merged PR evidence and `archive_cutover_allowed=false`.
+
+### Network redirect boundary hardening — 13 November 2026
+- [~] The shared Rust agent HTTP client now refuses cross-origin or credential-bearing redirect targets and caps same-origin redirect hops; mocked tests cover a refused cross-port redirect and an accepted relative same-origin redirect. This is part of the source-adapter threat boundary, not a substitute for DNS rebinding protection or authorised upstream policies.
+- [ ] Validate this change against real but bounded approved provider smoke fixtures and retain error/deny evidence without storing response bodies in logs.
