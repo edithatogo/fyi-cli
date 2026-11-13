@@ -371,12 +371,11 @@ Potential tracks for future development:
 
 These open issues are not yet covered by a Conductor track. They are listed here so the registry and GitHub do not drift silently.
 
-- [#282](https://github.com/edithatogo/fyi-cli/issues/282) — Quality frontier umbrella; close only when #280 (closed via PR #414) and #281 (track `solo-maintainer-security-20261113`) are complete.
 - [#322](https://github.com/edithatogo/fyi-cli/issues/322) — Adopt bounded test-acceleration profiles (slow marker, xdist, testmon, bounded mutation and VCR trials).
 - [#325](https://github.com/edithatogo/fyi-cli/issues/325) — Renovate Dependency Dashboard; operational, not a delivery track.
 - [#32](https://github.com/edithatogo/fyi-cli/issues/32) — Deliberately open external-registry monitor follow-up referenced by completed registry tracks.
 
-Reconciled closures: [#283](https://github.com/edithatogo/fyi-cli/issues/283) (seven AU capability records now in `artifacts/foio/australian-capabilities/`) and [#284](https://github.com/edithatogo/fyi-cli/issues/284) (RIOPA mapping profile in `conformance/riopa/`).
+Reconciled closures: [#280](https://github.com/edithatogo/fyi-cli/issues/280) (testing/CI-CD gaps, PR #414), [#281](https://github.com/edithatogo/fyi-cli/issues/281) (solo-maintainer security, PR #415), [#282](https://github.com/edithatogo/fyi-cli/issues/282) (quality frontier umbrella — closed after both subissues completed), [#283](https://github.com/edithatogo/fyi-cli/issues/283) (seven AU capability records now in `artifacts/foio/australian-capabilities/`) and [#284](https://github.com/edithatogo/fyi-cli/issues/284) (RIOPA mapping profile in `conformance/riopa/`).
 
 ---
 
