@@ -53,3 +53,58 @@ jobs:
             python315-status.txt
           if-no-files-found: warn
           retention-days: 14
+
+  python-315-security:
+    name: Python 3.15 security and fuzzing compatibility evidence
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.15"
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+      - name: Validate 3.15 security tooling and fuzz dependencies
+        shell: bash
+        run: |
+          set +e
+          uv sync --python 3.15 --extra dev --frozen > python315-security.log 2>&1
+          sync_status=$?
+          audit_status=99
+          lint_status=99
+          typing_status=99
+          atheris_status=99
+          fuzz_status=99
+          if [ "$sync_status" -eq 0 ]; then
+            uv export --frozen --extra dev --no-emit-project --output-file python315-audit.txt >> python315-security.log 2>&1
+            uv run --python 3.15 pip-audit --requirement python315-audit.txt >> python315-security.log 2>&1
+            audit_status=$?
+            uv run --python 3.15 ruff check src/fyi_system/acquisition_receipts.py src/fyi_system/internet_archive_cdx.py src/fyi_system/internet_archive_replay.py fuzzing >> python315-security.log 2>&1
+            lint_status=$?
+            uv run --python 3.15 basedpyright src/fyi_system/acquisition_receipts.py src/fyi_system/internet_archive_cdx.py src/fyi_system/internet_archive_replay.py fuzzing/targets.py >> python315-security.log 2>&1
+            typing_status=$?
+            uv pip install --python .venv/bin/python atheris==3.1.0 >> python315-security.log 2>&1
+            atheris_status=$?
+            if [ "$atheris_status" -eq 0 ]; then
+              mkdir -p artifacts/fuzz/receipt
+              timeout 60s .venv/bin/python -m fuzzing.run_atheris --target receipt -max_total_time=10 -timeout=5 -rss_limit_mb=2048 -max_len=65536 -artifact_prefix=artifacts/fuzz/receipt/ artifacts/fuzz/receipt fuzzing/corpus/receipt >> python315-security.log 2>&1
+              fuzz_status=$?
+            fi
+          fi
+          printf 'sync=%s\naudit=%s\nruff=%s\nbasedpyright=%s\natheris_install=%s\natheris_fuzz=%s\n' "$sync_status" "$audit_status" "$lint_status" "$typing_status" "$atheris_status" "$fuzz_status" | tee python315-security-status.txt
+          tail -n 90 python315-security.log
+          # Compatibility sensor: a tool failing is recorded as an explicit
+          # migration blocker; supported Python CI/security gates stay mandatory.
+          exit 0
+      - name: Upload migration evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: python315-security-compatibility
+          path: |
+            python315-security.log
+            python315-security-status.txt
+          retention-days: 14
+          if-no-files-found: warn
