@@ -21,7 +21,7 @@
   "maintenance_verification": {
     "date": "2026-11-13",
     "base_commit": "e056640851fd4e4284ef517b4a4641653c8aac53",
-    "status": "draft_pending_python_311_compatibility_review",
+    "status": "accepted_python_311_minimum",
     "baseline_advisories": 48,
     "baseline_affected_packages": 12,
     "proposed_audit": "no_known_vulnerabilities_python_312",

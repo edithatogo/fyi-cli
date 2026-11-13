@@ -2,9 +2,9 @@
 
 ## State and compatibility decision
 
-This is a draft proposal based on main `e056640851fd4e4284ef517b4a4641653c8aac53`.
-Do not merge or enable auto-merge until the maintainer agrees to the Python 3.11+
-minimum, or provides a reviewed secure alternative for Python 3.10.
+This maintenance change applies the Python 3.11+ minimum accepted on
+13 November 2026, so that the secured dependency graph can be installed. It is
+based on main `e056640851fd4e4284ef517b4a4641653c8aac53`.
 
 The current main lock reported 48 advisories across 12 packages on Python 3.12.
 A coordinated update removes those findings. A separate audit of the former
@@ -40,7 +40,7 @@ checks remain required and the track remains in progress.
 
 ## Rollback
 
-Reverting this proposal restores the former dependency graph and Python floor,
+Reverting this change restores the former dependency graph and Python floor,
 including known vulnerabilities. Use a reviewed secure Python 3.10 backport if
 that runtime must remain supported; do not add advisory exclusions to obtain a
 passing security check.

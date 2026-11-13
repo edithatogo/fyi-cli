@@ -29,8 +29,7 @@
   are no script/workflow/test invocations. Preserve the enforced pip-audit gate;
   Safety 3.7 requires vulnerable Filelock versions, while falling back to Safety
   3.2 reintroduces the obsolete urllib3 branch on Python 3.10.
-- [ ] Obtain maintainer agreement to Python 3.11+, or a reviewed secured
-  dnspython backport for Python 3.10. Keep the PR draft until this is resolved.
+- [x] Obtain maintainer agreement to Python 3.11+ (accepted 13 November 2026).
 - [x] Verify the frozen environment and repeat the dependency audit: no known
   vulnerabilities in the proposed Python 3.11+ graph on the Python 3.12 audit.
 - [x] Run existing client, API, credentials, encryption, parser and MCP contract
