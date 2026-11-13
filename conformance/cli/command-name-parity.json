@@ -29,6 +29,7 @@
     "follow-up-pack",
     "follow-up-variants",
     "handover",
+    "historical-index",
     "import-authorities",
     "import-requests",
     "ingest-feed",
@@ -50,6 +51,7 @@
     "serve",
     "set-status",
     "show-settings",
+    "source-probe",
     "triage-report",
     "validate-process-events"
   ],
