@@ -3033,4 +3033,76 @@ mod tests {
         assert!(fields.contains(&"updated_at"));
         assert!(!fields.contains(&"title"));
     }
+
+    #[tokio::test]
+    async fn acquired_request_has_verified_raw_and_normalized_receipt_evidence() {
+        use crate::acquisition_receipts::{
+            verify_receipt, verify_receipt_raw_bytes, verify_receipt_result_bytes,
+        };
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/api/v2/request/42.json"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "id": 42,
+                "title": "Water inspections",
+                "body": "Provide the reports"
+            })))
+            .mount(&server)
+            .await;
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+        let evidence = client.fetch_request_evidence(42).await.unwrap();
+        assert_eq!(evidence.request.id, 42);
+        assert_eq!(evidence.request.title, "Water inspections");
+        verify_receipt(&evidence.receipt).unwrap();
+        verify_receipt_raw_bytes(&evidence.receipt, &evidence.raw_body).unwrap();
+        verify_receipt_result_bytes(&evidence.receipt, &evidence.result_projection).unwrap();
+        assert_eq!(evidence.receipt["totals"]["requests"], 1);
+        assert_eq!(evidence.receipt["totals"]["retries"], 0);
+        assert_eq!(evidence.receipt["responses"][0]["status"], 200);
+        assert_eq!(evidence.receipt["request_bounds"]["request_id"], 42);
+        assert_eq!(evidence.receipt["command"], "fetch-request");
+        assert_eq!(evidence.receipt["source"]["url"], format!("{}/api/v2/request/42.json", server.uri()));
+    }
+
+    #[tokio::test]
+    async fn acquisition_refuses_denied_response_without_leaking_body() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/api/v2/request/51.json"))
+            .respond_with(ResponseTemplate::new(403).set_body_string("SECRET_BEARER_TOKEN"))
+            .mount(&server)
+            .await;
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+        let message = format!("{:#}", client.fetch_request_evidence(51).await.unwrap_err());
+        assert!(message.contains("403"));
+        assert!(!message.contains("SECRET_BEARER_TOKEN"));
+        assert!(client.fetch_request_evidence(0).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn acquisition_refuses_cached_304_as_new_network_evidence() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/api/v2/request/42.json"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .insert_header("ETag", "\"first\"")
+                    .set_body_json(serde_json::json!({
+                        "id": 42, "title": "Water", "body": "Records"
+                    })),
+            )
+            .up_to_n_times(1)
+            .mount(&server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/api/v2/request/42.json"))
+            .and(header("If-None-Match", "\"first\""))
+            .respond_with(ResponseTemplate::new(304))
+            .mount(&server)
+            .await;
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+        assert_eq!(client.fetch_request(42).await.unwrap().id, 42);
+        let message = format!("{:#}", client.fetch_request_evidence(42).await.unwrap_err());
+        assert!(message.contains("cached"));
+    }
 }
