@@ -329,6 +329,10 @@ cargo test -p fyi-core sync::tests::test_pull_feed
 
 ### Legacy Python Tests (optional, `fyi_system` reference only)
 
+Faster local profiles (marker selection, bounded parallelism, testmon) are documented in
+[docs/testing.md](docs/testing.md). The full clean-environment CI suite remains the merge
+gate; local profiles never replace it.
+
 ### Running Tests
 
 ```bash

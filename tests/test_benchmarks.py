@@ -14,6 +14,8 @@ from fyi_system.monitor import ingest_feed
 from fyi_system.dashboard import write_dashboard
 from fyi_system.security import redact_text
 
+pytestmark = pytest.mark.slow
+
 
 class TestDatabaseBenchmarks:
     """Benchmark database operations."""

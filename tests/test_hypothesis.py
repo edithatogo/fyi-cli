@@ -9,6 +9,8 @@ from hypothesis.strategies import text, emails, integers, lists, dictionaries, n
 from pathlib import Path
 import re
 
+pytestmark = pytest.mark.slow
+
 from fyi_system.security import (
     redact_text,
     sanitize_payload,

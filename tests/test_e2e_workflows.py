@@ -8,6 +8,8 @@ import pytest
 from pathlib import Path
 import json
 
+pytestmark = pytest.mark.slow
+
 
 class TestFeedToReportWorkflow:
     """Test complete feed ingestion to report generation workflow."""
