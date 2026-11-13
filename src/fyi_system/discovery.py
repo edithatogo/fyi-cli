@@ -602,3 +602,80 @@ def shared_rate_limit_status(
     """Return the current shared limiter state as plain JSON-compatible data."""
     snapshot = SharedRateLimiter(db_path, name=name).snapshot()
     return snapshot.to_dict() if snapshot is not None else None
+
+
+@dataclass(frozen=True)
+class SourceProbeResult:
+    """Result of probing a source for capture readiness."""
+
+    url: str
+    reachable: bool
+    status_code: int | None
+    robots_allowed: bool
+    content_type: str | None
+    error: str | None
+    latency_seconds: float | None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "url": self.url,
+            "reachable": self.reachable,
+            "status_code": self.status_code,
+            "robots_allowed": self.robots_allowed,
+            "content_type": self.content_type,
+            "error": self.error,
+            "latency_seconds": self.latency_seconds,
+        }
+
+
+def probe_source(
+    base_url: str,
+    *,
+    transport: httpx.BaseTransport | None = None,
+    recorder: Any | None = None,
+) -> SourceProbeResult:
+    """Probe a source for capture readiness.
+
+    Performs a lightweight GET against the source root, checks robots.txt
+    for the capture path, and reports whether the source is reachable and
+    appears safe to fetch from. All network errors are captured as a failed
+    probe rather than raised.
+    """
+    import time as _time
+
+    start = _time.monotonic()
+    http = client(base_url, transport=transport)
+    try:
+        # Check robots.txt for the source root.
+        try:
+            disallows = load_robots_disallow(http, recorder=recorder)
+        except Exception as error:  # noqa: BLE001 - probe is best-effort
+            disallows = []
+        # Probe the source root itself.
+        try:
+            response = http.get("/", timeout=10.0)
+            observe_response(recorder, response)
+            latency = _time.monotonic() - start
+            path_allowed = robots_allows("/", disallows)
+            return SourceProbeResult(
+                url=base_url,
+                reachable=response.is_success,
+                status_code=response.status_code,
+                robots_allowed=path_allowed,
+                content_type=response.headers.get("content-type"),
+                error=None if response.is_success else f"HTTP {response.status_code}",
+                latency_seconds=round(latency, 4),
+            )
+        except (httpx.TimeoutException, httpx.TransportError, OSError) as error:
+            latency = _time.monotonic() - start
+            return SourceProbeResult(
+                url=base_url,
+                reachable=False,
+                status_code=None,
+                robots_allowed=False,
+                content_type=None,
+                error=type(error).__name__,
+                latency_seconds=round(latency, 4),
+            )
+    finally:
+        http.close()
