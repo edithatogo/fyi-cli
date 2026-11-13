@@ -34,6 +34,9 @@ cargo test --workspace --all-features
 
 # Python (legacy reference package + scripts)
 .venv/bin/python -m pytest -q       # or: uv run pytest -q
+PYTHON_KEYRING_BACKEND=keyrings.alt.file.PlaintextKeyring uv run pytest   # as CI runs it
+uv run pytest -m "not slow"          # fast local profile (see docs/testing.md)
+uv run pytest -n 4                   # bounded parallel local run (-n 4, not for CI)
 
 # One-command solo-maintainer security validation (see scripts/verify_solo_maintainer.py)
 python scripts/verify_solo_maintainer.py
@@ -61,7 +64,8 @@ python scripts/verify_frontier_conductor.py
 Plans, specs, and quality tracks live under `.conductor/` (`tracks.md` index, `tracks/<id>/`
 per track). Keep the registry in sync with reality; mark tasks `[x]` with a commit
 checkpoint when done. Current quality-frontier tracks: `quality-frontier-testing-cicd-20261113`
-(#280, complete) and `solo-maintainer-security-20261113` (#281).
+(#280, complete), `solo-maintainer-security-20261113` (#281, complete),
+`test-acceleration-20261113` (#322, complete).
 
 ## Distribution and registries
 

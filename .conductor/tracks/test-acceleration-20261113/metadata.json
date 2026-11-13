@@ -1,0 +1,25 @@
+{
+  "track_id": "test-acceleration-20261113",
+  "type": "quality-frontier",
+  "status": "completed",
+  "created_at": "2026-11-13T00:00:00Z",
+  "updated_at": "2026-11-13T00:00:00Z",
+  "github_issue": "https://github.com/edithatogo/fyi-cli/issues/322",
+  "scope": "bounded local test-acceleration profiles; full CI suite remains authoritative",
+  "audit": "owner-wide test-acceleration audit, 2026-08-26 (77 Python test files, 16 workflow files)",
+  "environment": "macOS 10-core aarch64, Python 3.15.2, PYTHON_KEYRING_BACKEND=keyrings.alt.file.PlaintextKeyring",
+  "evidence": {
+    "baseline_full_serial": "844 passed, 2 skipped, 278.04s",
+    "fast_profile_not_slow": "780 passed, 2 skipped, 64 deselected, 38.65s",
+    "xdist_full": "844 passed, 2 skipped, 100.54s (-n 4)",
+    "xdist_fast": "780 passed, 2 skipped, 64 deselected, 27.22s (-n 4)",
+    "gremlins_receipt_boundary": "22/31 zapped (71%), 9 survived, 149.8s",
+    "sysmon_monitor_module": "coverage 7.14.3 branch coverage, 98%, 12 passed (opt-in only)",
+    "testmon_unchanged": "0 selected, 0.54s (.testmondata git-ignored)"
+  },
+  "decisions": {
+    "adopted": ["slow marker (module-level pytestmark)", "pytest-xdist (bounded -n 4, local)", "pytest-testmon (opt-in, serial, local)"],
+    "not_adopted": ["vcrpy (in-process MockTransport already deterministic)", "freezegun (injected clocks)", "pytest-picked (testmon supersedes)", "sysmon in CI (measured compatible, kept opt-in)"],
+    "fixtures": "per-test tmp_path database fixtures; no shared fixtures; :memory: excluded where path semantics tested"
+  }
+}

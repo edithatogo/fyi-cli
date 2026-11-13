@@ -9,6 +9,8 @@ from hypothesis import given, settings, strategies as st, HealthCheck
 from hypothesis.strategies import text, binary, integers, lists, none
 import re
 
+pytestmark = pytest.mark.slow
+
 from fyi_system.security import (
     redact_text,
     sanitize_payload,
