@@ -51,3 +51,23 @@ Status: active planning; individual capability work requires evidence before mar
 
 ## Close-out rule
 No item is done simply because files, tests or badges exist. Each claimed capability must have demonstrable current-commit behaviour and an independent negative test. Archive completed tracks only after release verification, downstream consumer checks and Conductor reconciliation.
+
+## Implementation ledger (2026-11-13; branch `plan/frontier-rust-migration-quality-20261113`)
+
+- [x] Write frontier architecture and single-maintainer engineering requirements, integrate with existing source-adapter boundary.
+- [x] Register track in `.conductor/tracks.md` and `.conductor/index.md`, with machine-readable metadata.
+- [x] Add portable Conductor frontier contract validator and regression tests; synthetic six-test run passed in hosted PR CI before portability regression was added.
+- [x] Add on-demand inventory of Python production modules and the three published entrypoints. Inventory includes duplicate-suffix `IASN2001657` files for investigation, not automatic deletion.
+- [x] Eliminate developer-specific hardcoded OneDrive root from legacy Conductor status tool; add regression from unrelated working directory. Hosted verification pending for this addition.
+- [x] Declare Rust 1.99 MSRV in all three Rust crate manifests and pin the 1.99.1 toolchain; dedicated MSRV CI executes all-target/all-feature Clippy, formatting and tests. Full hosted result pending.
+- [x] Correct profiling branch trigger from `main` to `master`.
+- [x] Add non-blocking Python 3.15 compatibility sensor: full frozen install and test report, retaining old supported runtime until proven.
+- [ ] Verify Rust MSRV CI and repair transitive dependency/build errors without disabling quality gates.
+- [ ] Review Python 3.15 sensor output, update lock and interpreter minimum only when dependency/fuzzer/privacy compatibility permits.
+- [ ] Extend Conductor validation across legacy tracks with warning-only grandfathering initially; migrate old metadata and eliminate duplicate/stale states through reviewed PRs.
+- [ ] Complete Python ↔ Rust CLI, network and archive parity matrix and consumer migration, then deprecate legacy package.
+- [ ] Enforce evidence provenance and source boundary handoff through existing #309–#314 track and release-pinned archive shadow tests.
+- [ ] Introduce risk-based metamorphic/mutation/fuzz/benchmark target selection and full release evidence gates.
+- [ ] Implement law/rule state machine and research-frontier extensions after foundational contracts.
+
+No checkbox above asserting full CI pass, runtime compatibility or Rust-only application migration should be considered complete until corresponding hosted evidence is linked.
