@@ -156,7 +156,6 @@ fn receipt_verifier_rejects_extra_schema_fields_even_if_resigned() {
     assert!(verify_receipt(&receipt).is_err());
 }
 
-
 #[cfg(unix)]
 #[test]
 fn writer_does_not_accept_symlink_as_committed_evidence() {
