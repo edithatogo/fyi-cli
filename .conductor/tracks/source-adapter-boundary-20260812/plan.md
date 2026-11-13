@@ -10,9 +10,10 @@
   Offline implementation and adversarial parity fixtures are present; hosted
   smoke, downstream old/new parity, pinned release integration, NZ shadow
   parity, and archive cutover remain open acceptance gates.
-- [ ] #313: add source probing, shared capture pacing, `Retry-After`, and
-  checkpointed numeric-ID discovery.
-- [ ] #314: add narrowly allowlisted external historical-index retrieval.
+- [x] #313: add source probing, shared capture pacing, `Retry-After`, and
+  checkpointed numeric-ID discovery. [PR #410]
+- [x] #314: add narrowly allowlisted external historical-index retrieval.
+  [PR #410]
 
 These workstreams may proceed in parallel because they share only the receipt
 contract. Merge #310 first or use its fixture branch as the temporary base.
