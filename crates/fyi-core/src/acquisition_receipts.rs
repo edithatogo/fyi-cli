@@ -342,6 +342,11 @@ pub fn write_receipt_atomic(path: &Path, receipt: &Value) -> Result<()> {
 }
 
 fn check_existing(path: &Path, canonical: &[u8]) -> Result<()> {
+    let metadata = fs::symlink_metadata(path).context("unable to stat existing receipt")?;
+    ensure!(
+        metadata.file_type().is_file(),
+        "existing receipt must be a regular file, not a symlink or directory"
+    );
     let stored = fs::read(path).context("unable to read existing receipt")?;
     let value: Value =
         serde_json::from_slice(&stored).context("existing receipt is not valid JSON")?;
