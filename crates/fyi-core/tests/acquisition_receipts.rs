@@ -155,3 +155,30 @@ fn receipt_verifier_rejects_extra_schema_fields_even_if_resigned() {
     resign(&mut receipt);
     assert!(verify_receipt(&receipt).is_err());
 }
+
+
+#[cfg(unix)]
+#[test]
+fn writer_does_not_accept_symlink_as_committed_evidence() {
+    use fyi_core::acquisition_receipts::write_receipt_atomic;
+    use std::os::unix::fs::symlink;
+    let root = std::env::temp_dir().join(format!(
+        "fyi-receipt-symlink-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    std::fs::create_dir_all(&root).unwrap();
+    let real = root.join("real.json");
+    write_receipt_atomic(&real, &golden()).unwrap();
+    let link = root.join("link.json");
+    symlink(&real, &link).unwrap();
+    assert!(write_receipt_atomic(&link, &golden()).is_err());
+    assert!(std::fs::symlink_metadata(&link)
+        .unwrap()
+        .file_type()
+        .is_symlink());
+    std::fs::remove_dir_all(&root).unwrap();
+}
