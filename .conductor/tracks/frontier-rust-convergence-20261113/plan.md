@@ -1,6 +1,31 @@
 # Frontier architecture, single-developer engineering and runtime migration — implementation plan
 Status: active planning; individual capability work requires evidence before marking complete.
 
+## Rust-only application cutover decision — 2026-11-13
+
+The user confirmed Rust as the supported application destination. Freeze new
+Python application features and defer Python-only test acceleration. Retain the
+existing Python application for necessary compatibility and safety fixes while
+the selected Rust replacements and the independently pinned `fyi-archive`
+consumer are migrated.
+
+The initial retained scope covers bounded source acquisition and archival capture
+used by `fyi-archive`, local request tracking, a safe path for existing data and
+the existing MCP contracts. Reporting, the web UI and other legacy commands
+require an explicit retention or retirement decision. The separate `fyi-archive`
+implementation and repository tooling retain their existing ownership. Any active
+Python work must use the required qualified Python 3.15 runtime.
+
+- [~] Make unsupported Rust commands fail explicitly and correct installation
+  guidance and registry records for the crates.io name collision.
+- [ ] Complete retained request and archive functionality, including tests for
+  state, output, errors, safety and existing-data handling.
+- [ ] Move the pinned archive consumer to a verified Rust release and preserve
+  rollback and the existing source-boundary ownership and acceptance evidence.
+- [ ] Retire the Python application and release path after its retained consumers
+  have moved or their functionality has been explicitly retired. Keep equivalent
+  quality and security checks as implementation-specific checks change.
+
 ## Dependencies and delivery order
 1. **Reconcile baseline**: merge or reconcile PR #402; review `.conductor/tracks.md`, `.conductor/index.md` and active source-adapter-boundary #309; preserve statuses and provenance.
 2. **Inventory and contract freeze**: generate machine-readable Python/Rust CLI/MCP/API/provider command surface inventory and downstream consumer graph. Capture golden outputs and legacy/version crosswalk. No deletion before fixture coverage.

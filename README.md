@@ -6,7 +6,6 @@ other [Alaveteli](https://alaveteli.org/) deployment (foi-repository, WhatDoThey
 more), from a single privacy-focused CLI.
 
 [![PyPI version](https://badge.fury.io/py/fyi-cli.svg)](https://badge.fury.io/py/fyi-cli)
-[![Crates.io](https://img.shields.io/crates/v/fyi-cli.svg)](https://crates.io/crates/fyi-cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/edithatogo/fyi-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/edithatogo/fyi-cli/actions/workflows/ci.yml)
 [![Codecov](https://codecov.io/gh/edithatogo/fyi-cli/branch/master/graph/badge.svg)](https://codecov.io/gh/edithatogo/fyi-cli)
@@ -14,8 +13,10 @@ more), from a single privacy-focused CLI.
 [![Glama](https://glama.ai/mcp/servers/edithatogo/fyi-cli/badges/score.svg)](https://glama.ai/mcp/servers/edithatogo/fyi-cli)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-io.github.edithatogo%2Ffyi--mcp-blue)](https://registry.modelcontextprotocol.io/)
 
-The project's core is a **Rust workspace** (`fyi-core`, `fyi-cli`, `fyi-mcp`); a legacy Python
-package (`fyi_system`) remains available as a reference implementation but is no longer extended.
+The supported application is moving to the **Rust workspace** (`fyi-core`, `fyi-cli`,
+`fyi-mcp`). The legacy Python package (`fyi_system`) is frozen for migration and
+existing archive consumers. Rust command names do not yet imply feature parity:
+unimplemented commands fail explicitly. See the [migration inventory](docs/rust-python-command-parity-20261113.md).
 
 ### Where fyi-cli / fyi-mcp is listed
 
@@ -27,14 +28,14 @@ package (`fyi_system`) remains available as a reference implementation but is no
 | **Glama** | `edithatogo/fyi-cli` (`fyi-mcp`) | Live | [glama.ai/mcp/servers/edithatogo/fyi-cli](https://glama.ai/mcp/servers/edithatogo/fyi-cli) · [scores](https://glama.ai/mcp/servers/edithatogo/fyi-cli/score) |
 | **Smithery** | `edithatogo/fyi-mcp` | Live (score pending) | [smithery.ai/server/@edithatogo/fyi-mcp](https://smithery.ai/server/@edithatogo/fyi-mcp) |
 | **PyPI** | `fyi-cli` (legacy Python package) | Live | [pypi.org/project/fyi-cli](https://pypi.org/project/fyi-cli/) |
-| **Crates.io** | `fyi-cli` / workspace crates | Published / release flow | [crates.io/crates/fyi-cli](https://crates.io/crates/fyi-cli) |
+| **Crates.io** | Rust workspace crates | Blocked: `fyi-cli` and `fyi-core` are owned by another project | [distribution matrix](docs/registry-distribution-matrix.md) |
 | **GitHub Releases** | CLI + MCPB assets | Live | [Releases](https://github.com/edithatogo/fyi-cli/releases) |
 | **Awesome-MCP-Servers** | Legal section entry | PR submitted | [PR #9693](https://github.com/punkpeye/awesome-mcp-servers/pull/9693) |
 | **GitHub curated MCP** (`github.com/mcp`) | — | Blocked external (manual onboarding) | Tracked in [#32](https://github.com/edithatogo/fyi-cli/issues/32) |
 
 **Draft / not yet submitted:** Scoop, WinGet, Homebrew, Chocolatey, GHCR multi-arch workflow, PulseMCP, mcp.so, Docker MCP Catalog, mcp-get, OpenTools, AUR, nixpkgs, Snap, Flatpak, asdf/mise, Debian/PPA, Fedora/COPR.
 
-`cargo-binstall` is already **assets-ready** and wired in-repo, but still depends on matching GitHub Release assets before it can be treated as a live distribution path. Codex and Anthropic packets are assets-ready but still require external submission.
+`cargo-binstall` is blocked by the same crate-name collision. Codex and Anthropic packets are assets-ready but still require external submission.
 
 Full status matrix (including planned channels): [`docs/registry-distribution-matrix.md`](docs/registry-distribution-matrix.md).
 
@@ -43,21 +44,18 @@ Full status matrix (including planned channels): [`docs/registry-distribution-ma
 ## 🚀 Quick Start
 
 ```bash
-# Install (Rust workspace, recommended)
-cargo install --path crates/fyi-cli
-# or: cargo install fyi-cli   (once published to crates.io)
+# Install from a local clone of this Rust workspace
+cargo install --path crates/fyi-cli --locked
 
 # Initialize
 fyi-cli init-db
 
-# Create your first request
-fyi-cli register-request ministry-of-justice "OIA Request" "Request body..." --status draft
-
-# Track and manage requests
-fyi-cli list-requests
+# List configured jurisdictions
+fyi-cli instances
 ```
 
-**Full guide:** [QUICKSTART.md](QUICKSTART.md)
+Request registration, reporting and archive capture are still being migrated.
+The [legacy quick start](QUICKSTART.md) describes Python, not the Rust CLI.
 
 ---
 
@@ -67,13 +65,12 @@ fyi-cli list-requests
   (UK), FragDenStaat (Germany), righttoknow.org.au (Australia), and more, with jurisdiction-aware
   metadata and localization on the way
 - **🔒 Privacy-First**: All data stored locally, optional encryption, Tor support
-- **📊 Track Requests**: Monitor FOI/OIA requests from creation to completion
-- **🤖 Automated Monitoring**: Watch instances for updates automatically
-- **📈 Reports & Analytics**: Generate dashboards, attention reports, handover docs
+- **📊 Request tracking and reports**: Legacy Python features being migrated to Rust
+- **🤖 Automated monitoring**: Legacy Python feature being migrated to Rust
 - **🔐 Secure Storage**: Encrypted credentials, OS keyring integration
 - **💻 CLI + MCP**: Command-line tool and an [MCP server](crates/fyi-mcp) for AI assistants
-- **📦 Export Options**: JSON, CSV, HTML export capabilities
-- **🗄️ Faithful Archiving**: WARC/WACZ capture of requests, correspondence, and attachments
+- **📦 Process-event export**: Rust export of public-safe events
+- **🗄️ Faithful archiving**: WARC/WACZ capture remains in the legacy Python path until the archive cutover
 
 ---
 
@@ -84,8 +81,8 @@ fyi-cli list-requests
 | Path | Command / location | Notes |
 |------|--------------------|--------|
 | **Cargo (clone)** | `cargo install --path crates/fyi-cli` | Recommended |
-| **Cargo (crates.io)** | `cargo install fyi-cli` | When published |
-| **cargo-binstall** | `cargo binstall fyi-cli` | **assets-ready** — needs matching release assets |
+| **Cargo (crates.io)** | Blocked | The existing `fyi-cli` and `fyi-core` names belong to another project |
+| **cargo-binstall** | Blocked | Requires an unambiguous published crate and matching release assets |
 | **GitHub Releases** | [Releases](https://github.com/edithatogo/fyi-cli/releases) | Prebuilt CLI / MCPB; check asset names per tag |
 | **PyPI (legacy)** | `pip install fyi-cli` | Python `fyi_system`; not extended |
 | **MCP binary** | `cargo install --path crates/fyi-mcp` | Or MCPB from Releases |

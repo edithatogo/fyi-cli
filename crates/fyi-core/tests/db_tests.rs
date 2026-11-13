@@ -2,6 +2,34 @@ use fyi_core::api::{AlaveteliCorrespondence, AlaveteliRequest, CorrespondenceDir
 use fyi_core::db::{DbPool, SyncStatus};
 
 #[tokio::test]
+async fn rust_initialization_refuses_legacy_database_without_modification() {
+    let db = DbPool::new_in_memory().await.unwrap();
+    sqlx::query("CREATE TABLE tracked_requests (id INTEGER PRIMARY KEY, body TEXT NOT NULL)")
+        .execute(db.pool())
+        .await
+        .unwrap();
+    sqlx::query("INSERT INTO tracked_requests (id, body) VALUES (1, 'preserve this draft')")
+        .execute(db.pool())
+        .await
+        .unwrap();
+
+    let error = db.initialize_rust_schema().await.unwrap_err();
+    assert!(error.to_string().contains("legacy Python database"));
+    let body: String = sqlx::query_scalar("SELECT body FROM tracked_requests WHERE id = 1")
+        .fetch_one(db.pool())
+        .await
+        .unwrap();
+    assert_eq!(body, "preserve this draft");
+    let rust_tables: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'requests'",
+    )
+    .fetch_one(db.pool())
+    .await
+    .unwrap();
+    assert_eq!(rust_tables, 0);
+}
+
+#[tokio::test]
 async fn test_db_pool_and_migrations() {
     // 1. Initialize an in-memory SQLite database
     let db = DbPool::new_in_memory()

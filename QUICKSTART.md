@@ -1,5 +1,8 @@
 # Quick Start Guide
 
+> This is a legacy Python guide retained during the Rust migration. Its commands
+> and expected outputs are not a guide to the current Rust CLI.
+
 **Get started with FYI Request System in 5 minutes!**
 
 ---

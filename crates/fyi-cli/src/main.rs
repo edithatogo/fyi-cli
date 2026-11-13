@@ -583,50 +583,14 @@ fn main() {
             }
             println!("Initialized SQLite database at {}", db);
         }
-        Commands::ImportAuthorities { csv_path, db } => {
-            println!("Imported authorities from {} to {}", csv_path, db);
-        }
-        Commands::ListAuthorities { db } => {
-            println!("Listing authorities in {}", db);
-        }
-        Commands::RegisterRequest {
-            authority_slug,
-            title,
-            body: _,
-            status,
-            db,
-            ..
-        } => {
-            println!(
-                "Registering request: '{}' (Authority: {}, Status: {}) in {}",
-                title, authority_slug, status, db
-            );
-        }
-        Commands::ListRequests { db } => {
-            println!("Listing requests from {}", db);
-        }
-        Commands::SetStatus {
-            request_id,
-            status,
-            db,
-        } => {
-            println!(
-                "Updating request {} status to {} in {}",
-                request_id, status, db
-            );
-        }
-        Commands::RequestTimeline { request_id, db } => {
-            println!("Fetching request timeline for {} in {}", request_id, db);
-        }
-        Commands::ExportRequests { output, db } => {
-            println!("Exporting requests from {} to {}", db, output);
-        }
-        Commands::ImportRequests { input, replace, db } => {
-            println!(
-                "Importing requests from {} to {} (Replace: {})",
-                input, db, replace
-            );
-        }
+        Commands::ImportAuthorities { .. } => unsupported_command("import-authorities"),
+        Commands::ListAuthorities { .. } => unsupported_command("list-authorities"),
+        Commands::RegisterRequest { .. } => unsupported_command("register-request"),
+        Commands::ListRequests { .. } => unsupported_command("list-requests"),
+        Commands::SetStatus { .. } => unsupported_command("set-status"),
+        Commands::RequestTimeline { .. } => unsupported_command("request-timeline"),
+        Commands::ExportRequests { .. } => unsupported_command("export-requests"),
+        Commands::ImportRequests { .. } => unsupported_command("import-requests"),
         Commands::BuildPrefilledUrl {
             authority_slug,
             title,
@@ -677,12 +641,8 @@ fn main() {
                 );
             }
         }
-        Commands::IngestFeed { feed_url, db } => {
-            println!("Ingesting feed from {} into {}", feed_url, db);
-        }
-        Commands::ReconcileEvents { db } => {
-            println!("Reconciling feed events in {}", db);
-        }
+        Commands::IngestFeed { .. } => unsupported_command("ingest-feed"),
+        Commands::ReconcileEvents { .. } => unsupported_command("reconcile-events"),
         Commands::FetchRequestPage {
             request_id,
             base_url,
@@ -744,165 +704,24 @@ fn main() {
                 std::process::exit(1);
             }
         }
-        Commands::AttentionReport { output, db } => {
-            println!("Attention report generated at {} from {}", output, db);
-        }
-        Commands::Handover { output, db } => {
-            println!("Handover generated at {} from {}", output, db);
-        }
-        Commands::Dashboard {
-            output,
-            json_output,
-            db,
-        } => {
-            println!(
-                "Dashboard written to {} (JSON: {:?}) using {}",
-                output, json_output, db
-            );
-        }
-        Commands::RunCycle {
-            feed_url,
-            outputs_dir,
-            db,
-        } => {
-            println!(
-                "Running cycle for {} in {} (Outputs: {})",
-                feed_url, db, outputs_dir
-            );
-        }
-        Commands::Scheduler {
-            feed_url,
-            interval_seconds,
-            outputs_dir,
-            db,
-            once,
-        } => {
-            println!(
-                "Running scheduler on {} every {}s (Once: {}) in {} (Outputs: {})",
-                feed_url, interval_seconds, once, db, outputs_dir
-            );
-        }
-        Commands::Serve {
-            host,
-            port,
-            settings,
-            db,
-        } => {
-            println!(
-                "Serving Webapp/API on {:?}:{} (Settings: {:?}) using {}",
-                host, port, settings, db
-            );
-        }
-        Commands::RequestDetail { request_id, db } => {
-            println!("Request details for {} from {}", request_id, db);
-        }
-        Commands::ExportRequest {
-            request_id,
-            output,
-            db,
-        } => {
-            println!(
-                "Exporting request {} to {:?} using {}",
-                request_id, output, db
-            );
-        }
-        Commands::FollowUpDraft {
-            request_id,
-            output,
-            db,
-        } => {
-            println!(
-                "Drafting follow-up for {} to {:?} using {}",
-                request_id, output, db
-            );
-        }
-        Commands::AttachmentManifest {
-            request_id,
-            output,
-            db,
-        } => {
-            println!(
-                "Attachment manifest JSON for {} written to {} using {}",
-                request_id, output, db
-            );
-        }
-        Commands::AttachmentManifestCsv {
-            request_id,
-            output,
-            db,
-        } => {
-            println!(
-                "Attachment manifest CSV for {} written to {} using {}",
-                request_id, output, db
-            );
-        }
-        Commands::FollowUpVariants {
-            request_id,
-            output,
-            db,
-        } => {
-            println!(
-                "Generating follow-up variants for {} to {:?} using {}",
-                request_id, output, db
-            );
-        }
-        Commands::FollowUpPack {
-            request_id,
-            output,
-            db,
-        } => {
-            println!(
-                "Generating follow-up pack for {} to {:?} using {}",
-                request_id, output, db
-            );
-        }
-        Commands::TriageReport { output, db } => {
-            println!("Generating triage report to {:?} using {}", output, db);
-        }
-        Commands::ResponseAnalysis {
-            request_id,
-            output,
-            db,
-        } => {
-            println!(
-                "Analyzing response for {} to {:?} using {}",
-                request_id, output, db
-            );
-        }
-        Commands::NextBestAction {
-            request_id,
-            tone,
-            output,
-            db,
-        } => {
-            println!(
-                "Determining next best action (tone: {}) for {} to {:?} using {}",
-                tone, request_id, output, db
-            );
-        }
-        Commands::CorrespondencePack {
-            request_id,
-            format,
-            output,
-            db,
-        } => {
-            println!(
-                "Generating correspondence pack ({:?}) for {} to {:?} using {}",
-                format, request_id, output, db
-            );
-        }
-        Commands::ExportBundle {
-            request_id,
-            output_dir,
-            profile,
-            no_sanitize,
-            db,
-        } => {
-            println!(
-                "Exporting bundle for {} to {:?} (Profile: {:?}, No Sanitize: {}) using {}",
-                request_id, output_dir, profile, no_sanitize, db
-            );
-        }
+        Commands::AttentionReport { .. } => unsupported_command("attention-report"),
+        Commands::Handover { .. } => unsupported_command("handover"),
+        Commands::Dashboard { .. } => unsupported_command("dashboard"),
+        Commands::RunCycle { .. } => unsupported_command("run-cycle"),
+        Commands::Scheduler { .. } => unsupported_command("scheduler"),
+        Commands::Serve { .. } => unsupported_command("serve"),
+        Commands::RequestDetail { .. } => unsupported_command("request-detail"),
+        Commands::ExportRequest { .. } => unsupported_command("export-request"),
+        Commands::FollowUpDraft { .. } => unsupported_command("follow-up-draft"),
+        Commands::AttachmentManifest { .. } => unsupported_command("attachment-manifest"),
+        Commands::AttachmentManifestCsv { .. } => unsupported_command("attachment-manifest-csv"),
+        Commands::FollowUpVariants { .. } => unsupported_command("follow-up-variants"),
+        Commands::FollowUpPack { .. } => unsupported_command("follow-up-pack"),
+        Commands::TriageReport { .. } => unsupported_command("triage-report"),
+        Commands::ResponseAnalysis { .. } => unsupported_command("response-analysis"),
+        Commands::NextBestAction { .. } => unsupported_command("next-best-action"),
+        Commands::CorrespondencePack { .. } => unsupported_command("correspondence-pack"),
+        Commands::ExportBundle { .. } => unsupported_command("export-bundle"),
         Commands::ExportProcessEvents {
             derived_dir,
             output,
@@ -929,19 +748,8 @@ fn main() {
                 }
             }
         }
-        Commands::ShowSettings { settings, output } => {
-            println!("Showing settings from {:?} to {:?}", settings, output);
-        }
-        Commands::PrivacyAudit {
-            db,
-            host,
-            outputs_dir,
-            profile,
-            settings,
-            output,
-        } => {
-            println!("Privacy audit on {} (Host: {:?}, Outputs: {}, Profile: {:?}, Settings: {:?}) to {:?}", db, host, outputs_dir, profile, settings, output);
-        }
+        Commands::ShowSettings { .. } => unsupported_command("show-settings"),
+        Commands::PrivacyAudit { .. } => unsupported_command("privacy-audit"),
         Commands::Mfa { command } => {
             if let Err(error) = handle_mfa_command(command) {
                 eprintln!("MFA command failed: {error}");
@@ -1022,14 +830,14 @@ fn main() {
                 }
             }
         }
-        Commands::McpServer => {
-            println!("Starting MCP Server...");
-            println!("Available tools: {}", mcp_tool_names().join(", "));
-        }
-        Commands::Tui => {
-            println!("Starting TUI Dashboard...");
-        }
+        Commands::McpServer => unsupported_command("mcp-server (use the separate fyi-mcp binary)"),
+        Commands::Tui => unsupported_command("tui"),
     }
+}
+
+fn unsupported_command(command: &str) -> ! {
+    eprintln!("{command} is not yet implemented in the Rust CLI");
+    std::process::exit(1);
 }
 
 fn parse_ymd(value: &str) -> Result<NaiveDate, String> {
@@ -1504,16 +1312,6 @@ fn sqlite_url(db: &str) -> String {
     }
 }
 
-fn mcp_tool_names() -> &'static [&'static str] {
-    &[
-        "mfa_setup",
-        "mfa_verify",
-        "mfa_status",
-        "mfa_remove",
-        "sync_status",
-    ]
-}
-
 fn initialize_database_file(db: &str) -> std::io::Result<()> {
     let path = Path::new(db);
     if let Some(parent) = path
@@ -1522,8 +1320,24 @@ fn initialize_database_file(db: &str) -> std::io::Result<()> {
     {
         std::fs::create_dir_all(parent)?;
     }
-    OpenOptions::new().create(true).append(true).open(path)?;
-    Ok(())
+    let mut options = OpenOptions::new();
+    options.create(true).append(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    options.open(path)?;
+
+    let runtime = Runtime::new()?;
+    runtime.block_on(async {
+        let pool = DbPool::new(&sqlite_url(db))
+            .await
+            .map_err(std::io::Error::other)?;
+        pool.initialize_rust_schema()
+            .await
+            .map_err(|error| std::io::Error::other(error.to_string()))
+    })
 }
 
 #[cfg(test)]
@@ -1798,17 +1612,6 @@ mod tests {
                 }
             }
         );
-    }
-
-    #[test]
-    fn test_mcp_exposes_mfa_tools() {
-        let tools = mcp_tool_names();
-
-        assert!(tools.contains(&"mfa_setup"));
-        assert!(tools.contains(&"mfa_verify"));
-        assert!(tools.contains(&"mfa_status"));
-        assert!(tools.contains(&"mfa_remove"));
-        assert!(tools.contains(&"sync_status"));
     }
 
     #[test]

@@ -3,7 +3,7 @@
 Implementation-oriented submission matrix for **fyi-cli** / **fyi-mcp** distribution.
 Update this file when a submission lands or when release assets change.
 
-Last reviewed: **2026-07-11**
+Crates.io names reviewed: **2026-11-13**; other registry statuses retain their dated evidence below.
 
 Home-page listing (README): see **Where fyi-cli / fyi-mcp is listed** in [`README.md`](../README.md).  
 Release automation (tags, GHCR, external catalogs, version sync): [`release-multi-registry.md`](./release-multi-registry.md).
@@ -41,8 +41,8 @@ Machine-readable submission ledger: [`packaging/registry-submissions.json`](../p
 
 | Target | Status | Repo artifacts | Issue |
 |--------|--------|----------------|-------|
-| Crates.io | **assets-ready** / publish flow | cargo-dist / release automation | — |
-| PyPI (legacy `fyi-cli`) | **live** / maintained as legacy | `pyproject.toml` | — |
+| Crates.io | **blocked** | `fyi-cli` and `fyi-core` resolve to a different project; select and verify new names before publishing | — |
+| PyPI (legacy `fyi-cli`) | **live** / frozen for migration | Public release 1.0.0; the Git-pinned archive consumer is separate | — |
 | Homebrew | **assets-ready** | `packaging/homebrew/fyi-cli.rb` (placeholders for SHA/URLs — update per release) | — |
 | Chocolatey | **assets-ready** | `packaging/chocolatey/fyi-cli.nuspec` | — |
 | Scoop | **assets-ready** | `packaging/scoop/fyi-cli.json` | #106 |
@@ -52,7 +52,7 @@ Machine-readable submission ledger: [`packaging/registry-submissions.json`](../p
 | Snap | **assets-ready** (draft) | `packaging/snap/snapcraft.yaml` — builds `fyi-cli` + `fyi-mcp` from tagged source | #110 |
 | Flatpak | **assets-ready** (draft) | `packaging/flatpak/io.github.edithatogo.fyi-cli.yml` (+ AppStream metainfo) | #111 |
 | asdf / mise | **assets-ready** (draft) | `packaging/asdf/bin/{install,list-all}`, `packaging/mise/backend.toml` | #112 |
-| cargo-binstall | **assets-ready** | `packaging/cargo-binstall/metadata.toml` plus wired `[package.metadata.binstall]` in `crates/fyi-cli/Cargo.toml` and `crates/fyi-mcp/Cargo.toml`; still needs matching release assets for public resolution | #113 |
+| cargo-binstall | **blocked** | Resolve the crate-name collision and verify matching release assets before public installation | #113 |
 | Debian / PPA | **assets-ready** (draft) | `packaging/debian/{control,rules,changelog,copyright}` skeleton | #114 |
 | Fedora / COPR | **assets-ready** (draft) | `packaging/fedora/fyi-cli.spec` | #115 |
 
