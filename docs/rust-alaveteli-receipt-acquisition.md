@@ -34,7 +34,47 @@ fyi-cli verify-acquisition-receipt evidence/42-receipt.json \
 
 Evidence paths must be supplied together or not at all. Writes create private same-directory temporary files, flush them and atomically publish with no clobber; same-byte repeats are idempotent, conflicting files and symlinks fail closed. The raw and normalized files are published **before** the receipt, to avoid leaving a falsely complete receipt after a failed blob write. They are not a three-file transaction: interrupted operations may leave orphan blobs for operator reconciliation.
 
-The `--db` option remains syntactically accepted in Rust but this new read-only path does not mutate SQLite. Python's `fetch-request-page` has different request path, database side effects and output shape; this is **partial**, not demonstrated behavioural parity.
+The `--db` option remains syntactically accepted in Rust. Request records are
+written only by the retained Python command. Python's `fetch-request-page` also
+uses a different request path and output shape, so semantic parity remains open.
+
+## Shared source pacing
+
+Rust callers can opt into the existing SQLite limiter used by the retained Python
+source adapters. Pass the same database path and limiter name to coordinate
+future reservations across clients. The default name is `archive-discovery`,
+the default minimum interval is two seconds, and jitter is at most 0.25 seconds.
+The existing Rust in-process guards also apply.
+
+```bash
+fyi-cli fetch-request-page 42 --base-url https://fyi.org.nz \
+  --shared-rate-limit-db source-pacing.db \
+  --rate-limit-name archive-discovery \
+  --minimum-interval-seconds 2
+
+# Read existing local state without contacting a source
+fyi-cli rate-limit-status --db source-pacing.db --name archive-discovery
+```
+
+Each reservation updates `shared_rate_limit_state` and its event in one SQLite
+immediate transaction. A storage failure blocks the HTTP request. HTTP 429 and
+503 responses with a valid `Retry-After` advance the shared reservation. Existing
+reserved slots retain their scheduled times, matching the retained Python
+algorithm. The command performs one HTTP attempt. It adds no automatic retries.
+Receipts include the configured limiter name and minimum interval.
+
+`rate-limit-status` opens an existing database read-only and returns the stored
+state plus the ten latest events. An unknown name returns JSON `null`. A missing
+database or incomplete limiter schema returns an error. This differs from the
+Python reader, which initializes missing state tables. Rust accepts `--db`,
+`--name` and `--output`. Its `--agent-memory` option remains unimplemented.
+
+`--output` uses the existing private, atomic, no-clobber evidence writer.
+Byte-identical repeats succeed. Save changed snapshots to a new path. Conflicting
+files and symlinks are preserved and produce an error. Tests compare reservation
+values and the complete status JSON with
+`conformance/pacing/shared-rate-limit-v1-python.json`, generated from the retained
+Python implementation on Python 3.15.1 with fixed clock and jitter inputs.
 
 ## Offline conformance and limitations
 

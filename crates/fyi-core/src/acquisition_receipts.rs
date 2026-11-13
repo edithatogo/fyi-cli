@@ -428,6 +428,21 @@ pub struct SingleGetReceiptInput<'a> {
 }
 
 pub fn build_single_get_receipt(input: SingleGetReceiptInput<'_>) -> Result<Value> {
+    build_single_get_receipt_with_rate_limit(input, None)
+}
+
+/// Include the configured shared limiter in the self-digested receipt payload.
+pub fn build_single_get_receipt_with_rate_limit(
+    input: SingleGetReceiptInput<'_>,
+    rate_limit: Option<(&str, f64)>,
+) -> Result<Value> {
+    if let Some((name, interval)) = rate_limit {
+        ensure!(!name.trim().is_empty(), "rate limit name must not be blank");
+        ensure!(
+            interval.is_finite() && interval >= 0.0,
+            "rate limit interval must be finite and nonnegative"
+        );
+    }
     let SingleGetReceiptInput {
         source_url,
         response_url,
@@ -472,8 +487,8 @@ pub fn build_single_get_receipt(input: SingleGetReceiptInput<'_>) -> Result<Valu
             "retries": 0,
         },
         "rate_limit": {
-            "name": null,
-            "minimum_interval_seconds": null,
+            "name": rate_limit.map(|(name, _)| name),
+            "minimum_interval_seconds": rate_limit.map(|(_, interval)| interval),
         },
         "checkpoint": {
             "before_sha256": null,

@@ -2,13 +2,13 @@
 
 Scope: top-level parser names in `src/fyi_system/cli.py` and
 `crates/fyi-cli/src/main.rs`, reconciled with
-`conformance/cli/command-name-parity.json` after PR #410. This is **not** a
-claim of runtime or output equivalence.
+`conformance/cli/command-name-parity.json`, including the Rust shared-pacing
+increment. Functional evidence is recorded separately for each command.
 
 ## Coverage summary
 - Python: **48** top-level subcommands, exposed through **three** Python package executables (`fyi`, `fyi-cli`, `fyi-system`).
-- Rust: **44** top-level clap variants, exposed as the native `fyi-cli` binary (plus `fyi-mcp` separately).
-- **34 names overlap**; **14 Python commands have no matching Rust top-level name**; **10 Rust commands have no matching Python top-level name**.
+- Rust: **45** top-level clap variants, exposed as the native `fyi-cli` binary (plus `fyi-mcp` separately).
+- **35 names overlap**; **13 Python commands have no matching Rust top-level name**; **10 Rust commands have no matching Python top-level name**.
 - **Important:** matching names are **syntax-only potential parity**. Unimplemented Rust commands return an error rather than reporting a successful operation.
 
 ## Python-only commands: port or replace with contract-tested Rust implementation
@@ -16,7 +16,6 @@ claim of runtime or output equivalence.
 |---|---|---|
 | `discover-bodies` | `fyi-core` acquisition/archive service + thin `fyi-cli` handler | Offline golden input/output, fixtures, privacy/SSRF budget, receipt + error parity |
 | `discover` | `fyi-core` acquisition/archive service + thin `fyi-cli` handler | Offline golden input/output, fixtures, privacy/SSRF budget, receipt + error parity |
-| `rate-limit-status` | `fyi-core` acquisition/archive service + thin `fyi-cli` handler | Offline golden input/output, fixtures, privacy/SSRF budget, receipt + error parity |
 | `dry-plan` | `fyi-core` acquisition/archive service + thin `fyi-cli` handler | Offline golden input/output, fixtures, privacy/SSRF budget, receipt + error parity |
 | `discover-reconcile` | `fyi-core` acquisition/archive service + thin `fyi-cli` handler | Offline golden input/output, fixtures, privacy/SSRF budget, receipt + error parity |
 | `internet-archive-cdx` | `fyi-core` acquisition/archive service + thin `fyi-cli` handler | Offline golden input/output, fixtures, privacy/SSRF budget, receipt + error parity |
@@ -47,6 +46,7 @@ The `capture`, `internet-archive-cdx`, `internet-archive-replay`, `discover` and
 | `ingest-feed` | Unimplemented in Rust; exits with an error | Independent output/state equivalence, failure semantics and side-effect parity |
 | `reconcile-events` | Unimplemented in Rust; exits with an error | Independent output/state equivalence, failure semantics and side-effect parity |
 | `fetch-request-page` | Rust guarded HTTP read and receipt/byte output implemented; **partial parity**, Python endpoint/SQLite/output semantics differ | Offline response, DB side-effect and CLI/error cross-language parity |
+| `rate-limit-status` | Rust reads existing shared SQLite state and ten latest events; **partial parity**, `--agent-memory` is unavailable and output files use no-clobber publication | Frozen Python scheduling/status fixture, read-only DB checks, CLI/error and file-protection tests |
 | `export-process-events` | Named Rust handler exists; implementation equivalence not established | Independent output/state equivalence, failure semantics and side-effect parity |
 | `attention-report` | Unimplemented in Rust; exits with an error | Independent output/state equivalence, failure semantics and side-effect parity |
 | `handover` | Unimplemented in Rust; exits with an error | Independent output/state equivalence, failure semantics and side-effect parity |

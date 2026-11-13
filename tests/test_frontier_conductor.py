@@ -96,5 +96,5 @@ def test_cli_command_parity_manifest_matches_actual_parsers() -> None:
     actual = commands(root)
     assert actual == manifest
     assert len(actual["python_commands"]) == 48
-    assert len(actual["rust_commands"]) == 44
-    assert len(actual["shared_commands"]) == 34
+    assert len(actual["rust_commands"]) == 45
+    assert len(actual["shared_commands"]) == 35

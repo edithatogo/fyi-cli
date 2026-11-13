@@ -17,5 +17,6 @@ pub mod provider_contract;
 pub mod providers;
 pub mod search;
 pub mod security;
+pub mod shared_pacing;
 pub mod sync;
 pub mod tor;

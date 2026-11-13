@@ -185,6 +185,24 @@ pub enum Commands {
         /// Optional original HTTP response bytes; requires receipt and result-file.
         #[arg(long)]
         raw_file: Option<String>,
+        /// Coordinate with other clients using this shared SQLite pacing database.
+        #[arg(long)]
+        shared_rate_limit_db: Option<String>,
+        /// Shared limiter name (defaults to archive-discovery).
+        #[arg(long, requires = "shared_rate_limit_db")]
+        rate_limit_name: Option<String>,
+        /// Shared minimum request interval in seconds (defaults to 2).
+        #[arg(long, requires = "shared_rate_limit_db", value_parser = parse_interval)]
+        minimum_interval_seconds: Option<std::time::Duration>,
+    },
+    #[command(about = "Read existing shared source-pacing state")]
+    RateLimitStatus {
+        #[arg(long, default_value = "fyi_system.db")]
+        db: String,
+        #[arg(long, default_value = "archive-discovery")]
+        name: String,
+        #[arg(long)]
+        output: Option<String>,
     },
     #[command(about = "Generate attention report")]
     AttentionReport {
@@ -650,6 +668,9 @@ fn main() {
             receipt,
             result_file,
             raw_file,
+            shared_rate_limit_db,
+            rate_limit_name,
+            minimum_interval_seconds,
         } => {
             let provided = [receipt, result_file, raw_file]
                 .iter()
@@ -669,10 +690,26 @@ fn main() {
                     eprintln!("receipt, raw and normalized result output paths must be distinct");
                     std::process::exit(2);
                 }
+                if shared_rate_limit_db
+                    .as_deref()
+                    .is_some_and(|db| paths.contains(&Path::new(db)))
+                {
+                    eprintln!("shared pacing database and evidence output paths must be distinct");
+                    std::process::exit(2);
+                }
             }
             let result = (|| -> Result<(), Box<dyn std::error::Error>> {
-                let client = SyncClient::new(base_url)?;
                 let runtime = Runtime::new()?;
+                let mut client = SyncClient::new(base_url)?;
+                if let Some(db_path) = shared_rate_limit_db {
+                    create_database_file(db_path)?;
+                    let pool = runtime.block_on(DbPool::new(&sqlite_url(db_path)))?;
+                    client = client.with_shared_pacing(
+                        pool,
+                        rate_limit_name.as_deref().unwrap_or("archive-discovery"),
+                        minimum_interval_seconds.unwrap_or(std::time::Duration::from_secs(2)),
+                    );
+                }
                 let evidence =
                     runtime.block_on(client.fetch_request_evidence(i64::from(*request_id)))?;
                 if let (Some(receipt), Some(result), Some(raw)) = (
@@ -701,6 +738,30 @@ fn main() {
             })();
             if let Err(error) = result {
                 eprintln!("Failed to acquire request with evidence: {error}");
+                std::process::exit(1);
+            }
+        }
+        Commands::RateLimitStatus { db, name, output } => {
+            let result = (|| -> Result<(), Box<dyn std::error::Error>> {
+                let runtime = Runtime::new()?;
+                let snapshot = runtime.block_on(fyi_core::shared_pacing::read_status_file(
+                    Path::new(db),
+                    name,
+                ))?;
+                if let Some(path) = output {
+                    let bytes = format!("{}\n", serde_json::to_string_pretty(&snapshot)?);
+                    fyi_core::acquisition_receipts::write_evidence_bytes_atomic(
+                        Path::new(path),
+                        bytes.as_bytes(),
+                    )?;
+                    println!("{path}");
+                } else {
+                    print_json_value(&snapshot)?;
+                }
+                Ok(())
+            })();
+            if let Err(error) = result {
+                eprintln!("Unable to read shared pacing state: {error}");
                 std::process::exit(1);
             }
         }
@@ -838,6 +899,14 @@ fn main() {
 fn unsupported_command(command: &str) -> ! {
     eprintln!("{command} is not yet implemented in the Rust CLI");
     std::process::exit(1);
+}
+
+fn parse_interval(value: &str) -> Result<std::time::Duration, String> {
+    let seconds = value
+        .parse::<f64>()
+        .map_err(|_| "interval must be numeric")?;
+    std::time::Duration::try_from_secs_f64(seconds)
+        .map_err(|_| "interval must be finite, nonnegative and representable".to_owned())
 }
 
 fn parse_ymd(value: &str) -> Result<NaiveDate, String> {
@@ -1312,7 +1381,7 @@ fn sqlite_url(db: &str) -> String {
     }
 }
 
-fn initialize_database_file(db: &str) -> std::io::Result<()> {
+fn create_database_file(db: &str) -> std::io::Result<()> {
     let path = Path::new(db);
     if let Some(parent) = path
         .parent()
@@ -1328,7 +1397,11 @@ fn initialize_database_file(db: &str) -> std::io::Result<()> {
         options.mode(0o600);
     }
     options.open(path)?;
+    Ok(())
+}
 
+fn initialize_database_file(db: &str) -> std::io::Result<()> {
+    create_database_file(db)?;
     let runtime = Runtime::new()?;
     runtime.block_on(async {
         let pool = DbPool::new(&sqlite_url(db))

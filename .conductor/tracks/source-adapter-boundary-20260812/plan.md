@@ -100,3 +100,23 @@ See `docs/rust-alaveteli-receipt-acquisition.md`. Retain prior merged PR evidenc
 - [~] Add Python regression tests for idempotency, non-replacement and symlink safety. Hosted PR checks are required for verification.
 - [ ] Audit all network entry points and add missing `--receipt` support, including Rust adapters, before closing #310.
 - [ ] Finish full cross-language JSON Schema parity, crash/Windows filesystem verification, raw response/WARC linkage and downstream shadow parity. Do not claim archival cutover on the basis of this hardening PR.
+
+## Rust shared pacing increment — #313
+
+- [x] Add the Python-compatible SQLite reservation and status contract to
+  `fyi-core`, with an immediate transaction for state and event writes, rollback
+  on event failures and a frozen Python 3.15.1 conformance fixture. [checkpoint: 7dc6ef9]
+- [x] Integrate optional shared pacing and HTTP 429/503 `Retry-After` feedback
+  into the guarded Rust client and record limiter configuration in receipts. [checkpoint: 7dc6ef9]
+- [x] Add read-only `rate-limit-status` and explicit `fetch-request-page` pacing
+  options. Validate command inventory, CLI errors and output-file preservation. [checkpoint: 7dc6ef9]
+- Local Rust 1.99.1 verification passed 331 tests across 15 suites, all-target and
+  all-feature workspace Clippy, formatting and the required repository contract
+  checks. Hosted PR verification follows this source checkpoint.
+- All 12 required hosted checks passed at `b50bbec`. After incorporating main's
+  receipt scalar fixes from #420, source checkpoint `60e240c` passed 333 Rust
+  tests and 42 focused Python 3.15.1 schema/repository contract tests. Updated
+  hosted checks remain required for final integration.
+- [ ] Finish Rust probing/capture, queued-reservation backoff handling, downstream
+  archive parity and the remaining source acceptance evidence before retiring
+  the Python source adapters.
