@@ -194,3 +194,21 @@ fn checks_saved_result_bytes_against_receipt_projection() {
     tampered["result"]["sha256"] = json!(fyi_core::provenance::sha256_hex(b"bad"));
     assert!(verify_receipt_result_bytes(&tampered, b"bad").is_err());
 }
+
+
+#[test]
+fn raw_http_bytes_are_independently_checked_against_receipt() {
+    use fyi_core::acquisition_receipts::verify_receipt_raw_bytes;
+    let mut receipt = golden();
+    let bytes = b"payload";
+    let expected = fyi_core::provenance::sha256_hex(bytes);
+    receipt["responses"][0]["sha256"] = json!(expected);
+    let mut unsigned = receipt.as_object().unwrap().clone();
+    unsigned.remove("receipt_sha256");
+    receipt["receipt_sha256"] = json!(fyi_core::provenance::sha256_hex(
+        &canonical_json_bytes(&Value::Object(unsigned)).unwrap()
+    ));
+    assert!(verify_receipt_raw_bytes(&receipt, bytes).is_ok());
+    assert!(verify_receipt_raw_bytes(&receipt, b"payloaD").is_err());
+    assert!(verify_receipt_raw_bytes(&receipt, b"").is_err());
+}
