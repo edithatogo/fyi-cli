@@ -9,8 +9,8 @@
 
 ## Phase 2: Deterministic simulation testing (DST)
 
-- [ ] Add deterministic, replayable test suites with bounded runtime.
-- [ ] Add thresholds for DST pass/fail criteria.
+- [x] Add deterministic, replayable test suites with bounded runtime. [checkpoint: 8cdb32e]
+- [~] Add thresholds for DST pass/fail criteria. (Bounded runtime <1s enforced in DST tests)
 - [ ] Integrate DST into CI as a fast lane.
 
 ## Phase 3: Mutation testing (MT)
