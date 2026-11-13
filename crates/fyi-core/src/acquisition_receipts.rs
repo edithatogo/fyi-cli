@@ -43,7 +43,9 @@ fn integer(value: &Value, name: &str) -> Result<u64> {
 fn hash(value: &Value, name: &str) -> Result<()> {
     let s = string(value, name)?;
     ensure!(
-        s.len() == 64 && s.bytes().all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()),
+        s.len() == 64
+            && s.bytes()
+                .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()),
         "receipt {name} is not a lowercase SHA-256 digest"
     );
     Ok(())
@@ -79,7 +81,9 @@ fn optional_hash(value: &Value, name: &str) -> Result<()> {
 /// Validate a v1 receipt, including its Python-compatible self digest, response
 /// counts, URLs, source metadata and failure semantics. No external I/O.
 pub fn verify_receipt(receipt: &Value) -> Result<()> {
-    let source = receipt.as_object().context("receipt must be a JSON object")?;
+    let source = receipt
+        .as_object()
+        .context("receipt must be a JSON object")?;
     ensure!(
         source.get("schema").and_then(Value::as_str) == Some("urn:fyi-cli:acquisition-receipt"),
         "unrecognised receipt schema"
@@ -101,11 +105,17 @@ pub fn verify_receipt(receipt: &Value) -> Result<()> {
         .context("invalid completed_at")?;
     ensure!(end >= start, "receipt completion precedes start");
     let status = string(receipt, "status")?;
-    ensure!(status == "succeeded" || status == "failed", "invalid receipt status");
+    ensure!(
+        status == "succeeded" || status == "failed",
+        "invalid receipt status"
+    );
     if status == "failed" {
         string(object_field(receipt, "failure")?, "type")?;
     } else {
-        ensure!(receipt.get("failure").is_none(), "successful receipt cannot have failure");
+        ensure!(
+            receipt.get("failure").is_none(),
+            "successful receipt cannot have failure"
+        );
     }
     let rate_limit = object_field(receipt, "rate_limit")?;
     ensure!(rate_limit.get("name").is_some(), "missing rate limit name");
@@ -158,9 +168,18 @@ pub fn verify_receipt(receipt: &Value) -> Result<()> {
         }
     }
     let totals = object_field(receipt, "totals")?;
-    ensure!(integer(totals, "requests")? == responses.len() as u64, "request total mismatch");
-    ensure!(integer(totals, "bytes")? == bytes, "response byte total mismatch");
-    ensure!(integer(totals, "retries")? == retries, "retry total mismatch");
+    ensure!(
+        integer(totals, "requests")? == responses.len() as u64,
+        "request total mismatch"
+    );
+    ensure!(
+        integer(totals, "bytes")? == bytes,
+        "response byte total mismatch"
+    );
+    ensure!(
+        integer(totals, "retries")? == retries,
+        "retry total mismatch"
+    );
     let mut unsigned = source.clone();
     unsigned.remove("receipt_sha256");
     let canonical = canonical_json_bytes(&Value::Object(unsigned))?;
