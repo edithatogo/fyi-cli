@@ -93,3 +93,10 @@ See `docs/rust-alaveteli-receipt-acquisition.md`. Retain prior merged PR evidenc
 - `fyi-cli` #311 (CDX discovery adapter) is **closed** as of 2026-08-13. That represents issue-level implementation status, not evidence that Rust has replaced its Python command or that `fyi-archive` has passed operational shadow parity.
 - `fyi-archive` #370 (generic instance acquisition controller) is **closed** but still describes the source ownership split and downstream shadow-parity acceptance. A closed parent issue is not an archive-cutover authorisation.
 - `fyi-cli` #309, #310, #312, #313 and #314 remain **open**. Do not relabel those as complete or set `archive_cutover_allowed=true` without verified end-to-end evidence.
+
+## Python receipt immutability hardening — #310
+
+- [~] Align Python `write_receipt_atomic` with the merged Rust no-clobber evidence contract: private same-directory temporary file, fsync, hard-link publication, byte-identical idempotency, immutable different receipts, and symlink rejection.
+- [~] Add Python regression tests for idempotency, non-replacement and symlink safety. Hosted PR checks are required for verification.
+- [ ] Audit all network entry points and add missing `--receipt` support, including Rust adapters, before closing #310.
+- [ ] Finish full cross-language JSON Schema parity, crash/Windows filesystem verification, raw response/WARC linkage and downstream shadow parity. Do not claim archival cutover on the basis of this hardening PR.

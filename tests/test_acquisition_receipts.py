@@ -239,3 +239,43 @@ def test_rust_cross_language_golden_fixture_matches_python_v1_schema() -> None:
     digest = unsigned.pop("receipt_sha256")
     assert digest == sha256_bytes(canonical_json_bytes(unsigned))
     assert receipt["rate_limit"]["minimum_interval_seconds"] == 1.0
+
+
+def test_existing_receipt_is_immutable_and_identical_repeat_is_idempotent(tmp_path: Path) -> None:
+    path = tmp_path / "receipt.json"
+    item = recorder(tmp_path)
+    first = item.build(
+        result_projection=b"[]\\n",
+        result_media_type="application/json",
+        completed_at="2026-08-13T00:00:01Z",
+    )
+    write_receipt_atomic(path, first)
+    original = path.read_bytes()
+    write_receipt_atomic(path, first)
+    assert path.read_bytes() == original
+
+    second = dict(first)
+    second["command"] = "capture"
+    second["receipt_sha256"] = sha256_bytes(
+        canonical_json_bytes({key: value for key, value in second.items() if key != "receipt_sha256"})
+    )
+    validate_receipt(second)
+    with pytest.raises(FileExistsError, match="different acquisition receipt"):
+        write_receipt_atomic(path, second)
+    assert path.read_bytes() == original
+
+
+def test_symlink_receipt_destination_is_rejected(tmp_path: Path) -> None:
+    path = tmp_path / "receipt.json"
+    target = tmp_path / "target.json"
+    target.write_text("protected", encoding="utf-8")
+    path.symlink_to(target)
+    item = recorder(tmp_path)
+    receipt = item.build(
+        result_projection=b"[]\\n",
+        result_media_type="application/json",
+        completed_at="2026-08-13T00:00:01Z",
+    )
+    with pytest.raises(FileExistsError):
+        write_receipt_atomic(path, receipt)
+    assert target.read_text(encoding="utf-8") == "protected"

@@ -107,7 +107,12 @@ def validate_receipt(receipt: Mapping[str, Any]) -> None:
 
 
 def write_receipt_atomic(path: Path, receipt: Mapping[str, Any]) -> None:
-    """Validate and atomically replace a receipt without clobbering valid evidence."""
+    """Atomically publish immutable receipt evidence without overwriting prior data.
+
+    Byte-identical repeats are idempotent. A different or corrupt existing
+    receipt is rejected. Same-directory hard links guarantee no-clobber
+    publication even if concurrent processes race to create the same path.
+    """
     validate_receipt(receipt)
     payload = canonical_json_bytes(receipt)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -122,10 +127,29 @@ def write_receipt_atomic(path: Path, receipt: Mapping[str, Any]) -> None:
             stream.write(payload)
             stream.flush()
             os.fsync(stream.fileno())
-        temporary.replace(path)
-    except BaseException:
+        try:
+            os.link(temporary, path)
+        except FileExistsError:
+            if path.is_symlink() or not path.is_file():
+                message = "existing acquisition receipt is not a regular file"
+                raise FileExistsError(message) from None
+            existing = path.read_bytes()
+            try:
+                validate_receipt(json.loads(existing))
+            except (ValueError, TypeError, UnicodeDecodeError) as error:
+                message = "existing acquisition receipt is invalid"
+                raise FileExistsError(message) from error
+            if existing != payload:
+                message = "different acquisition receipt already exists"
+                raise FileExistsError(message) from None
+        if os.name == "posix":
+            directory_fd = os.open(path.parent, os.O_RDONLY)
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
+    finally:
         temporary.unlink(missing_ok=True)
-        raise
 
 
 @dataclass
