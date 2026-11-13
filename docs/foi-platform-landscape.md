@@ -124,8 +124,9 @@ closed. The checker never fetches a URL, edits its baseline or authorises a prov
 
 `contract_sha256` is a deterministic fingerprint of the **reviewed semantic
 projection**, not a downloaded OpenAPI/HTML byte digest, signature or proof that
-an upstream source is authentic. Raw schema acquisition and continuous remote
-monitoring remain separate source-adapter tasks. Re-review primary sources,
+an upstream source is authentic. Raw schema acquisition and actual remote
+observations remain outstanding #195 phase-3 work and must use the authorised
+source-adapter boundary. Re-review primary sources,
 record uncertainty, update the projection and dates together, and run the tests
 before changing a baseline. Do not advance review dates after failed retrieval.
 

@@ -17,25 +17,28 @@
 - [x] Separate public discovery from account, identity, case, payment and submission
   workflows; research metadata cannot enable provider/network/write capabilities.
 
-## Phase 3: Maintenance and monitoring
+## Phase 3: Maintenance and monitoring (partially implemented)
 
 - [x] Store source URLs, review dates, confidence, per-platform cadence and deterministic
-  reviewed-contract fingerprints in `conformance/providers/foi-platform-landscape-v1.json`.
+  reviewed-contract projection fingerprints in `conformance/providers/foi-platform-landscape-v1.json`.
+- [ ] Capture raw primary schema/documentation snapshots with retrieval evidence and
+  byte fingerprints. Indexed-only material is not a substitute for a retrieved snapshot.
 - [x] Implement a network-free completeness/freshness check and supplied-observation
   drift sensor; malformed, incomplete, unavailable and deprecated observations fail closed.
 - [x] Add offline tests and the Conductor CI gate. Local baseline: checker absent,
   collection failed as expected. Implementation: 40 tests passed on Python 3.13.5/Linux.
 - [ ] Verify final PR-head hosted checks before merge. No local full-repository suite
   is claimed: this environment could not resolve GitHub for a full clone.
-- [ ] Acquire raw remote schemas and continuous monitoring through the authorised
-  source-adapter boundary when appropriate. A contract projection hash is not a raw
-  schema fingerprint. This recurring operation is outside the completed #195 snapshot.
+- [ ] Connect authorised documentation/schema observations through the source-adapter
+  boundary to the offline drift comparator. A contract projection hash is not a raw
+  schema fingerprint. This remains an outstanding #195 phase-3 requirement.
 
 ## Completion boundary
 
-The #195/spec.md research acceptance criteria are met by the dated six-platform
-snapshot, explicit decisions, confidence levels, sources and refresh procedure.
-This is not provider rollout or archive cutover. Track status stays in-progress
-for recurring evidence refresh and separate remote-capture work; no human approval
-or successful live smoke is fabricated. The next reviews are 2026-12-14 (first
-four platforms) and 2027-01-13 (Canada/India).
+The refreshed snapshot and offline validation are an increment toward #195, not
+issue completion. The reopening comment (issuecomment-6843663307) explicitly
+requires raw schema fingerprints and documentation drift evidence. Both the
+issue and track remain open until those phase-3 requirements have evidence.
+This is not provider rollout or archive cutover; no human approval or successful
+live smoke is fabricated. The next reviews are 2026-12-14 (first four platforms)
+and 2027-01-13 (Canada/India).

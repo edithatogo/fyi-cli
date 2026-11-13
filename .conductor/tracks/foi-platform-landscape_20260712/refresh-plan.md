@@ -1,6 +1,6 @@
 # Platform landscape refresh implementation plan
 
-Goal: complete the six-candidate research snapshot for #195 without enabling
+Goal: refresh the six-candidate research snapshot for #195 without enabling
 providers or adding source-network transports. Existing spec.md is authoritative.
 
 Design: a reviewed JSON contract inventory plus a small standard-library-only
@@ -23,6 +23,7 @@ credential-bearing evidence URLs, and observations incorrectly treated as approv
 Fingerprint meaning: SHA-256 of the explicitly reviewed contract projection,
 not a claim that remote HTML or OpenAPI bytes were downloaded or authenticated.
 
-Ruling: the authorised existing research spec defines the snapshot; raw schema
-collection and recurring remote monitoring remain outside this PR. The validator
+Ruling: the issue reopening comment retains raw schema fingerprints and actual
+documentation drift evidence as phase-3 acceptance. This PR adds the reviewed
+snapshot and offline comparator but leaves #195 and the track open. The validator
 is repository tooling, not a new Python application adapter.
