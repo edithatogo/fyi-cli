@@ -1,5 +1,7 @@
 """Conductor frontier contract regression tests (pure stdlib, no network)."""
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 from scripts.verify_frontier_conductor import evaluate, inventory_legacy_python
@@ -72,3 +74,13 @@ def test_inventory_excludes_caches(tmp_path: Path) -> None:
     (repo / "src" / "fyi_system" / "__pycache__").mkdir(parents=True)
     (repo / "src" / "fyi_system" / "__pycache__" / "thing.py").write_text("")
     assert not inventory_legacy_python(repo)["production_python_files"]
+
+
+def test_conductor_status_runs_from_unrelated_working_directory(tmp_path: Path) -> None:
+    script = Path(__file__).resolve().parents[1] / "scripts" / "check_conductor_status.py"
+    proc = subprocess.run(
+        [sys.executable, str(script)], cwd=tmp_path, text=True,
+        capture_output=True, timeout=30, check=False,
+    )
+    assert proc.returncode == 0, proc.stderr
+    assert "PRODUCT:" in proc.stdout
