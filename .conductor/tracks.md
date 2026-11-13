@@ -20,6 +20,11 @@ This file tracks all major tracks for the project. Each track has its own detail
   *CI gaps: pinned_actions, dependency_review, workflow_lint.*
   *Description: Close warranted testing and CI/CD gaps — deterministic simulation testing, mutation testing, contract testing, pinned actions, dependency review, and workflow linting.*
 
+- [x] **Track: test-acceleration-20261113**
+  *Link: [./tracks/test-acceleration-20261113/](./tracks/test-acceleration-20261113/)*
+  *Issue: [#322](https://github.com/edithatogo/fyi-cli/issues/322).*
+  *Description: Bounded local test-acceleration profiles (slow marker, pytest-xdist, pytest-testmon, bounded mutation triage, VCR evaluation, immutable/in-memory fixtures, sysmon measurement, Freezegun decision); full CI suite remains authoritative.*
+
 - [x] **Track: solo-maintainer-security-20261113**
   *Link: [./tracks/solo-maintainer-security-20261113/](./tracks/solo-maintainer-security-20261113/)*
   *Issue: [#281](https://github.com/edithatogo/fyi-cli/issues/281).*
@@ -371,7 +376,6 @@ Potential tracks for future development:
 
 These open issues are not yet covered by a Conductor track. They are listed here so the registry and GitHub do not drift silently.
 
-- [#322](https://github.com/edithatogo/fyi-cli/issues/322) — Adopt bounded test-acceleration profiles (slow marker, xdist, testmon, bounded mutation and VCR trials).
 - [#325](https://github.com/edithatogo/fyi-cli/issues/325) — Renovate Dependency Dashboard; operational, not a delivery track.
 - [#32](https://github.com/edithatogo/fyi-cli/issues/32) — Deliberately open external-registry monitor follow-up referenced by completed registry tracks.
 
