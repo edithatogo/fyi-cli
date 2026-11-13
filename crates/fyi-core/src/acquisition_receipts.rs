@@ -358,7 +358,6 @@ fn check_existing(path: &Path, canonical: &[u8]) -> Result<()> {
     Ok(())
 }
 
-
 /// Verify the actual saved canonical result bytes against a valid receipt.
 ///
 /// The ordinary v1 receipt self-hash authenticates *metadata*, but it does not
