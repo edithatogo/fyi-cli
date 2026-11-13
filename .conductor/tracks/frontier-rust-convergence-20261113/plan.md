@@ -16,8 +16,8 @@ require an explicit retention or retirement decision. The separate `fyi-archive`
 implementation and repository tooling retain their existing ownership. Any active
 Python work must use the required qualified Python 3.15 runtime.
 
-- [~] Make unsupported Rust commands fail explicitly and correct installation
-  guidance and registry records for the crates.io name collision.
+- [x] Make unsupported Rust commands fail explicitly and correct installation
+  guidance and registry records for the crates.io name collision. [checkpoint: 6ccf561]
 - [ ] Complete retained request and archive functionality, including tests for
   state, output, errors, safety and existing-data handling.
 - [ ] Move the pinned archive consumer to a verified Rust release and preserve

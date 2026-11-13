@@ -15,5 +15,7 @@ Generated handovers can be written here.
   repository-local Python 3.15.1.
 - Arti rejected temporary storage on the shared external volume. Its six tests
   passed with a private temporary directory and the full workspace then passed.
-- Next operation is to commit the verified correction and continue the retained
-  Rust capabilities under the existing migration track.
+- Source checkpoint `6ccf561` contains the verified correction and a Git note with
+  runtime identity, the initial failures, final results and the local log hash.
+- Next operation is to prepare the scoped PR and continue the retained Rust
+  capabilities under the existing migration track.
