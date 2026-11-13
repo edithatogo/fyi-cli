@@ -1,94 +1,143 @@
 # Non-Alaveteli FOI platform landscape
 
-Research snapshot: 2026-07-12. This inventory deliberately excludes Alaveteli deployments such as FYI, WhatDoTheyKnow, RightToKnow, and the paired Alaveteli work. It distinguishes public APIs from websites that merely provide a web form.
+Reviewed: **2026-11-14**. Scope: a research and prioritisation snapshot, **not
+provider enablement, legal advice, or evidence of a successful live API call**.
+The machine-readable record is
+[`foi-platform-landscape-v1.json`](../conformance/providers/foi-platform-landscape-v1.json).
 
-## Candidate platforms
+## Ranked decisions
 
-| Platform | Jurisdiction / role | Evidence surface | Adapter difficulty | Recommendation |
+Ranks are engineering judgements, not measured performance scores. Public-data
+utility and documented contracts take priority over feature breadth; identity,
+submission, payment and maintenance risks reduce priority. Every candidate has
+its own jurisdiction, confidence, evidence and next experiment in the inventory.
+
+| Rank | Candidate | Decision and rationale | Bounded next experiment | Confidence / refresh |
 |---|---|---|---|---|
-| MuckRock | United States public-records requests | Public v2 API exposes requests, communications, files, agencies, jurisdictions, users, organizations, and projects; authenticated filing is supported and may consume paid request credits. | **Low-medium** for read-only sync; medium-high for writes | First pilot. Implement read-only discovery, request, correspondence, attachment, and status mapping before any write path. |
-| FragDenStaat / Froide | Germany and EU access-to-information requests | Official API root, OpenAPI schema, request and public-body endpoints, OAuth app support, and prefilled request URLs. | **Medium**; schema and German/EU legal semantics need an adapter | Second pilot. Start with read-only API contract fixtures and explicit German/EU instance metadata. |
-| FOIA.gov | United States federal FOIA portal | Official API exposes agency components and supports portal-to-agency request submission; API-key and agency-specific security constraints apply. | **Medium-high**; centralized discovery but decentralized agency delivery | Read-only agency/catalog adapter first; submission only through a separately approved, agency-scoped workflow. |
-| USCIS FOIA/PA API | USCIS A-File and subject-specific requests | Official OAuth client-credentials API supports case creation and status, with sandbox onboarding, required UI language, identity/consent fields, and production prerequisites. | **High / narrow** | Defer to a separate opt-in adapter; do not generalize as a national FOIA provider. |
-| Government portals without documented APIs | Canada ATIP, South Africa PAIA guidance, India RTI, and agency/state portals | Official portals provide forms and case handling, but the research pass found no stable public general-purpose API suitable for safe automation. | **High / site-specific** | Track as discovery-only or prefilled/manual routes, not scraping targets. |
+| 1 | MuckRock, United States | **Go: read-only pilot.** Request, agency, correspondence and file surfaces are a useful match; no filing or account enumeration. | Offline fixtures for one public request, agency, communication and file; separately authorise any live smoke. | Documented; 30 days |
+| 2 | FragDenStaat / Froide, Germany | **Conditional go: read-only pilot.** Reconcile the deployed instance with framework documentation; retain German/EU distinctions. | Freeze public request/public-body fixtures and check deployed schema/auth before live work. | Provisional; 30 days |
+| 3 | FOIA.gov, US federal | **Go: discovery only.** Agency/component catalogue is distinct from agency-side request delivery. | Offline component/form fixture; an operator supplies any API key for later live catalogue checks. | Documented; 30 days |
+| 4 | USCIS FOIA/PA, United States | **No-go for the default fleet; defer.** Case-specific identity/consent workflow is not public corpus discovery. | Review sandbox contract and required interface text; no real subjects, case creation or polling. | Provisional; 30 days |
+| 5 | Canada ATIP, federal | **No-go for automated transactions; manual only.** A suitable public transaction API was not identified in this review. | Document institution/IRCC routing and manually supplied exports; assess released summaries separately. | Limited search; 60 days |
+| 6 | India RTI Online, central authorities | **No-go for automated transactions; manual only.** Do not infer an API from public forms or applicant status pages. | Manual routing and consent-aware export fixtures; no payment, OTP, CAPTCHA or filing automation. | Limited search; 60 days |
 
-## Explicit exclusions
+## Evidence and boundaries
 
-- Alaveteli deployments remain covered by the existing jurisdiction/provider model and paired Alaveteli work.
-- A website being searchable does not authorize scraping, submission, or bypassing anti-bot controls.
-- Government APIs with identity, payment, consent, or agency-specific terms require an explicit provider policy and operator confirmation before writes.
+**MuckRock.** The official API guide describes some unauthenticated operations,
+access-token authentication for others, and the `api_v2` resource families.
+Its stated general limit is 15 requests/minute with a burst allowance of 100;
+users/organisations have a separate 5/minute limit without bursts. These are
+upstream limits, not a recommendation to use the burst allowance. The pilot
+excludes user/organisation enumeration. Public records can still contain personal
+data. Sources: [API guide][muckrock], [maintainer client reference][muckrock-client].
 
-## Evidence register
+**FragDenStaat / Froide.** Official developer material describes an API and OAuth
+application registration; Froide documents the API-v1 request/public-body model.
+This review could inspect indexed primary documentation, but direct page retrieval
+was blocked/unavailable. It does **not** verify a deployed schema, a numeric
+throttle limit, or endpoint availability. Do not carry old framework-auth advice
+into a deployment without checking it. Sources: [operator developer guidance][fds],
+[framework API documentation][froide].
 
-- MuckRock API: <https://www.muckrock.com/api/>; Python client request contract: <https://python-muckrock.readthedocs.io/en/latest/requests.html>
-- FragDenStaat API and OpenAPI schema: <https://fragdenstaat.de/en/api/>; platform overview: <https://fragdenstaat.de/en/about-us/>
-- FOIA.gov portal API: <https://www.foia.gov/swagger.html>; agency API contract: <https://www.foia.gov/developer/agency-api/>
-- USCIS FOIA/PA API: <https://developer.uscis.gov/api/foia-request-and-status>
-- Canada ATIP portal: <https://atip-aiprp.apps.gc.ca/atip/>
-- South Africa PAIA guidance: <https://inforegulator.org.za/paia/>
-- India RTI portal context: <https://services.india.gov.in/service/detail/submit-a-new-rti-request-online-1>
+**FOIA.gov — United States federal FOIA portal.** The public developer
+documentation describes API-key-protected agency components and annual-report XML. The separate agency specification describes
+portal-to-agency delivery with agency-specific security controls; it is not an
+unrestricted third-party filing endpoint. The reviewed draft leaves rate limits
+unspecified. Sources: [developer resources][foia], [agency specification][agency].
 
-## Integration decision
+**USCIS.** Indexed official material describes case creation, case status,
+developer/sandbox onboarding and production requirements. Direct retrieval of the
+full current documentation was incomplete. Treat version, OAuth scopes, interface
+wording, consent and quotas as sandbox-verification gates rather than established
+runtime configuration. No identity documents belong in fixtures. Sources:
+[API catalogue entry][uscis], [official detailed entry][uscis-detail].
 
-The lowest-risk expansion is a read-only `FoiProvider` adapter layer for MuckRock and FragDenStaat. FOIA.gov and USCIS should remain separately governed because their APIs create legal, identity, consent, billing, or agency-delivery obligations that do not fit an unrestricted bulk client.
+**Canada.** Official guidance routes requests to individual institutions and
+separately points to summaries of released records. The ATIP landing guidance also
+distinguishes IRCC application-record requests from other routes. Neither is proof
+of a general transaction API. "Not identified" is a bounded search result, not a
+claim that no government API exists. Sources: [request guidance][canada],
+[ATIP landing guidance][atip].
 
-## Capability matrix for adapter work
+**India.** The official FAQ describes central-authority scope, forms, payments,
+applicant-specific status access and OTP controls. It is not a public API contract.
+No general-purpose public request API was identified. Retain normal TLS validation:
+legacy help text is not permission to disable certificate checks. Source:
+[RTI Online FAQ][india].
 
-| Capability | MuckRock | FragDenStaat | FOIA.gov | USCIS |
-|---|---:|---:|---:|---:|
-| Public request search/retrieval | Yes | Yes | Agency/catalog focused | Case/status focused |
-| Public-body/agency discovery | Yes | Yes | Yes | No general catalog |
-| Correspondence and attachments | Yes | API surface to verify in fixtures | Agency-dependent | Case-specific |
-| Auth required for reads | No for documented public endpoints | OAuth available for account operations | API key for portal API | OAuth client credentials |
-| Write capability | Yes; account/credit implications | OAuth/account and jurisdiction rules | Delivery is agency-specific | Identity/consent and production approval |
-| Recommended first mode | Read-only | Read-only | Read-only discovery | Disabled evaluation |
-| Risk gate | Rate limit and paid credits | GDPR/legal semantics | Agency contract variance | Identity, consent, sandbox, production approval |
+## Explicit exclusions and rollout policy
 
-The adapter track must treat this matrix as a contract checklist, not as an assumption that every endpoint is interchangeable.
+Alaveteli deployments, including FYI, WhatDoTheyKnow and RightToKnow, remain in the
+existing provider/jurisdiction work and are explicitly excluded here. Froide is
+not Alaveteli. South Africa PAIA guidance and other regional portals may be future
+research entries; they must not be silently folded into one of these six candidates.
 
-## Operational rollout contract for non-Alaveteli adapters
+These decisions do not claim that an adapter is implemented or operationally
+approved. Before adoption, preserve provider identity, jurisdiction, source URLs,
+retrieval metadata, redactions and raw-response digests; prove fixtures and bounded
+read behaviour under the source-adapter track. Authentication, private case data,
+submissions and payments require separate explicit scope. Never fall back from a
+documented API to protected-page scraping. Demote affected integrations when
+contracts, availability, identity requirements or terms change.
 
-The current adapter fleet is intentionally narrow:
+## Reproducible refresh and drift checks
 
-- **Enabled read-only providers:** MuckRock and FragDenStaat through the
-  provider-neutral `ReadOnlyFoiProvider` contract.
-- **Separately governed discovery only:** FOIA.gov agency/component catalog
-  reads, and only after operator-supplied API-key approval.
-- **Explicitly disabled:** USCIS request creation, status polling, or any
-  identity-sensitive workflow.
+The inventory records source URLs, review dates, confidence, access method and
+per-platform next-review dates: **2026-12-14** for the first four candidates and
+**2027-01-13** for Canada and India. `retrieved_page` means documentation was
+read directly; `indexed_page` means indexed primary material was available but a
+complete direct retrieval was not. Neither means live API verification.
 
-### Rollout
+Run the network-free completeness/integrity gate:
 
-- Ship new providers behind explicit instance metadata and fail-closed
-  capability flags.
-- Keep live smoke opt-in, bounded, read-only, and publicly attributable.
-- Preserve `provider_id`, `source_url`, retrieval time where available, and
-  `raw_source_hash` so downstream archive and provenance tooling can prove
-  origin without replaying live calls.
+```sh
+python scripts/verify_foi_platform_landscape.py
+python -m pytest -q tests/test_foi_platform_landscape.py
+```
 
-### Rollback
+By default the checker evaluates the historical snapshot at its own review date,
+so old reproducible builds do not fail merely because time passes. To check current
+freshness, supply an explicit date (and optionally fail the command when overdue):
 
-- Remove or disable the affected instance entry rather than silently falling
-  back to scraping or alternate write paths.
-- Treat schema drift, auth changes, or legal-policy regressions as a reason to
-  demote the provider back to discovery-only or disabled status.
-- Do not retain a "best effort" write mode for non-Alaveteli providers; writes
-  stay unavailable unless the provider contract explicitly supports them.
+```sh
+python scripts/verify_foi_platform_landscape.py --as-of 2026-12-14 --fail-on-overdue
+```
 
-### Rate limits and operator posture
+A later authorised source review can provide `--observations observations.json`:
 
-- Use fixed HTTPS endpoints, bounded request counts, page sizes, bytes, and
-  timeouts for all public smoke sensors.
-- Identify traffic with the repository User-Agent and never use authenticated
-  or credit-consuming routes in default validation.
-- Keep FOIA.gov and USCIS out of unattended polling until their separate
-  operator, consent, and approval gates are satisfied.
+```json
+{
+  "schema_version": "1.0.0",
+  "observed_on": "2026-12-14",
+  "platforms": [
+    {"id": "muckrock", "status": "available", "contract": {"...": "full reviewed contract"}}
+  ]
+}
+```
 
-### Source attribution and deprecation
+This abbreviated example is **not valid input**: a real observation must include
+all six unique platforms and every contract field from the inventory. Availability
+here concerns the supplied documentation/contract observation, not a live service
+health attestation. Changed projections, deprecated sources or unavailable sources
+produce drift and a nonzero exit. Missing, duplicate or malformed evidence fails
+closed. The checker never fetches a URL, edits its baseline or authorises a provider.
 
-- Attribute every normalized record back to its source platform and public URL.
-- Keep legal and operational differences visible in documentation instead of
-  flattening providers into an "FOI is FOI" abstraction.
-- When an upstream provider changes ownership, terms, auth, or response shape,
-  update the documented risk gate first and only restore live status after
-  fixtures, fingerprints, and operator review are refreshed.
+`contract_sha256` is a deterministic fingerprint of the **reviewed semantic
+projection**, not a downloaded OpenAPI/HTML byte digest, signature or proof that
+an upstream source is authentic. Raw schema acquisition and actual remote
+observations remain outstanding #195 phase-3 work and must use the authorised
+source-adapter boundary. Re-review primary sources,
+record uncertainty, update the projection and dates together, and run the tests
+before changing a baseline. Do not advance review dates after failed retrieval.
+
+[muckrock]: https://help.muckrock.com/19ef8892696381e88627c50e4ee90ed4
+[muckrock-client]: https://python-muckrock.readthedocs.io/en/latest/requests.html
+[fds]: https://fragdenstaat.de/hilfe/funktionen-der-plattform/entwicklerinnen/
+[froide]: https://froide.readthedocs.io/en/latest/api/
+[foia]: https://www.foia.gov/developer/
+[agency]: https://www.foia.gov/developer/agency-api/
+[uscis]: https://developer.uscis.gov/api/foia-request-and-status
+[uscis-detail]: https://developer.uscis.gov/node/157
+[canada]: https://www.canada.ca/en/treasury-board-secretariat/services/access-information-privacy/access-information/request-information/make-request.html
+[atip]: https://atip-aiprp.apps.gc.ca/atip/
+[india]: https://rtionline.gov.in/faq.php

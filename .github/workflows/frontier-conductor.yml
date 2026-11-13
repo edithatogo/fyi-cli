@@ -11,6 +11,10 @@ on:
       - "tests/test_frontier_conductor.py"
       - "scripts/verify_cli_parity.py"
       - "conformance/cli/**"
+      - "scripts/verify_foi_platform_landscape.py"
+      - "tests/test_foi_platform_landscape.py"
+      - "conformance/providers/foi-platform-landscape-v1.json"
+      - "docs/foi-platform-landscape.md"
       - "src/fyi_system/cli.py"
       - "crates/fyi-cli/src/main.rs"
       - ".github/workflows/frontier-conductor.yml"
@@ -41,8 +45,12 @@ jobs:
         run: python scripts/verify_frontier_conductor.py --json --inventory
       - name: Verify command-name parity baseline
         run: python scripts/verify_cli_parity.py
+      - name: Verify reviewed FOI platform landscape offline
+        run: python scripts/verify_foi_platform_landscape.py
       - name: Offline regression tests
-        run: python -m pip install pytest && python -m pytest -q tests/test_frontier_conductor.py
+        run: |
+          python -m pip install pytest
+          python -m pytest -q tests/test_frontier_conductor.py tests/test_foi_platform_landscape.py
 
   rust-msrv:
     name: Rust 1.99.1 MSRV
