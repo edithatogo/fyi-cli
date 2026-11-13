@@ -1,0 +1,92 @@
+{
+  "branch_protection": {
+    "allow_deletions": false,
+    "allow_force_pushes": false,
+    "enforce_admins": true,
+    "required_approving_review_count": 0,
+    "required_contexts": [
+      "Analyze (javascript-typescript)",
+      "Analyze (python)",
+      "Clippy Lints",
+      "Code Coverage",
+      "CodeQL",
+      "Layered Harness Contract",
+      "Package Smoke",
+      "Packaging Assets",
+      "Python Tests",
+      "Rustfmt",
+      "Security Audit",
+      "Workspace Tests"
+    ]
+  },
+  "checks": [
+    {
+      "detail": "present",
+      "name": "file:AGENTS.md",
+      "ok": true
+    },
+    {
+      "detail": "present",
+      "name": "file:CONTRIBUTING.md",
+      "ok": true
+    },
+    {
+      "detail": "present",
+      "name": "file:.github/SECURITY.md",
+      "ok": true
+    },
+    {
+      "detail": "present",
+      "name": "file:.github/CODEOWNERS",
+      "ok": true
+    },
+    {
+      "detail": "present",
+      "name": "file:renovate.json",
+      "ok": true
+    },
+    {
+      "detail": "extends=['github>edithatogo/renovate-config', 'config:recommended', ':semanticCommits', ':semanticPrefixFixDepsChoreOthers', ':automergeMinor', ':prHourlyLimitNone', ':prConcurrentLimitNone', ':enableVulnerabilityAlerts', ':dependencyDashboard', ':maintainLockFilesWeekly'] ; preset present",
+      "name": "renovate:inherits-edithatogo-preset",
+      "ok": true
+    },
+    {
+      "detail": "codecov-action=True use_oidc=True id-token:write=True fail_ci_if_error=True",
+      "name": "codecov:oidc-upload",
+      "ok": true
+    },
+    {
+      "detail": "collaborators=['edithatogo']",
+      "name": "github:collaborators-solo",
+      "ok": true
+    },
+    {
+      "detail": "required=['Analyze (javascript-typescript)', 'Analyze (python)', 'Clippy Lints', 'Code Coverage', 'CodeQL', 'Layered Harness Contract', 'Package Smoke', 'Packaging Assets', 'Python Tests', 'Rustfmt', 'Security Audit', 'Workspace Tests'] missing=[] force_pushes=False deletions=False enforce_admins=True approving=0",
+      "name": "github:branch-protection-master",
+      "ok": true
+    },
+    {
+      "detail": "active_blocking_rulesets=['solo-maintainer-default-branch'] all_active=['solo-maintainer-default-branch']",
+      "name": "github:rulesets-solo-maintainer",
+      "ok": true
+    },
+    {
+      "detail": "merge gate is automated checks; required approving review count is 0",
+      "name": "solo:zero-mandatory-approvals",
+      "ok": true
+    }
+  ],
+  "collected_at": "2026-11-13T09:42:25.759730Z",
+  "mode": "live",
+  "ok": true,
+  "receipt_type": "solo-maintainer-security-drift",
+  "repo": "edithatogo/fyi-cli",
+  "rulesets": {
+    "active_blocking_rulesets": [
+      "solo-maintainer-default-branch"
+    ],
+    "active_rulesets": [
+      "solo-maintainer-default-branch"
+    ]
+  }
+}
