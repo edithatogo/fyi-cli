@@ -36,9 +36,22 @@ The HTTP endpoint requires an `Accept` header listing both
 `2025-06-18` and `2025-03-26`, and returns `405 Method Not Allowed` for
 `GET /mcp` because this implementation does not provide an SSE stream.
 Notifications return `202 Accepted` without a body.
+Initialization negotiates the requested supported revision, or offers
+`2025-06-18` when the client requests another revision. The `2025-03-26`
+profile accepts batches of up to 64 messages; `2025-06-18` accepts single
+messages. Stdio frames and HTTP bodies are limited to 1 MiB. An oversized
+stdio frame produces an error and closes the stream without draining it.
+
+This HTTP authentication profile is for native or server clients with a
+preconfigured bearer token. Requests bearing an `Origin` header are rejected
+with HTTP 403. Missing or invalid authentication is rejected before the body
+is parsed. This profile does not implement OAuth discovery or browser access.
 Terminate TLS at a trusted reverse proxy or platform ingress; do not expose
 the bearer-token listener directly to the public internet. The existing remote
 policy remains fail-closed and does not grant write capability.
+
+See [MCP contract evidence](../../docs/mcp-contract-harness.md) for supported
+client profiles, deterministic tests, and limits on release-readiness claims.
 
 ## Glama
 
