@@ -21,6 +21,11 @@
 - [ ] Confirm all required exact-final-head CI/coverage/security gates and
   independent review; request coordinator merge window. No merge here.
 
+### Removal of demonstrably obsolete entries (dependent PR #455)
+- [~] Remove 13 RustSec identifiers reported `advisory-not-detected` in Security Audit run 43578036426, job 132396499550; do not remove the five current CLI audit exclusions, including #0387, without separate unsuppressed audit qualification.
+- [~] Remove identical identifiers from deny.toml, time-bound policy and immutable grandfather list. Require on-head cargo audit/deny and all required checks before accepting the reduction.
+- [ ] Coordinator merges this focused PR only after predecessor #451 has passed its protected merge window; no direct merge into master from this owner.
+
 ## Phase 2: patch exploitable advisories first
 - [ ] RUSTSEC-2026-0459: trace libsqlite3-sys through sqlx/rusqlite/arti
   using `cargo tree -i`; test fixed supported versions and database/WAL

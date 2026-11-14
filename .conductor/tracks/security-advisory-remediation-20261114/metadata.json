@@ -6,8 +6,10 @@
   "updated_at": "2026-11-14T00:00:00Z",
   "github_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
   "sole_integration_coordinator": "FYI-CLI — Issue fixes and PR merges",
-  "grandfathered_exceptions": 20,
+  "grandfathered_exceptions": 7,
   "baseline_audit_ignores": 5,
   "acceptance_verified": false,
-  "archive_cutover_allowed": false
+  "archive_cutover_allowed": false,
+  "historical_exceptions_retired_in_pending_pr": 13,
+  "retirement_pr": "https://github.com/edithatogo/fyi-cli/pull/455"
 }
