@@ -248,8 +248,7 @@ impl<W: Write> WarcWriter<W> {
             "bodyless HTTP response status has an entity payload"
         );
         let source_version = source_version(resource.http_version)?;
-        let http_header = response_header(resource)?;
-        let content_type = content_type(resource.headers)?;
+        let (http_header, content_type) = response_header(resource)?;
         let payload_digest = Sha256::digest(resource.payload);
         let mut block_digest = Sha256::new();
         block_digest.update(&http_header);
@@ -403,7 +402,7 @@ fn content_type(headers: &[(String, Vec<u8>)]) -> Result<String> {
     Ok(content_type.to_string())
 }
 
-fn response_header(resource: &HttpResource<'_>) -> Result<Vec<u8>> {
+fn response_header(resource: &HttpResource<'_>) -> Result<(Vec<u8>, String)> {
     validate_headers(resource.headers)?;
     let mut excluded: BTreeSet<String> = FRAMING_HEADERS
         .iter()
@@ -430,6 +429,7 @@ fn response_header(resource: &HttpResource<'_>) -> Result<Vec<u8>> {
         status.canonical_reason().unwrap_or("")
     )
     .into_bytes();
+    let mut retained_headers = Vec::new();
     for (name, value) in resource.headers {
         let normalized = name.to_ascii_lowercase();
         if !excluded.contains(&normalized) && PUBLIC_RESPONSE_HEADERS.contains(&normalized.as_str())
@@ -438,6 +438,7 @@ fn response_header(resource: &HttpResource<'_>) -> Result<Vec<u8>> {
             bytes.extend_from_slice(b": ");
             bytes.extend_from_slice(value);
             bytes.extend_from_slice(b"\r\n");
+            retained_headers.push((name.clone(), value.clone()));
         }
     }
     write!(
@@ -449,7 +450,9 @@ fn response_header(resource: &HttpResource<'_>) -> Result<Vec<u8>> {
         bytes.len() <= MAX_HEADER_BYTES,
         "HTTP response header exceeds the format limit"
     );
-    Ok(bytes)
+    // Record metadata must match the headers actually written, after minimisation.
+    let retained_content_type = content_type(&retained_headers)?;
+    Ok((bytes, retained_content_type))
 }
 
 fn record_id() -> Result<String> {
