@@ -45,7 +45,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          python-version: "3.12"
+          python-version: "3.15.1"
 
       - name: Set up uv
         uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
@@ -55,7 +55,8 @@ jobs:
         run: |
           set -o pipefail
           uv --version >> artifacts/python-tests/environment.txt
-          uv sync --extra dev --frozen 2>&1 | tee artifacts/python-tests/install.log
+          uv sync --python 3.15.1 --extra dev --frozen 2>&1 | tee artifacts/python-tests/install.log
+          uv run --no-sync --python 3.15.1 python scripts/verify_python315_runtime.py
           {
             uv run python --version
             uv run pytest --version
@@ -89,7 +90,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          python-version: "3.12"
+          python-version: "3.15.1"
 
       - name: Set up uv
         uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
@@ -98,7 +99,10 @@ jobs:
         uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
 
       - name: Install Python dependencies
-        run: uv sync --extra dev --frozen
+        run: |
+          uv sync --python 3.15.1 --extra dev --frozen
+          uv run --no-sync --python 3.15.1 python scripts/verify_python315_runtime.py
+          uv run --no-sync --python 3.15.1 python scripts/verify_python315_runtime.py
 
       - name: Run property-based suites
         run: uv run python scripts/run_property_tests.py
@@ -372,10 +376,12 @@ jobs:
       - name: Install Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          python-version: "3.11"
+          python-version: "3.15.1"
 
       - name: Install test harness dependencies
-        run: python -m pip install --upgrade uv && uv sync --extra dev --locked
+        run: |
+          python -m pip install --upgrade uv && uv sync --python 3.15.1 --extra dev --locked
+          uv run --no-sync --python 3.15.1 python scripts/verify_python315_runtime.py
 
       - name: Run offline harness layers
         run: uv run python scripts/verify_test_harness.py --run

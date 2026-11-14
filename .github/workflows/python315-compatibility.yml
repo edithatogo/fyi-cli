@@ -29,17 +29,18 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          python-version: "3.15"
+          python-version: "3.15.1"
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
       - name: Validate frozen lock, install, and tests
         shell: bash
         run: |
           set +e
-          uv sync --python 3.15 --extra dev --frozen > python315.log 2>&1
+          uv sync --python 3.15.1 --extra dev --frozen > python315.log 2>&1
+          # Version and repo-local virtualenv are checked after sync_status capture.
           install_status=$?
           test_status=99
           if [ "$install_status" -eq 0 ]; then
-            uv run --python 3.15 pytest -q >> python315.log 2>&1
+            uv run --python 3.15.1 pytest -q >> python315.log 2>&1
             test_status=$?
           fi
           printf 'install_exit=%s\ntest_exit=%s\n' "$install_status" "$test_status" | tee python315-status.txt
@@ -68,14 +69,18 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          python-version: "3.15"
+          python-version: "3.15.1"
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
       - name: Validate 3.15 security tooling and fuzz dependencies
         shell: bash
         run: |
           set +e
-          uv sync --python 3.15 --extra dev --frozen > python315-security.log 2>&1
+          uv sync --python 3.15.1 --extra dev --frozen > python315-security.log 2>&1
+          # Version and repo-local virtualenv are checked after sync_status capture.
           sync_status=$?
+          if [ "$sync_status" -eq 0 ]; then
+            uv run --no-sync --python 3.15.1 python scripts/verify_python315_runtime.py >> python315.log 2>&1 || exit 1
+          fi
           audit_status=99
           lint_status=99
           typing_status=99
@@ -87,11 +92,11 @@ jobs:
             # using an isolated 3.12 scanner; do not assume 3.12 resolution.
             uv pip freeze --python .venv/bin/python > python315-installed-all.txt 2>> python315-security.log
             grep -E '^[A-Za-z0-9_.-]+==' python315-installed-all.txt > python315-installed.txt
-            uvx --python 3.12 --from pip-audit pip-audit --no-deps --requirement python315-installed.txt >> python315-security.log 2>&1
+            uvx --python 3.15.1 --from pip-audit pip-audit --no-deps --requirement python315-installed.txt >> python315-security.log 2>&1
             audit_status=$?
-            uv run --python 3.15 ruff check src/fyi_system/acquisition_receipts.py src/fyi_system/internet_archive_cdx.py src/fyi_system/internet_archive_replay.py fuzzing >> python315-security.log 2>&1
+            uv run --python 3.15.1 ruff check src/fyi_system/acquisition_receipts.py src/fyi_system/internet_archive_cdx.py src/fyi_system/internet_archive_replay.py fuzzing >> python315-security.log 2>&1
             lint_status=$?
-            uv run --python 3.15 basedpyright src/fyi_system/acquisition_receipts.py src/fyi_system/internet_archive_cdx.py src/fyi_system/internet_archive_replay.py fuzzing/targets.py >> python315-security.log 2>&1
+            uv run --python 3.15.1 basedpyright src/fyi_system/acquisition_receipts.py src/fyi_system/internet_archive_cdx.py src/fyi_system/internet_archive_replay.py fuzzing/targets.py >> python315-security.log 2>&1
             typing_status=$?
             uv pip install --python .venv/bin/python atheris==3.1.0 >> python315-security.log 2>&1
             atheris_status=$?
