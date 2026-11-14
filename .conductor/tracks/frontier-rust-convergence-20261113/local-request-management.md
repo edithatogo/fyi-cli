@@ -293,3 +293,20 @@ physical column/primary-key/nullability validation.
 PR #433's CI hardening is inherited through a normal merge of master. This
 workstream changes no workflow file relative to that base. Final-head required
 Actions, coverage/security checks and merge confirmation remain the PR gate.
+
+### Reconciliation after parallel MCP merge
+
+Authority head `e409317988573348eec125366cd52d757fd8ee9c` passed all 12 live
+protected-branch contexts in CI [43553737589](https://github.com/edithatogo/fyi-cli/actions/runs/43553737589),
+including workspace tests, Clippy, Rustfmt, security and **92.49% line coverage**.
+Rust 1.99.1 MSRV and Conductor checks passed in run
+[43553737486](https://github.com/edithatogo/fyi-cli/actions/runs/43553737486);
+Windows, macOS and Linux portability passed in run
+[43553737477](https://github.com/edithatogo/fyi-cli/actions/runs/43553737477).
+The optional self-hosted offline AI lane remains queued awaiting a runner; it
+is not required by live branch protection and is not reported as passing.
+
+Master subsequently advanced through independently verified MCP PR #438 to
+`19f3cf376101500036951f9a3d3733da49f0df8b`. This branch incorporates that
+merge without editing its implementation. Final-head mandatory verification
+will run again on the reconciled authority head before merge.
