@@ -9,7 +9,8 @@ review evidence. Its completed metadata and shared registry description were sta
 Only this track's owned metadata/plan are corrected; shared registry reconciliation
 is deferred to the coordinating workstream. The track is not archived.
 
-The latest master `a816dcd` (PR #431) was reconciled before the dependency commit.
+Master `a816dcd` (PR #431) was reconciled before the dependency commit;
+`797e76c` (PR #433) was then merged unchanged to satisfy the strict up-to-date gate.
 The two new direct dependencies and their lock entries are the only shared Cargo
 changes. No `lib.rs`, database, sync, adapter, receipt, CLI dispatch or workflow edit
 belongs to this increment.
@@ -32,6 +33,9 @@ belongs to this increment.
 - Conductor: `python3 scripts/verify_frontier_conductor.py` passed.
 - Diff whitespace checks passed. Package-list inspection verifies embedded locale
   resources are included in `fyi-core` packaging.
+- Coverage: Rust 1.99.1 / cargo-llvm-cov 0.9.1 measured **99.375% i18n.rs line
+  coverage** (318/320) and **92.5052% workspace line coverage** (8,899/9,620)
+  using the existing CI exclusions and unchanged 90% gate. The run passed.
 - Independent read-only review identified an attribute-only-message fallback
   ambiguity. Resource lookup now distinguishes message presence from usable value;
   a present malformed message reaches the strict renderer and fails.
@@ -51,7 +55,9 @@ User content is not NFC/NFKC-normalized or parsed recursively.
 Before merging, inspect the exact final PR head and require all applicable mandatory
 GitHub Actions to pass. Preserve the 90% workspace Rust coverage gate, security
 checks, mutation thresholds and source-boundary checks. Local results do not replace
-hosted final-head evidence. PR/head/run identifiers are appended as verified.
+hosted final-head evidence. PR [#436](https://github.com/edithatogo/fyi-cli/pull/436) carries the increment.
+  Initial head `8810332` passed hosted Code Coverage; final checks rerun after
+  reconciliation with the newly merged quality-workflow baseline.
 
 ## Outstanding acceptance criteria
 
