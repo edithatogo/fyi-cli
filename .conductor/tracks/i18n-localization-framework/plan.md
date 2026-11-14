@@ -9,7 +9,7 @@ within this track; shared registries remain untouched during parallel work.
 
 - [x] Bounded increment 1: versioned message bundles, explicit locale selection,
   deterministic fallback and strict interpolation contracts.
-- [ ] Bounded increment 2: typed request/letter templates, golden fixtures and
+- [~] Bounded increment 2: typed request/letter templates, golden fixtures and
   delegation to the existing deadline module.
 
 The historical checklist below is reconciled only against inspectable evidence.
