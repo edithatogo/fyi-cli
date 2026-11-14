@@ -6,6 +6,12 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## Active frontier convergence tracks
 
+- [~] **Track: security-advisory-remediation-20261114**
+  *Link: [./tracks/security-advisory-remediation-20261114/](./tracks/security-advisory-remediation-20261114/)*
+  *Issue: [#325](https://github.com/edithatogo/fyi-cli/issues/325).*
+  *Status: in progress — 20 existing time-bounded RustSec exceptions, five CLI audit ignores, zero-suppression remediation roadmap, required Security Audit guard and optional pre-commit policy. No existing vulnerability is claimed fixed; exact-head gates remain required.*
+  *Integration: FYI-CLI — Issue fixes and PR merges is sole merge coordinator.*
+
 - [~] **Track: rust-mcp-tui-implementation** (TUI acceptance reconciled 2026-11-14)
   *Link: [./tracks/rust-mcp-tui-implementation/](./tracks/rust-mcp-tui-implementation/)*
   *Scope: existing combined CLI/MCP/TUI track; no replacement track.*
