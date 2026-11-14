@@ -80,3 +80,24 @@ source implementation, shared test configuration, runtime lock or workflow edit.
   Python DNS/socket attempts. See `offline-scheduler-evidence.md` for limits.
 - [x] Publish focused PR #458 before resuming broader hosted verification.
 - [~] Final-head checks/review and merge remain with the sole integration coordinator.
+
+## Actual upstream fixture increment — 2026-11-14
+
+Baseline `76de6a2` preserves the coordinator's #452/#456 integration. In this
+ordinary ChatGPT workstream, tests first expose the missing versioned actual
+MCP-to-source exchange corpus. An ephemeral local TLS/CONNECT fixture can drive
+the unchanged production `SyncClient` without a production testing bypass,
+external DNS/request, system trust modification or committed private key.
+
+- [~] Add versioned synthetic wire exchanges for the existing five read and
+  three write tools, preserving supported JSON shapes and Unicode.
+- [ ] Execute real SDK prepare/commit/replay, exact wire payload/count,
+  read-only denial, state preflight and bounded multipart assertions.
+- [ ] Add deterministic status/malformed/disconnect/chunk/redirect failures;
+  keep unexecuted stall, cache, raw-transfer and platform requirements explicit.
+- [ ] Record test-first, mutation and final-head CI evidence, then request the
+  sole coordinator's sequential final verification/merge window.
+
+This does not replace #457's durable journal or alter source, archive, runtime
+or workflow ownership. A source fixture is synthetic compatibility evidence,
+not a claim that a live jurisdiction/platform has certified the behavior.
