@@ -12,15 +12,15 @@
   "github_pr": 450,
   "implementation_workflow": {
     "tracked_by": "github-issues-prs",
-    "branch": "feat/i18n-issue39-20261114"
+    "branch": "master"
   },
-  "updated_at": "2026-11-14T12:28:00+00:00",
-  "reconciliation": "PRs #436 and #447 are merged in master 9050a66. Issue #39 remains open; terminology work resumes in PR #450, with holiday/statutory, human review and later acceptance still incomplete.",
+  "updated_at": "2026-11-14T12:56:45+00:00",
+  "reconciliation": "PRs #436, #447 and #450 are merged; terminology merge 70fef298442c72744583deb39c87ed83e005e60b has the exact verified final-head tree. Child #64 is complete; #39 and #65-#67 remain open. Shared status entries are reconciled; holiday/statutory, human review and later acceptance are incomplete.",
   "archive_allowed": false,
   "verification": {
     "phase_1": "Merged via PR #436 (a0fa71a); historical local and hosted evidence retained.",
     "evidence": "acceptance-evidence.md",
-    "remaining": "Final-head integration; human terminology/translation/legal review; additional regime coverage; holiday/statutory rules; external overrides; additional locales; measured performance criteria; shared-registry reconciliation by the coordinator",
+    "remaining": "Human terminology/translation/legal review; additional regime coverage; holiday/statutory rules; external overrides; additional locales; measured performance criteria; calendar contribution documentation",
     "phase_2": "Merged via PR #447 (4322d47); historical local and hosted evidence retained.",
     "coverage": {
       "i18n_lines_percent": 99.4550408719346,
@@ -30,12 +30,21 @@
       "workspace_gate_percent": 90,
       "additional_exclusions": false
     },
-    "phase_3": "Implemented in PR #450. Hosted checkpoint 9f34fda passed 12 terminology contracts and 670 instrumented workspace tests (one ignored), strict Clippy and the unchanged coverage gate. Final head adds exact byte-boundary coverage and requires all hosted gates before coordinated merge.",
+    "phase_3": "Automated implementation merged via PR #450 (70fef29). Final head 87178aa passed all 12 protected contexts, 13 terminology contracts and 672 workspace tests (one ignored); human/manual phase acceptance remains open.",
     "terminology_checkpoint": {
-      "head": "9f34fdae895d162e3bac859a28117ef600d57c44",
-      "terminology_lines_covered": 170,
+      "head": "87178aae1a42da812321b4f3cc4a115038925757",
+      "merge_commit": "70fef298442c72744583deb39c87ed83e005e60b",
+      "verified_and_merged_tree": "7c39ab7a9f369958c671133268845371764acba9",
+      "ci_run": 43595087056,
+      "codeql_run": 43595087117,
+      "required_contexts_passed": 12,
+      "terminology_tests_passed": 13,
+      "workspace_tests_passed": 672,
+      "instrumented_workspace_tests_passed": 671,
+      "workspace_tests_ignored": 1,
+      "terminology_lines_covered": 173,
       "terminology_lines_total": 175,
-      "workspace_lines_covered": 13975,
+      "workspace_lines_covered": 13978,
       "workspace_lines_total": 14780,
       "workspace_gate_percent": 90,
       "additional_exclusions": false,

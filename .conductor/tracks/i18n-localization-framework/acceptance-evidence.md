@@ -6,8 +6,9 @@ Baseline `062c264` contained six i18n smoke tests, hardcoded greeting/term maps,
 English-only body scaffolds and a duplicate weekday loop. It had no Fluent
 dependency, versioned resources, typed request contract, holiday data or translation
 review evidence. Its completed metadata and shared registry description were stale.
-Only this track's owned metadata/plan are corrected; shared registry reconciliation
-is deferred to the coordinating workstream. The track is not archived.
+The initial increment corrected this track's owned metadata/plan and deferred
+shared status reconciliation. The final integration receipt below now records
+that correction. The track is not archived.
 
 Master `a816dcd` (PR #431) was reconciled before the dependency commit;
 `797e76c` (PR #433) was then merged unchanged to satisfy the strict up-to-date gate.
@@ -237,6 +238,37 @@ regimes, holiday/statutory rules, external message overrides, measured performan
 and manual acceptance remain open. Deadline/source/platform components are not
 modified. Reverting this increment removes the optional glossary API/resources;
 it does not change existing letters, instance metadata, database or submission.
+
+### Final terminology integration receipt
+
+The user explicitly authorized merging after the earlier integration hold.
+PR [#450](https://github.com/edithatogo/fyi-cli/pull/450) was squash-merged on
+14 November 2026 as `70fef298442c72744583deb39c87ed83e005e60b`.
+All 12 protected contexts were rechecked on final head
+`87178aae1a42da812321b4f3cc4a115038925757`, with their required application IDs,
+immediately before the merge. Master remained `9050a66` during that decision.
+The merged tree `7c39ab7a9f369958c671133268845371764acba9` is identical to the
+verified final-head tree. GitHub deleted the feature branch automatically and
+the missing remote ref was verified.
+
+- [Workspace Tests](https://github.com/edithatogo/fyi-cli/actions/runs/43595087056/job/132447775851):
+  **672 passed, zero failed, one ignored**, including **13 terminology contracts**.
+- [Code Coverage](https://github.com/edithatogo/fyi-cli/actions/runs/43595087056/job/132447775843):
+  **671 instrumented tests passed**, one ignored; terminology **173/175 lines
+  (98.86%)**, workspace **13,978/14,780 (94.57%)**. The 90% gate and exclusions
+  are unchanged.
+- [Python Tests](https://github.com/edithatogo/fyi-cli/actions/runs/43595087056/job/132447775838):
+  **1,512 passed, two skipped**, including the existing MCP interoperability tests.
+- [CodeQL](https://github.com/edithatogo/fyi-cli/actions/runs/43595087117),
+  strict Clippy, formatting, package, audit and the remaining required contexts
+  passed. Optional self-hosted offline AI remained queued and is not a pass.
+
+These are hosted executable results; the local missing-Fluent-cache limitation
+above remains recorded. #64 is complete. Parent #39 was found closed after the
+merge and explicitly reopened because its remaining acceptance is incomplete;
+#65, #66 and #67 remain open. The shared registry and index now describe this
+track as active. Human approval, holidays/statutory accuracy and the remaining
+original gates are neither waived nor archived.
 
 The track remains in_progress and archive_allowed remains false. The legacy
 shared tracks.md row still says #39 is completed/closed at the checked master;

@@ -3,7 +3,7 @@
   "type": "quality",
   "status": "in_progress",
   "created_at": "2026-07-11T08:34:24Z",
-  "updated_at": "2026-11-14T12:29:00Z",
+  "updated_at": "2026-11-14T13:48:18Z",
   "description": "Compatibility contracts and aggressive harness engineering for remote MCP tools",
   "github_parent_issue": 169,
   "github_issue": 173,
@@ -15,16 +15,24 @@
     438,
     441,
     443,
-    449
+    449,
+    452,
+    458
   ],
   "active_increment": {
     "issue": 169,
-    "pull_request": 452,
-    "branch": "fix/mcp-credential-namespace-169-20261114",
-    "test_first_commit": "d17d5dfaefe17947c62f963b2c90a2995a9c1daf",
-    "implementation_commit": "80d5f134e259078963a8e7904662b63611fb7f8e",
-    "status": "draft_awaiting_hosted_verification_and_integration",
-    "merge_window": "awaiting_integration_coordinator"
+    "branch": "test/offline-scheduler-fixtures-169-20261114",
+    "test_first_commit": "5f45cec0719acd7315ff56743e1dee723b0ddd65",
+    "implementation_commit": "d1295c8d14e572707838641a82d309506feb9ab0",
+    "implementation_tree": "4be43ac7cbb72fbc7ee559fa9fcabae5ce3a5731",
+    "status": "locally_verified_pending_coordinator_integration",
+    "merge_window": "sole_integration_coordinator_required",
+    "evidence": "offline-scheduler-evidence.md",
+    "scoped_tests_passed": 39,
+    "guarded_python_tests_passed": 1515,
+    "guarded_python_tests_skipped": 2,
+    "external_python_network_attempts": 0,
+    "pull_request": 458
   },
   "acceptance_evidence": "acceptance-evidence.md",
   "closure_status": "not_archived_acceptance_evidence_incomplete",
@@ -35,5 +43,29 @@
     "Broader state/pagination/URL/path properties and SSRF/source guardrail/error mutation coverage",
     "Durable replay and attachment immutability remain unverified guarantees; verified degraded recovery is startup/restart-based",
     "Profile-withdrawal and contract-migration behavior; unknown-version tests do not prove deprecation handling"
+  ],
+  "verified_increments": [
+    {
+      "issue": 169,
+      "pull_request": 452,
+      "branch": "fix/mcp-credential-namespace-169-20261114",
+      "test_first_commit": "d17d5dfaefe17947c62f963b2c90a2995a9c1daf",
+      "implementation_commit": "80d5f134e259078963a8e7904662b63611fb7f8e",
+      "status": "merged_verified",
+      "merge_window": "completed_after_explicit_user_merge_instruction",
+      "verified_head": "5f2a3a38bcd1abd61503d1a7c1c33c42b854f5a8",
+      "merge_commit": "e95343801ee9a5a3946a66334eaae1b3a8466704",
+      "verified_and_merged_tree": "9170e9a02a56710308f9b83decc3b1a4f5f9ea1d",
+      "branch_deleted": true,
+      "ci_run": 43597417302,
+      "codeql_run": 43597417375,
+      "required_contexts_passed": 12,
+      "workspace_tests_passed": 676,
+      "workspace_tests_ignored": 1,
+      "mcp_tests_passed": 133,
+      "workspace_lines_covered": 14092,
+      "workspace_lines_total": 14856,
+      "workspace_gate_percent": 90
+    }
   ]
 }

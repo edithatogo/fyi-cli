@@ -25,6 +25,8 @@ This directory contains the canonical Conductor project context and management f
 - [Tracks Directory](./tracks/) - Individual track specifications and plans
 
 ### Active Tracks
+- **i18n-localization-framework** — Fluent, typed letters and terminology are merged (#436, #447, #450); calendars/statutory rules, human review and remaining integration/performance acceptance stay open under #39.
+- **remote-mcp-contract-harness-20260711** — Executable protocol, SDK, confirmation, budget, degraded-startup and credential-isolation contracts are delivered; source/fault/transfer, broader property/mutation and platform acceptance remain open under #169/#173.
 - **rust-mcp-tui-implementation** — TUI presentation verified separately; request-management/CLI integration and runtime acceptance remain open (PR #435)
 - **frontier-rust-convergence-20261113** — Frontier capability contract, Rust convergence, 3.15/1.99 compatibility gates, CI/harness and Conductor self-repair (planning; not yet implemented)
 - **test-acceleration-20261113** — Bounded local test-acceleration profiles (slow marker, xdist, testmon, bounded gremlins trial, VCR/Freezegun/pytest-picked decisions) for issue #322 (completed via PR; CI full suite authoritative)
@@ -40,7 +42,6 @@ This directory contains the canonical Conductor project context and management f
 - **python-security-quality-fuzzing-20260813** - Hypothesis gate, bounded Atheris fuzzing, and zero-vulnerability Python security baseline (PR #390)
 - **remote-mcp-observability-security-20260711** - Default-deny policy, observability, and operator controls
 - **remote-mcp-read-surface-20260711** - Guarded read-only remote SyncClient tools
-- **remote-mcp-contract-harness-20260711** - Compatibility contracts and aggressive layered harnesses
 - **remote-mcp-write-governance-20260711** - Governed prepare/commit remote writes
 - **resource-aware-autonomous-agent** - Header-aware adaptive pacing, load memory, plan reflection, identity hygiene, filesystem cache, and local traces for sustainable Alaveteli access
 - **research-grade-quality** - >95% test coverage, >90% mutation score, and load/performance testing baseline

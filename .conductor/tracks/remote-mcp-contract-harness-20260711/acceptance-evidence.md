@@ -322,7 +322,47 @@ checkpoint `d17d5dfaefe17947c62f963b2c90a2995a9c1daf` and implementation
 This record does not pre-approve hosted checks or a later integration head;
 the PR retains their exact-head evidence and the coordinator's merge decision.
 
-The sole integration coordinator retains final master reconciliation, merge and
-branch pruning. This bounded normalization contract does not complete the broader
-source URL/path/pagination/state properties, raw-transfer/fault, platform,
+At candidate publication, final master reconciliation, merge and branch pruning
+were handed to the sole integration coordinator. This bounded normalization
+contract does not complete the broader source URL/path/pagination/state
+properties, raw-transfer/fault, platform,
 durable-audit/replay, attachment immutability or server compare-and-set acceptance.
+
+### Final credential integration receipt
+
+After the user's explicit instruction to proceed with merging, #450 was integrated
+first. Its master commit `70fef298442c72744583deb39c87ed83e005e60b` was then merged
+once into the existing #452 branch with a compare-and-set fast-forward update.
+Both histories and the eight-file MCP delta were preserved. No source, shared-CI
+or runtime branch was refreshed as part of that integration.
+
+Final head `5f2a3a38bcd1abd61503d1a7c1c33c42b854f5a8` passed all 12 protected
+contexts, matched by application ID and head, plus Rust 1.99.1 MSRV, Conductor,
+dependency, privacy, property/fuzz and workflow checks. It was squash-merged as
+`e95343801ee9a5a3946a66334eaae1b3a8466704` on 14 November 2026. The final head,
+GitHub tested merge `f0cb611c1df8fb9ba6d0359a953e572f50c6d25b` and actual merge
+all have tree `9170e9a02a56710308f9b83decc3b1a4f5f9ea1d`. The expected-head
+merge guard was used, and master had not moved. GitHub deleted the remote branch;
+its absence was verified.
+
+- [Workspace Tests](https://github.com/edithatogo/fyi-cli/actions/runs/43597417302/job/132454806483):
+  **676 passed, zero failed, one ignored**, including **127 MCP unit/boundary
+  tests plus six executable wire tests**, and the 13 merged terminology tests.
+  Generated credential-alias rejection, exact-ID/key compatibility and the
+  five-second subprocess privacy/no-database/no-protocol contract all executed.
+- [Code Coverage](https://github.com/edithatogo/fyi-cli/actions/runs/43597417302/job/132454806566):
+  **675 instrumented tests passed**, one ignored; **14,092/14,856 lines (94.86%)**,
+  retaining the existing 90% gate and exclusions.
+- [Python Tests](https://github.com/edithatogo/fyi-cli/actions/runs/43597417302/job/132454806401):
+  **1,512 passed, two skipped**, including all **22 MCP client cases** with SDK
+  **1.30.0** on Python **3.12.16**. The degraded/recovery suite remains intact;
+  this run does not qualify the separately owned Python 3.15.1 migration.
+- [CodeQL](https://github.com/edithatogo/fyi-cli/actions/runs/43597417375) and all
+  remaining protected checks passed. Optional self-hosted offline AI remained
+  queued and is not counted as passed. Final review readback found no submitted
+  review or inline thread; this is not a fabricated independent approval.
+
+Issues #169/#173 remain open. The shared project index now lists this track as
+active, consistent with its registry, metadata and original incomplete criteria.
+No broader source/fault/transfer, platform, property/mutation or durability gate
+is waived, and the track is not archived.
