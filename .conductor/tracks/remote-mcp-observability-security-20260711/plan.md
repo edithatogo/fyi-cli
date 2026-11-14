@@ -30,6 +30,7 @@
 
 ## Bounded MCP dispatch increment — 2026-11-15
 
+Focused draft [#460](https://github.com/edithatogo/fyi-cli/pull/460).
 Existing ordinary ChatGPT workstream; sole integration coordinator retains final
 verification, refresh, merge and pruning. Based on fixed #459, including #458's
 offline acquisition repair; #457 remains a separate fixed journal candidate.

@@ -99,6 +99,8 @@ MCP payloads or private error strings. No full phase/track closure is claimed.
 
 ## Final-head handoff
 
+Focused draft: [PR #460](https://github.com/edithatogo/fyi-cli/pull/460).
+
 Hosted candidate checks and the sole coordinator's final integrated-head review
 remain pending. Optional queued offline AI is not passed or required-review
 evidence. The intended dependency order remains #458, coordinator #457/#459
