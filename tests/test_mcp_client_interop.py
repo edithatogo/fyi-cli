@@ -231,6 +231,8 @@ async def _sdk_session(
     *,
     remote_write: bool = False,
     remote_read: bool = False,
+    remote_degraded: str | None = None,
+    log_level: str = "warn",
 ) -> AsyncIterator[ClientSession]:
     """Use unmodified SDK transport/session lifecycle with bounded request waits."""
     with anyio.fail_after(SESSION_TIMEOUT_SECONDS):
@@ -239,7 +241,9 @@ async def _sdk_session(
                 async with _http_client_session(server.endpoint) as session:
                     yield session
         else:
-            environment = _server_environment()
+            environment = _server_environment(RUST_LOG=log_level)
+            if remote_degraded is not None:
+                environment["FYI_MCP_REMOTE_DEGRADED"] = remote_degraded
             if remote_write or remote_read:
                 environment.update(
                     {
@@ -640,6 +644,130 @@ def test_official_sdk_synthetic_write_preparation(mcp_binary: Path, tmp_path: Pa
             }
 
     anyio.run(scenario)
+
+
+@pytest.mark.security
+@pytest.mark.parametrize(("enabled", "disabled"), [("true", "false"), ("1", "0")])
+def test_official_sdk_degraded_stdio_restart_recovery(
+    mcp_binary: Path,
+    tmp_path: Path,
+    enabled: str,
+    disabled: str,
+) -> None:
+    """Exercise the operator's startup control; recovery is a new subprocess."""
+    fixtures = json.loads(contract.CURRENT_FIXTURE.read_text(encoding="utf-8"))
+    prepared_cases = [case for case in fixtures["cases"] if case["name"].endswith("_prepared")]
+    assert len(prepared_cases) == 3
+    read_tools = {
+        "remote_health",
+        "remote_version",
+        "remote_search_requests",
+        "remote_get_request",
+        "remote_list_authorities",
+    }
+
+    async def scenario() -> None:
+        tokens: dict[str, str] = {}
+        for mode, setting in (("normal", None), ("degraded", enabled), ("recovered", disabled)):
+            directory = tmp_path / mode
+            directory.mkdir()
+            async with _sdk_session(
+                mcp_binary,
+                directory,
+                "stdio",
+                remote_write=True,
+                remote_degraded=setting,
+                log_level="info",
+            ) as session:
+                await session.initialize()
+                names = {tool.name for tool in (await session.list_tools()).tools}
+                expected = read_tools if mode == "degraded" else read_tools | REMOTE_WRITE_TOOLS
+                assert {name for name in names if name.startswith("remote_")} == expected
+                for case in prepared_cases:
+                    params = case["request"]["params"]
+                    arguments = dict(params["arguments"])
+                    arguments["idempotency_key"] = f"{PRIVATE_MARKER}-{params['name']}"
+                    if "body" in arguments:
+                        arguments["body"] = PRIVATE_MARKER
+                    result = await session.call_tool(params["name"], arguments)
+                    if mode == "degraded":
+                        assert result.isError
+                        assert result.structuredContent is None
+                        assert result.content[0].text == "remote MCP is in degraded read-only mode"
+                        assert PRIVATE_MARKER not in result.model_dump_json()
+                    else:
+                        assert not result.isError
+                        assert result.structuredContent is not None
+                        assert result.structuredContent["status"] == "prepared"
+                        token = result.structuredContent["confirmation_token"]
+                        assert token != tokens.get(params["name"]), "Restart must not reuse tokens"
+                        tokens[params["name"]] = token
+
+                # Hiding writes is not the security boundary. A direct commit
+                # with an invalid token must remain denied, including recovery.
+                denied = await session.call_tool(
+                    "remote_create_request",
+                    {
+                        "instance_id": "synthetic",
+                        "phase": "commit",
+                        "confirmation_token": PRIVATE_MARKER,
+                        "idempotency_key": "unknown-synthetic-preparation",
+                    },
+                )
+                assert denied.isError
+                assert denied.structuredContent is None
+                assert PRIVATE_MARKER not in denied.model_dump_json()
+                health = await session.call_tool("check_status", {})
+                assert health.structuredContent is not None
+                assert health.structuredContent["status"] == "healthy"
+                assert (await session.call_tool("list_requests", {})).structuredContent == {
+                    "requests": [],
+                }
+                assert (await session.send_ping()).model_dump(exclude_none=True) == {}
+
+            diagnostics = (directory / "stdio-server.stderr").read_text(encoding="utf-8")
+            if setting is not None:
+                assert f"degraded={str(mode == 'degraded').lower()}" in diagnostics
+            assert PRIVATE_MARKER not in diagnostics
+            assert all(token not in diagnostics for token in tokens.values())
+
+    anyio.run(scenario)
+
+
+@pytest.mark.security
+@pytest.mark.parametrize(
+    "setting",
+    ["", "TRUE", "2", PRIVATE_MARKER, f"false\n{PRIVATE_MARKER}"],
+    ids=["empty", "case-typo", "unknown", "private-value", "multiline-value"],
+)
+def test_degraded_stdio_invalid_configuration_fails_before_database(
+    mcp_binary: Path,
+    tmp_path: Path,
+    setting: str,
+) -> None:
+    """Bad controls fail closed even without instances and never echo their value."""
+    database = tmp_path / f"{PRIVATE_MARKER}.sqlite"
+    result = subprocess.run(  # noqa: S603 - the validated binary, synthetic environment, no shell.
+        [str(mcp_binary)],
+        input="",
+        text=True,
+        capture_output=True,
+        cwd=tmp_path,
+        env=_server_environment(
+            FYI_MCP_EPHEMERAL="0",
+            FYI_MCP_REMOTE_DEGRADED=setting,
+            DATABASE_URL=f"sqlite://{database}?mode=rwc",
+            RUST_LOG="info",
+        ),
+        timeout=5,
+        check=False,
+    )
+    assert result.returncode != 0
+    assert result.stdout == ""
+    assert "FYI_MCP_REMOTE_DEGRADED must be true, false, 1, or 0" in result.stderr
+    assert PRIVATE_MARKER not in result.stderr
+    assert str(tmp_path) not in result.stderr
+    assert not database.exists(), "Invalid controls must fail before database creation"
 
 
 @pytest.mark.security
