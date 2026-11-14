@@ -147,3 +147,37 @@ async fn invalid_late_row_leaves_authorities_unchanged_without_sensitive_diagnos
     assert_eq!(queued, 0);
     db.pool().close().await;
 }
+
+#[test]
+fn json_mutation_output_and_private_errors_are_structured() {
+    let work = Workspace::new();
+    work.success(&["init-db", "--db", "local.db"]);
+    fs::write(work.0.join("authorities.csv"), "slug,name\nalpha,Alpha\n").unwrap();
+    let imported = work.success(&[
+        "--output-format",
+        "json",
+        "import-authorities",
+        "authorities.csv",
+        "--db",
+        "local.db",
+    ]);
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&imported).unwrap(),
+        json!({"imported_authorities": 1})
+    );
+    for input in ["absent.csv", "."] {
+        let result = work.run(&[
+            "--output-format",
+            "json",
+            "import-authorities",
+            input,
+            "--db",
+            "local.db",
+        ]);
+        assert_eq!(result.status.code(), Some(1));
+        assert!(result.stdout.is_empty());
+        let error: serde_json::Value = serde_json::from_slice(&result.stderr).unwrap();
+        assert_eq!(error["error"]["kind"], "local");
+        assert_eq!(error["error"]["message"], "unable to read authority CSV");
+    }
+}

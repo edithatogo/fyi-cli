@@ -9,7 +9,10 @@ use tokio::runtime::Runtime;
 pub fn run(command: &Commands, format: OutputFormat) {
     if let Err(error) = execute(command, format) {
         if format == OutputFormat::Json {
-            eprintln!("{}", serde_json::json!({"error": {"kind": "local", "message": error.to_string()}}));
+            eprintln!(
+                "{}",
+                serde_json::json!({"error": {"kind": "local", "message": error.to_string()}})
+            );
         } else {
             eprintln!("Local operation failed: {error}");
         }
@@ -51,7 +54,12 @@ fn execute(command: &Commands, format: OutputFormat) -> Result<(), Box<dyn std::
                 println!("{}", serde_json::to_string_pretty(&authorities)?);
             } else {
                 for authority in authorities {
-                    println!("{}\t{}\t{}", authority.slug, authority.name, authority.url.as_deref().unwrap_or_default());
+                    println!(
+                        "{}\t{}\t{}",
+                        authority.slug,
+                        authority.name,
+                        authority.url.as_deref().unwrap_or_default()
+                    );
                 }
             }
         }

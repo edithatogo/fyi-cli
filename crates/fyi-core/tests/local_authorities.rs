@@ -165,8 +165,7 @@ fn csv_rejects_control_codes_in_keys_urls_and_display_names() {
 
 #[test]
 fn csv_preserves_quoted_name_newlines_and_tabs() {
-    let parsed =
-        parse_authorities_csv(b"slug,name\nalpha,\"Alpha\tRecords\nOffice\"\n").unwrap();
+    let parsed = parse_authorities_csv(b"slug,name\nalpha,\"Alpha\tRecords\nOffice\"\n").unwrap();
     assert_eq!(parsed.len(), 1);
     assert_eq!(parsed[0].name, "Alpha\tRecords\nOffice");
 }
@@ -357,9 +356,7 @@ async fn opening_missing_existing_database_never_creates_files_or_parents() {
     let directory = temporary_directory("missing");
     for read_only in [true, false] {
         let path = directory.join("missing.db");
-        assert!(DbPool::open_local_existing(&path, read_only)
-            .await
-            .is_err());
+        assert!(DbPool::open_local_existing(&path, read_only).await.is_err());
         assert!(!path.exists());
         let nested = directory.join("absent").join("missing.db");
         assert!(DbPool::open_local_existing(&nested, read_only)
@@ -424,11 +421,107 @@ async fn opening_existing_database_rejects_unverified_migration_ledgers_without_
         fixture.close().await;
         let before = fs::read(&path).unwrap();
         for read_only in [true, false] {
-            assert!(DbPool::open_local_existing(&path, read_only)
-                .await
-                .is_err());
+            assert!(DbPool::open_local_existing(&path, read_only).await.is_err());
             assert_eq!(fs::read(&path).unwrap(), before);
         }
     }
     fs::remove_dir_all(directory).unwrap();
+}
+
+#[tokio::test]
+async fn initialization_rejects_malformed_authority_tables_before_recording_migrations() {
+    let malformed_schemas = [
+        "CREATE TABLE authorities (slug TEXT, name TEXT NOT NULL, url TEXT)",
+        "CREATE TABLE authorities (slug TEXT PRIMARY KEY, name TEXT, url TEXT)",
+        "CREATE TABLE authorities (slug TEXT PRIMARY KEY, name TEXT NOT NULL)",
+        "CREATE TABLE authorities (
+            slug TEXT PRIMARY KEY, name TEXT NOT NULL, url TEXT, unexpected TEXT
+         )",
+        "CREATE TABLE authorities (slug BLOB PRIMARY KEY, name TEXT NOT NULL, url TEXT)",
+        "CREATE TABLE authorities (slug TEXT PRIMARY KEY, name INTEGER NOT NULL, url TEXT)",
+        "CREATE TABLE authorities (
+            slug TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, url TEXT
+         )",
+    ];
+    for schema in malformed_schemas {
+        let db = DbPool::new_in_memory().await.unwrap();
+        sqlx::query(schema).execute(db.pool()).await.unwrap();
+        sqlx::query(
+            "INSERT INTO authorities (slug, name) VALUES ('preserved', 'Preserved Authority')",
+        )
+        .execute(db.pool())
+        .await
+        .unwrap();
+        let before: Vec<(String, String, Option<String>)> =
+            sqlx::query_as("SELECT name, type, sql FROM sqlite_master ORDER BY name")
+                .fetch_all(db.pool())
+                .await
+                .unwrap();
+
+        assert!(db.initialize_rust_schema().await.is_err(), "{schema}");
+
+        let after: Vec<(String, String, Option<String>)> =
+            sqlx::query_as("SELECT name, type, sql FROM sqlite_master ORDER BY name")
+                .fetch_all(db.pool())
+                .await
+                .unwrap();
+        assert_eq!(after, before, "initialization changed an unsupported schema");
+        let row: (String, String) = sqlx::query_as("SELECT slug, name FROM authorities")
+            .fetch_one(db.pool())
+            .await
+            .unwrap();
+        assert_eq!(row, ("preserved".to_owned(), "Preserved Authority".to_owned()));
+        let ledger_count: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM sqlite_master WHERE name = '_sqlx_migrations'",
+        )
+        .fetch_one(db.pool())
+        .await
+        .unwrap();
+        assert_eq!(ledger_count, 0);
+    }
+}
+
+#[tokio::test]
+async fn genuine_migration_ledger_does_not_bless_missing_or_replaced_authority_tables() {
+    for replacement in [
+        None,
+        Some("CREATE TABLE authorities (slug TEXT, name TEXT NOT NULL, url TEXT)"),
+        Some("CREATE TABLE authorities (slug TEXT PRIMARY KEY, name TEXT, url TEXT)"),
+    ] {
+        let db = migrated_db().await;
+        let ledger_before: Vec<(i64, bool, Vec<u8>)> = sqlx::query_as(
+            "SELECT version, success, checksum FROM _sqlx_migrations ORDER BY version",
+        )
+        .fetch_all(db.pool())
+        .await
+        .unwrap();
+        sqlx::query("DROP TABLE authorities")
+            .execute(db.pool())
+            .await
+            .unwrap();
+        if let Some(schema) = replacement {
+            sqlx::query(schema).execute(db.pool()).await.unwrap();
+        }
+        let schema_before: Vec<(String, String, Option<String>)> =
+            sqlx::query_as("SELECT name, type, sql FROM sqlite_master ORDER BY name")
+                .fetch_all(db.pool())
+                .await
+                .unwrap();
+
+        assert!(db.validate_local_schema().await.is_err());
+
+        let ledger_after: Vec<(i64, bool, Vec<u8>)> = sqlx::query_as(
+            "SELECT version, success, checksum FROM _sqlx_migrations ORDER BY version",
+        )
+        .fetch_all(db.pool())
+        .await
+        .unwrap();
+        assert_eq!(ledger_after, ledger_before);
+        let schema_after: Vec<(String, String, Option<String>)> =
+            sqlx::query_as("SELECT name, type, sql FROM sqlite_master ORDER BY name")
+                .fetch_all(db.pool())
+                .await
+                .unwrap();
+        assert_eq!(schema_after, schema_before);
+    }
 }
