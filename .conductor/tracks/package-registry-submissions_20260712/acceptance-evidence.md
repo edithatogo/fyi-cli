@@ -34,10 +34,11 @@ signature, SBOM, reproducibility or native-install verification.
 | --- | --- |
 | asdf regressions on old implementation | 20 failed, 2 passed |
 | Independent-review regressions before fixes | 10 failed, 29 passed |
-| final focused asdf installer tests | 39 passed |
+| final focused asdf installer tests | 40 passed |
+| Real Scalene 2.4.0 focused profiling run | 40 passed; no tests skipped |
 | integrity regressions on old implementation | 41 failed, 5 passed |
 | final focused release-manifest tests | 49 passed |
-| Combined focused tests | 88 passed |
+| Combined focused tests | 89 passed |
 | Script syntax, scoped Ruff lint/format, scoped diff whitespace | Passed |
 | Actual plugin `list-all` | Successful empty list; no unqualified version exposed |
 | Native macOS/Windows install and authenticated provenance | Not run; explicitly blocked |
@@ -55,6 +56,10 @@ Independent review additionally required curl 8.4.0 or newer for a bounded
 download and complete bounded gzip decompression before parsing a single ordinary
 tar member. Concatenated archives, hidden tails, extended headers and invalid
 gzip trailers fail without replacing an existing installation.
+The hosted profiling run exposed inherited Python-wrapper interference in the
+test fixtures. A dedicated injected-wrapper regression failed before the fixture
+was pinned to the underlying interpreter; normal and real Scalene runs now pass.
+Installer behavior and shared workflows were unchanged by that test isolation fix.
 
 ## Remaining gates
 

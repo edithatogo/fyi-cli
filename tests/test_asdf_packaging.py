@@ -8,6 +8,7 @@ import io
 import os
 import shutil
 import subprocess
+import sys
 import tarfile
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -41,6 +42,9 @@ def environment(tmp_path: Path) -> dict[str, str]:
     """Stub every external command that could reach a registry or build code."""
     commands = tmp_path / "commands"
     commands.mkdir()
+    # Profilers can prepend Python wrappers and rewrite sys.executable itself.
+    interpreter = Path(getattr(sys, "_base_executable", sys.executable)).resolve()
+    (commands / "python3").symlink_to(interpreter)
     scripts = {
         "uname": '#!/bin/sh\ncase "$1" in -s) echo "$TEST_OS";; -m) echo "$TEST_ARCH";; esac\n',
         "curl": r"""#!/usr/bin/env python3
@@ -134,6 +138,32 @@ def test_no_versions_listed_without_approved_release(plugin, environment):
     assert result.stdout.strip() == ""
     assert not Path(environment["TEST_GH_LOG"]).exists()
     assert not Path(environment["TEST_DOWNLOAD_LOG"]).exists()
+
+
+def test_inherited_python_wrapper_cannot_intercept_fixture_commands(
+    plugin,
+    environment,
+    archive,
+    tmp_path,
+):
+    wrappers = tmp_path / "profiler-wrappers"
+    wrappers.mkdir()
+    wrapper = wrappers / "python3"
+    wrapper.write_text('#!/bin/sh\necho called > "$TEST_PYTHON_WRAPPER_LOG"\nexit 73\n')
+    wrapper.chmod(0o755)
+    log = tmp_path / "python-wrapper.log"
+    environment["TEST_PYTHON_WRAPPER_LOG"] = str(log)
+    fixture_commands, inherited = environment["PATH"].split(os.pathsep, 1)
+    environment["PATH"] = os.pathsep.join((fixture_commands, str(wrappers), inherited))
+    approve(plugin, archive())
+
+    versions = run_script(plugin, environment, "list-all")
+    assert versions.returncode == 0, versions.stderr
+    assert versions.stdout.strip() == VERSION
+    installed = run_script(plugin, environment)
+    assert installed.returncode == 0, installed.stderr
+    assert (Path(environment["ASDF_INSTALL_PATH"]) / "bin/fyi-cli").is_file()
+    assert not log.exists()
 
 
 @pytest.mark.parametrize(
