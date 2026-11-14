@@ -78,7 +78,7 @@ The `capture`, `internet-archive-cdx`, `internet-archive-replay`, `discover` and
 - `federation`: native-only; not a reason to retire a Python command.
 - `provenance`: native-only; not a reason to retire a Python command.
 - `mcp-server`: unimplemented CLI shortcut; the separate `fyi-mcp` binary is the MCP server.
-- `tui`: unimplemented CLI shortcut.
+- `tui`: bounded native read-only local metadata view; redacted launch, partial totals and terminal lifecycle. Timelines, manual accessibility and original performance acceptance remain open; see `docs/tui-presentation-contract.md` (#448). No Python retirement is implied.
 - `verify-acquisition-receipt`: native, offline verification of a Python-compatible v1 receipt and optional payload bytes; not an archive cutover.
 
 ## Contract-driven migration rules

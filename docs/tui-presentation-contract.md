@@ -1,6 +1,6 @@
 # Rust TUI presentation contract
 
-Status: bounded presentation implemented and locally verified, 2026-11-14; CLI integration remains open.
+Status: presentation merged in #435; bounded local runtime under verification in #448, 2026-11-14.
 PR: [#435](https://github.com/edithatogo/fyi-cli/pull/435).
 Existing track: [rust-mcp-tui-implementation](../.conductor/tracks/rust-mcp-tui-implementation/plan.md).
 
@@ -14,8 +14,9 @@ supplied draft records.
 
 The TUI workstream owns `crates/fyi-cli/src/tui.rs`, its presentation modules,
 fixtures and tests. The request-management workstream owns database handlers and
-CLI dispatch. Acquisition, MCP, localization, packaging and shared CI are outside
-this change. This contract does not establish new backend functionality.
+CLI dispatch. This follow-on increment adds only the TUI launch dispatch and a
+bounded read-only repository projection. Acquisition, MCP, localization,
+packaging and shared CI remain outside this change. This contract does not establish new backend functionality.
 
 ## Owned input data
 
@@ -146,32 +147,64 @@ growing the terminal must not panic, disclose hidden data or leave selection
 outside the visible content. Labels distinguish status and attention without
 relying on color alone.
 
-## Handoff to request management
+## Bounded local runtime increment (#448)
 
-The `tui` CLI command currently fails closed as unsupported. `main.rs` and CLI
-dispatch remain unchanged in this presentation slice. The integration change
-must be isolated and prepared after the request-management branch has merged.
-PR [#434](https://github.com/edithatogo/fyi-cli/pull/434) is the currently identified
-authority-management dependency; its merge alone is not evidence that request
-and timeline APIs have been completed.
+The baseline is master `39591dcf91bb50ed847b0d36bdc3bd670a7e60a7`, containing
+merged #435 and the accepted #434/#440/#442 local APIs. No frozen retirement patch
+or inaccessible bundle is treated as integrated. The shared Conductor registry,
+Python retirement ledger, source acquisition, MCP and localization are unchanged.
 
-The integration adapter must:
+Launch with `fyi-cli tui --db existing.db` (or the global `--db` before `tui`).
+The default path remains `fyi_system.db`. Both stdin and stdout must be terminals;
+redirected input/output and `TERM=dumb` fail before database or terminal access.
+JSON output is rejected with a static JSON error on stderr. Success/ordinary quit
+returns 0; launch, data, input, drawing, restoration or caught panic failure returns
+1. Failed data remains a navigable static error view until quit. Error text never
+contains database paths, SQL, terminal diagnostics or panic payloads.
 
-1. Read through the accepted local backend APIs and construct a bounded snapshot.
-2. Open existing local data read-only. It must not create a database, run
-   migrations, initialize missing state or trigger sync when the view opens.
-3. Map authority metadata from the actual authority relationship. Do not map
-   `AlaveteliRequest.user_name` to authority.
-4. Preserve unknown values, partial scope and unavailable timelines. Supply only
-   supported fields and events, with static presentation failures when needed.
-5. Obtain any future data update outside drawing/key handling, then replace the
-   owned snapshot without exposing a service handle to the presentation layer.
-6. Verify terminal startup, restoration, non-interactive handling and asynchronous
-   input before enabling dispatch. Keep failure paths free of sensitive output.
-7. Send `Event::Resize(actual_width, actual_height)` before initial navigation and
-   on every terminal resize. `draw_ui` uses its frame's actual size; navigation
-   uses the size supplied through `handle_event` to calculate scroll/page bounds.
-   The default navigation size is 80 by 24 until the caller supplies it.
+The adapter calls the accepted `DbPool::open_local_existing(path, true)`; opening
+never creates or migrates a database. A new `local_request_overview` repository
+projection reuses `LocalRequestSummary`, joins `authorities` by the actual local
+relationship, and reads the exact total and first 500 IDs in one read transaction.
+SQL limits returned text before allocation; the existing presentation sanitizer
+then applies its 512-scalar bound. The database is closed before the owned
+snapshot is supplied. There is no refresh, polling of data, sync or external client.
+For more than 500 requests, scope is `Partial` with the exact backend total; the
+loaded rows are explicitly the first 500 local IDs. Filtering searches these rows.
+
+Only local IDs, titles, actual authority names, typed status and supplied update
+timestamps enter presentation. Unknown attention stays unknown. Request bodies,
+tags, URLs, requester names, correspondence and raw status/error strings are not
+supplied. Every timeline is `Unavailable`: this increment does not project local
+history or stored acquisition provenance. In particular, legacy creation/update
+timestamps are not converted into invented events. A future history increment
+must qualify genuine events and the existing global 1,000-event limit explicitly.
+
+The runtime draws an honest loading state and concurrently waits for data, input
+and shutdown. Crossterm poll/read run on the same dedicated worker thread, with a
+32-event bounded queue and a 50-ms poll timeout. Quit remains responsive while
+data is pending. Drawing/key handling only operate on the owned `AppState`.
+Initial navigation and each redraw receive the actual terminal size, and resize
+events are forwarded. There is no idle animation or periodic redraw loop.
+
+An effect-owning guard covers partial startup, ordinary quit, errors and unwind.
+It clears the alternate screen, resets styles, shows the cursor, leaves the
+alternate screen and restores raw mode, attempting remaining cleanup steps after
+an error. The input queue is closed before its worker is joined. Ctrl+C/Ctrl+Q
+remain key-based exits; externally delivered SIGINT/SIGTERM/SIGHUP are also handled
+on Unix. Caught panics use static diagnostics after restoration; the previous
+panic hook is restored. No claim covers uncatchable process termination, external
+terminal capture deletion or a broken terminal transport.
+
+TUI dispatch precedes tracing and heap-profiler initialization, including
+all-features builds. Viewing a snapshot creates no profiling file and emits no
+captured content through verbose diagnostics. Privacy starts redacted on every
+launch; reveal remains a session-only explicit action.
+
+The runtime verification and remaining manual work are specified in
+[the runtime acceptance procedure](tui-runtime-acceptance.md). The sole
+**Issue fixes and PR merges** coordinator allocates final reconciliation and merge;
+implementation-head checks do not certify an untested future combined head.
 
 ## Verification and limits
 
@@ -181,8 +214,9 @@ It must cover deterministic buffer snapshots, keyboard interaction, terminal
 resizing, bounded input, unknown/partial data and privacy-negative cases, using
 offline synthetic state. Final-head Actions remain the merge gate.
 
-Buffer rendering tests do not establish CLI launch, real backend integration,
-screen-reader compatibility, asynchronous runtime behavior, the original
+The runtime increment adds adapter, event-loop and Linux pseudo-terminal tests;
+those results must be recorded separately from buffer tests. Neither establishes
+screen-reader compatibility, the original
 greater-than-30-FPS target, less-than-20-MB RAM target or manual terminal
 verification. Those claims require separate evidence. Completion of this bounded
 presentation slice does not close the combined CLI/MCP/TUI track.
