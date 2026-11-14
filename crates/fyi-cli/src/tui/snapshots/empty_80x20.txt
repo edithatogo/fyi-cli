@@ -1,0 +1,21 @@
+80x20
+|┌ FYI | read-only | data visible ──────────────────────────────────────────────┐|
+|│ [Summary] │ Requests │ Timeline │ Drafts                                     │|
+|└──────────────────────────────────────────────────────────────────────────────┘|
+|┌Summary (supplied data only)──────────────────────────────────────────────────┐|
+|│Loaded requests: 0                                                            │|
+|│Complete snapshot; backend total: 0                                           │|
+|│Drafts: 0 | Authority labels: 0                                               │|
+|│Needs attention: 0 | Unknown: 0                                               │|
+|│No requests in this snapshot.                                                 │|
+|│                                                                              │|
+|│                                                                              │|
+|│                                                                              │|
+|│                                                                              │|
+|│                                                                              │|
+|│                                                                              │|
+|│                                                                              │|
+|└──────────────────────────────────────────────────────────────────────────────┘|
+|┌ Controls ────────────────────────────────────────────────────────────────────┐|
+|│Tab view | arrows/Home/End/PgUp/PgDn | / filter | p privacy | ? help | q quit │|
+|└──────────────────────────────────────────────────────────────────────────────┘|
