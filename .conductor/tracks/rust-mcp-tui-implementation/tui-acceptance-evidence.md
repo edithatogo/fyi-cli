@@ -1,6 +1,6 @@
 # TUI presentation acceptance evidence
 
-Status: bounded presentation implemented and locally verified, 2026-11-14. Final-head Actions remain the merge gate.
+Status: presentation merged as #435; bounded runtime #448 under verification, 2026-11-14. Final-head Actions remain the merge gate.
 PR: [#435](https://github.com/edithatogo/fyi-cli/pull/435).
 Scope: the standalone read-only presentation portion of Phase 2.3 only.
 Contract: [TUI presentation contract](../../../docs/tui-presentation-contract.md).
@@ -76,7 +76,11 @@ configuration is unchanged. The new contract module participates in aggregate
 coverage; complete buffer/interaction tests provide direct presentation evidence.
 No claim of inclusive TUI line coverage is made from the existing gate.
 
-## Integration blockers and retained scope
+## Presentation handoff recorded before integration
+
+The following records the #435 handoff. #434/#440/#442 have since merged and are
+the accepted baseline for the runtime increment below; no inaccessible local
+bundle or frozen retirement work is assumed integrated.
 
 `main.rs` and CLI dispatch remain owned by the separate request-management
 workstream. The current identified PR is
@@ -107,3 +111,43 @@ close unrelated issues. Only this track’s registry/index entries are corrected
 to keep the combined track open; other workstream records are preserved. A rollback of
 this presentation change affects no database schema, stored data, external
 service or published package.
+
+## Bounded local runtime — PR #448
+
+Baseline: `39591dcf91bb50ed847b0d36bdc3bd670a7e60a7`. The accepted local APIs
+and merged presentation are reused. The only repository extension is a bounded
+read-only metadata projection using `DbPool` and `LocalRequestSummary`; no schema,
+migration, source transport, MCP or localization implementation changes are made.
+
+RED checkpoint: `1578de7e36df33ab49689ecb8a7bf6dbeadc5562`.
+[Workspace Tests](https://github.com/edithatogo/fyi-cli/actions/runs/43566189263/job/132360454715)
+ran three new executable launch tests; all three failed against the unsupported
+dispatch as expected. Rustfmt and strict Clippy passed on that tests-only head.
+
+Implementation checkpoint: `a0d66629ea5bd9be52baff53b2f2338eaad649e7`.
+Strict Clippy and the Conductor contract passed; the MSRV workflow correctly
+rejected formatting differences. Its exact rustfmt changes are applied in the
+following checkpoint. Workspace/PTY tests and coverage are not claimed passed
+until the exact candidate results are recorded in the PR. No local Rust execution
+is claimed: the current executor has no Rust toolchain; the existing hosted
+workflows provide the native execution evidence without CI modifications.
+
+Executable scope includes bounded/partial/empty metadata, real authority mapping,
+unknown status/attention, explicit unavailable timelines, unchanged database
+bytes/files, missing/corrupt/future-schema/symlink rejection, static error and panic
+diagnostics, asynchronous loading/input/shutdown, initial/updated terminal size,
+partial startup and cleanup failures, and a Linux PTY launch against the real CLI.
+The PTY fixture also exercises reveal, details, resize, q, Ctrl+C and SIGTERM.
+
+Manual terminal/screen-reader acceptance and the original >30 FPS / <20 MB RAM
+targets remain **open and unmeasured**. The reproducible
+[runtime acceptance procedure](../../../docs/tui-runtime-acceptance.md) specifies
+platforms, synthetic workloads, release build, units, latency/throughput and RSS
+evidence. Linux PTY tests are not manual accessibility or performance certification.
+
+The sole **Issue fixes and PR merges** coordinator has been asked for an exclusive
+final reconciliation/verification/merge slot in #448. This implementation branch
+does not refresh or merge against concurrently changing master. Historical green
+checks do not qualify a future combined head; no required gate is waived. The
+combined track remains open, and no Python retirement or bundle integration is
+claimed.

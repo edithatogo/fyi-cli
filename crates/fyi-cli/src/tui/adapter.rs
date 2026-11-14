@@ -18,18 +18,24 @@ pub async fn load_snapshot(path: &Path) -> Result<PresentationSnapshot, Presenta
     let scope = if overview.requests.len() == overview.total {
         SnapshotScope::Complete
     } else {
-        SnapshotScope::Partial { total: Some(overview.total) }
+        SnapshotScope::Partial {
+            total: Some(overview.total),
+        }
     };
     PresentationSnapshot {
-        requests: overview.requests.into_iter().map(|row| RequestItem {
-            id: row.request.id,
-            title: row.request.title,
-            authority: row.authority_name,
-            status: RequestStatus::from_backend(row.request.status.as_deref()),
-            needs_attention: None,
-            updated_at: row.updated_at,
-            timeline: TimelineState::Unavailable,
-        }).collect(),
+        requests: overview
+            .requests
+            .into_iter()
+            .map(|row| RequestItem {
+                id: row.request.id,
+                title: row.request.title,
+                authority: row.authority_name,
+                status: RequestStatus::from_backend(row.request.status.as_deref()),
+                needs_attention: None,
+                updated_at: row.updated_at,
+                timeline: TimelineState::Unavailable,
+            })
+            .collect(),
         scope,
     }
     .validate()

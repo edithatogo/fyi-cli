@@ -54,7 +54,10 @@ impl fmt::Display for RuntimeError {
 pub fn run(path: &Path, format: OutputFormat) {
     if let Err(error) = launch(path, format) {
         if format == OutputFormat::Json {
-            eprintln!("{}", serde_json::json!({"error": {"kind": "tui", "message": error.to_string()}}));
+            eprintln!(
+                "{}",
+                serde_json::json!({"error": {"kind": "tui", "message": error.to_string()}})
+            );
         } else {
             eprintln!("TUI failed: {error}");
         }
@@ -70,7 +73,8 @@ fn launch(path: &Path, format: OutputFormat) -> Result<(), RuntimeError> {
         return Err(RuntimeError::Interactive);
     }
     if std::env::var_os("TERM").is_some_and(|term| {
-        term.to_str().is_none_or(|value| value.is_empty() || value == "dumb")
+        term.to_str()
+            .is_none_or(|value| value.is_empty() || value == "dumb")
     }) {
         return Err(RuntimeError::UnsupportedTerminal);
     }
@@ -143,7 +147,9 @@ impl Surface for CrosstermSurface {
             Effect::Enter => execute!(io::stdout(), EnterAlternateScreen),
             Effect::Hide => execute!(io::stdout(), Hide),
             Effect::Clear => execute!(io::stdout(), Clear(ClearType::All), MoveTo(0, 0)),
-            Effect::ResetStyle => execute!(io::stdout(), ResetColor, SetAttribute(Attribute::Reset)),
+            Effect::ResetStyle => {
+                execute!(io::stdout(), ResetColor, SetAttribute(Attribute::Reset))
+            }
             Effect::Show => execute!(io::stdout(), Show),
             Effect::Leave => execute!(io::stdout(), LeaveAlternateScreen),
             Effect::RawOff => terminal::disable_raw_mode(),
@@ -185,13 +191,25 @@ impl<S: Surface> Session<S> {
             hide_attempted: false,
             restored: false,
         };
-        session.surface.effect(Effect::RawOn).map_err(|_| RuntimeError::Terminal)?;
+        session
+            .surface
+            .effect(Effect::RawOn)
+            .map_err(|_| RuntimeError::Terminal)?;
         session.enter_attempted = true;
-        session.surface.effect(Effect::Enter).map_err(|_| RuntimeError::Terminal)?;
+        session
+            .surface
+            .effect(Effect::Enter)
+            .map_err(|_| RuntimeError::Terminal)?;
         session.entered = true;
         session.hide_attempted = true;
-        session.surface.effect(Effect::Hide).map_err(|_| RuntimeError::Terminal)?;
-        session.surface.effect(Effect::Clear).map_err(|_| RuntimeError::Terminal)?;
+        session
+            .surface
+            .effect(Effect::Hide)
+            .map_err(|_| RuntimeError::Terminal)?;
+        session
+            .surface
+            .effect(Effect::Clear)
+            .map_err(|_| RuntimeError::Terminal)?;
         Ok(session)
     }
 
@@ -212,7 +230,11 @@ impl<S: Surface> Session<S> {
                 failed = true;
             }
         }
-        if failed { Err(RuntimeError::Terminal) } else { Ok(()) }
+        if failed {
+            Err(RuntimeError::Terminal)
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -225,7 +247,10 @@ impl<S: Surface> Drop for Session<S> {
 fn draw<S: Surface>(session: &mut Session<S>, app: &mut AppState) -> Result<(), RuntimeError> {
     let (width, height) = session.surface.size().map_err(|_| RuntimeError::Terminal)?;
     app.handle_event(Event::Resize(width, height));
-    session.surface.draw(app).map_err(|_| RuntimeError::Terminal)
+    session
+        .surface
+        .draw(app)
+        .map_err(|_| RuntimeError::Terminal)
 }
 
 async fn run_loop<S, L, Q>(
@@ -299,6 +324,7 @@ impl InputWorker {
                     let result = match next() {
                         Ok(Some(event)) => Ok(event),
                         Ok(None) => continue,
+                        Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
                         Err(_) => Err(RuntimeError::Input),
                     };
                     let failed = result.is_err();
@@ -308,7 +334,11 @@ impl InputWorker {
                 }
             })
             .map_err(|_| RuntimeError::Input)?;
-        Ok(Self { receiver, stop, thread: Some(thread) })
+        Ok(Self {
+            receiver,
+            stop,
+            thread: Some(thread),
+        })
     }
 
     fn stop(&mut self) -> Result<(), RuntimeError> {
@@ -342,7 +372,9 @@ async fn shutdown_signal() -> Result<(), RuntimeError> {
         Ok(())
     }
     #[cfg(not(unix))]
-    tokio::signal::ctrl_c().await.map_err(|_| RuntimeError::Runtime)
+    tokio::signal::ctrl_c()
+        .await
+        .map_err(|_| RuntimeError::Runtime)
 }
 
 #[cfg(test)]

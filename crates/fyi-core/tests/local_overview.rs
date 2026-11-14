@@ -45,7 +45,10 @@ async fn metadata_retains_local_identity_actual_authority_and_nullable_values() 
     assert_eq!(row.request.status.as_deref(), Some("unrecognized-state"));
     assert_eq!(row.authority_name.as_deref(), Some("Maple Council"));
     assert_eq!(row.updated_at, None);
-    assert_eq!(db.get_local_request(id).await.unwrap().unwrap().body, "PRIVATE-BODY");
+    assert_eq!(
+        db.get_local_request(id).await.unwrap().unwrap().body,
+        "PRIVATE-BODY"
+    );
 }
 
 #[tokio::test]
@@ -105,7 +108,10 @@ async fn oversized_text_is_bounded_in_sql_without_splitting_unicode() {
     let overview = db.local_request_overview(500).await.unwrap();
     let row = &overview.requests[0];
     assert_eq!(row.request.title, "🧪".repeat(513));
-    assert_eq!(row.authority_name.as_deref(), Some("界".repeat(513).as_str()));
+    assert_eq!(
+        row.authority_name.as_deref(),
+        Some("界".repeat(513).as_str())
+    );
     assert_eq!(row.updated_at.as_ref().unwrap().chars().count(), 513);
     assert_eq!(row.request.status.as_ref().unwrap().chars().count(), 129);
 }

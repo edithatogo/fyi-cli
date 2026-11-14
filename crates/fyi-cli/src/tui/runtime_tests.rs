@@ -44,7 +44,9 @@ impl Surface for FakeTerminal {
         if state.fail_draw {
             return Err(std::io::Error::other("PRIVATE-DRAW-ERROR"));
         }
-        state.frames.push((app.load_state, app.privacy, app.active_tab));
+        state
+            .frames
+            .push((app.load_state, app.privacy, app.active_tab));
         state.viewports.push(app.viewport);
         Ok(())
     }
@@ -94,13 +96,28 @@ fn startup_failures_restore_every_effect_that_might_have_started() {
 
 #[test]
 fn cleanup_attempts_all_steps_even_if_one_fails_and_is_idempotent() {
-    for failure in [Effect::Clear, Effect::ResetStyle, Effect::Show, Effect::Leave, Effect::RawOff] {
+    for failure in [
+        Effect::Clear,
+        Effect::ResetStyle,
+        Effect::Show,
+        Effect::Leave,
+        Effect::RawOff,
+    ] {
         let (terminal, state) = terminal();
         let mut session = Session::start(terminal).unwrap();
         state.borrow_mut().effects.clear();
         state.borrow_mut().fail = Some(failure);
         assert!(session.restore().is_err());
-        assert_eq!(state.borrow().effects, vec![Effect::Clear, Effect::ResetStyle, Effect::Show, Effect::Leave, Effect::RawOff]);
+        assert_eq!(
+            state.borrow().effects,
+            vec![
+                Effect::Clear,
+                Effect::ResetStyle,
+                Effect::Show,
+                Effect::Leave,
+                Effect::RawOff
+            ]
+        );
         drop(session);
         assert_eq!(state.borrow().effects.len(), 5);
     }
@@ -129,7 +146,11 @@ async fn quit_and_shutdown_are_responsive_while_data_loading_is_pending() {
         .expect("input must not wait for data")
         .unwrap();
         assert_eq!(state.borrow().frames[0].0, LoadState::Loading);
-        assert_eq!(state.borrow().frames.len(), 1, "no periodic redraw while idle");
+        assert_eq!(
+            state.borrow().frames.len(),
+            1,
+            "no periodic redraw while idle"
+        );
         assert_eq!(state.borrow().viewports[0], (40, 12));
         drop(session);
         assert_eq!(state.borrow().effects.last(), Some(&Effect::RawOff));
@@ -146,17 +167,34 @@ async fn loaded_data_starts_private_and_input_and_resize_remain_live() {
             tokio::task::yield_now().await;
         }
         state.borrow_mut().size = (36, 10);
-        for event in [key(KeyCode::Tab), key(KeyCode::Char('p')), Ok(Event::Resize(36, 10)), key(KeyCode::Char('q'))] {
+        for event in [
+            key(KeyCode::Tab),
+            key(KeyCode::Char('p')),
+            Ok(Event::Resize(36, 10)),
+            key(KeyCode::Char('q')),
+        ] {
             sender.send(event).await.unwrap();
         }
     };
-    let (result, ()) = tokio::join!(
-        run_loop(&mut session, &mut receiver, ready(Ok(snapshot())), pending()),
-        input
-    );
+    let (result, ()) = tokio::time::timeout(Duration::from_secs(2), async {
+        tokio::join!(
+            run_loop(
+                &mut session,
+                &mut receiver,
+                ready(Ok(snapshot())),
+                pending()
+            ),
+            input
+        )
+    })
+    .await
+    .expect("data and input must both progress");
     result.unwrap();
     let frames = &state.borrow().frames;
-    assert_eq!(frames[1], (LoadState::Ready, PrivacyMode::Redacted, Tab::Summary));
+    assert_eq!(
+        frames[1],
+        (LoadState::Ready, PrivacyMode::Redacted, Tab::Summary)
+    );
     assert!(frames.contains(&(LoadState::Ready, PrivacyMode::Visible, Tab::Requests)));
     assert!(state.borrow().viewports.contains(&(36, 10)));
 }
@@ -197,7 +235,14 @@ async fn failure_paths_have_static_errors_and_restore_the_terminal() {
             }
             drop(sender);
         };
-        let (result, ()) = tokio::join!(run_loop(&mut session, &mut receiver, data, pending()), input);
+        let (result, ()) = tokio::time::timeout(Duration::from_secs(2), async {
+            tokio::join!(
+                run_loop(&mut session, &mut receiver, data, pending()),
+                input
+            )
+        })
+        .await
+        .expect("failure view must remain responsive");
         assert_eq!(result, Err(expected));
         assert!(!expected.to_string().contains("PRIVATE"));
         drop(session);
@@ -226,9 +271,28 @@ fn input_worker_stops_with_a_full_queue_and_converts_diagnostics() {
         std::thread::yield_now();
     }
     worker.stop().unwrap();
-    let mut failed = InputWorker::start_with(|| Err(std::io::Error::other("PRIVATE-INPUT"))).unwrap();
-    assert_eq!(failed.receiver.blocking_recv(), Some(Err(RuntimeError::Input)));
+    let mut failed =
+        InputWorker::start_with(|| Err(std::io::Error::other("PRIVATE-INPUT"))).unwrap();
+    assert_eq!(
+        failed.receiver.blocking_recv(),
+        Some(Err(RuntimeError::Input))
+    );
     failed.stop().unwrap();
+}
+
+#[test]
+fn interrupted_poll_is_retried_without_exposing_a_signal_as_an_input_failure() {
+    let mut first = true;
+    let mut worker = InputWorker::start_with(move || {
+        if std::mem::take(&mut first) {
+            Err(std::io::Error::from(std::io::ErrorKind::Interrupted))
+        } else {
+            Ok(Some(Event::FocusGained))
+        }
+    })
+    .unwrap();
+    assert_eq!(worker.receiver.blocking_recv(), Some(Ok(Event::FocusGained)));
+    worker.stop().unwrap();
 }
 
 #[test]
@@ -246,7 +310,11 @@ fn private_panic_worker() {
 #[test]
 fn caught_panic_payloads_and_backtraces_are_not_written_to_the_terminal() {
     let output = std::process::Command::new(std::env::current_exe().unwrap())
-        .args(["--exact", "tui::runtime::tests::private_panic_worker", "--nocapture"])
+        .args([
+            "--exact",
+            "tui::runtime::tests::private_panic_worker",
+            "--nocapture",
+        ])
         .env("FYI_TUI_PANIC_WORKER", "1")
         .env("RUST_BACKTRACE", "full")
         .output()

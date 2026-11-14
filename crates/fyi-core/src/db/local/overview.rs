@@ -34,7 +34,9 @@ impl DbPool {
         limit: usize,
     ) -> Result<LocalRequestOverview, LocalError> {
         if !(1..=MAX_LOCAL_OVERVIEW_REQUESTS).contains(&limit) {
-            return Err(LocalError::InvalidInput("local overview limit must be 1 to 500"));
+            return Err(LocalError::InvalidInput(
+                "local overview limit must be 1 to 500",
+            ));
         }
         let mut transaction = self.pool().begin().await?;
         let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM tracked_requests")

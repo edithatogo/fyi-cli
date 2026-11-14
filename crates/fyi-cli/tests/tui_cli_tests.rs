@@ -67,13 +67,17 @@ fn tui_help_identifies_the_local_read_only_snapshot() {
 #[cfg(target_os = "linux")]
 #[test]
 fn tui_real_terminal_launch_privacy_resize_and_restoration() {
-    let script = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("tests/fixtures/tui_terminal.py");
+    let script =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/tui_terminal.py");
     let output = Command::new("python3")
         .arg(script)
         .arg(env!("CARGO_BIN_EXE_fyi-cli"))
         .output()
         .expect("Python 3 is required for the Linux standard-library PTY contract");
-    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     assert!(String::from_utf8_lossy(&output.stdout).contains("PTY acceptance:"));
 }

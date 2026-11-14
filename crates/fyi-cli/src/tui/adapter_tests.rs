@@ -12,7 +12,10 @@ struct Fixture(PathBuf);
 impl Fixture {
     fn new() -> Self {
         static NEXT: AtomicU64 = AtomicU64::new(0);
-        let nonce = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
         let path = std::env::temp_dir().join(format!(
             "fyi-tui-data-{}-{nonce}-{}",
             std::process::id(),
@@ -28,7 +31,9 @@ impl Fixture {
 
     async fn initialize(&self) -> DbPool {
         fs::File::create(self.path()).unwrap();
-        let db = DbPool::open_local_for_initialization(&self.path()).await.unwrap();
+        let db = DbPool::open_local_for_initialization(&self.path())
+            .await
+            .unwrap();
         db.initialize_rust_schema().await.unwrap();
         db.import_local_authorities(&[LocalAuthority {
             slug: "maple".to_owned(),
@@ -85,7 +90,10 @@ async fn file_adapter_is_redacted_bounded_and_preserves_the_database_bytes() {
         assert_eq!(request.updated_at.as_deref(), Some("2026-10-01T00:00:00Z"));
         assert_eq!(request.timeline, TimelineState::Unavailable);
         assert!(!format!("{snapshot:?}").contains("PRIVATE"));
-        assert_eq!(AppState::from_snapshot(snapshot).privacy, PrivacyMode::Redacted);
+        assert_eq!(
+            AppState::from_snapshot(snapshot).privacy,
+            PrivacyMode::Redacted
+        );
         assert_eq!(fs::read(fixture.path()).unwrap(), before);
         assert_eq!(fs::read_dir(&fixture.0).unwrap().count(), entries);
     }
@@ -129,12 +137,21 @@ async fn empty_data_is_a_complete_ready_snapshot() {
 #[tokio::test]
 async fn missing_corrupt_and_unsupported_files_fail_without_creation_or_migration() {
     let fixture = Fixture::new();
-    assert_eq!(load_snapshot(&fixture.path()).await, Err(PresentationError::Unavailable));
+    assert_eq!(
+        load_snapshot(&fixture.path()).await,
+        Err(PresentationError::Unavailable)
+    );
     assert!(!fixture.path().exists());
-    assert_eq!(load_snapshot(&fixture.0).await, Err(PresentationError::Unavailable));
+    assert_eq!(
+        load_snapshot(&fixture.0).await,
+        Err(PresentationError::Unavailable)
+    );
     for bytes in [b"PRIVATE-INVALID-DATABASE".as_slice(), b"".as_slice()] {
         fs::write(fixture.path(), bytes).unwrap();
-        assert_eq!(load_snapshot(&fixture.path()).await, Err(PresentationError::Unavailable));
+        assert_eq!(
+            load_snapshot(&fixture.path()).await,
+            Err(PresentationError::Unavailable)
+        );
         assert_eq!(fs::read(fixture.path()).unwrap(), bytes);
     }
     fs::remove_file(fixture.path()).unwrap();
@@ -143,7 +160,10 @@ async fn missing_corrupt_and_unsupported_files_fail_without_creation_or_migratio
         .execute(db.pool()).await.unwrap();
     db.pool().close().await;
     let before = fs::read(fixture.path()).unwrap();
-    assert_eq!(load_snapshot(&fixture.path()).await, Err(PresentationError::Unavailable));
+    assert_eq!(
+        load_snapshot(&fixture.path()).await,
+        Err(PresentationError::Unavailable)
+    );
     assert_eq!(fs::read(fixture.path()).unwrap(), before);
 }
 
@@ -155,5 +175,8 @@ async fn symlinks_are_rejected_by_the_accepted_open_policy() {
     db.pool().close().await;
     let link = fixture.0.join("link.db");
     std::os::unix::fs::symlink(fixture.path(), &link).unwrap();
-    assert_eq!(load_snapshot(&link).await, Err(PresentationError::Unavailable));
+    assert_eq!(
+        load_snapshot(&link).await,
+        Err(PresentationError::Unavailable)
+    );
 }
