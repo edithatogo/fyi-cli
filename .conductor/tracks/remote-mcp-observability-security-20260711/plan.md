@@ -34,12 +34,14 @@ Existing ordinary ChatGPT workstream; sole integration coordinator retains final
 verification, refresh, merge and pruning. Based on fixed #459, including #458's
 offline acquisition repair; #457 remains a separate fixed journal candidate.
 
-- [~] Write executed failing tests for local status discovery, fixed metric
-  dimensions, byte accounting, failure/timeout/cancellation and emitted privacy.
-- [ ] Implement typed process-local dispatch telemetry using existing tracing
-  and policy ownership; no additional budget engine or telemetry dependency.
-- [ ] Verify offline Rust and actual SDK contracts, linting, coverage and final
-  candidate GitHub checks; document the precise measurement and retention scope.
+- [x] Write executed failing tests for local status discovery, fixed metric
+  dimensions, byte accounting, failure/timeout/cancellation and emitted privacy. `3e6051b` (RED).
+- [x] Implement typed process-local dispatch telemetry using existing tracing
+  and policy ownership; no additional budget engine or telemetry dependency. `985a1dd`.
+- [x] Verify local offline Rust/SDK/full Python contracts, linting and three
+  targeted mutations; document measurement and retention scope. `985a1dd`.
+- [~] Verify required final-candidate GitHub checks, configured coverage and
+  review state; hand the focused draft to the sole integration coordinator.
 
 The original phase remains incomplete. Source-owned HTTP status/kind/retryability,
 raw-byte/cache/retry/throttle counters, pacing/cache/guardrail child events and

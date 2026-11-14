@@ -3,8 +3,39 @@
   "type": "feature",
   "status": "in-progress",
   "created_at": "2026-07-11T08:34:24Z",
-  "updated_at": "2026-11-13T05:45:41Z",
+  "updated_at": "2026-11-14T15:17:43Z",
   "description": "Security policy, observability, auditability, and operator controls for remote MCP operations",
   "github_parent_issue": 169,
-  "github_issue": 172
+  "github_issue": 172,
+  "active_increment": {
+    "issue": 172,
+    "branch": "feat/mcp-dispatch-observability-169-20261115",
+    "dependency_pull_request": 459,
+    "dependency_head": "94e52ab64dde827c891bc8619c18c3c1efd76357",
+    "status": "locally_verified_pending_hosted_checks_and_coordinator_integration",
+    "merge_window": "sole_integration_coordinator_required",
+    "evidence": "dispatch-observability-evidence.md",
+    "scope": "MCP admitted-dispatch events, spans, process metrics and local status resource",
+    "runtime_scope": "Linux x86_64, Rust 1.99.1, Python 3.12.14, locked MCP SDK 1.30.0",
+    "original_local_test_first_commit": "c8925b0a79a1158051ea1f19efb574ea984d5c5d",
+    "test_first_commit": "3e6051bfcf04eb84fb161dde743ac29f64af3d81",
+    "implementation_commit": "985a1dd151328d7e7c6e7c3d2454b2d7b9a16a4d",
+    "implementation_tree": "963bbdf89899d2c8af29c540ce50d573faafe1c7",
+    "workspace_tests_passed": 688,
+    "workspace_tests_ignored": 1,
+    "mcp_tests_passed": 145,
+    "new_sdk_tests_passed": 11,
+    "deterministic_caller_examples": 12,
+    "targeted_mutations_caught": 3,
+    "guarded_python_tests_passed": 1563,
+    "guarded_python_tests_skipped": 2,
+    "external_python_network_attempts": 0
+  },
+  "remaining_blockers": [
+    "Source-owned typed private HTTP outcomes and cache provenance",
+    "Shared raw request/byte/time allowances and raw source metrics",
+    "Correlated pacing, cache, retry, throttle and guardrail child events",
+    "Supported runtime/platform qualification and original track review",
+    "Sole-coordinator reconciliation and final integrated-head checks"
+  ]
 }
