@@ -19,9 +19,10 @@ found real workflow defects. This review reuses the existing track.
 
 Source acquisition, receipt contracts, CDX/Wayback and downstream archive parity
 remain owned by `source-adapter-boundary-20260812`. No application source or
-source-boundary test is changed. PR #431 owns execution-order and registry edits;
-the registry is deliberately untouched until reconciliation with its merged
-version. The existing solo-maintainer-security, test-acceleration and
+receipt/CDX/Wayback test is changed. PR #431 merged its execution-order and registry
+edits as `a816dcd425a7b6277761a18faeae1685202eefde`; both implementation slices were
+reconciled with that merged baseline. The registry remains unchanged by these
+implementation slices. The existing solo-maintainer-security, test-acceleration and
 frontier-rust-convergence tracks retain their separate scope.
 
 ## Workflow-hardening slice
@@ -76,6 +77,34 @@ Independent read-only review found no must-fix defect and separately ran 101
 focused regressions. Hosted verification is still required; this is not a claim
 that release or publication jobs were executed.
 
+### Hosted verification and merge
+
+[PR #433](https://github.com/edithatogo/fyi-cli/pull/433) merged as
+`797e76cf120988372f4df1f2efb9c9e164c69050`. Its exact final head was
+`e9765d84bed06cf1cecaea25db5e3ca21666904c`, including merged PR #431.
+All 12 live protected-branch required checks and all 14 relevant additional
+quality/security gates passed before merge. The merge API was given that exact
+expected head; no check was waived. The remote branch's deletion was verified
+through the Git refs API, and its local branch was pruned.
+
+| Workflow | Successful final-head run |
+| --- | --- |
+| CI | [43552345893](https://github.com/edithatogo/fyi-cli/actions/runs/43552345893) |
+| CodeQL | [43552345779](https://github.com/edithatogo/fyi-cli/actions/runs/43552345779) |
+| Workflow lint | [43552345772](https://github.com/edithatogo/fyi-cli/actions/runs/43552345772) |
+| Dependency review | [43552345815](https://github.com/edithatogo/fyi-cli/actions/runs/43552345815) |
+| Python security/fuzzing | [43552345807](https://github.com/edithatogo/fyi-cli/actions/runs/43552345807) |
+| Privacy/secrets | [43552345774](https://github.com/edithatogo/fyi-cli/actions/runs/43552345774) |
+| Conductor/MSRV | [43552345792](https://github.com/edithatogo/fyi-cli/actions/runs/43552345792) |
+| Keyring isolation | [43552345780](https://github.com/edithatogo/fyi-cli/actions/runs/43552345780) |
+| Profiling | [43552345821](https://github.com/edithatogo/fyi-cli/actions/runs/43552345821) |
+
+`ci-verification.json` retains the required app/context identities, complete
+check snapshot, run identifiers, final head, merge commit and optional-lane
+distinctions. Optional queued/pending self-hosted AI security was not counted as
+a passing check; the Python 3.15 diagnostics do not establish tool compatibility
+merely because their reporting workflow completes successfully.
+
 ### Immutable reference provenance
 
 Resolved through the upstream GitHub Git references API on 2026-11-14. Annotated
@@ -113,9 +142,88 @@ and permissions are preserved. No branch protection is modified.
 
 ## Remaining before close-out
 
-1. Repair extended mutation/profiling execution and retain useful artifacts on
-   both success and failure; verify with focused executable regressions.
-2. Run final-head hosted gates, record PR/run/merge identifiers and prune merged
+1. Run final-head hosted gates, record PR/run/merge identifiers and prune merged
    branches.
-3. Reconcile all acceptance items and historical applicability statements, then
-   archive after PR #431's registry changes are merged.
+2. Confirm hosted artifact retention, reconcile all acceptance items and archive
+   against the merged registry. Historical applicability documents are now
+   reconciled with the implemented gates and source-track exclusions.
+
+## Extended-lane and retained-evidence slice
+
+Branch: `fix/quality-frontier-evidence`.
+
+### Demonstrated defects and repairs
+
+1. Python mutation invoked system Python after `uv sync` installed dependencies
+   into `.venv`. The workflow now uses `uv run python`; its pytest subprocess uses
+   `sys.executable`, and failed-test stdout/stderr with short tracebacks is kept.
+2. Mutation jobs uploaded no reports. They now retain setup/runtime metadata,
+   stdout/stderr, per-file Python results and Rust `mutants.out` on ordinary
+   success/failure paths for 14 days.
+3. Profiling reran the full suite under Scalene on every PR, yet its benchmark
+   invocation did not collect any `benchmark_*` method. PRs now run all eight
+   existing benchmark functions with explicit short bounds; full Scalene and
+   ordinary benchmark measurement are weekly/manual.
+   The manual harness performance layer had the same zero-collection defect;
+   its command now uses the same explicit selector, with an actual collection
+   regression (zero tests/exit 5 before the fix; eight collected afterward).
+4. Profiling uploads were success-only. The new always-run upload includes
+   metadata, setup/runtime logs, benchmark JSON and JUnit XML, including partial
+   evidence on failure.
+5. Python Tests, Security Audit and Code Coverage lacked retained diagnostic
+   artifacts. Each now initializes provenance before setup and keeps reports,
+   installation/test/security logs and LCOV as applicable. The event SHA, source
+   PR head and actual checkout SHA are distinguished, with run/attempt/URL and
+   tool-version evidence.
+6. Four legacy monitor smoke tests made live reads despite being part of ordinary
+   CI. Their last change was in the original quality PR #414; active source PR
+   #432 does not modify this file. A class-scoped network guard first reproduced
+   all four attempts without making a request. The real parser now receives a
+   local empty-RSS fixture; the original four test bodies and full DST and
+   reconciliation classes remain AST-identical. Populated-feed behavior remains
+   covered by the existing unchanged DST tests.
+7. After integrating the separately merged TUI baseline, the layered harness
+   failed before running its first Rust test: rustup tried to recover a partially
+   installed toolchain and rejected a conflicting `cargo-clippy` binary
+   ([run 43555109525, job 132326089011](https://github.com/edithatogo/fyi-cli/actions/runs/43555109525/job/132326089011)).
+   The origin of that partial installation is not established. The harness now
+   uses a job-local Rustup home under `RUNNER_TEMP` and explicitly installs the
+   repository's 1.99.1 toolchain and required components with the existing pinned
+   Rust action. The unchanged harness command must pass on the new final head;
+   the infrastructure failure is not waived or counted as success.
+
+No new dependency, mutation operator, application behavior, coverage exclusion,
+security exception or branch-protection change is introduced. Python mutation
+remains 70%; cargo-mutants retains its stricter existing failure behavior; Rust
+line coverage remains 90%. `pipefail` prevents artifact logging from masking any
+of these gates.
+
+### Verification
+
+- Extended-workflow red baseline: 8 failed / 1 passed; manual-harness follow-up
+  reproduced zero-test collection/exit 5; final green: 10 passed.
+- Core-CI evidence red baseline: 10 failed / 3 passed; green: 13 passed.
+- Monitor safe red: four network-guard failures; green: all 12 monitor tests pass.
+- Harness setup regression baseline: **2 failed / 5 passed**; green: **7 passed**.
+- Combined workflow/harness contracts: **160 passed**.
+- Existing monitor/DST/importer/API/receipt/MCP/archive contracts: **88 passed**.
+- Actual PR benchmark workload: **8 passed**, with JSON and JUnit outputs;
+  independently reproduced in 1.52 seconds.
+- Independent final evidence/monitor review: **142 passed**, no must-fix finding.
+- Ruff/formatting for the new workflow-contract files, all-workflow actionlint
+  1.17.1/ShellCheck 0.11.0 and `git diff --check`: passed.
+
+The dynamic regressions run the actual checked-in shell commands against failing
+stub tools. They prove nonzero test/security/mutation exits and a below-threshold
+coverage report still fail after successful logging. They do not pretend to be
+full Rust or mutation executions. Required hosted runs provide separate evidence.
+
+### Execution boundaries
+
+Full mutation campaigns and scheduled full-suite Scalene runs are expensive
+scheduled/manual lanes; no full score or profile is claimed from a contract-test
+pass. Existing bounded Atheris PR/extended lanes and their failure corpus/log
+retention are unchanged. CodeQL's security-analysis output and the shared privacy
+scanner remain independent security evidence. A whole-run termination can prevent
+an `always()` upload, so retained job logs and ordinary failure-path artifacts
+are not described as crash-proof storage.
