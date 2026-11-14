@@ -1,5 +1,6 @@
 //! Local tracking repositories. These operations never enter the remote sync queue.
 pub(crate) mod legacy;
+pub mod overview;
 pub mod provenance;
 pub mod requests;
 pub(crate) mod schema;

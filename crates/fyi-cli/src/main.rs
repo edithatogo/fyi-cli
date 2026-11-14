@@ -447,7 +447,7 @@ pub enum Commands {
     },
     #[command(about = "Run Model Context Protocol (MCP) server")]
     McpServer,
-    #[command(about = "Launch Ratatui Dashboard TUI")]
+    #[command(about = "Browse a read-only local request snapshot (redacted by default)")]
     Tui,
 }
 
@@ -576,9 +576,14 @@ pub enum MfaCommand {
 }
 
 fn main() {
+    let args = Cli::parse();
+    // TUI diagnostics and profiling must never emit captured view contents/files.
+    if matches!(args.command, Commands::Tui) {
+        tui::runtime::run(Path::new(&args.db), args.output_format);
+        return;
+    }
     #[cfg(feature = "dhat-on")]
     let _profiler = dhat::Profiler::new_heap();
-    let args = Cli::parse();
 
     // Logging: RUST_LOG env var takes precedence; otherwise -v/-vv raises the
     // default level above the CLI's baseline "warn". User-facing CLI output
@@ -889,7 +894,7 @@ fn main() {
             }
         }
         Commands::McpServer => unsupported_command("mcp-server (use the separate fyi-mcp binary)"),
-        Commands::Tui => unsupported_command("tui"),
+        Commands::Tui => unreachable!("TUI dispatch precedes diagnostics initialization"),
     }
 }
 

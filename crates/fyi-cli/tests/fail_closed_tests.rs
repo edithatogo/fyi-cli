@@ -140,7 +140,6 @@ fn unimplemented_commands_fail_without_side_effects() {
         ("show-settings", &["--output", "protected.txt"]),
         ("privacy-audit", &["--output", "protected.txt"]),
         ("mcp-server", &[]),
-        ("tui", &[]),
     ];
 
     for (name, args) in cases {

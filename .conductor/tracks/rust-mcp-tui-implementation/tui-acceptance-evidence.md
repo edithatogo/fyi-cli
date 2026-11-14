@@ -1,6 +1,6 @@
 # TUI presentation acceptance evidence
 
-Status: bounded presentation implemented and locally verified, 2026-11-14. Final-head Actions remain the merge gate.
+Status: presentation merged as #435; bounded runtime #448 verified in the PR and awaiting coordinator integration, 2026-11-14. Required checks on any final refreshed head remain the merge gate.
 PR: [#435](https://github.com/edithatogo/fyi-cli/pull/435).
 Scope: the standalone read-only presentation portion of Phase 2.3 only.
 Contract: [TUI presentation contract](../../../docs/tui-presentation-contract.md).
@@ -76,7 +76,11 @@ configuration is unchanged. The new contract module participates in aggregate
 coverage; complete buffer/interaction tests provide direct presentation evidence.
 No claim of inclusive TUI line coverage is made from the existing gate.
 
-## Integration blockers and retained scope
+## Presentation handoff recorded before integration
+
+The following records the #435 handoff. #434/#440/#442 have since merged and are
+the accepted baseline for the runtime increment below; no inaccessible local
+bundle or frozen retirement work is assumed integrated.
 
 `main.rs` and CLI dispatch remain owned by the separate request-management
 workstream. The current identified PR is
@@ -107,3 +111,70 @@ close unrelated issues. Only this track’s registry/index entries are corrected
 to keep the combined track open; other workstream records are preserved. A rollback of
 this presentation change affects no database schema, stored data, external
 service or published package.
+
+## Bounded local runtime — PR #448
+
+Baseline: `39591dcf91bb50ed847b0d36bdc3bd670a7e60a7`. The accepted local APIs
+and merged presentation are reused. The only repository extension is a bounded
+read-only metadata projection using `DbPool` and `LocalRequestSummary`; no schema,
+migration, source transport, MCP or localization implementation changes are made.
+
+RED checkpoint: `1578de7e36df33ab49689ecb8a7bf6dbeadc5562`.
+[Workspace Tests](https://github.com/edithatogo/fyi-cli/actions/runs/43566189263/job/132360454715)
+ran three new executable launch tests; all three failed against the unsupported
+dispatch as expected. Rustfmt and strict Clippy passed on that tests-only head.
+
+Verified implementation head: `18cc6eeac934354ee9a25240af2b5be65965e2db`.
+Production code last changed at `1b514875cb7e74ea52d6b6f0bb0ebe7f2a5ed86c`;
+the subsequent correction reconstructs the displayed PTY screen across incremental
+ANSI updates, retaining privacy-negative assertions. The preceding raw-byte
+substring assertion failed because cursor-positioned updates fragment sentences;
+the captured hosted output reproduces that test-fixture defect. Native tests pass
+with the corrected fixture. Earlier rustfmt failures were corrected without
+changing formatting gates.
+
+All 12 required check names and app IDs were matched against live master branch
+metadata and observed successful on this head. Hosted PR tests checked out GitHub
+test merge `4e23ec366c670cf0efa61e7cbd69e192a1ba646d`, combining this head with
+master `234d90511b7e15866669994d49115358a8860a83`. The feature branch itself
+remains based on `39591dcf91bb50ed847b0d36bdc3bd670a7e60a7`; this observation
+does not certify a later master or independently refresh the branch.
+
+| Verification | Observed result and evidence |
+| --- | --- |
+| Workspace Tests | [Run 43568586512 / job 132367765122](https://github.com/edithatogo/fyi-cli/actions/runs/43568586512/job/132367765122): 615 passed, zero failed, one existing ignored worker across 37 suites including the core doctest. |
+| Bounded increment tests | 24 new executable tests passed: 5 core overview, 5 adapter, 10 runtime (including the subprocess worker), 4 CLI integration. The 39 existing TUI presentation tests also pass. |
+| Real Linux PTY | The executable CLI test passed in both Workspace Tests and instrumented coverage; it launches real local data and verifies privacy, navigation, resize, quit/signals, error cleanup and unchanged database files. |
+| Rustfmt, strict Clippy, Package Smoke, Security Audit, Layered Harness Contract, Python Tests, Packaging Assets | All successful in [CI run 43568586512](https://github.com/edithatogo/fyi-cli/actions/runs/43568586512). |
+| Code Coverage | [Job 132367765136](https://github.com/edithatogo/fyi-cli/actions/runs/43568586512/job/132367765136): 94.34% line coverage, unchanged 90% gate and existing exclusions. Adapter and overview: 100% lines each; runtime: 95.60% lines. |
+| Codecov patch | [Check 132369349801](https://github.com/edithatogo/fyi-cli/runs/132369349801): success, 98.65% against the existing 90% target. Four changed lines are not covered; no inclusive 100% claim is made. |
+| CodeQL and both language-analysis contexts | All successful in [CodeQL run 43568586551](https://github.com/edithatogo/fyi-cli/actions/runs/43568586551), including the required CodeQL app ID 57789. |
+| Pinned Rust 1.99.1 and Conductor | Both successful in [run 43568586505](https://github.com/edithatogo/fyi-cli/actions/runs/43568586505). |
+| Local non-Rust verification | Fixture Ruff, Python syntax, Conductor verifier and `git diff --check` passed. The captured PTY trace replay also passed. |
+| Optional offline AI | Queued without a runner when required checks were recorded; not counted as passed or required. |
+
+No local Rust execution is claimed: the current executor has no Rust toolchain.
+The existing hosted workflows provide native execution without CI modifications.
+This evidence-only follow-up must itself receive required checks before final
+integration; its results belong in #448's exact-head record, not a recursive
+documentation commit. No historical green result substitutes for final checks.
+
+Executable scope includes bounded/partial/empty metadata, real authority mapping,
+unknown status/attention, explicit unavailable timelines, unchanged database
+bytes/files, missing/corrupt/future-schema/symlink rejection, static error and panic
+diagnostics, asynchronous loading/input/shutdown, initial/updated terminal size,
+partial startup and cleanup failures, and a Linux PTY launch against the real CLI.
+The PTY fixture also exercises reveal, details, resize, q, Ctrl+C and SIGTERM.
+
+Manual terminal/screen-reader acceptance and the original >30 FPS / <20 MB RAM
+targets remain **open and unmeasured**. The reproducible
+[runtime acceptance procedure](../../../docs/tui-runtime-acceptance.md) specifies
+platforms, synthetic workloads, release build, units, latency/throughput and RSS
+evidence. Linux PTY tests are not manual accessibility or performance certification.
+
+The sole **Issue fixes and PR merges** coordinator has been asked for an exclusive
+final reconciliation/verification/merge slot in #448. This implementation branch
+does not refresh or merge against concurrently changing master. Historical green
+checks do not qualify a future combined head; no required gate is waived. The
+combined track remains open, and no Python retirement or bundle integration is
+claimed.

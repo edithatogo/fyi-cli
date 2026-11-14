@@ -1,7 +1,9 @@
 //! Read-only Ratatui presentation. The caller supplies a bounded snapshot;
 //! rendering and interaction never receive a database, keyring or network client.
 
+pub mod adapter;
 pub mod contracts;
+pub mod runtime;
 use contracts::{
     PresentationError, PresentationSnapshot, RequestItem, RequestStatus, SnapshotScope,
     TimelineState,
