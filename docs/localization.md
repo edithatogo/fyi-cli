@@ -100,6 +100,91 @@ fallback. New consumers should use strict rendering rather than silent key fallb
 Existing string-returning scaffolds remain unvalidated; the legacy generic scaffold
 keeps its sign-off on the final line for `drafting.rs`.
 
+## Typed request and letter contracts
+
+`RequestTemplateInput` supplies the authority, requester, title, body, variant,
+register and optional date/reference/review information. `LegalCitation` borrows
+the existing `Instance`/`FoiLaw` fields. Rendering in another language preserves
+the supplied jurisdiction, law, citation and request term. A catalog citation is
+displayed as supplied, even when it repeats the law name; the renderer does not
+silently rewrite legal source data.
+
+```rust
+use fyi_core::i18n::{LocalizationEngine, OutputFormat, RequestTemplateInput};
+use fyi_core::jurisdiction::InstanceRegistry;
+
+let catalog = InstanceRegistry::embedded()?;
+let instance = catalog.get("nz-fyi").expect("embedded NZ fixture");
+let input = RequestTemplateInput::new(
+    "Example Council", "Example Requester", "Budget records",
+    "Please provide the adopted budget and its annexes.", instance,
+);
+let draft = LocalizationEngine::try_new("en-NZ")?
+    .render_request(&input, OutputFormat::PlainText)?;
+assert_eq!(draft.title, "Budget records");
+# Ok::<(), anyhow::Error>(())
+```
+
+| Variant | Required additional inputs | Effect |
+| --- | --- | --- |
+| `Request` | None | Retains the supplied title; optional reference is displayed. |
+| `FollowUp` | Request reference | Localized follow-up title and opening. |
+| `InternalReview` | Request reference | Localized request for internal review. |
+| `Appeal` | Request reference and supplied review contact | Localized appeal opening addressing that contact. |
+
+Formal and informal registers choose localized salutations and sign-offs. All four
+variants and both registers have resources for the six baseline locales. Wording
+is a rendering fixture pending language and legal review, not an approved form or
+proof that the selected remedy is available.
+
+Required fields must be nonempty. Single-line fields reject control characters,
+Unicode line separators and paragraph separators. The body and review instructions
+permit ordinary multiline text, preserving supplied Unicode; terminal control
+sequences are rejected. An optional value supplied as empty is an error. `date` is
+caller-formatted text; neither date localization nor statutory calculation is
+inferred from it. New consumers should use the typed API, since legacy scaffolds
+retain their permissive input signatures for source compatibility.
+
+Review information is opt-in for ordinary requests. `ReviewInformation::from_instance`
+can reuse the catalog's existing review contact, but choosing it does not establish
+applicability. The caller may supply instructions separately. The output contains
+`RenderedUnvalidated`, selected locale/fallback information, content revision,
+jurisdiction identifier and per-message source layers. There is no validated or
+submitted state in this renderer.
+
+`PlainText` preserves text exactly. `HtmlText` escapes the complete rendered title
+and body once (`&`, `<`, `>`, quotes and apostrophes). It is text for an HTML display
+context, not an HTML document or email header. Provenance fields remain structured
+data and need context-appropriate handling by their consumer.
+
+## Deadline boundary
+
+The i18n module now delegates arithmetic and catalog defaults to `deadlines.rs`.
+It maintains no holiday calendar, statutory-rule catalog or competing day loop.
+Locale selection cannot alter the existing deadline policy.
+
+`try_add_working_days` and `try_deadline_for_instance` return errors for an
+unrepresentable count or result. A small capacity guard uses complete weeks and at
+most six weekday checks before calling the canonical calculator. It prevents
+terminal-date saturation without duplicating jurisdiction-specific rules. Existing
+infallible methods preserve ordinary results and panic on unsupported bounds;
+new consumers should use the fallible methods. Zero days at either date boundary
+remains valid. Tests compare all six locales with the canonical module, including
+the existing default/negative period policy and exact capacity near `NaiveDate::MAX`.
+
+### Legal-rule verification still required
+
+The catalog currently provides a number of days and its adapter uses weekday-only
+counting. This is a compatibility estimate, not evidence of statutory accuracy.
+Before relying on a legal deadline, the deadline/jurisdiction workstream must verify
+the time unit, triggering event, receipt-day treatment, national/regional/observed
+holidays, special closure periods, extensions, transfers, consultation and suspension
+rules, and review/appeal time limits against dated authoritative sources and reviewed
+examples. The canonical module's unchecked direct APIs and linear runtime for very
+large valid periods remain a separate follow-up; only i18n entry points receive the
+representation guard in this increment. Legal reliance remains blocked pending that
+work and human review.
+
 ## Adding or changing resources
 
 1. Edit the appropriate UTF-8 `.ftl` file and keep legal references as variables

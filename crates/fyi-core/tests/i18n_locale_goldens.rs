@@ -49,7 +49,7 @@ fn locale_goldens_cover_supported_locales_in_contract_order() {
         expected
     );
     assert_eq!(fixtures.format_version, 1);
-    assert_eq!(fixtures.bundle_revision, "2026-11-14.1");
+    assert_eq!(fixtures.bundle_revision, "2026-11-14.2");
     assert_eq!(fixtures.authority, "Te Whānau — Café");
     for fixture in fixtures.locales {
         assert_eq!(
