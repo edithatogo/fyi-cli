@@ -1,7 +1,7 @@
 //! Shared Python/Rust numeric-schema conformance; no network or fixture rewriting.
 use fyi_core::acquisition_receipts::{
-    canonical_json_bytes, verify_receipt, verify_receipt_raw_bytes,
-    verify_receipt_result_bytes, write_receipt_atomic,
+    canonical_json_bytes, verify_receipt, verify_receipt_raw_bytes, verify_receipt_result_bytes,
+    write_receipt_atomic,
 };
 use fyi_core::provenance::sha256_hex;
 use fyi_core::receipt_wire::parse_receipt_bytes;
@@ -9,8 +9,9 @@ use proptest::prelude::*;
 use serde_json::{json, Value};
 
 const GOLDEN: &str = include_str!("../../../conformance/acquisition/receipt-v1-python.json");
-const CORPUS: &str =
-    include_str!("../../../conformance/acquisition/integer-schema-cases-v1.json");
+const CORPUS: &str = include_str!("../../../conformance/acquisition/integer-schema-cases-v1.json");
+const DECIMAL: &[u8] =
+    include_bytes!("../../../conformance/acquisition/receipt-v1-integral-decimal.json");
 
 fn golden() -> Value {
     serde_json::from_str(GOLDEN).unwrap()
@@ -28,6 +29,18 @@ fn apply_case(case: &Value) -> Value {
     }
     resign(&mut receipt);
     receipt
+}
+
+#[test]
+fn frozen_decimal_receipt_verifies_without_recomputing_its_digest() {
+    let receipt = parse_receipt_bytes(DECIMAL).unwrap();
+    verify_receipt_raw_bytes(&receipt, b"payload").unwrap();
+    verify_receipt_result_bytes(&receipt, b"[]\n").unwrap();
+    assert_eq!(canonical_json_bytes(&receipt).unwrap(), DECIMAL);
+    assert_eq!(
+        receipt["receipt_sha256"],
+        "881ec6effbf45ba1162e0ef043d5548927765c8c25b3f3ce8ad0273e266d503d"
+    );
 }
 
 #[test]

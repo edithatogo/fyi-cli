@@ -40,3 +40,19 @@ def test_python_schema_contract_for_shared_numeric_cases(case):
     else:
         with pytest.raises(ValueError, match="invalid acquisition receipt"):
             validate_receipt(receipt)
+
+
+def test_frozen_decimal_fixture_matches_python_without_rehashing() -> None:
+    raw = (ROOT / "conformance/acquisition/receipt-v1-integral-decimal.json").read_bytes()
+    receipt = json.loads(raw)
+    validate_receipt(receipt)
+    assert canonical_json_bytes(receipt) == raw
+    assert receipt["responses"][0]["sha256"] == sha256_bytes(b"payload")
+    assert receipt["result"]["sha256"] == sha256_bytes(b"[]\n")
+
+
+def test_integer_conformance_runs_in_cross_platform_receipt_gate() -> None:
+    workflow = (ROOT / ".github/workflows/receipt-portability.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "--test receipt_integer_schema \\" in workflow
