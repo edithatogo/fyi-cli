@@ -51,18 +51,119 @@ Attachment tests reject traversal and observed in-root file/directory symlinks.
 Process restart durability, attachment byte immutability and source raw-byte/
 retry/fault contracts remain separate unverified dependencies.
 
-## Remaining closure evidence
+## Slice 3: executable schemas, current exchanges and official clients
 
-- Versioned executable tool/schema/annotation and result/error fixtures.
-- Official SDK success on stdio and HTTP after all contract fixes.
-- Confirmation expiry, scoped replay and concurrent consumption evidence.
-- MCP argument validation, private runtime errors, and remote audit boundaries.
-- Actual latency/RSS results, concurrency/time/byte budget enforcement.
-- Deterministic timeout/disconnect/malformed upstream/cache/clock fault evidence,
-  reusing acquisition-owned fixtures and transports.
-- Mutation results and supported Windows/macOS/Linux plus Rust/MSRV matrix.
-- Final-head required Actions, issue #173/epic #169 reconciliation, then archive
-  only if all original acceptance criteria are met.
+The catalogue now exposes all 23 complete tool definitions. Remote writes have
+mutating annotations and separate prepare/commit input branches. Successful
+outputs are checked against actual source model shapes; `sync_status`'s
+previously unsatisfiable output schema is repaired. Argument validation occurs
+before dispatch and rejects unsupported schema assertions, unknown fields,
+wrong types and excessive bounds without reflecting rejected values.
 
-Source acquisition, SQLite core, localization, CLI dispatch, TUI, packaging,
-and shared CI infrastructure remain with their assigned workstreams.
+The existing verifier retains historical v1 and validates current v2 exchanges
+plus the catalogue captured from the executable. Rust equality and an actual
+SDK `tools/list` comparison fail on drift. Twenty-three v2 cases include eight
+executed handler negatives and clearly labelled synthetic success/error outputs.
+No synthetic remote success example is represented as a live source call.
+
+The official Python MCP SDK exercises stdio and Streamable HTTP using default,
+2025-06-18 and 2025-03-26 initialization. It checks local results, output schemas,
+private errors, capability denial, read-only registration, all three governed
+write preparations, mismatched confirmations and unchanged state after invalid
+calls. Twenty deterministic Hypothesis examples send malformed arguments through
+that real client. Inputs never contact a live authority.
+
+Local verification on Rust 1.99.1 passed 126 MCP tests (121 unit/boundary and
+five executable), 129 verifier tests and 13 SDK integration tests. Clippy with
+warnings denied, Rust formatting, Ruff and the existing Conductor/verifier
+commands passed. The SDK test initially caught a stale catalogue after a new
+scope bound; recapture from the executable repaired that demonstrated drift.
+
+An empty-database persistent HTTP assessment (ten warmups, 100 measured calls)
+recorded p50 3.597 ms, p95 4.232 ms, maximum 8.680 ms, final/peak RSS 20,893,696
+bytes and post-warmup growth 401,408 bytes. Enforced local fixture limits are
+250 ms p95, 128 MiB peak RSS and 16 MiB growth. The measured debug executable,
+SDK 1.29.0/Python 3.12.14/Linux environment and reproduction are documented in
+`docs/mcp-contract-harness.md`. These are not remote or production-load claims.
+
+## Mutation evidence
+
+At PR #441 implementation head `2b4edb2eb060c31a24f9ebe65cc30bcde18ddc8e`,
+`cargo-mutants 27.1.0` ran 40 selected security-predicate mutations against an
+isolated snapshot/cache: 39 caught, zero missed, zero timed out, one unviable
+Duration-division mutation. The unmutated baseline passed 51 policy/write-gate
+tests. Source restoration was verified. The target selection and bounded
+reproduction command are retained in the MCP contract document; no broad
+workspace mutation score is inferred.
+
+## Existing source tests reused
+
+Twenty-two existing `fyi-core` tests passed (1.88 seconds test time) using local
+mock servers. This verifies current JSON parsing, feed-link extraction, basic
+SSRF/redirect guards, small response/count bounds, conditional caching,
+pacing timeout, retry final state, state preflight and status-error privacy.
+No source file, fixture or shared harness was changed.
+
+```bash
+cargo test -p fyi-core --lib -- --exact \
+  sync::tests::contract_fixtures_match_sync_parser_expectations \
+  sync::tests::pull_incremental_accepts_unexpected_optional_fields \
+  sync::tests::pull_incremental_rejects_malformed_json_without_local_changes \
+  sync::tests::pull_incremental_rejects_missing_required_fields_without_local_changes \
+  sync::tests::extracts_request_ids_from_rss_and_atom_links \
+  sync::tests::pull_feed_fetches_watched_request_records \
+  sync::tests::search_request_ids_from_feed_propagates_query_and_deduplicates_ids \
+  sync::tests::validate_instance_url_rejects_private_targets_and_credentials \
+  agent_runtime::tests::guarded_default_http_client_never_follows_cross_origin_redirects \
+  agent_runtime::tests::guarded_default_http_client_allows_same_origin_relative_redirects \
+  sync::tests::response_byte_guardrail_blocks_the_next_remote_call \
+  sync::tests::request_count_guardrail_blocks_the_next_remote_call \
+  sync::tests::conditional_get_reuses_cached_body_after_not_modified \
+  sync::tests::validator_cache_is_not_replaced_by_error_response \
+  sync::tests::shared_pacing_blocks_a_wait_beyond_the_runtime_budget \
+  sync::tests::push_dirty_retries_and_marks_failed_after_exhaustion \
+  sync::tests::push_dirty_records_nonretryable_auth_failure_without_secret_body \
+  sync::tests::push_dirty_keeps_dirty_request_when_server_error_retries_exhaust \
+  sync::tests::update_request_state_rejects_unknown_state_before_network_call \
+  sync::tests::update_request_state_if_current_puts_only_after_matching_fetch \
+  sync::tests::update_request_state_if_current_rejects_stale_state_before_put \
+  sync::tests::api_status_error_classifies_contract_failures_without_body_content \
+  --test-threads=4
+```
+
+## Original acceptance reconciliation
+
+| Original requirement | Evidence now available | Exact remaining gate |
+| --- | --- | --- |
+| Versioned JSON/RSS/Atom/error fixtures | MCP historical v1, current v2 and complete tool snapshot; existing source JSON/feed tests | Source fixtures lack a shared version manifest; RSS/Atom samples remain inline, without versioned malformed-feed cases |
+| Every remote schema, annotation, result and error | All eight remote tools represented; actual catalogue, handler negatives and SDK write preparations verified | Full successful MCP-to-source read/commit exchanges across source variants are not established by synthetic output examples |
+| Disabled/read/degraded/write stdio modes | Actual disabled/read-enabled/write-gated sessions; policy-level degraded/kill tests | Degraded mode is not exposed through a tested subprocess control path; no external degraded-stdio run |
+| Property/mutation boundaries | Generated invalid SDK arguments; exact integer/depth/schema bounds; deterministic scope/clock/replay; 39 caught selected mutants; reused state/SSRF tests | Broader generated pagination/state/URL/path properties and SSRF/source-guardrail/error-classification mutations |
+| Latency/memory/request/byte/concurrency | Recorded local SDK latency/RSS budgets; admitted-attempt, payload-byte, duration and concurrency tests; existing source small-body/count tests | Raw multi-chunk cancellation/peak memory, exact retry wire counts and propagation of MCP allowances into source budgets remain separate evidence gaps |
+| Compatibility/release matrix | Linux Rust 1.99.1 and official SDK stdio/HTTP; existing stable/MSRV jobs; explicit matrix | Windows/macOS runtime/client combinations have not been executed here; locked SDK results depend on final-head CI |
+| Deterministic faults | MCP pending-future timeout, clock skew, expiry, circuit cooldown/recovery; source malformed JSON and pacing-wait tests | Stalled HTTP headers/body, mid-body disconnect, malformed transfer chunks and corrupt validator/filesystem cache injection |
+| Version/deprecation handling | Unknown contract versions and schema assertions fail closed; HTTP unknown version rejected; initialization fallback and legacy batch behavior verified | Later MCP revisions are outside the advertised supported profiles |
+| Complete issue/epic evidence and closeout | Scoped PRs link #173/#169; this evidence corrects the historical implemented label | Keep the track open until the remaining original acceptance rows are resolved and final-head checks are recorded |
+
+## Closure decision and ownership
+
+**Not archived: original acceptance is incomplete.** Missing source fault,
+fixture and platform evidence is not a claim that those paths are defective.
+Source acquisition/transport and shared CI/platform owners must supply their
+missing acceptance evidence; this workstream must not change their components.
+
+Additional product limits remain explicit: confirmation state is process-local,
+attachment bytes are reopened by the source API after path checks, and remote
+state updates use client GET-then-PUT preflight rather than a demonstrated
+atomic server condition. Durable restart replay, attachment immutability/race
+resistance and atomic remote compare-and-set are not verified guarantees.
+Comprehensive production write-audit emission is likewise not established by
+the reusable audit serializer tests. Existing local update/import semantics
+are documented accurately, without changing the local-management workstream.
+
+Required hosted checks are reviewed on each final head before merge. A base
+advance invalidated PR #441's earlier checks; its branch was updated to
+`f00947860cd15c1ad3fd9f9031f64f683cc098db` with current master and must pass
+again. Final PR heads, Actions links and merge commits are recorded in the PRs
+and the delivery report. Source acquisition, SQLite core, localization, CLI
+dispatch, TUI, packaging and shared workflows remain with their assigned owners.

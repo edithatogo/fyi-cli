@@ -24,7 +24,10 @@ use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::net::TcpListener;
 
+mod arguments;
 pub mod policy;
+#[cfg(test)]
+mod schema_contract_tests;
 use policy::RemoteMcpPolicy;
 pub mod write_gate;
 use write_gate::RemoteWriteGate;
@@ -103,6 +106,17 @@ fn tool_success(id: Option<Value>, payload: Value) -> JsonRpcResponse {
                     "text": serde_json::to_string_pretty(&payload).unwrap()
                 }
             ]
+        }),
+    )
+}
+
+/// Tool execution failures are MCP results. Protocol failures remain JSON-RPC errors.
+fn tool_error(id: Option<Value>, message: impl Into<String>) -> JsonRpcResponse {
+    JsonRpcResponse::success(
+        id,
+        json!({
+            "isError": true,
+            "content": [{"type": "text", "text": message.into()}]
         }),
     )
 }
@@ -188,17 +202,14 @@ fn request_schema(description: &str) -> Value {
         "properties": {
             "id": {
                 "type": "integer",
-                "minimum": 1,
                 "description": "Stable local request identifier."
             },
             "title": {
                 "type": "string",
-                "minLength": 1,
                 "description": "Public title of the official information request."
             },
             "body": {
                 "type": "string",
-                "minLength": 1,
                 "description": "Request body or draft correspondence text."
             },
             "user_name": {
@@ -207,7 +218,6 @@ fn request_schema(description: &str) -> Value {
             },
             "status": {
                 "type": ["string", "null"],
-                "enum": ["draft", "submitted", "waiting_response", "successful", "partially_successful", "refused", "overdue", "clean", "dirty", "pending", "conflict", null],
                 "description": "Current Alaveteli/FYI request lifecycle status."
             },
             "created_at": {
@@ -248,7 +258,6 @@ fn correspondence_schema() -> Value {
             },
             "body": {
                 "type": "string",
-                "minLength": 1,
                 "description": "Message body or extracted correspondence text."
             },
             "sent_at": {
@@ -263,10 +272,7 @@ fn correspondence_schema() -> Value {
             "attachments": {
                 "type": ["array", "null"],
                 "description": "Optional attachment URLs or identifiers linked to the correspondence.",
-                "items": {
-                    "type": "string",
-                    "minLength": 1
-                }
+                "items": { "type": "string" }
             }
         },
         "required": ["direction", "body", "sent_at"],
@@ -310,7 +316,15 @@ fn enrich_tool_definitions(tools: &mut Value) {
             continue;
         };
 
-        match name {
+        let name = name.to_owned();
+        if let Some(properties) = tool["inputSchema"]["properties"].as_object_mut() {
+            for (field, schema) in properties {
+                if matches!(field.as_str(), "id" | "request_id") {
+                    schema["maximum"] = json!(i64::MAX);
+                }
+            }
+        }
+        match name.as_str() {
             "list_requests" => {
                 tool["description"] = json!(
                     "List locally tracked FYI/Alaveteli official information requests, ordered newest first. Use for dashboards, triage, or finding an ID before retrieve_request; do not use when you already know the ID and need correspondence (use retrieve_request) or only need health metrics (use check_status). Read-only and idempotent; does not contact remote authorities."
@@ -396,9 +410,9 @@ fn enrich_tool_definitions(tools: &mut Value) {
                     json!("Replacement request body or draft text (required; full replace).");
                 tool["inputSchema"]["properties"]["body"]["minLength"] = json!(1);
                 tool["inputSchema"]["properties"]["user_name"]["description"] =
-                    json!("Optional replacement requester display name; when omitted, existing local value is preserved.");
+                    json!("Optional replacement requester display name; omission clears the stored value.");
                 tool["inputSchema"]["properties"]["status"]["description"] =
-                    json!("Optional replacement local lifecycle status; changing status does not submit or withdraw a remote request.");
+                    json!("Optional replacement local lifecycle status; omission clears the stored value. Changing status does not submit or withdraw a remote request.");
                 tool["inputSchema"]["properties"]["status"]["enum"] = json!([
                     "draft",
                     "submitted",
@@ -413,10 +427,10 @@ fn enrich_tool_definitions(tools: &mut Value) {
                     "conflict"
                 ]);
                 tool["inputSchema"]["properties"]["url"]["description"] =
-                    json!("Optional replacement absolute FYI/Alaveteli URL.");
+                    json!("Optional replacement absolute FYI/Alaveteli URL; omission clears the stored value.");
                 tool["inputSchema"]["properties"]["url"]["format"] = json!("uri");
                 tool["inputSchema"]["properties"]["tags"]["description"] =
-                    json!("Optional full replacement tag list (not appended to existing tags).");
+                    json!("Optional full replacement tag list; omission clears the stored value.");
                 tool["outputSchema"]["properties"]["request"] =
                     request_schema("The updated local request record.");
             }
@@ -445,7 +459,7 @@ fn enrich_tool_definitions(tools: &mut Value) {
                     "Upsert local public authority reference records by slug for request routing and discovery. Use after list_authorities when seeding or refreshing the catalog; do not use for FOI request CRUD (create_request/update_request). Mutating but non-destructive and idempotent: same slug re-import updates name/url without creating duplicates; does not contact remote authority directories."
                 );
                 tool["inputSchema"]["properties"]["authorities"]["description"] =
-                    json!("Authority records to upsert; slug is the primary key, name is required, url is optional.");
+                    json!("Authority records to upsert; slug is the primary key, name is required, url is optional. All names are checked before writes; a later database failure can leave earlier rows imported.");
                 tool["inputSchema"]["properties"]["authorities"]["items"] = authority_schema();
                 tool["outputSchema"]["properties"]["imported"]["description"] =
                     json!("Number of authority records accepted for import or update.");
@@ -660,8 +674,7 @@ fn enrich_tool_definitions(tools: &mut Value) {
                             "required": ["request_id", "sync_status"],
                             "additionalProperties": false
                         }
-                    ],
-                    "additionalProperties": false
+                    ]
                 });
             }
             "compute_deadline" => {
@@ -672,9 +685,12 @@ fn enrich_tool_definitions(tools: &mut Value) {
                     "Inclusive statutory period start date in YYYY-MM-DD (typically submission/receipt day)."
                 );
                 tool["inputSchema"]["properties"]["days"]["description"] = json!(
-                    "Number of statutory days to count after start_date (working days by default)."
+                    "Number of statutory days to count after start_date (0-36500, working days by default)."
                 );
                 tool["inputSchema"]["properties"]["days"]["minimum"] = json!(0);
+                tool["inputSchema"]["properties"]["days"]["maximum"] = json!(36_500);
+                tool["inputSchema"]["properties"]["start_date"]["minLength"] = json!(10);
+                tool["inputSchema"]["properties"]["start_date"]["maxLength"] = json!(10);
                 tool["inputSchema"]["properties"]["calendar"]["description"] = json!(
                     "When true, count calendar days including weekends; when false/omitted, count weekdays only (Mon–Fri)."
                 );
@@ -781,6 +797,652 @@ pub async fn handle_jsonrpc_request(db: &DbPool, req: JsonRpcRequest) -> Option<
     handle_jsonrpc_request_with_policy_and_gate(db, req, &policy, &RemoteWriteGate::default()).await
 }
 
+fn build_tool_catalogue(remote_enabled: bool, write_enabled: bool) -> Value {
+    let mut tools = json!({
+        "tools": [
+            {
+                "name": "list_requests",
+                "title": "List Requests",
+                "description": "List tracked Alaveteli requests from the database, newest first.",
+                "inputSchema": {
+                    "type": "object",
+                    "description": "Optional filters for the request list.",
+                    "properties": {
+                        "limit": {
+                            "type": "integer",
+                            "description": "Maximum number of requests to return."
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "outputSchema": {
+                    "type": "object",
+                    "description": "A request list payload.",
+                    "properties": {
+                        "requests": {
+                            "type": "array",
+                            "description": "Requests ordered by most recently updated.",
+                            "items": { "type": "object" }
+                        }
+                    },
+                    "required": ["requests"],
+                    "additionalProperties": false
+                },
+                "annotations": {
+                    "readOnlyHint": true,
+                    "destructiveHint": false,
+                    "idempotentHint": true,
+                    "openWorldHint": false
+                }
+            },
+            {
+                "name": "retrieve_request",
+                "title": "Retrieve Request",
+                "description": "Retrieve an Alaveteli request and its correspondence by ID from the database.",
+                "inputSchema": {
+                    "type": "object",
+                    "description": "Request identifier to load.",
+                    "properties": {
+                        "id": {
+                            "type": "integer",
+                            "description": "The unique request ID."
+                        }
+                    },
+                    "required": ["id"],
+                    "additionalProperties": false
+                },
+                "outputSchema": {
+                    "type": "object",
+                    "description": "A request payload with correspondence.",
+                    "properties": {
+                        "request": { "type": "object" },
+                        "correspondence": {
+                            "type": "array",
+                            "items": { "type": "object" }
+                        }
+                    },
+                    "required": ["request", "correspondence"],
+                    "additionalProperties": false
+                },
+                "annotations": {
+                    "readOnlyHint": true,
+                    "destructiveHint": false,
+                    "idempotentHint": true,
+                    "openWorldHint": false
+                }
+            },
+            {
+                "name": "create_request",
+                "title": "Create Request",
+                "description": "Create a new request in the database.",
+                "inputSchema": {
+                    "type": "object",
+                    "description": "Fields for the request to create.",
+                    "properties": {
+                        "title": { "type": "string", "description": "The request title." },
+                        "body": { "type": "string", "description": "The request body." },
+                        "user_name": { "type": "string", "description": "Name of the user." },
+                        "status": { "type": "string", "description": "Status of the request." },
+                        "url": { "type": "string", "description": "The URL on Alaveteli or FYI." },
+                        "tags": {
+                            "type": "array",
+                            "items": { "type": "string" },
+                            "description": "Optional list of tags."
+                        }
+                    },
+                    "required": ["title", "body"],
+                    "additionalProperties": false
+                },
+                "outputSchema": {
+                    "type": "object",
+                    "description": "The created request.",
+                    "properties": {
+                        "request": { "type": "object" }
+                    },
+                    "required": ["request"],
+                    "additionalProperties": false
+                },
+                "annotations": {
+                    "readOnlyHint": false,
+                    "destructiveHint": false,
+                    "idempotentHint": false,
+                    "openWorldHint": false
+                }
+            },
+            {
+                "name": "update_request",
+                "title": "Update Request",
+                "description": "Update an existing request in the database.",
+                "inputSchema": {
+                    "type": "object",
+                    "description": "Fields for the request update.",
+                    "properties": {
+                        "id": { "type": "integer", "description": "The request ID." },
+                        "title": { "type": "string", "description": "The request title." },
+                        "body": { "type": "string", "description": "The request body." },
+                        "user_name": { "type": "string", "description": "Name of the user." },
+                        "status": { "type": "string", "description": "Status of the request." },
+                        "url": { "type": "string", "description": "The URL on Alaveteli or FYI." },
+                        "tags": {
+                            "type": "array",
+                            "items": { "type": "string" },
+                            "description": "Optional list of tags."
+                        }
+                    },
+                    "required": ["id", "title", "body"],
+                    "additionalProperties": false
+                },
+                "outputSchema": {
+                    "type": "object",
+                    "description": "The updated request.",
+                    "properties": {
+                        "request": { "type": "object" }
+                    },
+                    "required": ["request"],
+                    "additionalProperties": false
+                },
+                "annotations": {
+                    "readOnlyHint": false,
+                    "destructiveHint": false,
+                    "idempotentHint": false,
+                    "openWorldHint": false
+                }
+            },
+            {
+                "name": "delete_request",
+                "title": "Delete Request",
+                "description": "Delete a request and its correspondence from the database.",
+                "inputSchema": {
+                    "type": "object",
+                    "description": "Request identifier to delete.",
+                    "properties": {
+                        "id": {
+                            "type": "integer",
+                            "description": "The request ID."
+                        }
+                    },
+                    "required": ["id"],
+                    "additionalProperties": false
+                },
+                "outputSchema": {
+                    "type": "object",
+                    "description": "Deletion result.",
+                    "properties": {
+                        "deleted": { "type": "boolean" },
+                        "request_id": { "type": "integer" }
+                    },
+                    "required": ["deleted", "request_id"],
+                    "additionalProperties": false
+                },
+                "annotations": {
+                    "readOnlyHint": false,
+                    "destructiveHint": true,
+                    "idempotentHint": false,
+                    "openWorldHint": false
+                }
+            },
+            {
+                "name": "list_authorities",
+                "title": "List Authorities",
+                "description": "List authorities stored in the database.",
+                "inputSchema": {
+                    "type": "object",
+                    "description": "No arguments are required.",
+                    "properties": {},
+                    "additionalProperties": false
+                },
+                "outputSchema": {
+                    "type": "object",
+                    "description": "A list of authorities.",
+                    "properties": {
+                        "authorities": {
+                            "type": "array",
+                            "items": { "type": "object" }
+                        }
+                    },
+                    "required": ["authorities"],
+                    "additionalProperties": false
+                },
+                "annotations": {
+                    "readOnlyHint": true,
+                    "destructiveHint": false,
+                    "idempotentHint": true,
+                    "openWorldHint": false
+                }
+            },
+            {
+                "name": "import_authorities",
+                "title": "Import Authorities",
+                "description": "Import or update authorities in the database.",
+                "inputSchema": {
+                    "type": "object",
+                    "description": "Authorities to import or update.",
+                    "properties": {
+                        "authorities": {
+                            "type": "array",
+                            "description": "Authority records to import.",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "slug": { "type": "string", "description": "Authority slug." },
+                                    "name": { "type": "string", "description": "Authority name." },
+                                    "url": { "type": "string", "description": "Optional authority URL." }
+                                },
+                                "required": ["slug", "name"],
+                                "additionalProperties": false
+                            }
+                        }
+                    },
+                    "required": ["authorities"],
+                    "additionalProperties": false
+                },
+                "outputSchema": {
+                    "type": "object",
+                    "description": "Import summary.",
+                    "properties": {
+                        "imported": { "type": "integer" }
+                    },
+                    "required": ["imported"],
+                    "additionalProperties": false
+                },
+                "annotations": {
+                    "readOnlyHint": false,
+                    "destructiveHint": false,
+                    "idempotentHint": true,
+                    "openWorldHint": false
+                }
+            },
+            {
+                "name": "sync_monitor",
+                "title": "Sync Monitor",
+                "description": "Show sync status, queue depth, and latest sync time.",
+                "inputSchema": {
+                    "type": "object",
+                    "description": "No arguments are required.",
+                    "properties": {},
+                    "additionalProperties": false
+                },
+                "outputSchema": {
+                    "type": "object",
+                    "description": "Global synchronization monitor data.",
+                    "properties": {
+                        "sync": { "type": "object" },
+                        "queue": { "type": "object" },
+                        "offline_degradation": { "type": "object" }
+                    },
+                    "required": ["sync", "queue", "offline_degradation"],
+                    "additionalProperties": false
+                },
+                "annotations": {
+                    "readOnlyHint": true,
+                    "destructiveHint": false,
+                    "idempotentHint": true,
+                    "openWorldHint": false
+                }
+            },
+            {
+                "name": "sync_conflicts",
+                "title": "Sync Conflicts",
+                "description": "List requests currently marked as sync conflicts.",
+                "inputSchema": {
+                    "type": "object",
+                    "description": "Optional filters for the conflict list.",
+                    "properties": {
+                        "limit": {
+                            "type": "integer",
+                            "description": "Maximum number of conflicts to return."
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "outputSchema": {
+                    "type": "object",
+                    "description": "A conflict list payload.",
+                    "properties": {
+                        "conflicts": {
+                            "type": "array",
+                            "items": { "type": "object" }
+                        }
+                    },
+                    "required": ["conflicts"],
+                    "additionalProperties": false
+                },
+                "annotations": {
+                    "readOnlyHint": true,
+                    "destructiveHint": false,
+                    "idempotentHint": true,
+                    "openWorldHint": false
+                }
+            },
+            {
+                "name": "sync_resolve_conflict",
+                "title": "Resolve Sync Conflict",
+                "description": "Resolve a sync conflict as clean or dirty.",
+                "inputSchema": {
+                    "type": "object",
+                    "description": "Conflict resolution parameters.",
+                    "properties": {
+                        "request_id": {
+                            "type": "integer",
+                            "description": "The request ID to resolve."
+                        },
+                        "mark_clean": {
+                            "type": "boolean",
+                            "description": "Set true to mark the conflict clean; false keeps it dirty."
+                        }
+                    },
+                    "required": ["request_id"],
+                    "additionalProperties": false
+                },
+                "outputSchema": {
+                    "type": "object",
+                    "description": "Conflict resolution result.",
+                    "properties": {
+                        "request_id": { "type": "integer" },
+                        "resolved": { "type": "boolean" },
+                        "sync_status": { "type": "string" }
+                    },
+                    "required": ["request_id", "resolved", "sync_status"],
+                    "additionalProperties": false
+                },
+                "annotations": {
+                    "readOnlyHint": false,
+                    "destructiveHint": false,
+                    "idempotentHint": false,
+                    "openWorldHint": false
+                }
+            },
+            {
+                "name": "sync_status",
+                "title": "Sync Status",
+                "description": "Read offline synchronization status globally or for one request.",
+                "inputSchema": {
+                    "type": "object",
+                    "description": "Optional request identifier for per-request sync metadata.",
+                    "properties": {
+                        "request_id": {
+                            "type": "integer",
+                            "description": "Optional request ID for per-request sync metadata."
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "outputSchema": {
+                    "type": "object",
+                    "description": "Synchronization metadata.",
+                    "properties": {
+                        "request_id": { "type": "integer" },
+                        "sync_status": { "type": ["string", "null"] }
+                    },
+                    "required": ["request_id", "sync_status"],
+                    "additionalProperties": true
+                },
+                "annotations": {
+                    "readOnlyHint": true,
+                    "destructiveHint": false,
+                    "idempotentHint": true,
+                    "openWorldHint": false
+                }
+            },
+            {
+                "name": "check_status",
+                "title": "Check Status",
+                "description": "Check database health and summarize record counts.",
+                "inputSchema": {
+                    "type": "object",
+                    "description": "No arguments are required.",
+                    "properties": {},
+                    "additionalProperties": false
+                },
+                "outputSchema": {
+                    "type": "object",
+                    "description": "Database health summary.",
+                    "properties": {
+                        "status": { "type": "string" },
+                        "database": { "type": "string" },
+                        "metrics": { "type": "object" }
+                    },
+                    "required": ["status", "database", "metrics"],
+                    "additionalProperties": false
+                },
+                "annotations": {
+                    "readOnlyHint": true,
+                    "destructiveHint": false,
+                    "idempotentHint": true,
+                    "openWorldHint": false
+                }
+            },
+            {
+                "name": "compute_deadline",
+                "title": "Compute Deadline",
+                "description": "Compute a statutory FOI/OIA deadline from start date and days.",
+                "inputSchema": {
+                    "type": "object",
+                    "description": "Deadline calculation parameters.",
+                    "properties": {
+                        "start_date": {
+                            "type": "string",
+                            "description": "Start date YYYY-MM-DD."
+                        },
+                        "days": {
+                            "type": "integer",
+                            "description": "Statutory day count."
+                        },
+                        "calendar": {
+                            "type": "boolean",
+                            "description": "Use calendar days instead of weekdays only."
+                        }
+                    },
+                    "required": ["start_date", "days"],
+                    "additionalProperties": false
+                },
+                "outputSchema": {
+                    "type": "object",
+                    "description": "Computed StatutoryDeadline.",
+                    "properties": {
+                        "start_date": { "type": "string" },
+                        "due_date": { "type": "string" },
+                        "statutory_deadline_days": { "type": "integer" },
+                        "working_day_rule": { "type": "string" },
+                        "instance_id": { "type": ["string", "null"] }
+                    },
+                    "required": [
+                        "start_date",
+                        "due_date",
+                        "statutory_deadline_days",
+                        "working_day_rule"
+                    ],
+                    "additionalProperties": false
+                },
+                "annotations": {
+                    "readOnlyHint": true,
+                    "destructiveHint": false,
+                    "idempotentHint": true,
+                    "openWorldHint": false
+                }
+            },
+            {
+                "name": "search_corpus",
+                "title": "Search Corpus",
+                "description": "Search a built-in sample FOI document corpus (demo index).",
+                "inputSchema": {
+                    "type": "object",
+                    "description": "Search parameters.",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "Free-text query."
+                        },
+                        "limit": {
+                            "type": "integer",
+                            "description": "Maximum hits to return."
+                        }
+                    },
+                    "required": ["query"],
+                    "additionalProperties": false
+                },
+                "outputSchema": {
+                    "type": "object",
+                    "description": "Ranked search results over the demo corpus.",
+                    "properties": {
+                        "query": { "type": "string" },
+                        "document_count": { "type": "integer" },
+                        "hits": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "id": { "type": "string" },
+                                    "score": { "type": "number" },
+                                    "title": { "type": "string" }
+                                },
+                                "required": ["id", "score", "title"],
+                                "additionalProperties": false
+                            }
+                        }
+                    },
+                    "required": ["query", "document_count", "hits"],
+                    "additionalProperties": false
+                },
+                "annotations": {
+                    "readOnlyHint": true,
+                    "destructiveHint": false,
+                    "idempotentHint": true,
+                    "openWorldHint": false
+                }
+            }
+        ]
+    });
+    tools["tools"].as_array_mut().unwrap().push(json!({
+        "name": "endorsed_route_status",
+        "title": "Endorsed Route Status",
+        "description": "Evaluate an operator-published endorsed-client capability document locally. Read-only, fail-closed, and never enables a route or contacts a remote service.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "capabilities": {
+                    "type": "object",
+                    "description": "Operator-published capability document to evaluate; it must contain the endorsed client route configuration. Scope and client lists are bounded before authorization.",
+                    "properties": {
+                        "client_allowlist": {"type": "array", "minItems": 1, "maxItems": 128, "items": {"type": "string", "minLength": 1, "maxLength": 256}},
+                        "scopes": {"type": "array", "minItems": 1, "maxItems": 128, "items": {"type": "string", "minLength": 1, "maxLength": 256}}
+                    }
+                },
+                "client_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256,
+                    "description": "Stable client identifier to authorize against the capability document's endorsed client allow-list."
+                },
+                "scopes": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 128,
+                    "items": { "type": "string", "minLength": 1, "maxLength": 256 },
+                    "description": "Requested non-empty permission scopes; every requested scope must be endorsed by the route."
+                },
+                "now_epoch": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Current Unix time in seconds used to reject expired capability documents."
+                },
+                "bulk_export": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Whether to request the bounded bulk-export capability; defaults to false and requires its explicit endorsed scope."
+                }
+            },
+            "required": ["capabilities", "client_id", "scopes", "now_epoch"],
+            "additionalProperties": false
+        },
+        "outputSchema": {
+            "type": "object",
+            "properties": {
+                "status": { "type": "string", "enum": ["authorized", "denied"] },
+                "reason": { "type": "string" },
+                "instance_id": { "type": "string" },
+                "scopes": { "type": "array", "items": { "type": "string" } },
+                "quotas": { "type": "object" },
+                "bulk_export": { "type": ["object", "null"] }
+            },
+            "required": ["status"],
+            "additionalProperties": false
+        },
+        "annotations": {
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "idempotentHint": true,
+            "openWorldHint": false
+        }
+    }));
+    enrich_tool_definitions(&mut tools);
+    if remote_enabled {
+        tools["tools"]
+            .as_array_mut()
+            .expect("tools is an array")
+            .extend([
+                remote_tool_definition("remote_health", "Read-only remote health probe"),
+                remote_tool_definition("remote_version", "Read-only remote API version"),
+                remote_tool_definition("remote_search_requests", "Bounded remote request search"),
+                remote_tool_definition("remote_get_request", "Read-only remote request retrieval"),
+                remote_tool_definition(
+                    "remote_list_authorities",
+                    "Bounded remote authority discovery",
+                ),
+            ]);
+        if write_enabled {
+            tools["tools"]
+                .as_array_mut()
+                .expect("tools is an array")
+                .extend([
+                    remote_tool_definition(
+                        "remote_create_request",
+                        "Prepare or commit a governed remote request creation",
+                    ),
+                    remote_tool_definition(
+                        "remote_add_correspondence",
+                        "Prepare or commit governed remote correspondence",
+                    ),
+                    remote_tool_definition(
+                        "remote_update_state",
+                        "Prepare or commit an optimistic remote state update",
+                    ),
+                ]);
+        }
+    }
+    tools
+}
+
+fn all_tool_catalogue() -> &'static Value {
+    static CATALOGUE: std::sync::OnceLock<Value> = std::sync::OnceLock::new();
+    CATALOGUE.get_or_init(|| build_tool_catalogue(true, true))
+}
+
+fn registered_tool_catalogue(policy: &RemoteMcpPolicy) -> Value {
+    let status = policy.status();
+    let write_enabled = status
+        .instances
+        .iter()
+        .any(|instance| instance.write_enabled);
+    let mut catalogue = all_tool_catalogue().clone();
+    catalogue["tools"]
+        .as_array_mut()
+        .expect("embedded tool array")
+        .retain(|tool| {
+            let name = tool["name"].as_str().expect("embedded tool name");
+            !name.starts_with("remote_")
+                || (status.remote_enabled && (!is_remote_write(name) || write_enabled))
+        });
+    catalogue
+}
+
+fn is_remote_write(name: &str) -> bool {
+    matches!(
+        name,
+        "remote_create_request" | "remote_add_correspondence" | "remote_update_state"
+    )
+}
+
 fn remote_tool_definition(name: &str, description: &str) -> Value {
     let mut properties = json!({
         "instance_id": {"type": "string", "minLength": 1, "maxLength": 64}
@@ -794,7 +1456,8 @@ fn remote_tool_definition(name: &str, description: &str) -> Value {
             required.push("query");
         }
         "remote_get_request" => {
-            properties["request_id"] = json!({"type": "integer", "minimum": 1});
+            properties["request_id"] =
+                json!({"type": "integer", "minimum": 1, "maximum": i64::MAX});
             required.push("request_id");
         }
         "remote_list_authorities" => {
@@ -820,10 +1483,12 @@ fn remote_tool_definition(name: &str, description: &str) -> Value {
             ]);
         }
         "remote_add_correspondence" => {
-            properties["request_id"] = json!({"type": "integer", "minimum": 1});
+            properties["request_id"] =
+                json!({"type": "integer", "minimum": 1, "maximum": i64::MAX});
             properties["direction"] = json!({"type": "string", "enum": ["request", "response"]});
             properties["body"] = json!({"type": "string", "minLength": 1, "maxLength": 100000});
             properties["sent_at"] = json!({"type": "string", "maxLength": 64});
+            properties["state"] = json!({"type": "string", "minLength": 1, "maxLength": 64});
             properties["attachments"] = json!({"type": "array", "maxItems": 8, "items": {"type": "string", "minLength": 1, "maxLength": 1024}});
             properties["idempotency_key"] =
                 json!({"type": "string", "minLength": 1, "maxLength": 128});
@@ -836,7 +1501,8 @@ fn remote_tool_definition(name: &str, description: &str) -> Value {
             ]);
         }
         "remote_update_state" => {
-            properties["request_id"] = json!({"type": "integer", "minimum": 1});
+            properties["request_id"] =
+                json!({"type": "integer", "minimum": 1, "maximum": i64::MAX});
             properties["expected_current_state"] =
                 json!({"type": "string", "minLength": 1, "maxLength": 64});
             properties["state"] = json!({"type": "string", "minLength": 1, "maxLength": 64});
@@ -851,12 +1517,135 @@ fn remote_tool_definition(name: &str, description: &str) -> Value {
         }
         _ => {}
     }
+    let write = is_remote_write(name);
+    let input_schema = if write {
+        properties["phase"] = json!({"type": "string", "const": "prepare", "default": "prepare"});
+        json!({
+            "type": "object",
+            "description": "Prepare binds an immutable payload to a short-lived confirmation. Commit accepts only that confirmation and its original scope. Re-prepare the original payload/key to retrieve a completed result within this server process.",
+            "oneOf": [
+                {"type": "object", "properties": properties, "required": required, "additionalProperties": false},
+                {
+                    "type": "object",
+                    "properties": {
+                        "instance_id": {"type": "string", "minLength": 1, "maxLength": 64},
+                        "phase": {"type": "string", "const": "commit"},
+                        "confirmation_token": {"type": "string", "minLength": 1, "maxLength": 128},
+                        "idempotency_key": {"type": "string", "minLength": 1, "maxLength": 128}
+                    },
+                    "required": ["instance_id", "phase", "confirmation_token", "idempotency_key"],
+                    "additionalProperties": false
+                }
+            ]
+        })
+    } else {
+        json!({"type": "object", "properties": properties, "required": required, "additionalProperties": false})
+    };
     json!({
         "name": name,
         "title": description,
         "description": description,
-        "inputSchema": {"type": "object", "properties": properties, "required": required, "additionalProperties": false},
-        "annotations": {"readOnlyHint": true, "destructiveHint": false, "idempotentHint": true, "openWorldHint": true}
+        "inputSchema": input_schema,
+        "outputSchema": remote_output_schema(name),
+        "annotations": {"readOnlyHint": !write, "destructiveHint": name == "remote_update_state", "idempotentHint": !write, "openWorldHint": true}
+    })
+}
+
+fn remote_output_schema(name: &str) -> Value {
+    let mut properties = json!({"instance_id": {"type": "string"}});
+    let mut required = vec!["instance_id"];
+    match name {
+        "remote_health" => {
+            properties["network_reachable"] = json!({"type": "boolean"});
+            properties["api_reachable"] = json!({"type": "boolean"});
+            required.extend(["network_reachable", "api_reachable"]);
+        }
+        "remote_version" => {
+            properties["version"] = json!({"type": "string"});
+            required.push("version");
+        }
+        "remote_search_requests" => {
+            properties["query"] = json!({"type": "string"});
+            properties["requests"] = json!({"type": "array", "maxItems": 50, "items": request_schema("A remote request returned by the source adapter.")});
+            required.extend(["query", "requests"]);
+        }
+        "remote_get_request" => {
+            properties["request"] =
+                request_schema("The remote request returned by the source adapter.");
+            required.push("request");
+        }
+        "remote_list_authorities" => {
+            properties["authorities"] = json!({
+                "type": "array", "maxItems": 200,
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": ["string", "null"]},
+                        "slug": {"type": ["string", "null"]},
+                        "name": {"type": ["string", "null"]},
+                        "url": {"type": ["string", "null"]}
+                    },
+                    "required": ["id", "slug", "name", "url"],
+                    "additionalProperties": false
+                }
+            });
+            required.push("authorities");
+        }
+        "remote_create_request" => {
+            properties["request"] = json!({
+                "type": "object",
+                "properties": {"id": {"type": "integer"}, "url": {"type": "string"}},
+                "required": ["id", "url"], "additionalProperties": false
+            });
+            required.push("request");
+        }
+        "remote_add_correspondence" => {
+            properties["correspondence"] = json!({
+                "type": "object", "properties": {"success": {"type": "boolean"}},
+                "required": ["success"], "additionalProperties": false
+            });
+            required.push("correspondence");
+        }
+        "remote_update_state" => {
+            properties["state"] = json!({
+                "type": "object", "properties": {"updated": {"type": "boolean"}},
+                "required": ["updated"], "additionalProperties": false
+            });
+            required.push("state");
+        }
+        _ => unreachable!("embedded remote tool name"),
+    }
+    let result = json!({"type": "object", "properties": properties, "required": required, "additionalProperties": false});
+    if !is_remote_write(name) {
+        return result;
+    }
+    json!({
+        "type": "object",
+        "oneOf": [
+            {
+                "type": "object",
+                "properties": {
+                    "status": {"type": "string", "const": "prepared"},
+                    "confirmation_token": {"type": "string", "minLength": 32, "maxLength": 32},
+                    "idempotency_key": {"type": "string", "minLength": 1, "maxLength": 128},
+                    "expires_in_seconds": {"type": "integer", "minimum": 1, "maximum": 300},
+                    "requires_commit": {"type": "boolean", "const": true}
+                },
+                "required": ["status", "confirmation_token", "idempotency_key", "expires_in_seconds", "requires_commit"],
+                "additionalProperties": false
+            },
+            {
+                "type": "object",
+                "properties": {
+                    "status": {"type": "string", "const": "already_committed"},
+                    "idempotency_key": {"type": "string", "minLength": 1, "maxLength": 128},
+                    "result": result
+                },
+                "required": ["status", "idempotency_key", "result"],
+                "additionalProperties": false
+            },
+            result
+        ]
     })
 }
 
@@ -957,625 +1746,10 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                 "Notification method requires no ID".into(),
             ))
         }
-        "tools/list" => {
-            let mut tools = json!({
-                "tools": [
-                    {
-                        "name": "list_requests",
-                        "title": "List Requests",
-                        "description": "List tracked Alaveteli requests from the database, newest first.",
-                        "inputSchema": {
-                            "type": "object",
-                            "description": "Optional filters for the request list.",
-                            "properties": {
-                                "limit": {
-                                    "type": "integer",
-                                    "description": "Maximum number of requests to return."
-                                }
-                            },
-                            "additionalProperties": false
-                        },
-                        "outputSchema": {
-                            "type": "object",
-                            "description": "A request list payload.",
-                            "properties": {
-                                "requests": {
-                                    "type": "array",
-                                    "description": "Requests ordered by most recently updated.",
-                                    "items": { "type": "object" }
-                                }
-                            },
-                            "required": ["requests"],
-                            "additionalProperties": false
-                        },
-                        "annotations": {
-                            "readOnlyHint": true,
-                            "destructiveHint": false,
-                            "idempotentHint": true,
-                            "openWorldHint": false
-                        }
-                    },
-                    {
-                        "name": "retrieve_request",
-                        "title": "Retrieve Request",
-                        "description": "Retrieve an Alaveteli request and its correspondence by ID from the database.",
-                        "inputSchema": {
-                            "type": "object",
-                            "description": "Request identifier to load.",
-                            "properties": {
-                                "id": {
-                                    "type": "integer",
-                                    "description": "The unique request ID."
-                                }
-                            },
-                            "required": ["id"],
-                            "additionalProperties": false
-                        },
-                        "outputSchema": {
-                            "type": "object",
-                            "description": "A request payload with correspondence.",
-                            "properties": {
-                                "request": { "type": "object" },
-                                "correspondence": {
-                                    "type": "array",
-                                    "items": { "type": "object" }
-                                }
-                            },
-                            "required": ["request", "correspondence"],
-                            "additionalProperties": false
-                        },
-                        "annotations": {
-                            "readOnlyHint": true,
-                            "destructiveHint": false,
-                            "idempotentHint": true,
-                            "openWorldHint": false
-                        }
-                    },
-                    {
-                        "name": "create_request",
-                        "title": "Create Request",
-                        "description": "Create a new request in the database.",
-                        "inputSchema": {
-                            "type": "object",
-                            "description": "Fields for the request to create.",
-                            "properties": {
-                                "title": { "type": "string", "description": "The request title." },
-                                "body": { "type": "string", "description": "The request body." },
-                                "user_name": { "type": "string", "description": "Name of the user." },
-                                "status": { "type": "string", "description": "Status of the request." },
-                                "url": { "type": "string", "description": "The URL on Alaveteli or FYI." },
-                                "tags": {
-                                    "type": "array",
-                                    "items": { "type": "string" },
-                                    "description": "Optional list of tags."
-                                }
-                            },
-                            "required": ["title", "body"],
-                            "additionalProperties": false
-                        },
-                        "outputSchema": {
-                            "type": "object",
-                            "description": "The created request.",
-                            "properties": {
-                                "request": { "type": "object" }
-                            },
-                            "required": ["request"],
-                            "additionalProperties": false
-                        },
-                        "annotations": {
-                            "readOnlyHint": false,
-                            "destructiveHint": false,
-                            "idempotentHint": false,
-                            "openWorldHint": false
-                        }
-                    },
-                    {
-                        "name": "update_request",
-                        "title": "Update Request",
-                        "description": "Update an existing request in the database.",
-                        "inputSchema": {
-                            "type": "object",
-                            "description": "Fields for the request update.",
-                            "properties": {
-                                "id": { "type": "integer", "description": "The request ID." },
-                                "title": { "type": "string", "description": "The request title." },
-                                "body": { "type": "string", "description": "The request body." },
-                                "user_name": { "type": "string", "description": "Name of the user." },
-                                "status": { "type": "string", "description": "Status of the request." },
-                                "url": { "type": "string", "description": "The URL on Alaveteli or FYI." },
-                                "tags": {
-                                    "type": "array",
-                                    "items": { "type": "string" },
-                                    "description": "Optional list of tags."
-                                }
-                            },
-                            "required": ["id", "title", "body"],
-                            "additionalProperties": false
-                        },
-                        "outputSchema": {
-                            "type": "object",
-                            "description": "The updated request.",
-                            "properties": {
-                                "request": { "type": "object" }
-                            },
-                            "required": ["request"],
-                            "additionalProperties": false
-                        },
-                        "annotations": {
-                            "readOnlyHint": false,
-                            "destructiveHint": false,
-                            "idempotentHint": false,
-                            "openWorldHint": false
-                        }
-                    },
-                    {
-                        "name": "delete_request",
-                        "title": "Delete Request",
-                        "description": "Delete a request and its correspondence from the database.",
-                        "inputSchema": {
-                            "type": "object",
-                            "description": "Request identifier to delete.",
-                            "properties": {
-                                "id": {
-                                    "type": "integer",
-                                    "description": "The request ID."
-                                }
-                            },
-                            "required": ["id"],
-                            "additionalProperties": false
-                        },
-                        "outputSchema": {
-                            "type": "object",
-                            "description": "Deletion result.",
-                            "properties": {
-                                "deleted": { "type": "boolean" },
-                                "request_id": { "type": "integer" }
-                            },
-                            "required": ["deleted", "request_id"],
-                            "additionalProperties": false
-                        },
-                        "annotations": {
-                            "readOnlyHint": false,
-                            "destructiveHint": true,
-                            "idempotentHint": false,
-                            "openWorldHint": false
-                        }
-                    },
-                    {
-                        "name": "list_authorities",
-                        "title": "List Authorities",
-                        "description": "List authorities stored in the database.",
-                        "inputSchema": {
-                            "type": "object",
-                            "description": "No arguments are required.",
-                            "properties": {},
-                            "additionalProperties": false
-                        },
-                        "outputSchema": {
-                            "type": "object",
-                            "description": "A list of authorities.",
-                            "properties": {
-                                "authorities": {
-                                    "type": "array",
-                                    "items": { "type": "object" }
-                                }
-                            },
-                            "required": ["authorities"],
-                            "additionalProperties": false
-                        },
-                        "annotations": {
-                            "readOnlyHint": true,
-                            "destructiveHint": false,
-                            "idempotentHint": true,
-                            "openWorldHint": false
-                        }
-                    },
-                    {
-                        "name": "import_authorities",
-                        "title": "Import Authorities",
-                        "description": "Import or update authorities in the database.",
-                        "inputSchema": {
-                            "type": "object",
-                            "description": "Authorities to import or update.",
-                            "properties": {
-                                "authorities": {
-                                    "type": "array",
-                                    "description": "Authority records to import.",
-                                    "items": {
-                                        "type": "object",
-                                        "properties": {
-                                            "slug": { "type": "string", "description": "Authority slug." },
-                                            "name": { "type": "string", "description": "Authority name." },
-                                            "url": { "type": "string", "description": "Optional authority URL." }
-                                        },
-                                        "required": ["slug", "name"],
-                                        "additionalProperties": false
-                                    }
-                                }
-                            },
-                            "required": ["authorities"],
-                            "additionalProperties": false
-                        },
-                        "outputSchema": {
-                            "type": "object",
-                            "description": "Import summary.",
-                            "properties": {
-                                "imported": { "type": "integer" }
-                            },
-                            "required": ["imported"],
-                            "additionalProperties": false
-                        },
-                        "annotations": {
-                            "readOnlyHint": false,
-                            "destructiveHint": false,
-                            "idempotentHint": true,
-                            "openWorldHint": false
-                        }
-                    },
-                    {
-                        "name": "sync_monitor",
-                        "title": "Sync Monitor",
-                        "description": "Show sync status, queue depth, and latest sync time.",
-                        "inputSchema": {
-                            "type": "object",
-                            "description": "No arguments are required.",
-                            "properties": {},
-                            "additionalProperties": false
-                        },
-                        "outputSchema": {
-                            "type": "object",
-                            "description": "Global synchronization monitor data.",
-                            "properties": {
-                                "sync": { "type": "object" },
-                                "queue": { "type": "object" },
-                                "offline_degradation": { "type": "object" }
-                            },
-                            "required": ["sync", "queue", "offline_degradation"],
-                            "additionalProperties": false
-                        },
-                        "annotations": {
-                            "readOnlyHint": true,
-                            "destructiveHint": false,
-                            "idempotentHint": true,
-                            "openWorldHint": false
-                        }
-                    },
-                    {
-                        "name": "sync_conflicts",
-                        "title": "Sync Conflicts",
-                        "description": "List requests currently marked as sync conflicts.",
-                        "inputSchema": {
-                            "type": "object",
-                            "description": "Optional filters for the conflict list.",
-                            "properties": {
-                                "limit": {
-                                    "type": "integer",
-                                    "description": "Maximum number of conflicts to return."
-                                }
-                            },
-                            "additionalProperties": false
-                        },
-                        "outputSchema": {
-                            "type": "object",
-                            "description": "A conflict list payload.",
-                            "properties": {
-                                "conflicts": {
-                                    "type": "array",
-                                    "items": { "type": "object" }
-                                }
-                            },
-                            "required": ["conflicts"],
-                            "additionalProperties": false
-                        },
-                        "annotations": {
-                            "readOnlyHint": true,
-                            "destructiveHint": false,
-                            "idempotentHint": true,
-                            "openWorldHint": false
-                        }
-                    },
-                    {
-                        "name": "sync_resolve_conflict",
-                        "title": "Resolve Sync Conflict",
-                        "description": "Resolve a sync conflict as clean or dirty.",
-                        "inputSchema": {
-                            "type": "object",
-                            "description": "Conflict resolution parameters.",
-                            "properties": {
-                                "request_id": {
-                                    "type": "integer",
-                                    "description": "The request ID to resolve."
-                                },
-                                "mark_clean": {
-                                    "type": "boolean",
-                                    "description": "Set true to mark the conflict clean; false keeps it dirty."
-                                }
-                            },
-                            "required": ["request_id"],
-                            "additionalProperties": false
-                        },
-                        "outputSchema": {
-                            "type": "object",
-                            "description": "Conflict resolution result.",
-                            "properties": {
-                                "request_id": { "type": "integer" },
-                                "resolved": { "type": "boolean" },
-                                "sync_status": { "type": "string" }
-                            },
-                            "required": ["request_id", "resolved", "sync_status"],
-                            "additionalProperties": false
-                        },
-                        "annotations": {
-                            "readOnlyHint": false,
-                            "destructiveHint": false,
-                            "idempotentHint": false,
-                            "openWorldHint": false
-                        }
-                    },
-                    {
-                        "name": "sync_status",
-                        "title": "Sync Status",
-                        "description": "Read offline synchronization status globally or for one request.",
-                        "inputSchema": {
-                            "type": "object",
-                            "description": "Optional request identifier for per-request sync metadata.",
-                            "properties": {
-                                "request_id": {
-                                    "type": "integer",
-                                    "description": "Optional request ID for per-request sync metadata."
-                                }
-                            },
-                            "additionalProperties": false
-                        },
-                        "outputSchema": {
-                            "type": "object",
-                            "description": "Synchronization metadata.",
-                            "properties": {
-                                "request_id": { "type": "integer" },
-                                "sync_status": { "type": ["string", "null"] }
-                            },
-                            "required": ["request_id", "sync_status"],
-                            "additionalProperties": true
-                        },
-                        "annotations": {
-                            "readOnlyHint": true,
-                            "destructiveHint": false,
-                            "idempotentHint": true,
-                            "openWorldHint": false
-                        }
-                    },
-                    {
-                        "name": "check_status",
-                        "title": "Check Status",
-                        "description": "Check database health and summarize record counts.",
-                        "inputSchema": {
-                            "type": "object",
-                            "description": "No arguments are required.",
-                            "properties": {},
-                            "additionalProperties": false
-                        },
-                        "outputSchema": {
-                            "type": "object",
-                            "description": "Database health summary.",
-                            "properties": {
-                                "status": { "type": "string" },
-                                "database": { "type": "string" },
-                                "metrics": { "type": "object" }
-                            },
-                            "required": ["status", "database", "metrics"],
-                            "additionalProperties": false
-                        },
-                        "annotations": {
-                            "readOnlyHint": true,
-                            "destructiveHint": false,
-                            "idempotentHint": true,
-                            "openWorldHint": false
-                        }
-                    },
-                    {
-                        "name": "compute_deadline",
-                        "title": "Compute Deadline",
-                        "description": "Compute a statutory FOI/OIA deadline from start date and days.",
-                        "inputSchema": {
-                            "type": "object",
-                            "description": "Deadline calculation parameters.",
-                            "properties": {
-                                "start_date": {
-                                    "type": "string",
-                                    "description": "Start date YYYY-MM-DD."
-                                },
-                                "days": {
-                                    "type": "integer",
-                                    "description": "Statutory day count."
-                                },
-                                "calendar": {
-                                    "type": "boolean",
-                                    "description": "Use calendar days instead of weekdays only."
-                                }
-                            },
-                            "required": ["start_date", "days"],
-                            "additionalProperties": false
-                        },
-                        "outputSchema": {
-                            "type": "object",
-                            "description": "Computed StatutoryDeadline.",
-                            "properties": {
-                                "start_date": { "type": "string" },
-                                "due_date": { "type": "string" },
-                                "statutory_deadline_days": { "type": "integer" },
-                                "working_day_rule": { "type": "string" },
-                                "instance_id": { "type": ["string", "null"] }
-                            },
-                            "required": [
-                                "start_date",
-                                "due_date",
-                                "statutory_deadline_days",
-                                "working_day_rule"
-                            ],
-                            "additionalProperties": false
-                        },
-                        "annotations": {
-                            "readOnlyHint": true,
-                            "destructiveHint": false,
-                            "idempotentHint": true,
-                            "openWorldHint": false
-                        }
-                    },
-                    {
-                        "name": "search_corpus",
-                        "title": "Search Corpus",
-                        "description": "Search a built-in sample FOI document corpus (demo index).",
-                        "inputSchema": {
-                            "type": "object",
-                            "description": "Search parameters.",
-                            "properties": {
-                                "query": {
-                                    "type": "string",
-                                    "description": "Free-text query."
-                                },
-                                "limit": {
-                                    "type": "integer",
-                                    "description": "Maximum hits to return."
-                                }
-                            },
-                            "required": ["query"],
-                            "additionalProperties": false
-                        },
-                        "outputSchema": {
-                            "type": "object",
-                            "description": "Ranked search results over the demo corpus.",
-                            "properties": {
-                                "query": { "type": "string" },
-                                "document_count": { "type": "integer" },
-                                "hits": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object",
-                                        "properties": {
-                                            "id": { "type": "string" },
-                                            "score": { "type": "number" },
-                                            "title": { "type": "string" }
-                                        },
-                                        "required": ["id", "score", "title"],
-                                        "additionalProperties": false
-                                    }
-                                }
-                            },
-                            "required": ["query", "document_count", "hits"],
-                            "additionalProperties": false
-                        },
-                        "annotations": {
-                            "readOnlyHint": true,
-                            "destructiveHint": false,
-                            "idempotentHint": true,
-                            "openWorldHint": false
-                        }
-                    }
-                ]
-            });
-            tools["tools"].as_array_mut().unwrap().push(json!({
-                "name": "endorsed_route_status",
-                "title": "Endorsed Route Status",
-                "description": "Evaluate an operator-published endorsed-client capability document locally. Read-only, fail-closed, and never enables a route or contacts a remote service.",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "capabilities": {
-                            "type": "object",
-                            "description": "Operator-published capability document to evaluate; it must contain the endorsed client route configuration."
-                        },
-                        "client_id": {
-                            "type": "string",
-                            "minLength": 1,
-                            "description": "Stable client identifier to authorize against the capability document's endorsed client allow-list."
-                        },
-                        "scopes": {
-                            "type": "array",
-                            "items": { "type": "string" },
-                            "description": "Requested non-empty permission scopes; every requested scope must be endorsed by the route."
-                        },
-                        "now_epoch": {
-                            "type": "integer",
-                            "minimum": 0,
-                            "description": "Current Unix time in seconds used to reject expired capability documents."
-                        },
-                        "bulk_export": {
-                            "type": "boolean",
-                            "default": false,
-                            "description": "Whether to request the bounded bulk-export capability; defaults to false and requires its explicit endorsed scope."
-                        }
-                    },
-                    "required": ["capabilities", "client_id", "scopes", "now_epoch"],
-                    "additionalProperties": false
-                },
-                "outputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "status": { "type": "string", "enum": ["authorized", "denied"] },
-                        "reason": { "type": "string" },
-                        "instance_id": { "type": "string" },
-                        "scopes": { "type": "array", "items": { "type": "string" } },
-                        "quotas": { "type": "object" },
-                        "bulk_export": { "type": ["object", "null"] }
-                    },
-                    "required": ["status"],
-                    "additionalProperties": false
-                },
-                "annotations": {
-                    "readOnlyHint": true,
-                    "destructiveHint": false,
-                    "idempotentHint": true,
-                    "openWorldHint": false
-                }
-            }));
-            enrich_tool_definitions(&mut tools);
-            if remote_policy.status().remote_enabled {
-                tools["tools"]
-                    .as_array_mut()
-                    .expect("tools is an array")
-                    .extend([
-                        remote_tool_definition("remote_health", "Read-only remote health probe"),
-                        remote_tool_definition("remote_version", "Read-only remote API version"),
-                        remote_tool_definition(
-                            "remote_search_requests",
-                            "Bounded remote request search",
-                        ),
-                        remote_tool_definition(
-                            "remote_get_request",
-                            "Read-only remote request retrieval",
-                        ),
-                        remote_tool_definition(
-                            "remote_list_authorities",
-                            "Bounded remote authority discovery",
-                        ),
-                    ]);
-                if remote_policy
-                    .status()
-                    .instances
-                    .iter()
-                    .any(|instance| instance.write_enabled)
-                {
-                    tools["tools"]
-                        .as_array_mut()
-                        .expect("tools is an array")
-                        .extend([
-                            remote_tool_definition(
-                                "remote_create_request",
-                                "Prepare or commit a governed remote request creation",
-                            ),
-                            remote_tool_definition(
-                                "remote_add_correspondence",
-                                "Prepare or commit governed remote correspondence",
-                            ),
-                            remote_tool_definition(
-                                "remote_update_state",
-                                "Prepare or commit an optimistic remote state update",
-                            ),
-                        ]);
-                }
-            }
-            Some(JsonRpcResponse::success(req.id, tools))
-        }
+        "tools/list" => Some(JsonRpcResponse::success(
+            req.id,
+            registered_tool_catalogue(remote_policy),
+        )),
         "resources/list" => Some(JsonRpcResponse::success(
             req.id,
             list_mcp_resources(db).await,
@@ -1699,7 +1873,7 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                     return Some(JsonRpcResponse::error(
                         req.id,
                         -32602,
-                        format!("Unknown prompt: {}", name),
+                        "Unknown prompt".to_string(),
                     ));
                 }
             };
@@ -1734,7 +1908,24 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                 }
             };
 
-            let arguments = params.get("arguments").cloned().unwrap_or(json!({}));
+            let mut arguments = params.get("arguments").cloned().unwrap_or(json!({}));
+            let definition = all_tool_catalogue()["tools"]
+                .as_array()
+                .expect("embedded tool array")
+                .iter()
+                .find(|tool| tool["name"] == name);
+            let Some(definition) = definition else {
+                return Some(JsonRpcResponse::error(
+                    req.id,
+                    -32602,
+                    "Unknown tool".into(),
+                ));
+            };
+            if let Err(message) =
+                arguments::validate_arguments(&definition["inputSchema"], &mut arguments)
+            {
+                return Some(JsonRpcResponse::error(req.id, -32602, message.into()));
+            }
 
             match name {
                 "list_requests" => {
@@ -1750,14 +1941,14 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                                 "requests": requests
                             }),
                         )),
-                        Err(e) => Some(JsonRpcResponse::success(
+                        Err(_) => Some(JsonRpcResponse::success(
                             req.id,
                             json!({
                                 "isError": true,
                                 "content": [
                                     {
                                         "type": "text",
-                                        "text": format!("Failed to fetch requests: {}", e)
+                                        "text": "Failed to fetch requests"
                                     }
                                 ]
                             }),
@@ -1792,14 +1983,14 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                                     });
                                 Some(tool_success(req.id, payload))
                             }
-                            Err(e) => Some(JsonRpcResponse::success(
+                            Err(_) => Some(JsonRpcResponse::success(
                                 req.id,
                                 json!({
                                     "isError": true,
                                     "content": [
                                         {
                                             "type": "text",
-                                            "text": format!("Failed to fetch sync status: {}", e)
+                                            "text": "Failed to fetch sync status"
                                         }
                                     ]
                                 }),
@@ -1817,14 +2008,14 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                                     "conflict": status.conflict
                                 }),
                             )),
-                            Err(e) => Some(JsonRpcResponse::success(
+                            Err(_) => Some(JsonRpcResponse::success(
                                 req.id,
                                 json!({
                                     "isError": true,
                                     "content": [
                                         {
                                             "type": "text",
-                                            "text": format!("Failed to fetch sync status: {}", e)
+                                            "text": "Failed to fetch sync status"
                                         }
                                     ]
                                 }),
@@ -1859,19 +2050,14 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                                 }
                             }),
                         )),
-                        (status, queue, latest) => Some(JsonRpcResponse::success(
+                        _ => Some(JsonRpcResponse::success(
                             req.id,
                             json!({
                                 "isError": true,
                                 "content": [
                                     {
                                         "type": "text",
-                                        "text": format!(
-                                            "Failed to fetch sync monitor: status={:?}, queue={:?}, latest={:?}",
-                                            status.err(),
-                                            queue.err(),
-                                            latest.err()
-                                        )
+                                        "text": "Failed to fetch sync monitor"
                                     }
                                 ]
                             }),
@@ -1890,14 +2076,14 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                                 "conflicts": conflicts
                             }),
                         )),
-                        Err(e) => Some(JsonRpcResponse::success(
+                        Err(_) => Some(JsonRpcResponse::success(
                             req.id,
                             json!({
                                 "isError": true,
                                 "content": [
                                     {
                                         "type": "text",
-                                        "text": format!("Failed to fetch sync conflicts: {}", e)
+                                        "text": "Failed to fetch sync conflicts"
                                     }
                                 ]
                             }),
@@ -1928,14 +2114,14 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                                 "sync_status": if mark_clean { "clean" } else { "dirty" }
                             }),
                         )),
-                        Err(e) => Some(JsonRpcResponse::success(
+                        Err(_) => Some(JsonRpcResponse::success(
                             req.id,
                             json!({
                                 "isError": true,
                                 "content": [
                                     {
                                         "type": "text",
-                                        "text": format!("Failed to resolve sync conflict: {}", e)
+                                        "text": "Failed to resolve sync conflict"
                                     }
                                 ]
                             }),
@@ -1978,14 +2164,14 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                                 ]
                             }),
                         )),
-                        Err(e) => Some(JsonRpcResponse::success(
+                        Err(_) => Some(JsonRpcResponse::success(
                             req.id,
                             json!({
                                 "isError": true,
                                 "content": [
                                     {
                                         "type": "text",
-                                        "text": format!("Database error: {}", e)
+                                        "text": "Database error"
                                     }
                                 ]
                             }),
@@ -2057,14 +2243,14 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                                 "request": new_req
                             }),
                         )),
-                        Err(e) => Some(JsonRpcResponse::success(
+                        Err(_) => Some(JsonRpcResponse::success(
                             req.id,
                             json!({
                                 "isError": true,
                                 "content": [
                                     {
                                         "type": "text",
-                                        "text": format!("Failed to insert request: {}", e)
+                                        "text": "Failed to insert request"
                                     }
                                 ]
                             }),
@@ -2118,7 +2304,7 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                                 }),
                             ))
                         }
-                        Err(e) => {
+                        Err(_) => {
                             return Some(JsonRpcResponse::success(
                                 req.id,
                                 json!({
@@ -2126,7 +2312,7 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                                     "content": [
                                         {
                                             "type": "text",
-                                            "text": format!("Database error: {}", e)
+                                            "text": "Database error"
                                         }
                                     ]
                                 }),
@@ -2180,14 +2366,14 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                                 ]
                             }),
                         )),
-                        Err(e) => Some(JsonRpcResponse::success(
+                        Err(_) => Some(JsonRpcResponse::success(
                             req.id,
                             json!({
                                 "isError": true,
                                 "content": [
                                     {
                                         "type": "text",
-                                        "text": format!("Failed to update request: {}", e)
+                                        "text": "Failed to update request"
                                     }
                                 ]
                             }),
@@ -2226,14 +2412,14 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                                 ]
                             }),
                         )),
-                        Err(e) => Some(JsonRpcResponse::success(
+                        Err(_) => Some(JsonRpcResponse::success(
                             req.id,
                             json!({
                                 "isError": true,
                                 "content": [
                                     {
                                         "type": "text",
-                                        "text": format!("Failed to delete request: {}", e)
+                                        "text": "Failed to delete request"
                                     }
                                 ]
                             }),
@@ -2241,7 +2427,7 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                     }
                 }
                 "list_authorities" => {
-                    if let Err(e) = ensure_authorities_table(db.pool()).await {
+                    if ensure_authorities_table(db.pool()).await.is_err() {
                         return Some(JsonRpcResponse::success(
                             req.id,
                             json!({
@@ -2249,7 +2435,7 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                                 "content": [
                                     {
                                         "type": "text",
-                                        "text": format!("Database error ensuring authorities table: {}", e)
+                                        "text": "Database error ensuring authorities table"
                                     }
                                 ]
                             }),
@@ -2274,14 +2460,14 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                                 }),
                             ))
                         }
-                        Err(e) => Some(JsonRpcResponse::success(
+                        Err(_) => Some(JsonRpcResponse::success(
                             req.id,
                             json!({
                                 "isError": true,
                                 "content": [
                                     {
                                         "type": "text",
-                                        "text": format!("Failed to fetch authorities: {}", e)
+                                        "text": "Failed to fetch authorities"
                                     }
                                 ]
                             }),
@@ -2289,7 +2475,7 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                     }
                 }
                 "import_authorities" => {
-                    if let Err(e) = ensure_authorities_table(db.pool()).await {
+                    if ensure_authorities_table(db.pool()).await.is_err() {
                         return Some(JsonRpcResponse::success(
                             req.id,
                             json!({
@@ -2297,7 +2483,7 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                                 "content": [
                                     {
                                         "type": "text",
-                                        "text": format!("Database error ensuring authorities table: {}", e)
+                                        "text": "Database error ensuring authorities table"
                                     }
                                 ]
                             }),
@@ -2308,7 +2494,7 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                         arguments.get("authorities").cloned().unwrap_or(json!([])),
                     ) {
                         Ok(authorities) => authorities,
-                        Err(e) => {
+                        Err(_) => {
                             return Some(JsonRpcResponse::success(
                                 req.id,
                                 json!({
@@ -2316,7 +2502,7 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                                     "content": [
                                         {
                                             "type": "text",
-                                            "text": format!("Invalid authorities payload: {}", e)
+                                            "text": "Invalid authorities payload"
                                         }
                                     ]
                                 }),
@@ -2324,6 +2510,11 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                         }
                     };
 
+                    if authorities.iter().any(|authority| {
+                        authority.slug.trim().is_empty() || authority.name.trim().is_empty()
+                    }) {
+                        return Some(tool_error(req.id, "Authority slug and name are required"));
+                    }
                     let mut imported = 0;
                     for authority in authorities {
                         let slug = authority.slug.trim();
@@ -2348,7 +2539,7 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                             .as_deref()
                             .map(str::trim)
                             .filter(|value| !value.is_empty());
-                        if let Err(e) = sqlx::query(
+                        if sqlx::query(
                             "INSERT INTO authorities (slug, name, url) VALUES (?, ?, ?) \
                              ON CONFLICT(slug) DO UPDATE SET name = excluded.name, url = excluded.url",
                         )
@@ -2357,6 +2548,7 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                         .bind(url)
                         .execute(db.pool())
                         .await
+                        .is_err()
                         {
                             return Some(JsonRpcResponse::success(
                                 req.id,
@@ -2365,7 +2557,7 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                                     "content": [
                                         {
                                             "type": "text",
-                                            "text": format!("Failed to import authorities: {}", e)
+                                            "text": "Failed to import authorities"
                                         }
                                     ]
                                 })
@@ -2429,16 +2621,14 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
 
                     let start_date = match NaiveDate::parse_from_str(start_raw, "%Y-%m-%d") {
                         Ok(d) => d,
-                        Err(e) => {
+                        Err(_) => {
                             return Some(JsonRpcResponse::success(
                                 req.id,
                                 json!({
                                     "isError": true,
                                     "content": [{
                                         "type": "text",
-                                        "text": format!(
-                                            "Invalid start_date '{start_raw}' (expected YYYY-MM-DD): {e}"
-                                        )
+                                        "text": "Invalid start_date (expected YYYY-MM-DD)"
                                     }]
                                 }),
                             ));
@@ -2466,13 +2656,13 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                         calculate_deadline(&DeadlineInput::new(start_date, days).with_rule(rule));
                     match serde_json::to_value(&deadline) {
                         Ok(payload) => Some(tool_success(req.id, payload)),
-                        Err(e) => Some(JsonRpcResponse::success(
+                        Err(_) => Some(JsonRpcResponse::success(
                             req.id,
                             json!({
                                 "isError": true,
                                 "content": [{
                                     "type": "text",
-                                    "text": format!("Failed to serialize deadline: {e}")
+                                    "text": "Failed to serialize deadline"
                                 }]
                             }),
                         )),
@@ -2532,7 +2722,7 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                     .await
                     {
                         Ok(payload) => Some(tool_success(req.id, payload)),
-                        Err(error) => Some(JsonRpcResponse::error(req.id, -32003, error)),
+                        Err(error) => Some(tool_error(req.id, error)),
                     }
                 }
                 "remote_create_request" | "remote_add_correspondence" | "remote_update_state" => {
@@ -2565,7 +2755,7 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                     };
                     match result {
                         Ok(payload) => Some(tool_success(req.id, payload)),
-                        Err(error) => Some(JsonRpcResponse::error(req.id, -32004, error)),
+                        Err(error) => Some(tool_error(req.id, error)),
                     }
                 }
                 _ => Some(JsonRpcResponse::error(
@@ -2617,7 +2807,7 @@ async fn remote_read(
                     .and_then(Value::as_str)
                     .unwrap_or("")
                     .trim();
-                if query.is_empty() || query.len() > 200 {
+                if query.is_empty() || query.chars().count() > 200 {
                     return Err("query must be between 1 and 200 characters".into());
                 }
                 let limit = arguments
@@ -2650,7 +2840,7 @@ async fn remote_read(
                     .get("filter")
                     .and_then(Value::as_str)
                     .unwrap_or("");
-                if filter.len() > 100 {
+                if filter.chars().count() > 100 {
                     return Err("filter exceeds 100 characters".into());
                 }
                 let limit = arguments
@@ -3007,19 +3197,19 @@ pub async fn read_mcp_resource(db: &DbPool, uri: &str) -> Result<Vec<Value>, Str
     if uri == "fyi://authorities" {
         ensure_authorities_table(db.pool())
             .await
-            .map_err(|e| format!("Failed to ensure authorities table: {e}"))?;
+            .map_err(|_| "Failed to ensure authorities table".to_string())?;
         let rows = sqlx::query_as::<_, (String, String, Option<String>)>(
             "SELECT slug, name, url FROM authorities ORDER BY name",
         )
         .fetch_all(db.pool())
         .await
-        .map_err(|e| format!("Failed to list authorities: {e}"))?;
+        .map_err(|_| "Failed to list authorities".to_string())?;
         let authorities: Vec<Authority> = rows
             .into_iter()
             .map(|(slug, name, url)| Authority { slug, name, url })
             .collect();
         let text = serde_json::to_string_pretty(&authorities)
-            .map_err(|e| format!("Failed to serialize authorities: {e}"))?;
+            .map_err(|_| "Failed to serialize authorities".to_string())?;
         return Ok(vec![json!({
             "uri": uri,
             "mimeType": "application/json",
@@ -3031,7 +3221,7 @@ pub async fn read_mcp_resource(db: &DbPool, uri: &str) -> Result<Vec<Value>, Str
         let requests = db
             .list_requests(500)
             .await
-            .map_err(|e| format!("Failed to list requests: {e}"))?;
+            .map_err(|_| "Failed to list requests".to_string())?;
         let index: Vec<Value> = requests
             .into_iter()
             .map(|r| {
@@ -3044,7 +3234,7 @@ pub async fn read_mcp_resource(db: &DbPool, uri: &str) -> Result<Vec<Value>, Str
             })
             .collect();
         let text = serde_json::to_string_pretty(&index)
-            .map_err(|e| format!("Failed to serialize request index: {e}"))?;
+            .map_err(|_| "Failed to serialize request index".to_string())?;
         return Ok(vec![json!({
             "uri": uri,
             "mimeType": "application/json",
@@ -3055,14 +3245,14 @@ pub async fn read_mcp_resource(db: &DbPool, uri: &str) -> Result<Vec<Value>, Str
     if let Some(id_str) = uri.strip_prefix("fyi://requests/") {
         let id: i64 = id_str
             .parse()
-            .map_err(|_| format!("Invalid request resource uri: {uri}"))?;
+            .map_err(|_| "Invalid request resource URI".to_string())?;
         let request = db
             .get_request(id)
             .await
-            .map_err(|e| format!("Failed to load request {id}: {e}"))?
-            .ok_or_else(|| format!("Resource not found: {uri}"))?;
+            .map_err(|_| "Failed to load request".to_string())?
+            .ok_or_else(|| "Resource not found".to_string())?;
         let text = serde_json::to_string_pretty(&request)
-            .map_err(|e| format!("Failed to serialize request: {e}"))?;
+            .map_err(|_| "Failed to serialize request".to_string())?;
         return Ok(vec![json!({
             "uri": uri,
             "mimeType": "application/json",
@@ -3070,7 +3260,7 @@ pub async fn read_mcp_resource(db: &DbPool, uri: &str) -> Result<Vec<Value>, Str
         })]);
     }
 
-    Err(format!("Resource not found: {uri}"))
+    Err("Resource not found".to_string())
 }
 
 fn truthy_env_var(name: &str) -> bool {
