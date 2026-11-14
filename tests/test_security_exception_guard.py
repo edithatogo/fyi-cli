@@ -117,3 +117,15 @@ def test_protected_ci_and_precommit_both_run_guard() -> None:
     hook = (root / ".pre-commit-config.yaml").read_text(encoding="utf-8")
     assert "security-exception-guard" in hook
     assert "scripts/verify_security_exceptions.py --require-python 3.15.1" in hook
+
+
+def test_advisory_alias_and_equals_style_cannot_bypass_policy(tmp_path: Path) -> None:
+    root = fixture(tmp_path, denied=[LEGACY], cli=[LEGACY], expires="2026-12-14")
+    workflow = root / ".github/workflows/ci.yml"
+    workflow.write_text(
+        "name: CI\\njobs:\\n  audit:\\n    steps:\\n"
+        "      - run: cargo audit --ignore=GHSA-aaaa-bbbb-cccc\\n"
+    )
+    result = run_guard(root, date(2026, 11, 14))
+    assert result.returncode != 0
+    assert "GHSA-aaaa-bbbb-cccc" in result.stdout + result.stderr
