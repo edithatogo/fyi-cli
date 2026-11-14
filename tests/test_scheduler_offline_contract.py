@@ -9,6 +9,12 @@ from pathlib import Path
 
 import pytest
 
+from fyi_system.db import connect, init_db
+from fyi_system.scheduler import run_cycle
+from tests import scheduler_feed_fixture
+
+local_scheduler_feed = scheduler_feed_fixture.local_scheduler_feed
+
 ROOT = Path(__file__).resolve().parents[1]
 SCHEDULER_MODULES = [
     "tests/test_scheduler-IASN2001657.py",
@@ -64,3 +70,26 @@ def test_legacy_scheduler_modules_are_offline_even_when_they_swallow_errors() ->
     )
     assert result.returncode == 0, result.stdout[-5000:] + result.stderr[-1000:]
     assert "scheduler network attempts blocked:" not in result.stdout
+
+
+@pytest.mark.regression
+@pytest.mark.parametrize("url", ["https://example.invalid/feed", "https://invalid.invalid/feed"])
+def test_synthetic_feed_preserves_real_local_cycle_outputs(
+    tmp_path: Path,
+    local_scheduler_feed: list[str],
+    url: str,
+) -> None:
+    database = tmp_path / "scheduler.db"
+    outputs = tmp_path / "outputs"
+    init_db(database)
+    result = run_cycle(url, db_path=database, outputs_dir=outputs)
+    assert local_scheduler_feed == [url]
+    assert result == {"ingested": 0, "matched": 0, "outputs_dir": str(outputs)}
+    assert (outputs / "attention-report.json").is_file()
+    assert (outputs / "handover.md").is_file()
+    connection = connect(database)
+    try:
+        row = connection.execute("SELECT job_name, status FROM run_log").fetchone()
+        assert tuple(row) == ("run_cycle", "ok")
+    finally:
+        connection.close()

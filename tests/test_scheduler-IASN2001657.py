@@ -5,6 +5,10 @@ from pathlib import Path
 
 from fyi_system.scheduler import run_scheduler, run_cycle
 from fyi_system.db import init_db
+from tests import scheduler_feed_fixture
+
+local_scheduler_feed = scheduler_feed_fixture.local_scheduler_feed
+pytestmark = pytest.mark.usefixtures("local_scheduler_feed")
 
 
 class TestRunScheduler:
