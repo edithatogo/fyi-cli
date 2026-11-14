@@ -9,10 +9,10 @@
 
 ## Phase 2: Layered test harness
 
-- [~] Task: Add unit, integration, end-to-end stdio, smoke/system, regression, and sanity suites — startup recovery plus successful SDK/source calls for all eight current tools now execute locally; source feeds/stalls/cache/platform acceptance remains open
+- [~] Task: Add unit, integration, end-to-end stdio, smoke/system, regression, and sanity suites — startup recovery plus successful SDK/source calls for all eight current tools now execute locally; source feeds/cache/raw-budget/platform acceptance remains open
 - [~] Task: Add property tests for bounds, normalization, state expectations, and redaction
 - [x] Task: Add edge and security tests for SSRF, capabilities, guardrails, and secrets
-- [~] Task: Conductor review verification 'Layered test harness' — current-tool SDK/source success, status/disconnect/chunk/redirect faults pass on Linux; full original feed/stall/cache/raw-budget/platform criteria remain open
+- [~] Task: Conductor review verification 'Layered test harness' — current-tool SDK/source success, status/disconnect/chunk/redirect faults and measured header/body timeouts pass on Linux; full original feed/cache/raw-budget/platform criteria remain open
 
 ## Phase 3: Mutation and performance
 
@@ -38,7 +38,7 @@ The registry previously described this track as implemented, but its plan and me
 - This slice targets the existing 2025-06-18 and 2025-03-26 profiles; it does not claim later MCP revisions.
 - Remaining evidence is tracked in `acceptance-evidence.md`; unchecked acceptance gates remain open.
 
-Confirmation and MCP operation-budget slice: deterministic expiry/scope/replay, concurrency, byte/duration, privacy and invalid-confirmation regressions pass; source raw-byte/retry and cross-restart/attachment guarantees remain open (see acceptance evidence).
+Confirmation and MCP operation-budget slice: deterministic expiry/scope/replay, concurrency, byte/duration, privacy and invalid-confirmation regressions pass. Bounded durable reservation/audit is now verified in merged #457; source raw-byte/retry and immutable attachment guarantees remain open (see acceptance evidence).
 
 ## Current closure decision
 
@@ -79,7 +79,9 @@ source implementation, shared test configuration, runtime lock or workflow edit.
   39 passed; guarded full Python run 1,515 passed/two skipped, zero external
   Python DNS/socket attempts. See `offline-scheduler-evidence.md` for limits.
 - [x] Publish focused PR #458 before resuming broader hosted verification.
-- [~] Final-head checks/review and merge remain with the sole integration coordinator.
+- [x] Final-head review and all 12 protected checks passed on `d42a78f`;
+  squash-merged as `393241d` after the explicit user integration instruction.
+  Hosted Python: 1,515 passed/two skipped; remote branch deletion verified.
 
 ## Actual upstream fixture increment — 2026-11-14
 
@@ -103,8 +105,12 @@ external DNS/request, system trust modification or committed private key.
   mutations, guarded combined Python run 1,552 passed/two skipped and zero
   external Python DNS/socket attempts.
 - [x] Publish focused PR #459 with #458 as an explicit integration dependency.
-- [~] Record final-head CI/review evidence and request the sole coordinator's
-  sequential final verification/merge window.
+- [x] Add a bounded three-process shared-journal integration case to the
+  existing SDK/source harness: concurrent confirmations, one observed POST,
+  responsive clients, restart replay denial and private responses/logs/storage.
+- [~] Execute and record the combined final head in PR #459 under the explicit
+  user instruction to proceed with sequential integration. Required gates and
+  broader acceptance remain unchanged.
 
 This does not replace #457's durable journal or alter source, archive, runtime
 or workflow ownership. A source fixture is synthetic compatibility evidence,

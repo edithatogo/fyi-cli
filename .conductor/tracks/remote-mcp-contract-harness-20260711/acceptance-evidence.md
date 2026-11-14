@@ -460,7 +460,50 @@ Remaining concrete interfaces/gates:
 5. Windows/macOS client/runtime/ACL, complete declared compiler matrix, broader
    source properties/mutations and real profile-withdrawal/migration evidence.
 
-Durable replay/audit is independently in #457, with all 12 required checks passed
-at candidate `394dbee`; coordinator integration remains held. Do not duplicate
-that code or treat this harness as its merge. The sole coordinator owns final
-base/head reconciliation, verification, merge and pruning for each increment.
+Durable replay/audit is independently delivered in #457. Its final reconciled
+head `c8150242d5306bfb1c410eaae9114a0de6fbe13b` passed all 12 required checks
+and merged as `103844052210104666e01d4994d9e2f77986851d`; the write-governance
+track retains the exact journal receipt. This harness reuses that implementation.
+
+## Combined integration and concurrent MCP processes — 15 November 2026 AEST
+
+The user's later instruction authorized sequential integration. #458 was merged
+first, after all 12 protected checks passed on `d42a78f`, as
+`393241da3dd3124c969e2d3f4304b27a2cf8fd22`. Its hosted Python job executed the
+offline denial sensor and passed **1,515 tests**, with two skips. #457 then
+incorporated that repaired master, passed its fresh gates and merged as
+`103844052210104666e01d4994d9e2f77986851d`. Both remote branches were pruned
+and their absence verified. The new #459 candidate includes that merged base;
+older candidate checks do not stand in for its final verification.
+
+The journal's existing concurrency test uses two SQLite connections in one
+process. Its executable restart test establishes pre-I/O failure persistence;
+the original upstream harness exercises successful writes through one MCP
+process at a time. The remaining combination is now an additional test in that
+same harness:
+`test_shared_journal_allows_one_subprocess_write_and_blocks_restart_replay`.
+
+Two actual SDK clients start separate MCP processes sharing one journal. Both
+prepare the same scope before concurrent confirmations. Exactly one POST and
+successful result are allowed; the losing client must receive the precise
+private durable-replay error. Both processes must still answer a ping. After
+both stop, a third process must deny the same scope without another request.
+Responses, diagnostics and persisted files must exclude the synthetic body,
+idempotency key, credential and confirmation tokens. The full scenario is
+bounded to 20 seconds, with five-second SDK call limits and existing teardown.
+The fixture's expected exchange queue independently catches duplicate dispatch
+even when the second upstream call itself returns an error.
+
+The module now has **38 cases**; the earlier 37-case execution remains historical
+evidence for its original candidate. Local syntax, Ruff check/format, MCP fixture,
+layered-harness and Conductor checks passed. The available local pytest attempt
+stopped during dependency import and did not execute this new case; it is not
+RED or passing runtime evidence. PR #459 records the actual final combined head
+and fresh hosted execution before merge. No dependency download, new harness,
+source transport change or platform qualification is claimed by this addition.
+
+Existing registry entries for these MCP tracks are corrected to retain their
+open status; no other workstream's status changes. The remaining feed, cache,
+raw-budget, immutable-attachment, upstream atomic-state, platform and broader
+property/mutation requirements above still prevent archiving #173 or closing
+#169. Neither supported protocol profile is declared deprecated.

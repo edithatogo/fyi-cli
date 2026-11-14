@@ -11,21 +11,49 @@
 
 - [ ] Task: Write failing WireMock tests for prepare/commit request creation and correspondence
 - [x] Task: Implement governed request creation and correspondence tools via SyncClient
-- [x] Task: Add idempotency, safe errors, and durable redacted audit events
+- [x] Task: Add idempotency, safe errors, and durable redacted audit events — bounded journal and restart/audit assertions verified on final #457 head `c815024`; merged as `1038440`. Successful source workflows are a separate #459 contract.
 - [ ] Task: Conductor review verification 'Request and correspondence writes'
 
 ## Phase 3: Attachments and state updates
 
 - [x] Task: Write failing tests for attachment bounds, MIME/path handling, stale state, and rollback
 - [x] Task: Implement bounded attachment writes and optimistic state update tools
-- [x] Task: Add property, mutation, edge, security, and replay regression tests
+- [~] Task: Add property, mutation, edge, security, and replay regression tests — confirmation/journal and existing path/bounds regressions execute; immutable attachment bytes and atomic upstream compare-and-set remain unverified
 - [ ] Task: Conductor review verification 'Attachments and state updates'
 
 ## Phase 4: End-to-end and operations
 
-- [ ] Task: Add offline MCP stdio end-to-end prepare/commit/reject/replay scenarios
+- [~] Task: Add offline MCP stdio end-to-end prepare/commit/reject/replay scenarios — real two-process failure/restart/privacy contract passes; successful upstream operation matrix remains open
 - [ ] Task: Add sandbox-only opt-in write smoke workflow and disable-by-default sensor
-- [ ] Task: Update threat model, incident/rollback runbook, operator docs, and migration guide
+- [~] Task: Update threat model, incident/rollback runbook, operator docs, and migration guide — persistent journal setup, retention, incident recovery and rollback documented; remaining source/platform closure is separate
 - [ ] Task: Run full CI, coverage, security, compatibility, performance, and mutation gates
 - [ ] Task: Record GitHub issue #171 evidence and update metadata/registry
 - [ ] Task: Conductor review verification 'Track closeout'
+
+## Remainder reconciliation — 2026-11-14
+
+Baseline `70fef29` includes the existing confirmation and operation-budget gates;
+the unpublished journal branch was then reconciled with merged #452 (`e953438`),
+preserving its shared credential-name derivation.
+The historical checked audit/durability item was not supported: the production
+gate uses only an in-memory map, and its reusable audit serializer is not a
+durable production write log. The parent and this track remain incomplete.
+
+- [x] Add tests first for required persistent write state, restart replay denial,
+  concurrent admission, failure/cancellation reservations and audit privacy.
+  Initial local RED checkpoint `d49c16a`; published test-only checkpoint `f5b130b`.
+- [x] Implement a bounded MCP-owned SQLite journal (`dbee12d`, PR #457). Persist a reservation before
+  any upstream dispatch; retain uncertain outcomes, fail on storage corruption,
+  and store only opaque scope tags and fixed audit fields, never request content,
+  raw idempotency/confirmation tokens or credential values.
+- [x] Integrate production startup and prepare/commit/reject/replay/outcome events (`dbee12d`);
+  preserve the existing payload-bound monotonic confirmation gate.
+- [x] Run focused and workspace verification, targeted mutations and final-head
+  hosted gates. After #458's offline repair and the explicit user integration
+  instruction, #457 head `c815024` passed all 12 protected checks and merged as
+  `1038440`; the tested tree and remote branch deletion were verified.
+
+Source transfer and platform acceptance remain with their owners. This increment
+does not establish atomic upstream compare-and-set or immutable attachment bytes.
+No source/database-core/application-CLI/i18n/shared-workflow change is included.
+Local execution and exact remaining gates are in `acceptance-evidence.md`.

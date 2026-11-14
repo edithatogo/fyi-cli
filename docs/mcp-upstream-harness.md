@@ -39,6 +39,7 @@ implementation, platform TLS roots and operating-system trust remain unchanged.
 | Search | Array, `results` and `requests` wrappers; encoded Unicode/punctuation query; cap when the server over-returns |
 | Authorities | Array and `authorities` wrapper; Unicode case-insensitive filtering and bounded result |
 | Create | Prepare and invalid confirmation send nothing; exact JSON POST; structured result; cached/consumed replay sends nothing |
+| Shared journal | Two MCP processes prepare the same write, then race their confirmations; exactly one POST, one private durable rejection, responsive clients, and replay denial after a third process starts |
 | Correspondence | Exact JSON POST and synthetic multipart upload; fields, attachment name, MIME and bytes checked |
 | State | Matching state produces GET then PUT; stale state produces GET only. This is client preflight, not atomic server compare-and-set. |
 | Failures | 401/403/404/429/500/503; malformed JSON, missing version, uncached 304; disconnect, truncated body, malformed headers/chunks; foreign/loopback redirect rejection |
@@ -54,8 +55,21 @@ Two additional stall cases measure production cancellation, with an elapsed
 bound of 50–70 seconds and independent observation that the source connection
 closed. Their fixture and SDK deadlines are deliberately longer than the
 production timeout. A fast fixture/SDK timeout cannot satisfy those assertions.
-Together with inventory, proxy rejection, stale/read-only denial and generated
-query coverage, the module contains **37 tests**.
+Together with inventory, proxy rejection, stale/read-only denial, generated
+query coverage and the shared-journal process test, the module contains **38 tests**.
+
+The shared-journal test connects the durable reservation increment in #457 to
+the real SDK/source path. Two live server processes use one private state
+directory and each obtains a separate confirmation before concurrent commits.
+The fixture accepts exactly one create exchange; a second dispatch fails even
+if its MCP response is an error. Both clients must still answer a ping. After
+both stop, a third process must reject the same idempotency scope without I/O.
+The entire scenario has a 20-second deadline and retains the ordinary five-second
+call bounds. Result envelopes, diagnostics and persisted journal files must omit
+the synthetic write body, idempotency key, credentials and confirmation tokens.
+This establishes reservation across processes and restart behavior, not atomic
+upstream writes or power-loss guarantees. Final combined-head execution is
+recorded in PR #459; the original 37-case evidence predates this additional case.
 
 Generated testing adds 12 deterministic query/limit examples through the actual
 SDK and source encoder, checking whitespace normalization, Unicode, URI
@@ -117,5 +131,7 @@ The original tracks remain active:
 The sole integration coordinator owns final combined-head verification, merge
 and pruning. This increment depends on #458's offline scheduler fixture repair;
 the prior unguarded full run was rejected and is excluded from passing evidence.
-No `sync.rs`, source adapter, `db.rs`, CLI dispatch, workflow,
-packaging, runtime lock or shared Conductor registry changes are included.
+No `sync.rs`, source adapter, `db.rs`, CLI dispatch, workflow, packaging or
+runtime lock changes are included. Existing Conductor entries for these two MCP
+tracks are reconciled with their open issues; the stale completed write-track
+label is removed without changing any other workstream's status.

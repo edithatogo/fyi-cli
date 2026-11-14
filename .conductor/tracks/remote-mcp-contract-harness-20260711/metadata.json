@@ -3,7 +3,7 @@
   "type": "quality",
   "status": "in_progress",
   "created_at": "2026-07-11T08:34:24Z",
-  "updated_at": "2026-11-14T13:52:52Z",
+  "updated_at": "2026-11-14T15:25:47Z",
   "description": "Compatibility contracts and aggressive harness engineering for remote MCP tools",
   "github_parent_issue": 169,
   "github_issue": 173,
@@ -29,8 +29,8 @@
     "test_first_commit": "0883e4cf6702bc5167e464e2d2253c5484c9c877",
     "implementation_commit": "95631aa29f55185932f1e76d913b98eb8b77039b",
     "implementation_tree": "2f0af0e2475748915637306f65f27be6974c962b",
-    "status": "locally_verified_pending_coordinator_integration",
-    "merge_window": "sole_integration_coordinator_required",
+    "status": "implemented",
+    "merge_window": "explicit_user_merge_instruction_sequential_integration",
     "actual_upstream_tests_passed": 37,
     "deterministic_query_examples": 12,
     "targeted_mutations_caught": 3,
@@ -39,8 +39,14 @@
     "guarded_python_tests_skipped": 2,
     "external_python_network_attempts": 0,
     "pull_request_base": "master",
-    "dependency_integration": "merge_458_then_coordinator_reconcile_and_reverify",
-    "pull_request": 459
+    "dependency_integration": "458_and_457_merged_before_final_459_verification",
+    "pull_request": 459,
+    "dependency_merge_commit": "393241da3dd3124c969e2d3f4304b27a2cf8fd22",
+    "integration_upstream_test_count": 38,
+    "integration_subprocess_contract": "test_shared_journal_allows_one_subprocess_write_and_blocks_restart_replay",
+    "integration_verification": "https://github.com/edithatogo/fyi-cli/pull/459",
+    "journal_dependency_pull_request": 457,
+    "journal_dependency_merge_commit": "103844052210104666e01d4994d9e2f77986851d"
   },
   "acceptance_evidence": "acceptance-evidence.md",
   "closure_status": "not_archived_acceptance_evidence_incomplete",
@@ -49,7 +55,7 @@
     "Reused-cache corruption and raw multi-chunk cancellation, peak-memory and shared source request/byte/time allowance evidence",
     "Supported Windows/macOS client/runtime runs and complete declared Rust/MSRV matrix",
     "Broader state/pagination/URL/path properties and SSRF/source guardrail/error-classification mutation coverage",
-    "Durable journal candidate #457 requires coordinator integration; immutable attachment content and atomic upstream state guarantees remain open",
+    "Immutable attachment content and atomic upstream state guarantees remain open",
     "Genuine profile-withdrawal and contract-migration behavior; neither advertised profile is currently deprecated"
   ],
   "verified_increments": [
@@ -74,23 +80,30 @@
       "workspace_lines_covered": 14092,
       "workspace_lines_total": 14856,
       "workspace_gate_percent": 90
-    }
-  ],
-  "pending_increments": [
+    },
     {
       "issue": 169,
       "branch": "test/offline-scheduler-fixtures-169-20261114",
       "test_first_commit": "5f45cec0719acd7315ff56743e1dee723b0ddd65",
       "implementation_commit": "d1295c8d14e572707838641a82d309506feb9ab0",
       "implementation_tree": "4be43ac7cbb72fbc7ee559fa9fcabae5ce3a5731",
-      "status": "locally_verified_pending_coordinator_integration",
-      "merge_window": "sole_integration_coordinator_required",
+      "status": "merged_verified",
+      "merge_window": "completed_after_explicit_user_merge_instruction",
       "evidence": "offline-scheduler-evidence.md",
       "scoped_tests_passed": 39,
       "guarded_python_tests_passed": 1515,
       "guarded_python_tests_skipped": 2,
       "external_python_network_attempts": 0,
-      "pull_request": 458
+      "pull_request": 458,
+      "verified_head": "d42a78f1e941b39ddf82df8eba77c3a6cab0a4db",
+      "merge_commit": "393241da3dd3124c969e2d3f4304b27a2cf8fd22",
+      "verified_and_merged_tree": "6945db7145dd78ada4e8b584023d5490b15e4643",
+      "branch_deleted": true,
+      "ci_run": 43601664581,
+      "codeql_run": 43601664662,
+      "required_contexts_passed": 12,
+      "hosted_python_tests_passed": 1515,
+      "hosted_python_tests_skipped": 2
     }
   ]
 }
