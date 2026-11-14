@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "allow_new_exceptions": false,
+  "policy": "Only the existing RustSec suppressions are grandfathered until their mandatory expiration; never add another ignored advisory. Remove records when resolved.",
+  "exceptions": {
+    "RUSTSEC-2026-0190": {
+      "owner": "edithatogo",
+      "tracking_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
+      "reason": "Existing Tor-related or legacy advisory pending per-advisory dependency reachability and patch qualification",
+      "expires": "2026-12-14"
+    },
+    "RUSTSEC-2024-0344": {
+      "owner": "edithatogo",
+      "tracking_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
+      "reason": "Existing Tor-related or legacy advisory pending per-advisory dependency reachability and patch qualification",
+      "expires": "2026-12-14"
+    },
+    "RUSTSEC-2024-0388": {
+      "owner": "edithatogo",
+      "tracking_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
+      "reason": "Existing Tor-related or legacy advisory pending per-advisory dependency reachability and patch qualification",
+      "expires": "2026-12-14"
+    },
+    "RUSTSEC-2022-0093": {
+      "owner": "edithatogo",
+      "tracking_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
+      "reason": "Existing Tor-related or legacy advisory pending per-advisory dependency reachability and patch qualification",
+      "expires": "2026-12-14"
+    },
+    "RUSTSEC-2026-0174": {
+      "owner": "edithatogo",
+      "tracking_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
+      "reason": "Existing Tor-related or legacy advisory pending per-advisory dependency reachability and patch qualification",
+      "expires": "2026-12-14"
+    },
+    "RUSTSEC-2024-0384": {
+      "owner": "edithatogo",
+      "tracking_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
+      "reason": "Existing Tor-related or legacy advisory pending per-advisory dependency reachability and patch qualification",
+      "expires": "2026-12-14"
+    },
+    "RUSTSEC-2024-0436": {
+      "owner": "edithatogo",
+      "tracking_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
+      "reason": "Existing Tor-related or legacy advisory pending per-advisory dependency reachability and patch qualification",
+      "expires": "2026-12-14"
+    },
+    "RUSTSEC-2025-0009": {
+      "owner": "edithatogo",
+      "tracking_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
+      "reason": "Existing Tor-related or legacy advisory pending per-advisory dependency reachability and patch qualification",
+      "expires": "2026-12-14"
+    },
+    "RUSTSEC-2025-0010": {
+      "owner": "edithatogo",
+      "tracking_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
+      "reason": "Existing Tor-related or legacy advisory pending per-advisory dependency reachability and patch qualification",
+      "expires": "2026-12-14"
+    },
+    "RUSTSEC-2023-0071": {
+      "owner": "edithatogo",
+      "tracking_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
+      "reason": "Existing Tor-related or legacy advisory pending per-advisory dependency reachability and patch qualification",
+      "expires": "2026-12-14"
+    },
+    "RUSTSEC-2025-0134": {
+      "owner": "edithatogo",
+      "tracking_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
+      "reason": "Existing Tor-related or legacy advisory pending per-advisory dependency reachability and patch qualification",
+      "expires": "2026-12-14"
+    },
+    "RUSTSEC-2026-0098": {
+      "owner": "edithatogo",
+      "tracking_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
+      "reason": "Existing Tor-related or legacy advisory pending per-advisory dependency reachability and patch qualification",
+      "expires": "2026-12-14"
+    },
+    "RUSTSEC-2026-0099": {
+      "owner": "edithatogo",
+      "tracking_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
+      "reason": "Existing Tor-related or legacy advisory pending per-advisory dependency reachability and patch qualification",
+      "expires": "2026-12-14"
+    },
+    "RUSTSEC-2026-0104": {
+      "owner": "edithatogo",
+      "tracking_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
+      "reason": "Existing Tor-related or legacy advisory pending per-advisory dependency reachability and patch qualification",
+      "expires": "2026-12-14"
+    },
+    "RUSTSEC-2024-0363": {
+      "owner": "edithatogo",
+      "tracking_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
+      "reason": "Existing Tor-related or legacy advisory pending per-advisory dependency reachability and patch qualification",
+      "expires": "2026-12-14"
+    },
+    "RUSTSEC-2026-0387": {
+      "owner": "edithatogo",
+      "tracking_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
+      "reason": "crypto-bigint timing fix blocked by elliptic-curve and p256 transitive version constraints",
+      "expires": "2026-12-14"
+    },
+    "RUSTSEC-2026-0459": {
+      "owner": "edithatogo",
+      "tracking_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
+      "reason": "SQLite bundled-library patch blocked by sqlx/rusqlite native-link compatibility; assess untrusted WAL input",
+      "expires": "2026-12-14"
+    },
+    "RUSTSEC-2026-0370": {
+      "owner": "edithatogo",
+      "tracking_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
+      "reason": "unmaintained zvariant/zbus chain pending upstream keyring migration",
+      "expires": "2026-12-14"
+    },
+    "RUSTSEC-2026-0371": {
+      "owner": "edithatogo",
+      "tracking_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
+      "reason": "unmaintained zvariant/zbus chain pending upstream keyring migration",
+      "expires": "2026-12-14"
+    },
+    "RUSTSEC-2026-0372": {
+      "owner": "edithatogo",
+      "tracking_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
+      "reason": "unmaintained zvariant/zbus chain pending upstream keyring migration",
+      "expires": "2026-12-14"
+    }
+  }
+}
