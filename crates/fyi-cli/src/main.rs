@@ -99,7 +99,7 @@ pub enum Commands {
         #[arg(long, default_value = "fyi_system.db")]
         db: String,
     },
-    #[command(about = "Register a new tracked request")]
+    #[command(about = "Register a local tracked request without submitting it remotely")]
     RegisterRequest {
         authority_slug: String,
         title: String,
@@ -109,7 +109,7 @@ pub enum Commands {
         #[arg(long, default_value = "draft")]
         status: String,
         #[arg(long)]
-        fyi_request_id: Option<i32>,
+        fyi_request_id: Option<i64>,
         #[arg(long, default_value = "fyi_system.db")]
         db: String,
     },
@@ -120,14 +120,14 @@ pub enum Commands {
     },
     #[command(about = "Set status of a tracked request")]
     SetStatus {
-        request_id: i32,
+        request_id: i64,
         status: String,
         #[arg(long, default_value = "fyi_system.db")]
         db: String,
     },
     #[command(about = "Get request timeline")]
     RequestTimeline {
-        request_id: i32,
+        request_id: i64,
         #[arg(long, default_value = "fyi_system.db")]
         db: String,
     },
@@ -260,9 +260,9 @@ pub enum Commands {
         #[arg(long, default_value = "fyi_system.db")]
         db: String,
     },
-    #[command(about = "Get detailed report of a request")]
+    #[command(about = "Get stored local request fields and history")]
     RequestDetail {
-        request_id: i32,
+        request_id: i64,
         #[arg(long, default_value = "fyi_system.db")]
         db: String,
     },
@@ -603,13 +603,15 @@ fn main() {
             }
             println!("Initialized SQLite database at {}", db);
         }
-        Commands::ImportAuthorities { .. } | Commands::ListAuthorities { .. } => {
+        Commands::ImportAuthorities { .. }
+        | Commands::ListAuthorities { .. }
+        | Commands::RegisterRequest { .. }
+        | Commands::ListRequests { .. }
+        | Commands::SetStatus { .. }
+        | Commands::RequestTimeline { .. }
+        | Commands::RequestDetail { .. } => {
             local::run(&args.command, args.output_format);
         }
-        Commands::RegisterRequest { .. } => unsupported_command("register-request"),
-        Commands::ListRequests { .. } => unsupported_command("list-requests"),
-        Commands::SetStatus { .. } => unsupported_command("set-status"),
-        Commands::RequestTimeline { .. } => unsupported_command("request-timeline"),
         Commands::ExportRequests { .. } => unsupported_command("export-requests"),
         Commands::ImportRequests { .. } => unsupported_command("import-requests"),
         Commands::BuildPrefilledUrl {
@@ -774,7 +776,6 @@ fn main() {
         Commands::RunCycle { .. } => unsupported_command("run-cycle"),
         Commands::Scheduler { .. } => unsupported_command("scheduler"),
         Commands::Serve { .. } => unsupported_command("serve"),
-        Commands::RequestDetail { .. } => unsupported_command("request-detail"),
         Commands::ExportRequest { .. } => unsupported_command("export-request"),
         Commands::FollowUpDraft { .. } => unsupported_command("follow-up-draft"),
         Commands::AttachmentManifest { .. } => unsupported_command("attachment-manifest"),
