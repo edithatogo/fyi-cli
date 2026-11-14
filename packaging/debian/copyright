@@ -1,6 +1,6 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: fyi-cli
-Upstream-Contact: edithatogo <https://github.com/edithatogo>
+Upstream-Contact: edithatogo <15080672+edithatogo@users.noreply.github.com>
 Source: https://github.com/edithatogo/fyi-cli
 
 Files: *

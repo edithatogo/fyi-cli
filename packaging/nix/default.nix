@@ -1,22 +1,11 @@
-# nixpkgs-style expression for fyi-cli / fyi-mcp.
-# Draft: place under pkgs/by-name/fy/fyi-cli/package.nix (or similar) when submitting
-# upstream. Prefer cargoHash update after first successful nix-build.
-#
-# Usage (local flake / nix-build -E):
-#   nix-build -E 'with import <nixpkgs> {}; callPackage ./default.nix {}'
-#
-# Homepage: https://github.com/edithatogo/fyi-cli
-# License: MIT
-# Version: 0.1.2
+# BLOCKED TEMPLATE: fill both independently computed Nix hashes before building.
+# Historical source v1.2.0 declares Rust version 0.1.2; reconcile this mismatch
+# before submission. Do not confuse this source with unreleased master.
+# Pin the nixpkgs revision/toolchain in the eventual build receipt; then use
+# nix-prefetch-github for src.hash and the fixed-output vendor derivation for
+# cargoHash. Native build, dependency licences and maintainer review remain open.
 
-{
-  lib,
-  rustPlatform,
-  fetchFromGitHub,
-  pkg-config,
-  openssl,
-  stdenv,
-}:
+{ lib, rustPlatform, fetchFromGitHub, pkg-config, openssl }:
 
 rustPlatform.buildRustPackage rec {
   pname = "fyi-cli";
@@ -25,51 +14,25 @@ rustPlatform.buildRustPackage rec {
   src = fetchFromGitHub {
     owner = "edithatogo";
     repo = "fyi-cli";
-    rev = "v${version}";
-    # Update with: nix-prefetch-github edithatogo fyi-cli --rev v0.1.2
-    hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    rev = "86fcbd8914037735b6f27e5a329d5f3013033efd";
+    hash = "@SOURCE_NAR_HASH@";
   };
 
-  # Set after first failed build prints the expected hash, e.g.:
-  #   nix-build -E 'with import <nixpkgs> {}; callPackage ./default.nix {}'
-  cargoHash = lib.fakeHash;
+  cargoHash = "@CARGO_VENDOR_HASH@";
+  nativeBuildInputs = [ pkg-config ];
+  buildInputs = [ openssl ];
+  cargoBuildFlags = [ "--package" "fyi-cli" "--package" "fyi-mcp" ];
+  cargoTestFlags = [ "--package" "fyi-cli" "--package" "fyi-mcp" ];
+  doCheck = true;
 
-  nativeBuildInputs = [
-    pkg-config
-  ];
-
-  buildInputs = [
-    openssl
-  ] ++ lib.optionals stdenv.hostPlatform.isDarwin [
-    # darwin.apple_sdk.frameworks.Security
-  ];
-
-  # Build CLI and MCP server binaries from the workspace.
-  buildAndTestSubdir = null;
-  cargoBuildFlags = [
-    "--package"
-    "fyi-cli"
-    "--package"
-    "fyi-mcp"
-  ];
-
-  # Network-heavy integration tests are skipped in sandbox builds.
-  doCheck = false;
-
-  meta = with lib; {
+  meta = {
     description = "Privacy-focused multi-jurisdiction FOI/OIA CLI and MCP server for Alaveteli";
-    longDescription = ''
-      fyi-cli tracks and manages Freedom of Information / Official Information
-      requests against Alaveteli-based platforms (FYI.org.nz and other instances),
-      with a Rust CLI, MCP server, optional Tor support, and local SQLite storage.
-    '';
     homepage = "https://github.com/edithatogo/fyi-cli";
-    changelog = "https://github.com/edithatogo/fyi-cli/blob/v${version}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [
-      # add nixpkgs maintainer handle when submitting
-    ];
+    changelog = "https://github.com/edithatogo/fyi-cli/blob/86fcbd8914037735b6f27e5a329d5f3013033efd/CHANGELOG.md";
+    license = lib.licenses.mit;
+    # Add the verified nixpkgs maintainer handle before upstream submission.
+    maintainers = [ ];
     mainProgram = "fyi-cli";
-    platforms = platforms.unix ++ platforms.windows;
+    platforms = [ "x86_64-linux" "aarch64-linux" ];
   };
 }

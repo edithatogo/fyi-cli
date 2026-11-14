@@ -296,7 +296,7 @@ This file tracks all major tracks for the project. Each track has its own detail
 - [~] **Track: package-registry-submissions_20260712**
   *Link: [./tracks/package-registry-submissions_20260712/](./tracks/package-registry-submissions_20260712/)*
   *GitHub issue: [#194](https://github.com/edithatogo/fyi-cli/issues/194); child [#202](https://github.com/edithatogo/fyi-cli/issues/202)*
-  *Description: Complete reproducible package, container, and developer distribution submissions.*
+  *Description: Local packaging contracts and review packets complete; native qualification, release ownership and external submissions remain blocked under #194.*
 
 - [~] **Track: foi-platform-landscape_20260712**
   *Link: [./tracks/foi-platform-landscape_20260712/](./tracks/foi-platform-landscape_20260712/)*
