@@ -5,6 +5,10 @@ on:
     - cron: "17 21 * * 1"
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
 permissions:
   issues: write
 
@@ -12,9 +16,10 @@ jobs:
   triage:
     name: Label unlabeled open issues
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Apply needs-triage label
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
             const owner = context.repo.owner;

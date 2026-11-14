@@ -82,9 +82,9 @@ next slice is reconciled.
 
 ### Slice 1: local authorities
 
-- [~] Implement local CSV parsing and atomic authority upsert.
-- [~] Implement deterministic authority listing and text/JSON output.
-- [ ] Prove repeated import, invalid-input rollback and request-reference safety.
+- [x] Implement local CSV parsing and atomic authority upsert.
+- [x] Implement deterministic authority listing and text/JSON output.
+- [x] Prove repeated import, invalid-input rollback and request-reference safety.
 
 `import-authorities CSV_PATH --db PATH` retains the existing local CLI shape.
 Header aliases and precedence follow `src/fyi_system/importers.py`:
@@ -274,3 +274,22 @@ crates.io index; hosted `--locked` compilation must verify the lock. Missing or
 blank required fields, ambiguous quoting, duplicate headers, malformed row
 lengths, invalid UTF-8 and input beyond 16 MiB fail before database writes.
 Unlike Python's skipped invalid rows, failure rejects the complete import.
+
+### Authority native verification
+
+Implementation head `33b043d8b3482447b24790b429b420d5541cedec` passed the
+[Rust 1.99.1 MSRV job](https://github.com/edithatogo/fyi-cli/actions/runs/43553220643/job/132320153668):
+formatting, all-target/all-feature Clippy with warnings denied and locked
+all-feature workspace tests. This includes the core authority and actual CLI
+contracts, SQL-trigger rollback, physical-schema validation and read-only
+database checks. The Conductor contract job passed in the same run.
+
+SQLx 0.9 rejected dynamic test SQL at the prior head. The tests now use literal
+queries and static schema mutation fixtures; no SQL safety assertion bypass was
+added. Independent review also identified and fixed adoption of incompatible
+pre-existing authority tables. Matching migration checksums now accompany
+physical column/primary-key/nullability validation.
+
+PR #433's CI hardening is inherited through a normal merge of master. This
+workstream changes no workflow file relative to that base. Final-head required
+Actions, coverage/security checks and merge confirmation remain the PR gate.
