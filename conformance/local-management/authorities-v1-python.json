@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "reference": "src/fyi_system/importers.py:import_authorities_csv and src/fyi_system/cli.py:cmd_list_authorities",
+  "valid_cases": [
+    {
+      "id": "official_columns_and_name_order",
+      "csv": "url_name,name,url\nzeta,Zeta Authority,https://catalog.example.invalid/body/zeta\nalpha,Alpha Authority,https://catalog.example.invalid/body/alpha\n",
+      "imported_count": 2,
+      "rows": [
+        {"slug": "alpha", "name": "Alpha Authority", "url": "https://catalog.example.invalid/body/alpha"},
+        {"slug": "zeta", "name": "Zeta Authority", "url": "https://catalog.example.invalid/body/zeta"}
+      ],
+      "stdout": "alpha\tAlpha Authority\thttps://catalog.example.invalid/body/alpha\nzeta\tZeta Authority\thttps://catalog.example.invalid/body/zeta\n"
+    },
+    {
+      "id": "bom_crlf_quoted_comma_and_unicode",
+      "csv": "\ufeffslug,name,url\r\nzeta,\"Zeta, Records Office\",https://catalog.example.invalid/body/zeta\r\nmaori,Te Puna Māori,\r\n",
+      "imported_count": 2,
+      "rows": [
+        {"slug": "maori", "name": "Te Puna Māori", "url": null},
+        {"slug": "zeta", "name": "Zeta, Records Office", "url": "https://catalog.example.invalid/body/zeta"}
+      ],
+      "stdout": "maori\tTe Puna Māori\t\nzeta\tZeta, Records Office\thttps://catalog.example.invalid/body/zeta\n"
+    },
+    {
+      "id": "aliases_trim_and_first_nonempty_value",
+      "csv": "url_name,slug,authority_slug,name,authority_name,public_body_name,url,authority_url,request_url\n , chosen ,ignored, , Chosen Authority ,Ignored Authority, , https://catalog.example.invalid/body/chosen ,https://ignored.example.invalid/body/chosen\nprimary,ignored,ignored,Primary Authority,Ignored Authority,Ignored Authority,https://catalog.example.invalid/body/primary,https://ignored.example.invalid/body/primary,https://ignored.example.invalid/body/primary\n,,fallback,,, Fallback Authority ,,, https://catalog.example.invalid/body/fallback \n",
+      "imported_count": 3,
+      "rows": [
+        {"slug": "chosen", "name": "Chosen Authority", "url": "https://catalog.example.invalid/body/chosen"},
+        {"slug": "fallback", "name": "Fallback Authority", "url": "https://catalog.example.invalid/body/fallback"},
+        {"slug": "primary", "name": "Primary Authority", "url": "https://catalog.example.invalid/body/primary"}
+      ],
+      "stdout": "chosen\tChosen Authority\thttps://catalog.example.invalid/body/chosen\nfallback\tFallback Authority\thttps://catalog.example.invalid/body/fallback\nprimary\tPrimary Authority\thttps://catalog.example.invalid/body/primary\n"
+    },
+    {
+      "id": "optional_url_column_absent",
+      "csv": "authority_slug,public_body_name\nalpha,Alpha Authority\n",
+      "imported_count": 1,
+      "rows": [{"slug": "alpha", "name": "Alpha Authority", "url": null}],
+      "stdout": "alpha\tAlpha Authority\t\n"
+    },
+    {
+      "id": "quoted_multiline_and_escaped_quotes",
+      "csv": "slug,name,url\nalpha,\"Alpha \"\"Records\"\"\nOffice\",\n",
+      "imported_count": 1,
+      "rows": [{"slug": "alpha", "name": "Alpha \"Records\"\nOffice", "url": null}],
+      "stdout": "alpha\tAlpha \"Records\"\nOffice\t\n"
+    },
+    {
+      "id": "duplicate_slug_last_valid_row_wins",
+      "csv": "slug,name,url\nalpha,Old Authority,https://catalog.example.invalid/body/old\nalpha,Renamed Authority,\n",
+      "imported_count": 2,
+      "rows": [{"slug": "alpha", "name": "Renamed Authority", "url": null}],
+      "stdout": "alpha\tRenamed Authority\t\n"
+    },
+    {
+      "id": "headers_without_data",
+      "csv": "slug,name,url\n",
+      "imported_count": 0,
+      "rows": [],
+      "stdout": ""
+    }
+  ],
+  "legacy_differences": [
+    {
+      "id": "blank_required_name_is_skipped",
+      "csv": "slug,name\nalpha,Alpha Authority\nbeta,  \n",
+      "imported_count": 1,
+      "rows": [{"slug": "alpha", "name": "Alpha Authority", "url": null}],
+      "stdout": "alpha\tAlpha Authority\t\n",
+      "rust_behavior": "Reject the invalid input and roll back the complete import."
+    },
+    {
+      "id": "blank_required_slug_is_skipped",
+      "csv": "slug,name\nalpha,Alpha Authority\n  ,Invalid Authority\n",
+      "imported_count": 1,
+      "rows": [{"slug": "alpha", "name": "Alpha Authority", "url": null}],
+      "stdout": "alpha\tAlpha Authority\t\n",
+      "rust_behavior": "Reject the invalid input and roll back the complete import."
+    },
+    {
+      "id": "missing_name_header_is_skipped",
+      "csv": "slug,url\nalpha,https://catalog.example.invalid/body/alpha\n",
+      "imported_count": 0,
+      "rows": [],
+      "stdout": "",
+      "rust_behavior": "Reject missing required semantic columns before changing the database."
+    },
+    {
+      "id": "equal_names_follow_legacy_insertion_order",
+      "csv": "slug,name\nzeta,Shared Authority\nalpha,Shared Authority\n",
+      "imported_count": 2,
+      "rows": [
+        {"slug": "alpha", "name": "Shared Authority", "url": null},
+        {"slug": "zeta", "name": "Shared Authority", "url": null}
+      ],
+      "stdout": "zeta\tShared Authority\t\nalpha\tShared Authority\t\n",
+      "rust_behavior": "Order by name then slug so equal names have a stable explicit tie-break."
+    }
+  ]
+}

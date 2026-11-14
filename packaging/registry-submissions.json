@@ -3,31 +3,432 @@
   "last_reviewed": "2026-07-12",
   "source_release": "0.1.2",
   "targets": [
-    {"id": "official-mcp", "class": "mcp-registry", "status": "live", "evidence": "https://registry.modelcontextprotocol.io/", "next_action": "Verify on each release."},
-    {"id": "glama", "class": "mcp-registry", "status": "live", "evidence": "https://glama.ai/mcp/servers/edithatogo/fyi-cli", "next_action": "Monitor listing and score."},
-    {"id": "smithery", "class": "mcp-registry", "status": "live", "evidence": "https://smithery.ai/server/@edithatogo/fyi-mcp", "next_action": "Monitor score and usage indexing."},
-    {"id": "github-curated-mcp", "class": "mcp-registry", "status": "blocked-external", "evidence": "https://github.com/edithatogo/fyi-cli/issues/32", "next_action": "Recheck curated listing after manual onboarding."},
-    {"id": "codex-plugins", "class": "ai-plugin", "status": "assets-ready", "evidence": null, "submission_url": "https://help.openai.com/en/articles/20001256-plugins-in-codex", "next_action": "Refresh against the current OpenAI plugin-directory / Codex flow, then submit the validated packet and record public evidence."},
-    {"id": "anthropic-connectors", "class": "ai-plugin", "status": "assets-ready", "evidence": null, "submission_url": "https://claude.com/docs/connectors/building/submission", "next_action": "Verify a hosted HTTPS deployment against deploy/remote-mcp/README.md, then submit the validated packet through Anthropic's form and record public evidence."},
-    {"id": "awesome-mcp-servers", "class": "community-catalog", "status": "submitted", "evidence": "https://github.com/punkpeye/awesome-mcp-servers/pull/9693", "next_action": "Monitor review and update status on merge or closure."},
-    {"id": "pulsemcp", "class": "mcp-catalog", "status": "assets-ready", "evidence": null, "next_action": "Submit packet and record public listing URL."},
-    {"id": "mcp-so", "class": "mcp-catalog", "status": "assets-ready", "evidence": null, "next_action": "Submit listing and record public URL."},
-    {"id": "docker-mcp", "class": "mcp-catalog", "status": "assets-ready", "evidence": null, "next_action": "Verify GHCR multi-arch pull, then open upstream submission."},
-    {"id": "opentools", "class": "mcp-catalog", "status": "assets-ready", "evidence": null, "next_action": "Submit listing and record public URL."},
-    {"id": "crates-io", "class": "package", "status": "blocked-external", "evidence": "https://crates.io/api/v1/crates/fyi-cli", "next_action": "Published fyi-cli and fyi-core names belong to a different project; select and verify distinct names before publishing."},
-    {"id": "pypi", "class": "package", "status": "live", "evidence": "https://pypi.org/project/fyi-cli/", "next_action": "Keep the legacy application frozen for existing consumers and document its retirement after the Rust cutover."},
-    {"id": "ghcr", "class": "container", "status": "assets-ready", "evidence": null, "next_action": "Publish and verify amd64/arm64 public pulls."},
-    {"id": "homebrew", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Replace release placeholders and submit formula."},
-    {"id": "chocolatey", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Complete checksum and moderation packet."},
-    {"id": "scoop", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Submit manifest after release asset verification."},
-    {"id": "winget", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Submit manifest using a stable release asset."},
-    {"id": "cargo-binstall", "class": "package", "status": "blocked-external", "evidence": "https://crates.io/api/v1/crates/fyi-cli", "next_action": "Resolve the crate-name collision and verify matching release-asset resolution."},
-    {"id": "aur", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Fill source hash and submit PKGBUILD."},
-    {"id": "nixpkgs", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Compute source and cargo hashes before submission."},
-    {"id": "snap", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Build and publish a confined snap."},
-    {"id": "flatpak", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Validate AppStream metadata and submit."},
-    {"id": "asdf-mise", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Publish a dedicated plugin repository after release assets stabilize."},
-    {"id": "debian", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Build and lint Debian source package before PPA submission."},
-    {"id": "fedora-copr", "class": "package", "status": "assets-ready", "evidence": null, "next_action": "Build SRPM and submit COPR configuration."}
-  ]
+    {
+      "id": "official-mcp",
+      "class": "mcp-registry",
+      "status": "live",
+      "evidence": "https://registry.modelcontextprotocol.io/",
+      "next_action": "Verify on each release."
+    },
+    {
+      "id": "glama",
+      "class": "mcp-registry",
+      "status": "live",
+      "evidence": "https://glama.ai/mcp/servers/edithatogo/fyi-cli",
+      "next_action": "Monitor listing and score."
+    },
+    {
+      "id": "smithery",
+      "class": "mcp-registry",
+      "status": "live",
+      "evidence": "https://smithery.ai/server/@edithatogo/fyi-mcp",
+      "next_action": "Monitor score and usage indexing."
+    },
+    {
+      "id": "github-curated-mcp",
+      "class": "mcp-registry",
+      "status": "blocked-external",
+      "evidence": "https://github.com/edithatogo/fyi-cli/issues/32",
+      "next_action": "Recheck curated listing after manual onboarding."
+    },
+    {
+      "id": "codex-plugins",
+      "class": "ai-plugin",
+      "status": "assets-ready",
+      "evidence": null,
+      "submission_url": "https://help.openai.com/en/articles/20001256-plugins-in-codex",
+      "next_action": "Refresh against the current OpenAI plugin-directory / Codex flow, then submit the validated packet and record public evidence."
+    },
+    {
+      "id": "anthropic-connectors",
+      "class": "ai-plugin",
+      "status": "assets-ready",
+      "evidence": null,
+      "submission_url": "https://claude.com/docs/connectors/building/submission",
+      "next_action": "Verify a hosted HTTPS deployment against deploy/remote-mcp/README.md, then submit the validated packet through Anthropic's form and record public evidence."
+    },
+    {
+      "id": "awesome-mcp-servers",
+      "class": "community-catalog",
+      "status": "submitted",
+      "evidence": "https://github.com/punkpeye/awesome-mcp-servers/pull/9693",
+      "next_action": "Monitor review and update status on merge or closure."
+    },
+    {
+      "id": "pulsemcp",
+      "class": "mcp-catalog",
+      "status": "assets-ready",
+      "evidence": null,
+      "next_action": "Submit packet and record public listing URL."
+    },
+    {
+      "id": "mcp-so",
+      "class": "mcp-catalog",
+      "status": "assets-ready",
+      "evidence": null,
+      "next_action": "Submit listing and record public URL."
+    },
+    {
+      "id": "docker-mcp",
+      "class": "mcp-catalog",
+      "status": "assets-ready",
+      "evidence": null,
+      "next_action": "Verify GHCR multi-arch pull, then open upstream submission."
+    },
+    {
+      "id": "opentools",
+      "class": "mcp-catalog",
+      "status": "assets-ready",
+      "evidence": null,
+      "next_action": "Submit listing and record public URL."
+    },
+    {
+      "id": "crates-io",
+      "class": "package",
+      "status": "blocked-external",
+      "evidence": "https://github.com/rust-lang/crates.io-index/blob/59a67e5410ccd818baaeea3f836df244972e2f3e/fy/i-/fyi-cli",
+      "next_action": "Verify ownership of the occupied package names or choose and verify unoccupied names, update dependency/package metadata in a coordinated release, run cargo package and cargo publish --dry-run in dependency order, then operator publishes and verifies owner/repository identity.",
+      "submission_url": "https://crates.io/policies",
+      "checked_at": "2026-11-14",
+      "maintainer": "edithatogo",
+      "packet_assets": [
+        "crates/fyi-core/Cargo.toml",
+        "crates/fyi-cli/Cargo.toml",
+        "crates/fyi-mcp/Cargo.toml"
+      ],
+      "submission_ready": false,
+      "blockers": [
+        "crate-name-collision",
+        "coordinated-release-required"
+      ],
+      "public_install_evidence": null,
+      "verification_scope": "Repository review packet; no native install, submission or acceptance is asserted."
+    },
+    {
+      "id": "pypi",
+      "class": "package",
+      "status": "live",
+      "evidence": "https://pypi.org/project/fyi-cli/",
+      "next_action": "Keep the legacy application frozen for existing consumers and document its retirement after the Rust cutover."
+    },
+    {
+      "id": "ghcr",
+      "class": "container",
+      "status": "blocked-external",
+      "evidence": "https://github.com/edithatogo/fyi-cli/issues/194",
+      "next_action": "Operator publishes a versioned image after release reconciliation, records immutable index/child digests, verifies credential-free amd64/arm64 pulls, attestations, SBOM and network-isolated help smoke using the existing verifier.",
+      "submission_url": "https://github.com/edithatogo?tab=packages",
+      "checked_at": "2026-11-14",
+      "maintainer": "edithatogo",
+      "packet_assets": [
+        "Dockerfile",
+        "scripts/verify_ghcr_multarch.py"
+      ],
+      "submission_ready": false,
+      "blockers": [
+        "public-multiarch-pull-unverified",
+        "image-sbom-provenance-unverified"
+      ],
+      "public_install_evidence": null,
+      "verification_scope": "Repository review packet; no native install, submission or acceptance is asserted."
+    },
+    {
+      "id": "homebrew",
+      "class": "package",
+      "status": "blocked-external",
+      "evidence": "https://github.com/edithatogo/fyi-cli/issues/194",
+      "next_action": "Verify the bound historical archives or regenerate for a coordinated release; run brew audit --strict and brew test in clean macOS/Linux environments, then operator creates/updates a maintainer tap. This binary formula is not eligible for homebrew/core.",
+      "submission_url": "https://docs.brew.sh/How-to-Create-and-Maintain-a-Tap",
+      "checked_at": "2026-11-14",
+      "maintainer": "edithatogo",
+      "packet_assets": [
+        "packaging/homebrew/fyi-cli.rb"
+      ],
+      "submission_ready": false,
+      "blockers": [
+        "release-integrity-unverified",
+        "native-install-unverified",
+        "tap-owner-action-required"
+      ],
+      "public_install_evidence": null,
+      "verification_scope": "Repository review packet; no native install, submission or acceptance is asserted."
+    },
+    {
+      "id": "chocolatey",
+      "class": "package",
+      "status": "blocked-external",
+      "evidence": "https://github.com/edithatogo/fyi-cli/issues/194",
+      "next_action": "Verify Windows ZIP bytes and release evidence, run choco pack and clean Windows install/help/uninstall, then operator uploads the nupkg using the maintainer account and records moderation URL.",
+      "submission_url": "https://community.chocolatey.org/packages/upload",
+      "checked_at": "2026-11-14",
+      "maintainer": "edithatogo",
+      "packet_assets": [
+        "packaging/chocolatey/fyi-cli.nuspec",
+        "packaging/chocolatey/tools/chocolateyinstall.ps1",
+        "packaging/chocolatey/tools/chocolateyuninstall.ps1",
+        "packaging/chocolatey/tools/LICENSE.txt",
+        "packaging/chocolatey/tools/VERIFICATION.txt"
+      ],
+      "submission_ready": false,
+      "blockers": [
+        "release-integrity-unverified",
+        "native-install-unverified",
+        "moderation-account-required"
+      ],
+      "public_install_evidence": null,
+      "verification_scope": "Repository review packet; no native install, submission or acceptance is asserted."
+    },
+    {
+      "id": "scoop",
+      "class": "package",
+      "status": "blocked-external",
+      "evidence": "https://github.com/edithatogo/fyi-cli/issues/194",
+      "next_action": "Verify the Windows ZIP, run Scoop manifest validation and clean install/help/uninstall, then operator opens a bucket PR. Keep automatic version updates disabled until tag/component versions agree.",
+      "submission_url": "https://github.com/ScoopInstaller/Main/pulls",
+      "checked_at": "2026-11-14",
+      "maintainer": "edithatogo",
+      "packet_assets": [
+        "packaging/scoop/fyi-cli.json"
+      ],
+      "submission_ready": false,
+      "blockers": [
+        "release-integrity-unverified",
+        "native-install-unverified",
+        "bucket-maintainer-review-required"
+      ],
+      "public_install_evidence": null,
+      "verification_scope": "Repository review packet; no native install, submission or acceptance is asserted."
+    },
+    {
+      "id": "winget",
+      "class": "package",
+      "status": "blocked-external",
+      "evidence": "https://github.com/edithatogo/fyi-cli/issues/194",
+      "next_action": "Verify Windows ZIP contents and package version; run winget validate --manifest and Windows Sandbox install/help/uninstall, then operator opens the microsoft/winget-pkgs PR.",
+      "submission_url": "https://github.com/microsoft/winget-pkgs/pulls",
+      "checked_at": "2026-11-14",
+      "maintainer": "edithatogo",
+      "packet_assets": [
+        "packaging/winget/edithatogo.fyi-cli.yaml"
+      ],
+      "submission_ready": false,
+      "blockers": [
+        "release-integrity-unverified",
+        "native-install-unverified",
+        "community-review-required"
+      ],
+      "public_install_evidence": null,
+      "verification_scope": "Repository review packet; no native install, submission or acceptance is asserted."
+    },
+    {
+      "id": "cargo-binstall",
+      "class": "package",
+      "status": "blocked-external",
+      "evidence": "https://crates.io/api/v1/crates/fyi-cli",
+      "next_action": "After crate identity and coordinated signed release are qualified, replace disabled-strategies with exact per-target archive metadata and verify cargo binstall from a clean root. Never install an MCPB archive as a raw executable.",
+      "submission_url": "https://github.com/cargo-bins/cargo-binstall/blob/main/SUPPORT.md",
+      "checked_at": "2026-11-14",
+      "maintainer": "edithatogo",
+      "packet_assets": [
+        "packaging/cargo-binstall/metadata.toml",
+        "crates/fyi-cli/Cargo.toml",
+        "crates/fyi-mcp/Cargo.toml"
+      ],
+      "submission_ready": false,
+      "blockers": [
+        "crate-name-collision",
+        "matching-binary-assets-unverified"
+      ],
+      "public_install_evidence": null,
+      "verification_scope": "Repository review packet; no native install, submission or acceptance is asserted."
+    },
+    {
+      "id": "aur",
+      "class": "package",
+      "status": "blocked-external",
+      "evidence": "https://github.com/edithatogo/fyi-cli/issues/194",
+      "next_action": "Provide the pinned source and vendored dependency archive hashes, run makepkg --verifysource and a clean chroot build/test, generate .SRCINFO with makepkg --printsrcinfo, then operator pushes to AUR.",
+      "submission_url": "https://wiki.archlinux.org/title/AUR_submission_guidelines",
+      "checked_at": "2026-11-14",
+      "maintainer": "edithatogo",
+      "packet_assets": [
+        "packaging/aur/PKGBUILD"
+      ],
+      "submission_ready": false,
+      "blockers": [
+        "checksummed-vendored-source-required",
+        "native-build-unverified",
+        "aur-maintainer-required"
+      ],
+      "public_install_evidence": null,
+      "verification_scope": "Repository review packet; no native install, submission or acceptance is asserted."
+    },
+    {
+      "id": "nixpkgs",
+      "class": "package",
+      "status": "blocked-external",
+      "evidence": "https://github.com/edithatogo/fyi-cli/issues/194",
+      "next_action": "Compute the pinned source NAR and Cargo vendor hashes with Nix, add a real nixpkgs maintainer, build/test each declared platform, then operator submits the package expression.",
+      "submission_url": "https://github.com/NixOS/nixpkgs/pulls",
+      "checked_at": "2026-11-14",
+      "maintainer": "edithatogo",
+      "packet_assets": [
+        "packaging/nix/default.nix"
+      ],
+      "submission_ready": false,
+      "blockers": [
+        "source-nar-and-vendor-hashes-required",
+        "native-build-unverified",
+        "nixpkgs-maintainer-required"
+      ],
+      "public_install_evidence": null,
+      "verification_scope": "Repository review packet; no native install, submission or acceptance is asserted."
+    },
+    {
+      "id": "snap",
+      "class": "package",
+      "status": "blocked-external",
+      "evidence": "https://github.com/edithatogo/fyi-cli/issues/194",
+      "next_action": "Register/confirm the package name in the maintainer account; supply checksummed vendored sources and a separately checksummed relocatable Rust/Cargo toolchain archive for each architecture. Core22 generic Rust/Cargo 1.75 cannot build the historical lockfile (time 0.3.49 requires at least Rust 1.88). Qualify the complete lockfile on the selected exact toolchain, render one manifest/archive pair per architecture, then run native snapcraft builds and strict-confinement help/uninstall checks before operator upload to edge.",
+      "submission_url": "https://snapcraft.io/docs/registering-your-app-name",
+      "checked_at": "2026-11-14",
+      "maintainer": "edithatogo",
+      "packet_assets": [
+        "packaging/snap/snapcraft.yaml",
+        "packaging/snap/README.md"
+      ],
+      "submission_ready": false,
+      "blockers": [
+        "checksummed-vendored-source-required",
+        "checksummed-per-architecture-rust-toolchain-required",
+        "core22-default-rust-1.75-incompatible-with-locked-dependencies",
+        "confined-install-unverified",
+        "snap-store-name-and-publisher-required"
+      ],
+      "public_install_evidence": null,
+      "verification_scope": "Repository review packet; no native install, submission or acceptance is asserted."
+    },
+    {
+      "id": "flatpak",
+      "class": "package",
+      "status": "not-applicable",
+      "evidence": "https://docs.flathub.org/docs/for-app-authors/requirements",
+      "next_action": "Do not submit this CLI/MCP product to Flathub: current inclusion rules exclude console software. A private Flatpak remains optional and blocked on immutable checksummed vendored sources, runtime qualification and sandbox smoke.",
+      "submission_url": "https://docs.flathub.org/docs/for-app-authors/requirements",
+      "checked_at": "2026-11-14",
+      "maintainer": "edithatogo",
+      "packet_assets": [
+        "packaging/flatpak/io.github.edithatogo.fyi-cli.yml",
+        "packaging/flatpak/io.github.edithatogo.fyi-cli.metainfo.xml",
+        "packaging/flatpak/README.md"
+      ],
+      "submission_ready": false,
+      "blockers": [
+        "flathub-console-software-exclusion"
+      ],
+      "public_install_evidence": null,
+      "verification_scope": "Repository review packet; no native install, submission or acceptance is asserted."
+    },
+    {
+      "id": "asdf-mise",
+      "class": "package",
+      "status": "blocked-external",
+      "evidence": "https://github.com/edithatogo/fyi-cli/issues/194",
+      "next_action": "Create a reviewed checksum allowlist only after matching release tag and binary version are verified; test supported targets, publish a plugin repository with bin/ at its root, then operator requests registry inclusion. Do not use cargo:fyi-cli.",
+      "submission_url": "https://github.com/asdf-vm/asdf-plugins/pulls",
+      "checked_at": "2026-11-14",
+      "maintainer": "edithatogo",
+      "packet_assets": [
+        "packaging/asdf/bin/install",
+        "packaging/asdf/bin/list-all",
+        "packaging/asdf/README.md",
+        "packaging/mise/backend.toml",
+        "packaging/mise/README.md"
+      ],
+      "submission_ready": false,
+      "blockers": [
+        "version-matched-checksum-allowlist-required",
+        "standalone-plugin-repository-required",
+        "native-install-unverified"
+      ],
+      "public_install_evidence": null,
+      "verification_scope": "Repository review packet; no native install, submission or acceptance is asserted."
+    },
+    {
+      "id": "debian",
+      "class": "package",
+      "status": "blocked-external",
+      "evidence": "https://github.com/edithatogo/fyi-cli/issues/194",
+      "next_action": "Resolve Debian Rust dependency packaging, build an offline source package in sbuild, run lintian and autopkgtest, sign .dsc/.changes using the maintainer key, then operator obtains sponsorship or uploads to an owned PPA. A PPA is not Debian archive acceptance.",
+      "submission_url": "https://mentors.debian.net/intro-maintainers/",
+      "checked_at": "2026-11-14",
+      "maintainer": "edithatogo",
+      "packet_assets": [
+        "packaging/debian/control",
+        "packaging/debian/rules",
+        "packaging/debian/changelog",
+        "packaging/debian/copyright",
+        "packaging/debian/source/format",
+        "packaging/debian/README.md"
+      ],
+      "submission_ready": false,
+      "blockers": [
+        "vendored-source-or-distro-dependencies-required",
+        "native-build-lintian-unverified",
+        "signing-and-sponsor-required"
+      ],
+      "public_install_evidence": null,
+      "verification_scope": "Repository review packet; no native install, submission or acceptance is asserted."
+    },
+    {
+      "id": "fedora-copr",
+      "class": "package",
+      "status": "blocked-external",
+      "evidence": "https://github.com/edithatogo/fyi-cli/issues/194",
+      "next_action": "Build a checksummed offline SRPM, run rpmlint and mock on every declared architecture, then operator creates/submits to an owned COPR project. Fedora inclusion separately requires Fedora Rust packaging review; COPR is not Fedora acceptance.",
+      "submission_url": "https://copr.fedorainfracloud.org/",
+      "checked_at": "2026-11-14",
+      "maintainer": "edithatogo",
+      "packet_assets": [
+        "packaging/fedora/fyi-cli.spec"
+      ],
+      "submission_ready": false,
+      "blockers": [
+        "checksummed-vendored-source-required",
+        "native-srpm-mock-build-unverified",
+        "copr-project-and-maintainer-required"
+      ],
+      "public_install_evidence": null,
+      "verification_scope": "Repository review packet; no native install, submission or acceptance is asserted."
+    },
+    {
+      "id": "dockerhub",
+      "class": "container",
+      "status": "not-applicable",
+      "evidence": "https://github.com/edithatogo/fyi-cli/issues/194",
+      "next_action": "Deferred optional mirror: first qualify GHCR. Reopen only with a documented consumer need, maintainer owner and digest-preserving replication plan.",
+      "checked_at": "2026-11-14",
+      "maintainer": "edithatogo",
+      "submission_ready": false,
+      "blockers": [
+        "no-justified-mirror-requirement"
+      ]
+    },
+    {
+      "id": "quay",
+      "class": "container",
+      "status": "not-applicable",
+      "evidence": "https://github.com/edithatogo/fyi-cli/issues/194",
+      "next_action": "Deferred optional mirror: first qualify GHCR. Reopen only with a documented consumer need, maintainer owner and digest-preserving replication plan.",
+      "checked_at": "2026-11-14",
+      "maintainer": "edithatogo",
+      "submission_ready": false,
+      "blockers": [
+        "no-justified-mirror-requirement"
+      ]
+    }
+  ],
+  "package_last_reviewed": "2026-11-14",
+  "package_evidence": "packaging/release-evidence.json",
+  "package_status_scope": "Current Rust distribution; historical PyPI and MCP directory rows retain separate evidence."
 }

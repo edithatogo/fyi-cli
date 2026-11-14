@@ -6,19 +6,17 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## Active frontier convergence tracks
 
+- [~] **Track: rust-mcp-tui-implementation** (TUI acceptance reconciled 2026-11-14)
+  *Link: [./tracks/rust-mcp-tui-implementation/](./tracks/rust-mcp-tui-implementation/)*
+  *Scope: existing combined CLI/MCP/TUI track; no replacement track.*
+  *TUI: bounded read-only Ratatui presentation implemented and locally verified in [PR #435](https://github.com/edithatogo/fyi-cli/pull/435); see [TUI evidence](./tracks/rust-mcp-tui-implementation/tui-acceptance-evidence.md).*
+  *Open: request-management adapter, CLI launch, terminal lifecycle/input and runtime budgets. Historical CLI/MCP acceptance remains with its owners; combined closure is not claimed.*
+
 - [~] **Track: frontier-rust-convergence-20261113**
   *Link: [./tracks/frontier-rust-convergence-20261113/](./tracks/frontier-rust-convergence-20261113/)*
   *Status: specification and plan committed; implementation not yet verified.*
   *Scope: evidence provenance, statutory rules, provider contracts, grounded agents, reproducible transformation, legacy Python to Rust migration, Python >=3.15 and Rust MSRV 1.99 compatibility gates, maximal risk-based single-developer CI, and Conductor repair.*
   *Dependency: existing source-adapter-boundary-20260812 track (#309, #310–#314), not a replacement for it. Reconcile PR #402 before altering completed-track status.*
-
-- [x] **Track: quality-frontier-testing-cicd-20261113**
-  *Link: [./tracks/quality-frontier-testing-cicd-20261113/](./tracks/quality-frontier-testing-cicd-20261113/)*
-  *Issue: [#280](https://github.com/edithatogo/fyi-cli/issues/280) (closed via PR #414).*
-  *Parent: [#282](https://github.com/edithatogo/fyi-cli/issues/282) (quality frontier umbrella).*
-  *Warranted gaps: DST, MT, Contract.*
-  *CI gaps: pinned_actions, dependency_review, workflow_lint.*
-  *Description: Close warranted testing and CI/CD gaps — deterministic simulation testing, mutation testing, contract testing, pinned actions, dependency review, and workflow linting.*
 
 - [x] **Track: test-acceleration-20261113**
   *Link: [./tracks/test-acceleration-20261113/](./tracks/test-acceleration-20261113/)*
@@ -44,6 +42,15 @@ This file tracks all major tracks for the project. Each track has its own detail
 ---
 
 ## Completed Tracks
+
+- [x] **Track: quality-frontier-testing-cicd-20261113** (COMPLETED 2026-11-14; archived)
+  *Link: [./archive/quality-frontier-testing-cicd-20261113/](./archive/quality-frontier-testing-cicd-20261113/)*
+  *Issue: [#280](https://github.com/edithatogo/fyi-cli/issues/280) (already closed; initial quality implementation #414; verified close-out #433/#437).*
+  *Parent: [#282](https://github.com/edithatogo/fyi-cli/issues/282) (quality frontier umbrella).*
+  *Warranted gaps: DST, MT, Contract.*
+  *CI gaps: pinned_actions, dependency_review, workflow_lint.*
+  *Description: Close warranted testing and CI/CD gaps — deterministic simulation testing, mutation testing, contract testing, pinned actions, dependency review, and workflow linting.*
+  *Evidence: [acceptance record](./archive/quality-frontier-testing-cicd-20261113/acceptance-evidence.md); PR #437 merged as `78e62066cc823659593034cc9f23f69ab9a5f6d9`; exact final-head checks and branch pruning verified.*
 
 - [x] **Track: integrate-fyi-cli-history** (COMPLETED 2026-03-08)
   *Link: [./tracks/integrate-fyi-request-system-history/](./tracks/integrate-fyi-request-system-history/)*
@@ -81,12 +88,6 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Link: [./tracks/rust-core-migration/](./tracks/rust-core-migration/)*
   *Description: Rust Rewrite Phase 1 - Core API contracts, secure database, encryption, and Tor networking layer.*
   *Results: Handshake API contracts, SQLite async connection pool and migrations, AES-256-GCM plus keyring and zeroize, SOCKS5 Tor proxy.*
-  *Status: TARGET ACHIEVED*
-
-- [x] **Track: rust-mcp-tui-implementation** (COMPLETED 2026-06-15)
-  *Link: [./tracks/rust-mcp-tui-implementation/](./tracks/rust-mcp-tui-implementation/)*
-  *Description: Rust Rewrite Phase 2 - Command-line interface, native MCP server implementation, and Ratatui terminal UI dashboard.*
-  *Results: clap parser, JSON-RPC 2.0 stdin/stdout MCP server daemon, Ratatui multi-tab dashboard.*
   *Status: TARGET ACHIEVED*
 
 - [x] **Track: rust-quality-hardening** (COMPLETED 2026-06-15)
@@ -250,11 +251,11 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Dependencies: remote-mcp-observability-security*
   *Priority: high*
 
-- [x] **Track: remote-mcp-contract-harness** (IMPLEMENTED 2026-07-11, PR #177; correction #180)
+- [~] **Track: remote-mcp-contract-harness** (IN PROGRESS 2026-11-14; protocol PR #438, confirmation/budget PR #441, schema/SDK PR #443; original acceptance incomplete)
   *GitHub parent: [#169](https://github.com/edithatogo/fyi-cli/issues/169)*
   *GitHub issue: [#173](https://github.com/edithatogo/fyi-cli/issues/173)*
   *Link: [./tracks/remote-mcp-contract-harness-20260711/](./tracks/remote-mcp-contract-harness-20260711/)*
-  *Description: Versioned compatibility fixtures plus unit, integration, end-to-end, property, mutation, edge, performance, security, compatibility, usability, regression, sanity, and smoke/system sensors.*
+  *Description: Executable MCP catalogue/exchange fixtures, official SDK stdio/HTTP contracts, private errors, bounded confirmations and measured local budgets. Source fixture/fault, broader mutation/property and Windows/macOS evidence remain open; see acceptance-evidence.md in the existing track.*
   *Dependencies: remote-mcp-observability-security, remote-mcp-read-surface*
   *Priority: high*
 
@@ -296,7 +297,7 @@ This file tracks all major tracks for the project. Each track has its own detail
 - [~] **Track: package-registry-submissions_20260712**
   *Link: [./tracks/package-registry-submissions_20260712/](./tracks/package-registry-submissions_20260712/)*
   *GitHub issue: [#194](https://github.com/edithatogo/fyi-cli/issues/194); child [#202](https://github.com/edithatogo/fyi-cli/issues/202)*
-  *Description: Complete reproducible package, container, and developer distribution submissions.*
+  *Description: Local packaging contracts and review packets complete; native qualification, release ownership and external submissions remain blocked under #194.*
 
 - [~] **Track: foi-platform-landscape_20260712**
   *Link: [./tracks/foi-platform-landscape_20260712/](./tracks/foi-platform-landscape_20260712/)*

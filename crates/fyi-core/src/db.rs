@@ -1,7 +1,9 @@
+pub mod local;
+
 use crate::api::{AlaveteliCorrespondence, AlaveteliRequest, CorrespondenceDirection};
 use chrono::Utc;
 use serde::Serialize;
-use sqlx::{sqlite::SqlitePool, sqlite::SqlitePoolOptions, Row};
+use sqlx::{sqlite::SqlitePool, sqlite::SqlitePoolOptions, Connection, Row};
 use std::time::Duration;
 
 /// Request-level sync status persisted in `sync_metadata`.
@@ -122,17 +124,20 @@ impl DbPool {
 
     /// Initialize the Rust schema without silently adopting a legacy Python database.
     pub async fn initialize_rust_schema(&self) -> anyhow::Result<()> {
-        let legacy_tables: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'tracked_requests'",
-        )
-        .fetch_one(&self.pool)
-        .await?;
-        if legacy_tables != 0 {
-            anyhow::bail!(
-                "legacy Python database detected; preserve it and use a separate Rust database until migration is supported"
-            );
+        let mut connection = self.pool.acquire().await?;
+        let mut transaction = connection.begin_with("BEGIN IMMEDIATE").await?;
+        if local::schema::table_exists(&mut transaction, "tracked_requests").await?
+            && !local::schema::table_exists(&mut transaction, "_sqlx_migrations").await?
+        {
+            return Err(local::LocalError::Legacy.into());
         }
-        self.run_migrations().await?;
+        local::schema::validate_before_initialization(&mut transaction).await?;
+        sqlx::migrate!("./migrations")
+            .run(&mut *transaction)
+            .await
+            .map_err(|_| local::LocalError::Schema)?;
+        local::schema::validate_current(&mut transaction).await?;
+        transaction.commit().await?;
         Ok(())
     }
 

@@ -55,7 +55,23 @@ fn object_field<'a>(value: &'a Value, name: &str) -> Result<&'a Value> {
 fn integer(value: &Value, name: &str) -> Result<u64> {
     value
         .get(name)
-        .and_then(Value::as_u64)
+        .and_then(|number| {
+            // JSON Schema integers include 1.0 and -0.0. Preserve native u64
+            // precision first; never rewrite the signed receipt representation.
+            number.as_u64().or_else(|| {
+                let number = number.as_f64()?;
+                // u64::MAX rounds UP to 2^64 as f64. An inclusive upper bound
+                // would allow a saturating cast to silently change the value.
+                if number.is_finite()
+                    && (0.0..18_446_744_073_709_551_616.0).contains(&number)
+                    && number.fract() == 0.0
+                {
+                    Some(number as u64)
+                } else {
+                    None
+                }
+            })
+        })
         .with_context(|| format!("receipt missing nonnegative integer {name}"))
 }
 
