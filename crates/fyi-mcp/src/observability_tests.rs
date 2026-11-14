@@ -5,6 +5,20 @@ use policy::{RemoteBudget, RemoteCapability, RemoteInstancePolicy};
 
 const STATUS_URI: &str = "fyi://remote/status";
 
+#[derive(Clone, Default)]
+struct Capture(Arc<std::sync::Mutex<Vec<u8>>>);
+
+impl std::io::Write for Capture {
+    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+        self.0.lock().unwrap().extend_from_slice(bytes);
+        Ok(bytes.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
 fn policy(bytes: u64) -> RemoteMcpPolicy {
     RemoteMcpPolicy::new(vec![RemoteInstancePolicy {
         instance_id: "synthetic".into(),
@@ -112,9 +126,11 @@ async fn successful_dispatch_metrics_count_serialized_utf8_once() {
     let permit = policy
         .begin_request("synthetic", RemoteCapability::Read)
         .unwrap();
-    let result = execute_remote_operation(&policy, permit, async { Ok(payload.clone()) })
-        .await
-        .unwrap();
+    let result = execute_remote_operation(&policy, permit, RemoteOperation::Version, async {
+        Ok(payload.clone())
+    })
+    .await
+    .unwrap();
     assert_eq!(result, payload);
     let snapshot = status(&policy).await;
     let metric = row(&snapshot, "remote_version");
@@ -137,7 +153,7 @@ async fn failed_and_rejected_results_have_fixed_outcomes_without_private_errors(
         let permit = policy
             .begin_request("synthetic", RemoteCapability::Read)
             .unwrap();
-        let result = execute_remote_operation(&policy, permit, async {
+        let result = execute_remote_operation(&policy, permit, RemoteOperation::Version, async {
             if bytes == 1 {
                 Ok(json!({"private":"synthetic-private-result"}))
             } else {
@@ -166,7 +182,12 @@ async fn cancelled_dispatch_releases_activity_and_records_one_cancellation() {
         .begin_request("synthetic", RemoteCapability::Read)
         .unwrap();
     {
-        let operation = execute_remote_operation(&policy, permit, std::future::pending());
+        let operation = execute_remote_operation(
+            &policy,
+            permit,
+            RemoteOperation::Version,
+            std::future::pending(),
+        );
         tokio::pin!(operation);
         tokio::select! {
             _ = &mut operation => panic!("pending operation completed"),
@@ -193,14 +214,140 @@ async fn dispatch_timeout_is_distinct_from_failure_and_cancellation() {
     let permit = policy
         .begin_request("synthetic", RemoteCapability::Read)
         .unwrap();
-    assert!(
-        execute_remote_operation(&policy, permit, std::future::pending())
-            .await
-            .is_err()
-    );
+    assert!(execute_remote_operation(
+        &policy,
+        permit,
+        RemoteOperation::Version,
+        std::future::pending()
+    )
+    .await
+    .is_err());
     let metric = row(&status(&policy).await, "remote_version");
     assert_eq!(metric["outcomes"]["timed_out"], 1);
     assert_eq!(metric["outcomes"]["failed"], 0);
     assert_eq!(metric["outcomes"]["cancelled"], 0);
     assert_eq!(metric["in_flight"], 0);
+}
+
+#[tokio::test]
+async fn async_source_future_inherits_server_correlation_without_private_values() {
+    // Tracing callsite interest is process-wide. Other parallel tests exercise
+    // these same callsites without a subscriber; isolate the capture and use
+    // the process-wide subscriber that production startup also installs.
+    if std::env::var_os("FYI_MCP_TRACE_CAPTURE_CHILD").as_deref() != Some(std::ffi::OsStr::new("1"))
+    {
+        let output = tokio::time::timeout(
+            std::time::Duration::from_secs(30),
+            tokio::process::Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "observability_tests::async_source_future_inherits_server_correlation_without_private_values",
+                    "--nocapture",
+                ])
+                .env("FYI_MCP_TRACE_CAPTURE_CHILD", "1")
+                .kill_on_drop(true)
+                .output(),
+        )
+        .await
+        .expect("isolated tracing contract timed out")
+        .unwrap();
+        assert!(
+            output.status.success(),
+            "isolated tracing contract failed:\n{}\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        return;
+    }
+    let capture = Capture::default();
+    let writer = capture.clone();
+    let subscriber = tracing_subscriber::fmt()
+        .with_ansi(false)
+        .without_time()
+        .with_writer(move || writer.clone())
+        .finish();
+    tracing::subscriber::set_global_default(subscriber).unwrap();
+    let policy = policy(4096);
+    for operation in [RemoteOperation::Version, RemoteOperation::CreateRequest] {
+        let permit = policy
+            .begin_request("synthetic", RemoteCapability::Read)
+            .unwrap();
+        execute_remote_operation(&policy, permit, operation, async {
+            tokio::task::yield_now().await;
+            tracing::info!(target: "synthetic_source", "synthetic source event");
+            Ok(json!({"private":"synthetic-private-result"}))
+        })
+        .await
+        .unwrap();
+    }
+    let logs = String::from_utf8(capture.0.lock().unwrap().clone()).unwrap();
+    let lines: Vec<_> = logs.lines().collect();
+    assert_eq!(lines.len(), 6, "{logs}");
+    let mut correlations = Vec::new();
+    for (events, operation) in lines
+        .as_chunks::<3>()
+        .0
+        .iter()
+        .zip(["remote_version", "remote_create_request"])
+    {
+        let correlation = events[0]
+            .split("correlation_id=")
+            .nth(1)
+            .unwrap()
+            .split_whitespace()
+            .next()
+            .unwrap();
+        assert!(correlation.trim_matches('"').starts_with("mcp-"));
+        for event in events {
+            assert!(event.contains("mcp_remote_dispatch"), "{event}");
+            assert!(event.contains("schema_version=1"), "{event}");
+            assert!(event.contains(correlation), "{event}");
+            assert!(event.contains(operation), "{event}");
+        }
+        assert!(events[0].contains("event=\"started\""));
+        assert!(events[1].contains("synthetic source event"));
+        assert!(events[2].contains("event=\"completed\""));
+        assert!(events[2].contains("outcome=\"success\""));
+        correlations.push(correlation);
+    }
+    assert_ne!(correlations[0], correlations[1]);
+    assert!(!logs.contains("synthetic-private"));
+    assert!(!logs.contains("instance_id"));
+}
+
+#[tokio::test]
+async fn invalid_or_disallowed_calls_cannot_allocate_metric_dimensions() {
+    let policy = policy(4096);
+    let original = status(&policy).await;
+    for index in 0..100 {
+        for arguments in [
+            json!({"instance_id":format!("synthetic-private-{index}")}),
+            json!({"instance_id":"synthetic", "query":format!("private-{index}")}),
+        ] {
+            let response = call(
+                &policy,
+                "tools/call",
+                Some(json!({
+                    "name":"remote_version", "arguments":arguments
+                })),
+            )
+            .await;
+            assert!(response.error.is_some() || response.result.unwrap()["isError"] == true);
+        }
+    }
+    assert_eq!(original, status(&policy).await);
+    assert!(RemoteOperation::from_tool("private-unknown-operation").is_none());
+    assert!(remote_read(&policy, "synthetic", "unknown", &json!({}))
+        .await
+        .is_err());
+    assert!(remote_commit_write(
+        &policy,
+        &RemoteWriteGate::default(),
+        "synthetic",
+        "unknown",
+        &json!({})
+    )
+    .await
+    .is_err());
+    assert_eq!(original, status(&policy).await);
 }

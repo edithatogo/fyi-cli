@@ -23,6 +23,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::net::TcpListener;
+use tracing::Instrument;
 
 mod arguments;
 #[cfg(test)]
@@ -30,7 +31,9 @@ mod observability_tests;
 pub mod policy;
 #[cfg(test)]
 mod schema_contract_tests;
+mod telemetry;
 use policy::RemoteMcpPolicy;
+use telemetry::{DispatchOutcome, RemoteOperation};
 pub mod write_gate;
 use write_gate::RemoteWriteGate;
 
@@ -1771,7 +1774,12 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                     "Missing resource uri".to_string(),
                 ));
             }
-            match read_mcp_resource(db, uri).await {
+            let contents = if uri == "fyi://remote/status" {
+                remote_status_resource(remote_policy)
+            } else {
+                read_mcp_resource(db, uri).await
+            };
+            match contents {
                 Ok(contents) => Some(JsonRpcResponse::success(
                     req.id,
                     json!({ "contents": contents }),
@@ -2714,16 +2722,7 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                         .get("instance_id")
                         .and_then(Value::as_str)
                         .unwrap_or("");
-                    let correlation_id = next_correlation_id();
-                    match remote_read(
-                        remote_policy,
-                        instance_id,
-                        name,
-                        &arguments,
-                        &correlation_id,
-                    )
-                    .await
-                    {
+                    match remote_read(remote_policy, instance_id, name, &arguments).await {
                         Ok(payload) => Some(tool_success(req.id, payload)),
                         Err(error) => Some(tool_error(req.id, error)),
                     }
@@ -2781,8 +2780,9 @@ async fn remote_read(
     instance_id: &str,
     operation: &str,
     arguments: &Value,
-    correlation_id: &str,
 ) -> Result<Value, String> {
+    let observed_operation = RemoteOperation::from_tool(operation)
+        .ok_or_else(|| "unsupported remote read operation".to_string())?;
     // Caller validation must precede admission. Bad input must not spend a
     // network allowance or count as an upstream failure in the shared circuit.
     let query = arguments
@@ -2813,9 +2813,9 @@ async fn remote_read(
     let instance = policy
         .instance(instance_id)
         .ok_or_else(|| "remote instance is not configured".to_string())?;
-    let client = SyncClient::new(&instance.base_url)
-        .map_err(|_| "remote client could not be initialized".to_string())?;
     let operation_future = async {
+        let client = SyncClient::new(&instance.base_url)
+            .map_err(|_| "remote client could not be initialized".to_string())?;
         match operation {
             "remote_health" => {
                 let health = client.health_check().await;
@@ -2856,29 +2856,7 @@ async fn remote_read(
             _ => Err("unsupported remote read operation".to_string()),
         }
     };
-    let result = execute_remote_operation(policy, permit, operation_future).await;
-    match result {
-        Ok(payload) => {
-            tracing::info!(
-                correlation_id,
-                operation,
-                instance_id,
-                outcome = "success",
-                "remote MCP read completed"
-            );
-            Ok(payload)
-        }
-        Err(error) => {
-            tracing::warn!(
-                correlation_id,
-                operation,
-                instance_id,
-                outcome = "failure",
-                "remote MCP read failed"
-            );
-            Err(error)
-        }
-    }
+    execute_remote_operation(policy, permit, observed_operation, operation_future).await
 }
 
 fn next_correlation_id() -> String {
@@ -2894,25 +2872,42 @@ fn next_correlation_id() -> String {
 async fn execute_remote_operation(
     policy: &RemoteMcpPolicy,
     permit: policy::RemoteRequestPermit,
+    observed_operation: RemoteOperation,
     operation: impl std::future::Future<Output = Result<Value, String>>,
 ) -> Result<Value, String> {
-    let result = tokio::time::timeout(permit.duration_budget(), operation).await;
+    let observation = policy.telemetry.begin(observed_operation)?;
+    let result = tokio::time::timeout(
+        permit.duration_budget(),
+        operation.instrument(observation.span()),
+    )
+    .await;
     match result {
         Ok(Ok(payload)) => {
-            let outcome = serialized_payload_bytes(&payload)
-                .and_then(|bytes| permit.finish(bytes).map_err(|error| error.to_string()));
+            let bytes = match serialized_payload_bytes(&payload) {
+                Ok(bytes) => bytes,
+                Err(error) => {
+                    observation.finish(DispatchOutcome::ResultRejected, 0)?;
+                    policy.record_failure();
+                    return Err(error);
+                }
+            };
+            let outcome = permit.finish(bytes).map_err(|error| error.to_string());
             if let Err(error) = outcome {
+                observation.finish(DispatchOutcome::ResultRejected, bytes)?;
                 policy.record_failure();
                 return Err(error);
             }
+            observation.finish(DispatchOutcome::Success, bytes)?;
             policy.record_success();
             Ok(payload)
         }
         Ok(Err(_)) => {
+            observation.finish(DispatchOutcome::Failed, 0)?;
             policy.record_failure();
             Err("remote operation failed; see operator audit telemetry".into())
         }
         Err(_) => {
+            observation.finish(DispatchOutcome::TimedOut, 0)?;
             policy.record_failure();
             Err("remote operation timed out; see operator audit telemetry".into())
         }
@@ -2947,6 +2942,8 @@ async fn remote_commit_write(
     operation: &str,
     arguments: &Value,
 ) -> Result<Value, String> {
+    let observed_operation = RemoteOperation::from_tool(operation)
+        .ok_or_else(|| "unsupported remote write operation".to_string())?;
     if !arguments.as_object().is_some_and(|arguments| {
         arguments.keys().all(|key| {
             matches!(
@@ -2977,10 +2974,10 @@ async fn remote_commit_write(
         .instance(instance_id)
         .ok_or_else(|| "remote instance is not configured".to_string())?;
     let bot_token = std::env::var(instance.bot_token_env_name()).ok();
-    let client = SyncClient::new(&instance.base_url)
-        .map_err(|_| "remote client could not be initialized".to_string())?
-        .with_bot_token(bot_token);
     let operation_future = async {
+        let client = SyncClient::new(&instance.base_url)
+            .map_err(|_| "remote client could not be initialized".to_string())?
+            .with_bot_token(bot_token);
         match operation {
             "remote_create_request" => {
                 let payload: CreateRequestPayload =
@@ -3072,7 +3069,8 @@ async fn remote_commit_write(
             _ => Err("unsupported remote write operation".to_string()),
         }
     };
-    let payload = execute_remote_operation(policy, permit, operation_future).await?;
+    let payload =
+        execute_remote_operation(policy, permit, observed_operation, operation_future).await?;
     gate.remember_result(&prepared, payload.clone())?;
     Ok(payload)
 }
@@ -3164,6 +3162,12 @@ fn sample_search_corpus() -> InMemorySearchIndex {
 pub async fn list_mcp_resources(db: &DbPool) -> Value {
     let mut resources = vec![
         json!({
+            "uri": "fyi://remote/status",
+            "name": "Remote MCP status",
+            "description": "Local capability/budget status and process-local MCP dispatch metrics. Reading does not contact upstreams. HTTP source counters are separate.",
+            "mimeType": "application/json"
+        }),
+        json!({
             "uri": "fyi://authorities",
             "name": "Public authorities",
             "description": "Imported public authority records used for FOI routing.",
@@ -3189,6 +3193,19 @@ pub async fn list_mcp_resources(db: &DbPool) -> Value {
     }
 
     json!({ "resources": resources })
+}
+
+fn remote_status_resource(policy: &RemoteMcpPolicy) -> Result<Vec<Value>, String> {
+    let snapshot = json!({
+        "schema_version": 1,
+        "policy": policy.status(),
+        "metrics": policy.telemetry.snapshot()?,
+    });
+    Ok(vec![json!({
+        "uri": "fyi://remote/status",
+        "mimeType": "application/json",
+        "text": snapshot.to_string(),
+    })])
 }
 
 /// Read a single MCP resource by URI into MCP content items.

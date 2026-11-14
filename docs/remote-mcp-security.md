@@ -71,10 +71,13 @@ in the local SQLite database.
 
 ## Privacy and retention
 
-Read-operation completion logs contain server-generated correlation IDs, an
-operation name, configured instance ID and coarse outcome. The reusable policy
-audit-event structure additionally supports a schema version and error class;
-its token normalization is not a substitute for excluding private values.
+Admitted read and write dispatches emit versioned events with server-generated,
+process-scoped correlation IDs, a fixed operation name and coarse outcome.
+The [dispatch observability contract](mcp-dispatch-observability.md) defines these
+events, bounded process-local metrics and the local `fyi://remote/status` resource.
+Dispatch events exclude configured instance IDs. The reusable policy audit-event
+serializer is separate; its token normalization is not a substitute for excluding
+private values.
 Neither logs nor audit structures may receive credentials, authorization
 headers, URLs with query strings, request bodies, attachments, PII, or upstream
 response content. Comprehensive emitted write-audit coverage is not established

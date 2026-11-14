@@ -1,6 +1,6 @@
 //! Fail-closed policy and operator controls for remote MCP operations.
 //!
-//! This module deliberately has no telemetry dependency.  Callers can export
+//! This module requires no telemetry backend. Callers can export
 //! the bounded status and audit values to their preferred local system without
 //! sending request content, credentials, or user data anywhere.
 
@@ -130,6 +130,7 @@ struct ControlState {
 pub struct RemoteMcpPolicy {
     instances: BTreeMap<String, RemoteInstancePolicy>,
     state: Arc<Mutex<ControlState>>,
+    pub(crate) telemetry: super::telemetry::RemoteTelemetry,
     circuit_failure_threshold: u32,
     circuit_cooldown: Duration,
 }
@@ -231,6 +232,7 @@ impl RemoteMcpPolicy {
         }
         Ok(Self {
             instances: map,
+            telemetry: super::telemetry::RemoteTelemetry::default(),
             state: Arc::new(Mutex::new(ControlState {
                 kill_switch: false,
                 degraded: false,
