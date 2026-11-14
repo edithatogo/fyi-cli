@@ -72,7 +72,7 @@ combined localization line coverage. Human review remains unchecked.
 ## Phase 3: Terminology Mapping
 
 ### 3.1 Term Registry
-- [ ] Task: Create terminology registry data structure
+- [~] Task: Create terminology registry data structure
 - [ ] Task: Map FOI term equivalents (OIA/FOI/RTI/IFG/FOIA)
 - [ ] Task: Map request-type terms across jurisdictions
 - [ ] Task: Map authority terms (department/ministry/agency)

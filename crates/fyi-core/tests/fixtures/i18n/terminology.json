@@ -1,0 +1,302 @@
+[
+  {
+    "locale": "en-NZ",
+    "jurisdiction_id": "nz-oia",
+    "terms": [
+      [
+        "law_name",
+        "Official Information Act"
+      ],
+      [
+        "law_abbreviation",
+        "OIA"
+      ],
+      [
+        "request",
+        "OIA request"
+      ],
+      [
+        "authority",
+        "agency"
+      ],
+      [
+        "deadline",
+        "response deadline"
+      ],
+      [
+        "department",
+        "department"
+      ],
+      [
+        "ministry",
+        "ministry"
+      ],
+      [
+        "agency",
+        "agency"
+      ],
+      [
+        "follow_up",
+        "follow-up"
+      ],
+      [
+        "internal_review",
+        "internal review"
+      ],
+      [
+        "appeal",
+        "appeal"
+      ]
+    ]
+  },
+  {
+    "locale": "en-AU",
+    "jurisdiction_id": "au-qld-rti",
+    "terms": [
+      [
+        "law_name",
+        "Right to Information Act 2009"
+      ],
+      [
+        "law_abbreviation",
+        "RTI"
+      ],
+      [
+        "request",
+        "RTI request"
+      ],
+      [
+        "authority",
+        "agency"
+      ],
+      [
+        "deadline",
+        "response deadline"
+      ],
+      [
+        "department",
+        "department"
+      ],
+      [
+        "ministry",
+        "ministry"
+      ],
+      [
+        "agency",
+        "agency"
+      ],
+      [
+        "follow_up",
+        "follow-up"
+      ],
+      [
+        "internal_review",
+        "internal review"
+      ],
+      [
+        "appeal",
+        "appeal"
+      ]
+    ]
+  },
+  {
+    "locale": "en-GB",
+    "jurisdiction_id": "gb-foia",
+    "terms": [
+      [
+        "law_name",
+        "Freedom of Information Act 2000"
+      ],
+      [
+        "law_abbreviation",
+        "FOIA"
+      ],
+      [
+        "request",
+        "FOI request"
+      ],
+      [
+        "authority",
+        "public authority"
+      ],
+      [
+        "deadline",
+        "response deadline"
+      ],
+      [
+        "department",
+        "department"
+      ],
+      [
+        "ministry",
+        "ministry"
+      ],
+      [
+        "agency",
+        "agency"
+      ],
+      [
+        "follow_up",
+        "follow-up"
+      ],
+      [
+        "internal_review",
+        "internal review"
+      ],
+      [
+        "appeal",
+        "appeal"
+      ]
+    ]
+  },
+  {
+    "locale": "de-DE",
+    "jurisdiction_id": "de-ifg",
+    "terms": [
+      [
+        "law_name",
+        "Informationsfreiheitsgesetz"
+      ],
+      [
+        "law_abbreviation",
+        "IFG"
+      ],
+      [
+        "request",
+        "IFG-Anfrage"
+      ],
+      [
+        "authority",
+        "Behörde"
+      ],
+      [
+        "deadline",
+        "Antwortfrist"
+      ],
+      [
+        "department",
+        "Abteilung"
+      ],
+      [
+        "ministry",
+        "Ministerium"
+      ],
+      [
+        "agency",
+        "Behörde"
+      ],
+      [
+        "follow_up",
+        "Nachfrage"
+      ],
+      [
+        "internal_review",
+        "interne Überprüfung"
+      ],
+      [
+        "appeal",
+        "Rechtsbehelf"
+      ]
+    ]
+  },
+  {
+    "locale": "fr-FR",
+    "jurisdiction_id": "fr-crpa",
+    "terms": [
+      [
+        "law_name",
+        "Code des relations entre le public et l’administration"
+      ],
+      [
+        "law_abbreviation",
+        "CRPA"
+      ],
+      [
+        "request",
+        "demande d’accès à l’information (CRPA)"
+      ],
+      [
+        "authority",
+        "autorité publique"
+      ],
+      [
+        "deadline",
+        "délai de réponse"
+      ],
+      [
+        "department",
+        "service"
+      ],
+      [
+        "ministry",
+        "ministère"
+      ],
+      [
+        "agency",
+        "organisme"
+      ],
+      [
+        "follow_up",
+        "relance"
+      ],
+      [
+        "internal_review",
+        "réexamen interne"
+      ],
+      [
+        "appeal",
+        "recours"
+      ]
+    ]
+  },
+  {
+    "locale": "es-ES",
+    "jurisdiction_id": "es-ltaibg",
+    "terms": [
+      [
+        "law_name",
+        "Ley 19/2013 de transparencia, acceso a la información pública y buen gobierno"
+      ],
+      [
+        "law_abbreviation",
+        "LTAIBG"
+      ],
+      [
+        "request",
+        "solicitud de acceso a la información (LTAIBG)"
+      ],
+      [
+        "authority",
+        "autoridad pública"
+      ],
+      [
+        "deadline",
+        "plazo de respuesta"
+      ],
+      [
+        "department",
+        "departamento"
+      ],
+      [
+        "ministry",
+        "ministerio"
+      ],
+      [
+        "agency",
+        "organismo"
+      ],
+      [
+        "follow_up",
+        "seguimiento"
+      ],
+      [
+        "internal_review",
+        "revisión interna"
+      ],
+      [
+        "appeal",
+        "recurso"
+      ]
+    ]
+  }
+]
