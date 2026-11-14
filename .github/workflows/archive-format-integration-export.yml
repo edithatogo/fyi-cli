@@ -1,0 +1,98 @@
+name: Archive integration development inputs
+
+on:
+  push:
+    branches: [dev/archive-format-dependency-export-20261114]
+    paths: [.github/workflows/archive-format-integration-export.yml]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: archive-integration-inputs-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  export:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: 9050a6649ebbcf48e6e2919e5bc19bbed4b4f8c0
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+        with:
+          toolchain: 1.99.1
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78
+      - name: Install and assert exact repository-local Python
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv python install 3.15.1
+          uv venv --python 3.15.1 .venv
+          .venv/bin/python - <<'PY'
+          import pathlib, sys
+          assert sys.version_info[:3] == (3, 15, 1), sys.version
+          assert pathlib.Path(sys.prefix).resolve() == pathlib.Path('.venv').resolve()
+          assert sys.prefix != sys.base_prefix
+          print(sys.version, sys.executable, sys.prefix)
+          PY
+          uv sync --extra dev --frozen --python 3.15.1
+      - name: Pin source and resolve only the archive dependency additions
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p export/inputs export/evidence
+          test "$(git rev-parse HEAD)" = 9050a6649ebbcf48e6e2919e5bc19bbed4b4f8c0
+          git bundle create export/source.bundle HEAD
+          cp Cargo.lock export/inputs/baseline-Cargo.lock
+          cp uv.lock export/inputs/baseline-uv.lock
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const path = 'crates/fyi-core/Cargo.toml';
+          const text = fs.readFileSync(path, 'utf8');
+          const anchor = '[dev-dependencies]';
+          if (text.split(anchor).length !== 2 || /^zip\s*=/m.test(text) || /^surt-rs\s*=/m.test(text) || /^tempfile\s*=/m.test(text)) throw new Error('unexpected dependency baseline');
+          const additions = 'flate2 = "=1.1.11"\nzip = { version = "=9.5.1", default-features = false }\nsurt-rs = "=0.1.3"\n\n';
+          fs.writeFileSync(path, text.replace(anchor, additions + anchor + '\ntempfile = "=3.27.0"'));
+          JS
+          cargo metadata --format-version=1 > export/inputs/cargo-metadata.json
+          cargo fetch --locked --target x86_64-unknown-linux-gnu
+          cp Cargo.lock export/inputs/candidate-Cargo.lock
+          cp crates/fyi-core/Cargo.toml export/inputs/candidate-Cargo.toml
+          git diff -- Cargo.lock crates/fyi-core/Cargo.toml > export/evidence/dependency-change.patch
+      - name: Record real Python 3.15.1 security-tool compatibility
+        shell: bash
+        run: |
+          mkdir -p export/evidence
+          set +e
+          .venv/bin/python -m pip_audit --version > export/evidence/pip-audit-315.log 2>&1
+          audit_status=$?
+          uv pip install --python .venv/bin/python atheris==3.1.0 > export/evidence/atheris-315-install.log 2>&1
+          atheris_status=$?
+          printf 'pip_audit_import=%s\natheris_install=%s\n' "$audit_status" "$atheris_status" | tee export/evidence/compatibility-status.txt
+          # This development export records blockers, not merge acceptance.
+          # Final PR security/fuzzing checks must still fail on any unmet gate.
+      - name: Package current source, dependencies and installed Python packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -czf export/cargo-registry.tar.gz -C "$HOME/.cargo" registry
+          tar -czf export/python-site-packages.tar.gz -C .venv/lib/python3.15 site-packages
+          {
+            printf 'baseline=9050a6649ebbcf48e6e2919e5bc19bbed4b4f8c0\nworkflow_source=%s\nrun_id=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID"
+            rustc --version --verbose
+            cargo --version
+            .venv/bin/python -c 'import sys; print(sys.version, sys.executable, sys.prefix)'
+          } > export/evidence/provenance.txt
+          (cd export; find inputs evidence -type f -print0 | sort -z | xargs -0 sha256sum; sha256sum source.bundle *.tar.gz) > export/SHA256SUMS
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always()
+        with:
+          name: archive-integration-inputs-9050a664
+          path: export/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 2
