@@ -216,13 +216,13 @@ cargo test -p fyi-core --lib -- --exact \
 
 | Original requirement | Evidence now available | Exact remaining gate |
 | --- | --- | --- |
-| Versioned JSON/RSS/Atom/error fixtures | MCP historical v1, current v2 and complete tool snapshot; existing source JSON/feed tests | Source fixtures lack a shared version manifest; RSS/Atom samples remain inline, without versioned malformed-feed cases |
-| Every remote schema, annotation, result and error | All eight remote tools represented; actual catalogue, handler negatives and SDK write preparations verified | Full successful MCP-to-source read/commit exchanges across source variants are not established by synthetic output examples |
+| Versioned JSON/RSS/Atom/error fixtures | MCP historical v1, current v2 and complete tool snapshot; existing source JSON/feed tests | A shared synthetic JSON/status corpus now drives actual MCP/source calls; RSS/Atom samples remain inline, without versioned malformed-feed cases |
+| Every remote schema, annotation, result and error | All eight remote tools represented; actual catalogue, handler negatives and SDK write preparations verified | All eight current tools now have actual SDK/source success and wire assertions; original authority-feed/provenance/error-classification requirements remain open |
 | Disabled/read/degraded/write stdio modes | Actual disabled/read-enabled/write-gated sessions plus strict startup-degraded mode, direct denial, restart recovery and privacy through the SDK | Startup-degraded criterion evidenced on Linux; recovery is restart-based, with no live in-process toggle or durable replay claimed |
 | Property/mutation boundaries | Generated invalid SDK arguments; exact integer/depth/schema bounds; deterministic scope/clock/replay; 39 caught selected mutants; reused state/SSRF tests | Broader generated pagination/state/URL/path properties and SSRF/source-guardrail/error-classification mutations |
-| Latency/memory/request/byte/concurrency | Recorded local SDK latency/RSS budgets; admitted-attempt, payload-byte, duration and concurrency tests; existing source small-body/count tests | Raw multi-chunk cancellation/peak memory, exact retry wire counts and propagation of MCP allowances into source budgets remain separate evidence gaps |
+| Latency/memory/request/byte/concurrency | Recorded local SDK latency/RSS budgets; admitted-attempt, payload-byte, duration and concurrency tests; existing source small-body/count tests | Current-tool ordinary failure counts and redirect counts are observed exactly; raw multi-chunk cancellation/peak memory, other source retries and MCP-to-source allowance propagation remain open |
 | Compatibility/release matrix | Linux Rust 1.99.1 and official SDK 1.29.0/1.30.0 stdio/HTTP; existing stable/MSRV jobs; explicit matrix | Windows/macOS runtime/client combinations have not been executed here; locked SDK results depend on final-head CI |
-| Deterministic faults | MCP pending-future timeout, clock skew, expiry, circuit cooldown/recovery; source malformed JSON and pacing-wait tests | Stalled HTTP headers/body, mid-body disconnect, malformed transfer chunks and corrupt validator/filesystem cache injection |
+| Deterministic faults | MCP pending-future timeout, clock skew, expiry, circuit cooldown/recovery; source malformed JSON and pacing-wait tests | Disconnect, truncation and malformed chunk/header faults now execute through MCP; stalled headers/body and corrupt reused caches remain open |
 | Version/deprecation handling | Unknown contract versions and schema assertions fail closed; HTTP unknown version rejected; initialization fallback and legacy batch behavior verified; neither supported profile is currently designated deprecated and historical v1 is regression-only | Profile-withdrawal/contract-migration behavior has not been exercised; later MCP revisions are outside the advertised supported profiles |
 | Complete issue/epic evidence and closeout | Scoped PRs link #173/#169; this evidence corrects the historical implemented label | Keep the track open until the remaining original acceptance rows are resolved and final-head checks are recorded |
 
@@ -366,3 +366,101 @@ Issues #169/#173 remain open. The shared project index now lists this track as
 active, consistent with its registry, metadata and original incomplete criteria.
 No broader source/fault/transfer, platform, property/mutation or durability gate
 is waived, and the track is not archived.
+
+
+## Actual upstream contract increment — 2026-11-14
+
+Baseline `76de6a2` includes the coordinator's #452/#456 integration. RED at local
+checkpoint `bb2951b`: the actual-upstream versioned fixture inventory assertion
+failed because that corpus was missing. This is a harness-coverage gap, not a
+claim that existing endpoint implementations failed.
+
+The new `upstream-v1.json` corpus and non-forwarding local TLS/CONNECT server
+exercise the unchanged production executable and `SyncClient` with the official
+SDK. No source file, live authority, system trust, runtime lock or shared workflow
+is changed. The fixture's ephemeral CA and synthetic protected header are scoped
+to the child; only the fixed `.invalid` target is accepted. See
+`docs/mcp-upstream-harness.md` for the reviewable matrix and source interfaces.
+
+**37 tests pass locally**: 16 successful scenarios, 15 immediate failure variants,
+two production-timeout stall cases, inventory, proxy non-forwarding, stale/read-only
+rejection, and a generated query/limit test with 12 deterministic examples.
+Success covers all five existing read tools and
+all three write tools, including multipart bytes/MIME, no-I/O prepare/invalid
+confirmation/replay, exact JSON payloads, Unicode, source response variants and
+GET-then-PUT preflight. Failure covers the six required status classes, malformed
+JSON/headers/chunks, missing version, disconnect/truncation, uncached 304 and
+foreign/loopback redirect rejection. Ordinary failures observe exactly one wire
+request; successful same-origin redirect observes two. These are current tool
+contracts, not generic source retry qualification or atomic upstream CAS.
+
+The stall tests first failed their executed assertions while the fixture still
+returned a successful fast response. The implemented header/body stalls now
+remain open until the unchanged source client's 60-second timeout. Both assert
+50–70 seconds elapsed, a private error, exactly one request, independent peer
+connection closure and a responsive subsequent ping. Their fixture/SDK deadlines
+are longer than production's; no production timeout or URL/TLS check was changed.
+
+Three temporary **MCP-only** mutations were each caught by executed wire/result
+assertions: removing the search result cap, removing the protected write header,
+and bypassing state preflight. Each mutant compiled. Production source was
+restored byte for byte, rebuilt, and the full suites rerun. No `sync.rs` or source
+mutation was made; this is not a broad source mutation score.
+
+Local environment: Linux x86_64, Rust 1.99.1 and Python 3.12.14. The initial 35
+cases passed with installed SDK 1.29.0. The final **37 passed in 135.41 seconds**
+with locked SDK **1.30.0** and unchanged `uv.lock`. `cargo fmt --all -- --check`,
+strict workspace/all-target/all-feature Clippy and the full Rust workspace pass:
+**676 passed, zero failed, one ignored**, on baseline `76de6a2` without #457's
+separate journal code. The TLS child-trust runtime fixture explicitly skips on
+other platforms; those combinations remain unqualified. Exact combined/hosted
+counts and final candidate/review evidence belong on the focused PR. Optional
+queued AI does not count as passed.
+
+Automatic approval review rejected the earlier unguarded full Python run on a
+legacy scheduler's external feed attempt. That run is not a pass. Separate
+PR #458 supplies synthetic feeds and an isolated network-attempt sensor; this
+unpublished harness branch was then reconciled once onto its fixed candidate
+`d42a78f1e941b39ddf82df8eba77c3a6cab0a4db`. The original RED checkpoint
+`bb2951b` is retained locally, with its unchanged inventory test replayed on the
+dependency. Published RED `0883e4cf6702bc5167e464e2d2253c5484c9c877` and
+implementation `95631aa29f55185932f1e76d913b98eb8b77039b` have the same trees
+as their local checkpoints. Implementation tree:
+`2f0af0e2475748915637306f65f27be6974c962b`. Both increments remain separate
+for sequential coordinator review.
+
+After including the offline fixture repair, the combined full local Python run
+completed with **1,552 passed, zero failed, two skipped in 197.11 seconds**.
+Inherited proxies were cleared and a loopback-only Python DNS/socket guard was
+installed before pytest; **zero external Python DNS/socket attempts** occurred.
+Swallowed attempts would fail the run. This guard is not an OS/native-binary
+sandbox claim. The 37 actual-upstream cases, including both measured production
+stalls, ran rather than skipped. The two skips are existing opt-in discovery
+smoke tests. The rejected unguarded run remains excluded.
+
+Required workflows filter pull requests to `master`/`main`. The focused harness
+PR therefore targets `master` with #458 as an explicit ancestry dependency and
+an isolated compare link for its own eight-file delta. No workflow changes or
+checks are bypassed. The sole coordinator must integrate #458 first, reconcile
+the dependent candidate once and verify the resulting final head before merge.
+
+Remaining concrete interfaces/gates:
+
+1. A source-owned bounded, typed **read-only authority feed** API. Current feed
+   APIs mutate the application database; the original authority-feed MCP tool,
+   RSS/Atom malformed fixtures and resource/provenance contract are incomplete.
+2. A source constructor accepting MCP's remaining raw request/byte/time budget.
+   Current default raw response allowance is 500 MiB versus MCP's 4 MiB result
+   limit. Early stream cancellation and peak memory are not established here.
+3. Typed safe source error kind/status/retryability and cache metadata; preserve
+   privacy without parsing strings. Reused-cache corruption still requires its
+   own deterministic sensor; Linux header/body timeout closure is now covered.
+4. Immutable attachment content across source path reopen and atomic upstream
+   state transition capability. Do not substitute multipart/preflight success.
+5. Windows/macOS client/runtime/ACL, complete declared compiler matrix, broader
+   source properties/mutations and real profile-withdrawal/migration evidence.
+
+Durable replay/audit is independently in #457, with all 12 required checks passed
+at candidate `394dbee`; coordinator integration remains held. Do not duplicate
+that code or treat this harness as its merge. The sole coordinator owns final
+base/head reconciliation, verification, merge and pruning for each increment.

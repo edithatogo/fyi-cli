@@ -9,10 +9,10 @@
 
 ## Phase 2: Layered test harness
 
-- [~] Task: Add unit, integration, end-to-end stdio, smoke/system, regression, and sanity suites — startup-degraded mode and restart recovery now have executable SDK evidence; successful source read/commit integration remains open
+- [~] Task: Add unit, integration, end-to-end stdio, smoke/system, regression, and sanity suites — startup recovery plus successful SDK/source calls for all eight current tools now execute locally; source feeds/stalls/cache/platform acceptance remains open
 - [~] Task: Add property tests for bounds, normalization, state expectations, and redaction
 - [x] Task: Add edge and security tests for SSRF, capabilities, guardrails, and secrets
-- [~] Task: Conductor review verification 'Layered test harness' — local/SDK modes, startup-degraded denial, restart recovery and privacy passed; source fault and full successful remote integration remain open
+- [~] Task: Conductor review verification 'Layered test harness' — current-tool SDK/source success, status/disconnect/chunk/redirect faults pass on Linux; full original feed/stall/cache/raw-budget/platform criteria remain open
 
 ## Phase 3: Mutation and performance
 
@@ -83,20 +83,27 @@ source implementation, shared test configuration, runtime lock or workflow edit.
 
 ## Actual upstream fixture increment — 2026-11-14
 
-Baseline `76de6a2` preserves the coordinator's #452/#456 integration. In this
+Baseline `76de6a2` preserves the coordinator's #452/#456 integration. The
+unpublished increment was then reconciled onto #458 at `d42a78f` before its
+combined guarded verification. In this
 ordinary ChatGPT workstream, tests first expose the missing versioned actual
 MCP-to-source exchange corpus. An ephemeral local TLS/CONNECT fixture can drive
 the unchanged production `SyncClient` without a production testing bypass,
 external DNS/request, system trust modification or committed private key.
 
-- [~] Add versioned synthetic wire exchanges for the existing five read and
+- [x] Add versioned synthetic wire exchanges for the existing five read and
   three write tools, preserving supported JSON shapes and Unicode.
-- [ ] Execute real SDK prepare/commit/replay, exact wire payload/count,
+  RED `0883e4c`, implementation `95631aa`; 37 tests and three caught mutations.
+- [x] Execute real SDK prepare/commit/replay, exact wire payload/count,
   read-only denial, state preflight and bounded multipart assertions.
-- [ ] Add deterministic status/malformed/disconnect/chunk/redirect failures;
-  keep unexecuted stall, cache, raw-transfer and platform requirements explicit.
-- [ ] Record test-first, mutation and final-head CI evidence, then request the
-  sole coordinator's sequential final verification/merge window.
+- [x] Add deterministic status/malformed/disconnect/chunk/redirect failures
+  and measure production header/body timeout, connection closure and recovery;
+  keep unexecuted cache, raw-transfer and platform requirements explicit.
+- [x] Record local test-first/mutation evidence: 37 upstream tests, three caught
+  mutations, guarded combined Python run 1,552 passed/two skipped and zero
+  external Python DNS/socket attempts.
+- [~] Record final-head CI/review evidence and request the sole coordinator's
+  sequential final verification/merge window; #458 is a required dependency.
 
 This does not replace #457's durable journal or alter source, archive, runtime
 or workflow ownership. A source fixture is synthetic compatibility evidence,

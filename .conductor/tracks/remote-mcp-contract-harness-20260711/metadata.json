@@ -3,7 +3,7 @@
   "type": "quality",
   "status": "in_progress",
   "created_at": "2026-07-11T08:34:24Z",
-  "updated_at": "2026-11-14T13:48:18Z",
+  "updated_at": "2026-11-14T13:52:52Z",
   "description": "Compatibility contracts and aggressive harness engineering for remote MCP tools",
   "github_parent_issue": 169,
   "github_issue": 173,
@@ -21,28 +21,34 @@
   ],
   "active_increment": {
     "issue": 169,
-    "branch": "test/offline-scheduler-fixtures-169-20261114",
-    "test_first_commit": "5f45cec0719acd7315ff56743e1dee723b0ddd65",
-    "implementation_commit": "d1295c8d14e572707838641a82d309506feb9ab0",
-    "implementation_tree": "4be43ac7cbb72fbc7ee559fa9fcabae5ce3a5731",
+    "branch": "test/mcp-upstream-contracts-169-20261114",
+    "dependency_pull_request": 458,
+    "dependency_head": "d42a78f1e941b39ddf82df8eba77c3a6cab0a4db",
+    "original_local_test_first_commit": "bb2951b076a86c02ba6b728069a5e2ca8decf98a",
+    "test_first_commit": "0883e4cf6702bc5167e464e2d2253c5484c9c877",
+    "implementation_commit": "95631aa29f55185932f1e76d913b98eb8b77039b",
+    "implementation_tree": "2f0af0e2475748915637306f65f27be6974c962b",
     "status": "locally_verified_pending_coordinator_integration",
     "merge_window": "sole_integration_coordinator_required",
-    "evidence": "offline-scheduler-evidence.md",
-    "scoped_tests_passed": 39,
-    "guarded_python_tests_passed": 1515,
+    "actual_upstream_tests_passed": 37,
+    "deterministic_query_examples": 12,
+    "targeted_mutations_caught": 3,
+    "runtime_scope": "Linux x86_64, Rust 1.99.1, Python 3.12.14, locked MCP SDK 1.30.0",
+    "guarded_python_tests_passed": 1552,
     "guarded_python_tests_skipped": 2,
     "external_python_network_attempts": 0,
-    "pull_request": 458
+    "pull_request_base": "master",
+    "dependency_integration": "merge_458_then_coordinator_reconcile_and_reverify"
   },
   "acceptance_evidence": "acceptance-evidence.md",
   "closure_status": "not_archived_acceptance_evidence_incomplete",
   "remaining_blockers": [
-    "Shared versioned source JSON/RSS/Atom and malformed feed fixtures; full MCP-to-source success matrix",
-    "Deterministic source socket/transfer/cache fault tests and exact retry/multi-chunk bounds",
-    "Supported Windows/macOS client runs and complete Rust/MSRV matrix",
-    "Broader state/pagination/URL/path properties and SSRF/source guardrail/error mutation coverage",
-    "Durable replay and attachment immutability remain unverified guarantees; verified degraded recovery is startup/restart-based",
-    "Profile-withdrawal and contract-migration behavior; unknown-version tests do not prove deprecation handling"
+    "Versioned RSS/Atom and malformed-feed fixtures; read-only authority-feed and full supported-source variant acceptance",
+    "Reused-cache corruption and raw multi-chunk cancellation, peak-memory and shared source request/byte/time allowance evidence",
+    "Supported Windows/macOS client/runtime runs and complete declared Rust/MSRV matrix",
+    "Broader state/pagination/URL/path properties and SSRF/source guardrail/error-classification mutation coverage",
+    "Durable journal candidate #457 requires coordinator integration; immutable attachment content and atomic upstream state guarantees remain open",
+    "Genuine profile-withdrawal and contract-migration behavior; neither advertised profile is currently deprecated"
   ],
   "verified_increments": [
     {
@@ -66,6 +72,23 @@
       "workspace_lines_covered": 14092,
       "workspace_lines_total": 14856,
       "workspace_gate_percent": 90
+    }
+  ],
+  "pending_increments": [
+    {
+      "issue": 169,
+      "branch": "test/offline-scheduler-fixtures-169-20261114",
+      "test_first_commit": "5f45cec0719acd7315ff56743e1dee723b0ddd65",
+      "implementation_commit": "d1295c8d14e572707838641a82d309506feb9ab0",
+      "implementation_tree": "4be43ac7cbb72fbc7ee559fa9fcabae5ce3a5731",
+      "status": "locally_verified_pending_coordinator_integration",
+      "merge_window": "sole_integration_coordinator_required",
+      "evidence": "offline-scheduler-evidence.md",
+      "scoped_tests_passed": 39,
+      "guarded_python_tests_passed": 1515,
+      "guarded_python_tests_skipped": 2,
+      "external_python_network_attempts": 0,
+      "pull_request": 458
     }
   ]
 }
