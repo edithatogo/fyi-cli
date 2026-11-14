@@ -145,7 +145,10 @@ fn warc_response_records_preserve_entity_bytes_digests_and_independent_gzip_rang
         assert!(header.starts_with(b"WARC/1.1\r\n"));
         let fields = header_fields(header);
         assert_eq!(fields["warc-type"], "response");
-        assert_eq!(fields["warc-fyi-response-header-policy"], "public-allowlist-v1");
+        assert_eq!(
+            fields["warc-fyi-response-header-policy"],
+            "public-allowlist-v1"
+        );
         assert_eq!(fields["warc-target-uri"], url.as_str());
         assert_eq!(fields["warc-date"], "2026-11-14T05:06:07Z");
         assert_eq!(fields["warc-record-id"], record.warc_record_id);
@@ -714,7 +717,7 @@ fn public_wacz_does_not_serialise_synthetic_sensitive_headers() {
         id: None,
     };
     let package_path = directory.path().join("public.wacz");
-    write_wacz(&package_path, &warc_path, &[record.clone()], &[page]).unwrap();
+    write_wacz(&package_path, &warc_path, std::slice::from_ref(&record), &[page]).unwrap();
     verify_wacz(&package_path).unwrap();
 
     let mut package = ZipArchive::new(File::open(package_path).unwrap()).unwrap();
@@ -722,15 +725,27 @@ fn public_wacz_does_not_serialise_synthetic_sensitive_headers() {
     let decoded = decoded_member(&warc_bytes, &record);
     let (warc_header, record_bytes) = split_header(&decoded);
     let fields = header_fields(warc_header);
-    assert_eq!(fields["warc-fyi-response-header-policy"], "public-allowlist-v1");
-    assert_eq!(fields["warc-block-digest"], labelled_digest(&record_bytes[..record_bytes.len() - 4]));
+    assert_eq!(
+        fields["warc-fyi-response-header-policy"],
+        "public-allowlist-v1"
+    );
+    assert_eq!(
+        fields["warc-block-digest"],
+        labelled_digest(&record_bytes[..record_bytes.len() - 4])
+    );
     let (http, payload) = split_header(&record_bytes[..record_bytes.len() - 4]);
     let text = std::str::from_utf8(http).unwrap().to_ascii_lowercase();
     assert_eq!(payload, HTML);
     assert!(text.contains("content-type: text/html"));
     assert!(text.contains("etag: \"synthetic-tag\""));
-    for disallowed in ["set-cookie:", "www-authenticate:", "x-session-token:",
-                       "fabricated-a", "fabricated-b", "fabricated-private"] {
+    for disallowed in [
+        "set-cookie:",
+        "www-authenticate:",
+        "x-session-token:",
+        "fabricated-a",
+        "fabricated-b",
+        "fabricated-private",
+    ] {
         assert!(!text.contains(disallowed), "{disallowed} leaked into WARC");
     }
 }
