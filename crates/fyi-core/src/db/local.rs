@@ -1,9 +1,12 @@
 //! Local tracking repositories. These operations never enter the remote sync queue.
+pub(crate) mod legacy;
+pub mod provenance;
 pub mod requests;
 pub(crate) mod schema;
+pub mod transfer;
 
 use super::DbPool;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use sqlx::{ConnectOptions, Row};
 use std::collections::HashSet;
@@ -25,14 +28,25 @@ pub enum LocalError {
     Schema,
     #[error("unable to open the existing local database")]
     Open,
+    #[error("legacy Python database detected; use init-db --migrate-legacy for explicit adoption")]
+    Legacy,
+}
+
+pub(crate) fn required_nullable<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    Option::<T>::deserialize(deserializer)
 }
 
 /// Persisted local authority. Unlike the remote API DTO, keys and names are required.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct LocalAuthority {
     pub slug: String,
     pub name: String,
+    #[serde(deserialize_with = "required_nullable")]
     pub url: Option<String>,
 }
 
@@ -150,6 +164,20 @@ impl DbPool {
     /// Reads do not create files or run migrations. Statement logging is disabled
     /// because local tracking can contain sensitive request text.
     pub async fn open_local_existing(path: &Path, read_only: bool) -> Result<Self, LocalError> {
+        let db = Self::open_local_file(path, read_only).await?;
+        if let Err(error) = db.validate_local_schema().await {
+            db.pool.close().await;
+            return Err(error);
+        }
+        Ok(db)
+    }
+
+    /// Open an existing file for an explicit initialization/migration operation.
+    pub async fn open_local_for_initialization(path: &Path) -> Result<Self, LocalError> {
+        Self::open_local_file(path, false).await
+    }
+
+    async fn open_local_file(path: &Path, read_only: bool) -> Result<Self, LocalError> {
         let metadata = std::fs::symlink_metadata(path).map_err(|_| LocalError::Open)?;
         if !metadata.is_file() || metadata.file_type().is_symlink() {
             return Err(LocalError::Open);
@@ -167,12 +195,7 @@ impl DbPool {
             .connect_with(options)
             .await
             .map_err(|_| LocalError::Open)?;
-        let db = Self { pool };
-        if let Err(error) = db.validate_local_schema().await {
-            db.pool.close().await;
-            return Err(error);
-        }
-        Ok(db)
+        Ok(Self { pool })
     }
 
     /// Validate migration evidence and physical layouts without writing to the file.

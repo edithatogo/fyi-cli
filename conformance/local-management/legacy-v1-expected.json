@@ -1,0 +1,889 @@
+{
+  "schema_version": 1,
+  "reference": "src/fyi_system/db.py:SCHEMA and request_timeline; src/fyi_system/cli.py:cmd_list_requests",
+  "legacy_database_format": "python-unversioned",
+  "notes": [
+    "schema_version versions this fixture document, not the legacy SQLite database.",
+    "All names, bodies, URLs, provenance payloads, and owner identifiers are synthetic.",
+    "Timestamps, nullable values, raw JSON whitespace, CRLF and Unicode normalization are preserved byte for byte.",
+    "Python timeline order is descending text order, not normalized chronological order.",
+    "Snapshot remote ID 7 and an unlinked event guessing remote ID 9007 must not enter local request 7 timeline."
+  ],
+  "schema_sha256": "287aeafb7d175ac58ce99f6adb4c3d70e78cf5e731cfbb6a7d61dd21ce30a349",
+  "pragmas": {
+    "user_version": 0,
+    "application_id": 0
+  },
+  "sqlite_schema": [
+    {
+      "type": "index",
+      "name": "sqlite_autoindex_authorities_1",
+      "tbl_name": "authorities",
+      "sql": null
+    },
+    {
+      "type": "index",
+      "name": "sqlite_autoindex_http_cache_1",
+      "tbl_name": "http_cache",
+      "sql": null
+    },
+    {
+      "type": "index",
+      "name": "sqlite_autoindex_shared_rate_limit_state_1",
+      "tbl_name": "shared_rate_limit_state",
+      "sql": null
+    },
+    {
+      "type": "table",
+      "name": "authorities",
+      "tbl_name": "authorities",
+      "sql": "CREATE TABLE authorities (\n  slug TEXT PRIMARY KEY,\n  name TEXT NOT NULL,\n  url TEXT\n)"
+    },
+    {
+      "type": "table",
+      "name": "feed_events",
+      "tbl_name": "feed_events",
+      "sql": "CREATE TABLE feed_events (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  feed_url TEXT NOT NULL,\n  event_id TEXT,\n  title TEXT,\n  link TEXT,\n  published TEXT,\n  summary TEXT,\n  request_id_guess INTEGER,\n  tracked_request_id INTEGER,\n  raw_json TEXT,\n  seen_at TEXT DEFAULT CURRENT_TIMESTAMP\n)"
+    },
+    {
+      "type": "table",
+      "name": "http_cache",
+      "tbl_name": "http_cache",
+      "sql": "CREATE TABLE http_cache (\n  url TEXT PRIMARY KEY,\n  etag TEXT,\n  last_modified TEXT,\n  response_body TEXT,\n  cached_at TEXT DEFAULT CURRENT_TIMESTAMP\n)"
+    },
+    {
+      "type": "table",
+      "name": "request_snapshots",
+      "tbl_name": "request_snapshots",
+      "sql": "CREATE TABLE request_snapshots (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  fyi_request_id INTEGER NOT NULL,\n  source_url TEXT NOT NULL,\n  raw_json TEXT NOT NULL,\n  fetched_at TEXT DEFAULT CURRENT_TIMESTAMP\n)"
+    },
+    {
+      "type": "table",
+      "name": "run_log",
+      "tbl_name": "run_log",
+      "sql": "CREATE TABLE run_log (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  job_name TEXT NOT NULL,\n  status TEXT NOT NULL,\n  detail TEXT,\n  ran_at TEXT DEFAULT CURRENT_TIMESTAMP\n)"
+    },
+    {
+      "type": "table",
+      "name": "shared_rate_limit_events",
+      "tbl_name": "shared_rate_limit_events",
+      "sql": "CREATE TABLE shared_rate_limit_events (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  name TEXT NOT NULL,\n  kind TEXT NOT NULL,\n  owner_id TEXT NOT NULL DEFAULT '',\n  status_code INTEGER,\n  delay_seconds REAL NOT NULL DEFAULT 0,\n  next_allowed_at REAL NOT NULL DEFAULT 0,\n  observed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP\n)"
+    },
+    {
+      "type": "table",
+      "name": "shared_rate_limit_state",
+      "tbl_name": "shared_rate_limit_state",
+      "sql": "CREATE TABLE shared_rate_limit_state (\n  name TEXT PRIMARY KEY,\n  next_allowed_at REAL NOT NULL DEFAULT 0,\n  last_acquired_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  last_owner_id TEXT NOT NULL DEFAULT '',\n  last_sleep_seconds REAL NOT NULL DEFAULT 0,\n  interval_seconds REAL NOT NULL DEFAULT 0,\n  jitter_seconds REAL NOT NULL DEFAULT 0\n)"
+    },
+    {
+      "type": "table",
+      "name": "sqlite_sequence",
+      "tbl_name": "sqlite_sequence",
+      "sql": "CREATE TABLE sqlite_sequence(name,seq)"
+    },
+    {
+      "type": "table",
+      "name": "tracked_requests",
+      "tbl_name": "tracked_requests",
+      "sql": "CREATE TABLE tracked_requests (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  authority_slug TEXT NOT NULL,\n  title TEXT NOT NULL,\n  body TEXT NOT NULL,\n  tags TEXT DEFAULT '',\n  fyi_url TEXT,\n  fyi_request_id INTEGER,\n  status TEXT DEFAULT 'draft',\n  created_at TEXT DEFAULT CURRENT_TIMESTAMP,\n  updated_at TEXT DEFAULT CURRENT_TIMESTAMP,\n  last_seen_at TEXT,\n  last_event_title TEXT,\n  FOREIGN KEY(authority_slug) REFERENCES authorities(slug)\n)"
+    }
+  ],
+  "table_columns": {
+    "authorities": [
+      {
+        "cid": 0,
+        "name": "slug",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 1
+      },
+      {
+        "cid": 1,
+        "name": "name",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 2,
+        "name": "url",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      }
+    ],
+    "tracked_requests": [
+      {
+        "cid": 0,
+        "name": "id",
+        "type": "INTEGER",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 1
+      },
+      {
+        "cid": 1,
+        "name": "authority_slug",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 2,
+        "name": "title",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 3,
+        "name": "body",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 4,
+        "name": "tags",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": "''",
+        "pk": 0
+      },
+      {
+        "cid": 5,
+        "name": "fyi_url",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 6,
+        "name": "fyi_request_id",
+        "type": "INTEGER",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 7,
+        "name": "status",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": "'draft'",
+        "pk": 0
+      },
+      {
+        "cid": 8,
+        "name": "created_at",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": "CURRENT_TIMESTAMP",
+        "pk": 0
+      },
+      {
+        "cid": 9,
+        "name": "updated_at",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": "CURRENT_TIMESTAMP",
+        "pk": 0
+      },
+      {
+        "cid": 10,
+        "name": "last_seen_at",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 11,
+        "name": "last_event_title",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      }
+    ],
+    "feed_events": [
+      {
+        "cid": 0,
+        "name": "id",
+        "type": "INTEGER",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 1
+      },
+      {
+        "cid": 1,
+        "name": "feed_url",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 2,
+        "name": "event_id",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 3,
+        "name": "title",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 4,
+        "name": "link",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 5,
+        "name": "published",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 6,
+        "name": "summary",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 7,
+        "name": "request_id_guess",
+        "type": "INTEGER",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 8,
+        "name": "tracked_request_id",
+        "type": "INTEGER",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 9,
+        "name": "raw_json",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 10,
+        "name": "seen_at",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": "CURRENT_TIMESTAMP",
+        "pk": 0
+      }
+    ],
+    "request_snapshots": [
+      {
+        "cid": 0,
+        "name": "id",
+        "type": "INTEGER",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 1
+      },
+      {
+        "cid": 1,
+        "name": "fyi_request_id",
+        "type": "INTEGER",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 2,
+        "name": "source_url",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 3,
+        "name": "raw_json",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 4,
+        "name": "fetched_at",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": "CURRENT_TIMESTAMP",
+        "pk": 0
+      }
+    ],
+    "run_log": [
+      {
+        "cid": 0,
+        "name": "id",
+        "type": "INTEGER",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 1
+      },
+      {
+        "cid": 1,
+        "name": "job_name",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 2,
+        "name": "status",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 3,
+        "name": "detail",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 4,
+        "name": "ran_at",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": "CURRENT_TIMESTAMP",
+        "pk": 0
+      }
+    ],
+    "shared_rate_limit_state": [
+      {
+        "cid": 0,
+        "name": "name",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 1
+      },
+      {
+        "cid": 1,
+        "name": "next_allowed_at",
+        "type": "REAL",
+        "notnull": 1,
+        "dflt_value": "0",
+        "pk": 0
+      },
+      {
+        "cid": 2,
+        "name": "last_acquired_at",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": "CURRENT_TIMESTAMP",
+        "pk": 0
+      },
+      {
+        "cid": 3,
+        "name": "last_owner_id",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": "''",
+        "pk": 0
+      },
+      {
+        "cid": 4,
+        "name": "last_sleep_seconds",
+        "type": "REAL",
+        "notnull": 1,
+        "dflt_value": "0",
+        "pk": 0
+      },
+      {
+        "cid": 5,
+        "name": "interval_seconds",
+        "type": "REAL",
+        "notnull": 1,
+        "dflt_value": "0",
+        "pk": 0
+      },
+      {
+        "cid": 6,
+        "name": "jitter_seconds",
+        "type": "REAL",
+        "notnull": 1,
+        "dflt_value": "0",
+        "pk": 0
+      }
+    ],
+    "shared_rate_limit_events": [
+      {
+        "cid": 0,
+        "name": "id",
+        "type": "INTEGER",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 1
+      },
+      {
+        "cid": 1,
+        "name": "name",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 2,
+        "name": "kind",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 3,
+        "name": "owner_id",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": "''",
+        "pk": 0
+      },
+      {
+        "cid": 4,
+        "name": "status_code",
+        "type": "INTEGER",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 5,
+        "name": "delay_seconds",
+        "type": "REAL",
+        "notnull": 1,
+        "dflt_value": "0",
+        "pk": 0
+      },
+      {
+        "cid": 6,
+        "name": "next_allowed_at",
+        "type": "REAL",
+        "notnull": 1,
+        "dflt_value": "0",
+        "pk": 0
+      },
+      {
+        "cid": 7,
+        "name": "observed_at",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": "CURRENT_TIMESTAMP",
+        "pk": 0
+      }
+    ],
+    "http_cache": [
+      {
+        "cid": 0,
+        "name": "url",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 1
+      },
+      {
+        "cid": 1,
+        "name": "etag",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 2,
+        "name": "last_modified",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 3,
+        "name": "response_body",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 4,
+        "name": "cached_at",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": "CURRENT_TIMESTAMP",
+        "pk": 0
+      }
+    ],
+    "sqlite_sequence": [
+      {
+        "cid": 0,
+        "name": "name",
+        "type": "",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 1,
+        "name": "seq",
+        "type": "",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      }
+    ]
+  },
+  "foreign_keys": {
+    "authorities": [],
+    "tracked_requests": [
+      {
+        "id": 0,
+        "seq": 0,
+        "table": "authorities",
+        "from": "authority_slug",
+        "to": "slug",
+        "on_update": "NO ACTION",
+        "on_delete": "NO ACTION",
+        "match": "NONE"
+      }
+    ],
+    "feed_events": [],
+    "request_snapshots": [],
+    "run_log": [],
+    "shared_rate_limit_state": [],
+    "shared_rate_limit_events": [],
+    "http_cache": [],
+    "sqlite_sequence": []
+  },
+  "row_order": {
+    "authorities": "slug",
+    "tracked_requests": "id",
+    "feed_events": "id",
+    "request_snapshots": "id",
+    "run_log": "id",
+    "shared_rate_limit_state": "name",
+    "shared_rate_limit_events": "id",
+    "http_cache": "url",
+    "sqlite_sequence": "name"
+  },
+  "tables": {
+    "authorities": [
+      {
+        "slug": "synthetic-local",
+        "name": "Synthetic Local Authority",
+        "url": null
+      },
+      {
+        "slug": "synthetic-maori",
+        "name": "Synthetic Te Puna Māori — café",
+        "url": "https://authority.example.invalid/body/synthetic-maori"
+      }
+    ],
+    "tracked_requests": [
+      {
+        "id": 7,
+        "authority_slug": "synthetic-maori",
+        "title": "Synthetic records request — Māori café",
+        "body": "SYNTHETIC-PRIVATE-BODY-7\r\nQuoted \"record\"; apostrophe: it's.\nUnicode: Māori; café; 🧪\tend.\n",
+        "tags": "synthetic,private",
+        "fyi_url": "https://portal.example.invalid/request/9007",
+        "fyi_request_id": 9007,
+        "status": "waiting_response",
+        "created_at": "2026-01-02 03:04:05",
+        "updated_at": "2026-01-03T04:05:06+00:00",
+        "last_seen_at": "2026-01-04 05:06:07",
+        "last_event_title": "Synthetic receipt — reçu"
+      },
+      {
+        "id": 2147483650,
+        "authority_slug": "synthetic-local",
+        "title": "Synthetic local-only request 🧪",
+        "body": "SYNTHETIC-PRIVATE-BODY-LARGE-ID\nNo remote submission.\n",
+        "tags": null,
+        "fyi_url": null,
+        "fyi_request_id": null,
+        "status": null,
+        "created_at": null,
+        "updated_at": null,
+        "last_seen_at": null,
+        "last_event_title": null
+      }
+    ],
+    "feed_events": [
+      {
+        "id": 3,
+        "feed_url": "https://portal.example.invalid/feed",
+        "event_id": "synthetic-event-a",
+        "title": "Synthetic acknowledgement",
+        "link": "https://portal.example.invalid/request/9007#event-3",
+        "published": "2026-01-02T10:00:00+10:00",
+        "summary": null,
+        "request_id_guess": 9007,
+        "tracked_request_id": 7,
+        "raw_json": "{ \"id\": \"synthetic-event-a\", \"title\": \"Māori\", \"synthetic_private\": \"SYNTHETIC-PRIVATE-FEED-3\" }\n",
+        "seen_at": "2026-01-02 05:00:00"
+      },
+      {
+        "id": 11,
+        "feed_url": "https://portal.example.invalid/feed",
+        "event_id": null,
+        "title": null,
+        "link": null,
+        "published": null,
+        "summary": "SYNTHETIC-PRIVATE-SUMMARY-11\nSynthetic receipt — reçu.",
+        "request_id_guess": 9007,
+        "tracked_request_id": 7,
+        "raw_json": null,
+        "seen_at": "2026-01-04T05:06:07Z"
+      },
+      {
+        "id": 19,
+        "feed_url": "https://unrelated.example.invalid/feed",
+        "event_id": "synthetic-unlinked",
+        "title": "Synthetic unrelated feed row",
+        "link": null,
+        "published": null,
+        "summary": "",
+        "request_id_guess": 9007,
+        "tracked_request_id": null,
+        "raw_json": "{\"unlinked\":true,\"synthetic_private\":\"SYNTHETIC-PRIVATE-UNLINKED\"}",
+        "seen_at": "2026-01-05 00:00:00"
+      }
+    ],
+    "request_snapshots": [
+      {
+        "id": 5,
+        "fyi_request_id": 9007,
+        "source_url": "https://portal.example.invalid/request/9007.json",
+        "raw_json": "{ \"info_request\": { \"id\": 9007, \"title\": \"Synthetic snapshot — Māori\", \"described_state\": \"waiting_response\", \"body\": \"SYNTHETIC-PRIVATE-SNAPSHOT-5\" } }\n",
+        "fetched_at": "2026-01-03 06:07:08"
+      },
+      {
+        "id": 9,
+        "fyi_request_id": 9007,
+        "source_url": "https://portal.example.invalid/request/9007.json?version=2",
+        "raw_json": "{\"title\":\"Synthetic response snapshot\",\"described_state\":\"successful\",\"body\":\"SYNTHETIC-PRIVATE-SNAPSHOT-9\"}",
+        "fetched_at": "2026-01-05T06:07:08.123456+00:00"
+      },
+      {
+        "id": 14,
+        "fyi_request_id": 7,
+        "source_url": "https://unrelated.example.invalid/request/7.json",
+        "raw_json": "{\"title\":\"Synthetic remote ID 7 is not local ID 7\",\"described_state\":\"rejected\"}",
+        "fetched_at": "2026-01-06 00:00:00"
+      }
+    ],
+    "run_log": [
+      {
+        "id": 4,
+        "job_name": "synthetic-offline-job",
+        "status": "ok",
+        "detail": "{ \"synthetic\": true, \"private\": \"SYNTHETIC-PRIVATE-RUN-4\" }\n",
+        "ran_at": "2026-01-06 07:08:09"
+      },
+      {
+        "id": 8,
+        "job_name": "synthetic-null-detail",
+        "status": "skipped",
+        "detail": null,
+        "ran_at": null
+      }
+    ],
+    "shared_rate_limit_state": [
+      {
+        "name": "synthetic:portal.example.invalid",
+        "next_allowed_at": 1767323045.125,
+        "last_acquired_at": "2026-01-02T03:04:05+00:00",
+        "last_owner_id": "synthetic-owner",
+        "last_sleep_seconds": 0.125,
+        "interval_seconds": 2.5,
+        "jitter_seconds": 0.25
+      }
+    ],
+    "shared_rate_limit_events": [
+      {
+        "id": 6,
+        "name": "synthetic:portal.example.invalid",
+        "kind": "acquire",
+        "owner_id": "synthetic-owner",
+        "status_code": null,
+        "delay_seconds": 0.125,
+        "next_allowed_at": 1767323045.125,
+        "observed_at": "2026-01-02T03:04:05+00:00"
+      },
+      {
+        "id": 12,
+        "name": "synthetic:unrelated.example.invalid",
+        "kind": "backoff",
+        "owner_id": "",
+        "status_code": 429,
+        "delay_seconds": 3.75,
+        "next_allowed_at": 1767323050.5,
+        "observed_at": "2026-01-02 03:04:06"
+      }
+    ],
+    "http_cache": [
+      {
+        "url": "https://portal.example.invalid/request/9007.json",
+        "etag": "\"synthetic-etag-7\"",
+        "last_modified": "Fri, 02 Jan 2026 03:04:05 GMT",
+        "response_body": "{ \"body\": \"SYNTHETIC-PRIVATE-CACHE-7\", \"unicode\": \"Māori\" }\r\n",
+        "cached_at": "2026-01-02 03:04:05"
+      },
+      {
+        "url": "https://unrelated.example.invalid/empty",
+        "etag": null,
+        "last_modified": null,
+        "response_body": null,
+        "cached_at": null
+      }
+    ],
+    "sqlite_sequence": [
+      {
+        "name": "feed_events",
+        "seq": 19
+      },
+      {
+        "name": "request_snapshots",
+        "seq": 14
+      },
+      {
+        "name": "run_log",
+        "seq": 8
+      },
+      {
+        "name": "shared_rate_limit_events",
+        "seq": 12
+      },
+      {
+        "name": "tracked_requests",
+        "seq": 2147483650
+      }
+    ]
+  },
+  "next_autoincrement": {
+    "feed_events": 20,
+    "request_snapshots": 15,
+    "run_log": 9,
+    "shared_rate_limit_events": 13,
+    "tracked_requests": 2147483651
+  },
+  "python_outputs": {
+    "list_requests": {
+      "stdout": "7\tsynthetic-maori\tSynthetic records request — Māori café\twaiting_response\t9007\n2147483650\tsynthetic-local\tSynthetic local-only request 🧪\tNone\t\n",
+      "stderr": "",
+      "exit_code": 0
+    },
+    "request_timeline": {
+      "7": [
+        {
+          "ts": "2026-01-05T06:07:08.123456+00:00",
+          "kind": "request_snapshot",
+          "title": "Synthetic response snapshot",
+          "detail": "successful"
+        },
+        {
+          "ts": "2026-01-04T05:06:07Z",
+          "kind": "feed_event",
+          "title": "Feed event",
+          "detail": "SYNTHETIC-PRIVATE-SUMMARY-11\nSynthetic receipt — reçu."
+        },
+        {
+          "ts": "2026-01-03T04:05:06+00:00",
+          "kind": "tracked_request",
+          "title": "Tracked request updated",
+          "detail": "Status: waiting_response"
+        },
+        {
+          "ts": "2026-01-03 06:07:08",
+          "kind": "request_snapshot",
+          "title": "Synthetic snapshot — Māori",
+          "detail": "waiting_response"
+        },
+        {
+          "ts": "2026-01-02T10:00:00+10:00",
+          "kind": "feed_event",
+          "title": "Synthetic acknowledgement",
+          "detail": "https://portal.example.invalid/request/9007#event-3"
+        },
+        {
+          "ts": "2026-01-02 03:04:05",
+          "kind": "tracked_request",
+          "title": "Tracked request created",
+          "detail": "Synthetic records request — Māori café"
+        }
+      ],
+      "2147483650": [],
+      "404": []
+    },
+    "export_requests": [
+      {
+        "id": 7,
+        "authority_slug": "synthetic-maori",
+        "title": "Synthetic records request — Māori café",
+        "body": "SYNTHETIC-PRIVATE-BODY-7\r\nQuoted \"record\"; apostrophe: it's.\nUnicode: Māori; café; 🧪\tend.\n",
+        "tags": "synthetic,private",
+        "fyi_url": "https://portal.example.invalid/request/9007",
+        "fyi_request_id": 9007,
+        "status": "waiting_response",
+        "created_at": "2026-01-02 03:04:05",
+        "updated_at": "2026-01-03T04:05:06+00:00",
+        "last_seen_at": "2026-01-04 05:06:07",
+        "last_event_title": "Synthetic receipt — reçu"
+      },
+      {
+        "id": 2147483650,
+        "authority_slug": "synthetic-local",
+        "title": "Synthetic local-only request 🧪",
+        "body": "SYNTHETIC-PRIVATE-BODY-LARGE-ID\nNo remote submission.\n",
+        "tags": null,
+        "fyi_url": null,
+        "fyi_request_id": null,
+        "status": null,
+        "created_at": null,
+        "updated_at": null,
+        "last_seen_at": null,
+        "last_event_title": null
+      }
+    ]
+  }
+}

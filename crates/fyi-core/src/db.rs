@@ -129,9 +129,7 @@ impl DbPool {
         if local::schema::table_exists(&mut transaction, "tracked_requests").await?
             && !local::schema::table_exists(&mut transaction, "_sqlx_migrations").await?
         {
-            anyhow::bail!(
-                "legacy Python database detected; preserve it and use a separate Rust database until migration is supported"
-            );
+            return Err(local::LocalError::Legacy.into());
         }
         local::schema::validate_before_initialization(&mut transaction).await?;
         sqlx::migrate!("./migrations")

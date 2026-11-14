@@ -115,8 +115,6 @@ fn unimplemented_commands_fail_without_side_effects() {
         .expect("create sentinel file");
 
     let cases: &[(&str, &[&str])] = &[
-        ("export-requests", &["--output", "protected.txt"]),
-        ("import-requests", &["protected.txt"]),
         ("ingest-feed", &["not-a-url"]),
         ("reconcile-events", &[]),
         ("attention-report", &["--output", "protected.txt"]),

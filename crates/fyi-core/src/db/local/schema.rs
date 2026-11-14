@@ -4,6 +4,7 @@ use sqlx::{Row, SqliteConnection};
 
 pub(crate) const AUTHORITIES_VERSION: i64 = 20261114000000;
 pub(crate) const REQUESTS_VERSION: i64 = 20261114001000;
+pub(crate) const PROVENANCE_VERSION: i64 = 20261114002000;
 
 pub(crate) async fn table_exists(
     connection: &mut SqliteConnection,
@@ -55,7 +56,7 @@ pub(crate) async fn validate_columns(
     required: bool,
 ) -> Result<(), LocalError> {
     let rows = sqlx::query(
-        "SELECT name, type, \"notnull\", pk, dflt_value FROM pragma_table_info(?) ORDER BY cid",
+        "SELECT name, type, \"notnull\", pk, dflt_value FROM pragma_table_xinfo(?) ORDER BY cid",
     )
     .bind(table)
     .fetch_all(connection)
@@ -69,6 +70,7 @@ pub(crate) async fn validate_columns(
     for (row, &(name, data_type, not_null, primary_key, default)) in rows.iter().zip(columns) {
         let stored_default: Option<String> = row.try_get("dflt_value")?;
         let default_matches = match (stored_default.as_deref(), default) {
+            (Some(stored), Some(expected)) if expected.starts_with('\'') => stored == expected,
             (Some(stored), Some(expected)) => stored.eq_ignore_ascii_case(expected),
             (None, None) => true,
             _ => false,
@@ -204,7 +206,8 @@ pub(crate) async fn validate_current(connection: &mut SqliteConnection) -> Resul
     validate_ledger(connection, true).await?;
     validate_authorities(connection, true).await?;
     validate_tracked_requests(connection).await?;
-    validate_request_events(connection).await
+    validate_request_events(connection).await?;
+    validate_provenance(connection, true).await
 }
 
 pub(crate) async fn validate_before_initialization(
@@ -222,6 +225,83 @@ pub(crate) async fn validate_before_initialization(
     } else if table_exists(connection, "tracked_requests").await?
         || table_exists(connection, "local_request_events").await?
     {
+        return Err(LocalError::Schema);
+    }
+    if version >= PROVENANCE_VERSION {
+        validate_provenance(connection, true).await?;
+    } else if table_exists(connection, "feed_events").await?
+        || table_exists(connection, "request_snapshots").await?
+    {
+        return Err(LocalError::Schema);
+    }
+    Ok(())
+}
+
+pub(crate) async fn validate_provenance(
+    connection: &mut SqliteConnection,
+    required: bool,
+) -> Result<(), LocalError> {
+    validate_columns(
+        connection,
+        "feed_events",
+        &[
+            ("id", "INTEGER", 0, 1, None),
+            ("feed_url", "TEXT", 1, 0, None),
+            ("event_id", "TEXT", 0, 0, None),
+            ("title", "TEXT", 0, 0, None),
+            ("link", "TEXT", 0, 0, None),
+            ("published", "TEXT", 0, 0, None),
+            ("summary", "TEXT", 0, 0, None),
+            ("request_id_guess", "INTEGER", 0, 0, None),
+            ("tracked_request_id", "INTEGER", 0, 0, None),
+            ("raw_json", "TEXT", 0, 0, None),
+            ("seen_at", "TEXT", 0, 0, Some("CURRENT_TIMESTAMP")),
+        ],
+        required,
+    )
+    .await?;
+    validate_columns(
+        connection,
+        "request_snapshots",
+        &[
+            ("id", "INTEGER", 0, 1, None),
+            ("fyi_request_id", "INTEGER", 1, 0, None),
+            ("source_url", "TEXT", 1, 0, None),
+            ("raw_json", "TEXT", 1, 0, None),
+            ("fetched_at", "TEXT", 0, 0, Some("CURRENT_TIMESTAMP")),
+        ],
+        required,
+    )
+    .await?;
+    for table in ["feed_events", "request_snapshots"] {
+        if required || table_exists(connection, table).await? {
+            validate_autoincrement(connection, table).await?;
+            let keys: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM pragma_foreign_key_list(?)")
+                .bind(table)
+                .fetch_one(&mut *connection)
+                .await?;
+            if keys != 0 {
+                return Err(LocalError::Schema);
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Legacy feed references have no declared FK; enforce them explicitly at boundaries.
+pub(crate) async fn validate_local_references(
+    connection: &mut SqliteConnection,
+) -> Result<(), LocalError> {
+    let invalid = sqlx::query("PRAGMA foreign_key_check")
+        .fetch_all(&mut *connection)
+        .await?;
+    let orphan: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM feed_events f WHERE f.tracked_request_id IS NOT NULL
+         AND NOT EXISTS(SELECT 1 FROM tracked_requests r WHERE r.id = f.tracked_request_id))",
+    )
+    .fetch_one(connection)
+    .await?;
+    if !invalid.is_empty() || orphan {
         return Err(LocalError::Schema);
     }
     Ok(())
