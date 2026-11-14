@@ -1,0 +1,14 @@
+# Local developer checks; CI remains authoritative because local hooks can be bypassed.
+# Install using an existing qualified Python 3.15.1 environment:
+#   python3.15 -m pip install pre-commit
+#   python3.15 -m pre_commit install
+repos:
+  - repo: local
+    hooks:
+      - id: security-exception-guard
+        name: Reject new or expired RustSec security exceptions
+        entry: python3.15 scripts/verify_security_exceptions.py --require-python 3.15.1
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
