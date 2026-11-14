@@ -123,8 +123,8 @@ def test_advisory_alias_and_equals_style_cannot_bypass_policy(tmp_path: Path) ->
     root = fixture(tmp_path, denied=[LEGACY], cli=[LEGACY], expires="2026-12-14")
     workflow = root / ".github/workflows/ci.yml"
     workflow.write_text(
-        "name: CI\\njobs:\\n  audit:\\n    steps:\\n"
-        "      - run: cargo audit --ignore=GHSA-aaaa-bbbb-cccc\\n"
+        "name: CI\njobs:\n  audit:\n    steps:\n"
+        "      - run: cargo audit --ignore=GHSA-aaaa-bbbb-cccc\n"
     )
     result = run_guard(root, date(2026, 11, 14))
     assert result.returncode != 0
@@ -190,7 +190,7 @@ def test_cargo_audit_toml_cannot_hide_new_rustsec_id(tmp_path: Path) -> None:
     root = fixture(tmp_path, denied=[LEGACY], cli=[LEGACY], expires="2026-12-14")
     (root / ".cargo").mkdir()
     (root / ".cargo/audit.toml").write_text(
-        '[advisories]\\nignore = ["RUSTSEC-2026-9999"]\\n'
+        '[advisories]\nignore = ["RUSTSEC-2026-9999"]\n'
     )
     result = run_guard(root, date(2026, 11, 14))
     assert result.returncode != 0
@@ -201,7 +201,7 @@ def test_cargo_audit_toml_must_not_shadow_existing_exception_policy(tmp_path: Pa
     root = fixture(tmp_path, denied=[LEGACY], cli=[LEGACY], expires="2026-12-14")
     (root / ".cargo").mkdir()
     (root / ".cargo/audit.toml").write_text(
-        '[advisories]\\nignore = ["RUSTSEC-2026-0459"]\\n'
+        '[advisories]\nignore = ["RUSTSEC-2026-0459"]\n'
     )
     result = run_guard(root, date(2026, 11, 14))
     assert result.returncode != 0
