@@ -1,4 +1,7 @@
 //! Local tracking repositories. These operations never enter the remote sync queue.
+pub mod requests;
+pub(crate) mod schema;
+
 use super::DbPool;
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
@@ -172,58 +175,10 @@ impl DbPool {
         Ok(db)
     }
 
-    /// Check version and checksum evidence without changing the migration ledger.
+    /// Validate migration evidence and physical layouts without writing to the file.
     pub async fn validate_local_schema(&self) -> Result<(), LocalError> {
-        let applied: Vec<(i64, bool, Vec<u8>)> = sqlx::query_as(
-            "SELECT version, success, checksum FROM _sqlx_migrations ORDER BY version",
-        )
-        .fetch_all(&self.pool)
-        .await
-        .map_err(|_| LocalError::Schema)?;
-        let migrations = sqlx::migrate!("./migrations");
-        if applied.len() != migrations.iter().count()
-            || applied
-                .iter()
-                .zip(migrations.iter())
-                .any(|(applied, known)| {
-                    applied.0 != known.version
-                        || !applied.1
-                        || applied.2.as_slice() != known.checksum.as_ref()
-                })
-        {
-            return Err(LocalError::Schema);
-        }
-        self.validate_local_authorities_schema(true).await?;
-        Ok(())
-    }
-
-    /// Refuse an incompatible pre-existing table before adopting a migration ledger.
-    pub(crate) async fn validate_local_authorities_schema(
-        &self,
-        required: bool,
-    ) -> Result<(), LocalError> {
-        let rows = sqlx::query("PRAGMA table_info(authorities)")
-            .fetch_all(&self.pool)
-            .await?;
-        if rows.is_empty() && !required {
-            return Ok(());
-        }
-        let expected = [("slug", 0_i64, 1_i64), ("name", 1, 0), ("url", 0, 0)];
-        if rows.len() != expected.len() {
-            return Err(LocalError::Schema);
-        }
-        for (row, (name, not_null, primary_key)) in rows.iter().zip(expected) {
-            if row.try_get::<String, _>("name")? != name
-                || !row
-                    .try_get::<String, _>("type")?
-                    .eq_ignore_ascii_case("TEXT")
-                || row.try_get::<i64, _>("notnull")? != not_null
-                || row.try_get::<i64, _>("pk")? != primary_key
-            {
-                return Err(LocalError::Schema);
-            }
-        }
-        Ok(())
+        let mut connection = self.pool.acquire().await?;
+        schema::validate_current(&mut connection).await
     }
 
     /// Upsert a complete catalogue atomically; keep existing dependent references.

@@ -82,9 +82,9 @@ next slice is reconciled.
 
 ### Slice 1: local authorities
 
-- [~] Implement local CSV parsing and atomic authority upsert.
-- [~] Implement deterministic authority listing and text/JSON output.
-- [ ] Prove repeated import, invalid-input rollback and request-reference safety.
+- [x] Implement local CSV parsing and atomic authority upsert.
+- [x] Implement deterministic authority listing and text/JSON output.
+- [x] Prove repeated import, invalid-input rollback and request-reference safety.
 
 `import-authorities CSV_PATH --db PATH` retains the existing local CLI shape.
 Header aliases and precedence follow `src/fyi_system/importers.py`:
@@ -274,3 +274,85 @@ crates.io index; hosted `--locked` compilation must verify the lock. Missing or
 blank required fields, ambiguous quoting, duplicate headers, malformed row
 lengths, invalid UTF-8 and input beyond 16 MiB fail before database writes.
 Unlike Python's skipped invalid rows, failure rejects the complete import.
+
+### Authority native verification
+
+Implementation head `33b043d8b3482447b24790b429b420d5541cedec` passed the
+[Rust 1.99.1 MSRV job](https://github.com/edithatogo/fyi-cli/actions/runs/43553220643/job/132320153668):
+formatting, all-target/all-feature Clippy with warnings denied and locked
+all-feature workspace tests. This includes the core authority and actual CLI
+contracts, SQL-trigger rollback, physical-schema validation and read-only
+database checks. The Conductor contract job passed in the same run.
+
+SQLx 0.9 rejected dynamic test SQL at the prior head. The tests now use literal
+queries and static schema mutation fixtures; no SQL safety assertion bypass was
+added. Independent review also identified and fixed adoption of incompatible
+pre-existing authority tables. Matching migration checksums now accompany
+physical column/primary-key/nullability validation.
+
+PR #433's CI hardening is inherited through a normal merge of master. This
+workstream changes no workflow file relative to that base. Final-head required
+Actions, coverage/security checks and merge confirmation remain the PR gate.
+
+### Reconciliation after parallel MCP merge
+
+Authority head `e409317988573348eec125366cd52d757fd8ee9c` passed all 12 live
+protected-branch contexts in CI [43553737589](https://github.com/edithatogo/fyi-cli/actions/runs/43553737589),
+including workspace tests, Clippy, Rustfmt, security and **92.49% line coverage**.
+Rust 1.99.1 MSRV and Conductor checks passed in run
+[43553737486](https://github.com/edithatogo/fyi-cli/actions/runs/43553737486);
+Windows, macOS and Linux portability passed in run
+[43553737477](https://github.com/edithatogo/fyi-cli/actions/runs/43553737477).
+The optional self-hosted offline AI lane remains queued awaiting a runner; it
+is not required by live branch protection and is not reported as passing.
+
+Master subsequently advanced through independently verified MCP PR #438 to
+`19f3cf376101500036951f9a3d3733da49f0df8b`. This branch incorporates that
+merge without editing its implementation. Final-head mandatory verification
+will run again on the reconciled authority head before merge.
+
+### Request lifecycle implementation checkpoint
+
+PR [#440](https://github.com/edithatogo/fyi-cli/pull/440) began with test-only
+head `ddb1b3ed17819a487b1cb69281bd53f3b65532e1`. Hosted run
+[43553385063](https://github.com/edithatogo/fyi-cli/actions/runs/43553385063),
+workspace job [132320662126](https://github.com/edithatogo/fyi-cli/actions/runs/43553385063/job/132320662126),
+reported **11 failing and 1 passing** real CLI contracts: failures explicitly
+reported unimplemented registration/listing or the absent local history table.
+The contract head compiled and passed all-target Clippy. Rustfmt corrections
+were applied from its diagnostic output before implementation publication.
+
+The implementation adds `register-request`, `list-requests`, `set-status`,
+`request-timeline` and local `request-detail` using the established `DbPool`.
+It adds Python-shaped `tracked_requests` and a separate local history table.
+Registration and status changes acquire an immediate transaction and explicitly
+roll back on failure. Detail and timeline share one read transaction. No local
+write calls the remote-domain mutators or enters sync metadata or outgoing
+queues. IDs remain positive signed 64-bit values. Repeated registration creates
+a new identity; repeated status preserves the existing timestamp and history.
+
+Native input bounds are 1024 UTF-8 bytes for authority slugs, 16 KiB for titles
+and tags, 16 MiB for bodies, and **128 UTF-8 bytes** for status labels. Required
+values reject whitespace-only input; otherwise title/body/tags are preserved
+verbatim. Status labels have no invented transition graph, but reject control
+characters. JSON acknowledgements contain identity/change data; ordinary lists
+omit bodies and tags. Full detail is an explicit sensitive-data read.
+
+Current schema validation checks the known successful SQLx migration prefix,
+checksums and actual local column/default/key/autoincrement declarations.
+Ordinary commands require the complete current schema and never migrate.
+Explicit `init-db` can upgrade a valid prior Rust schema, atomically on the
+same connection, and recognizes current native tracking on repetition. Legacy
+Python databases remain refused pending the separate transfer/migration slice.
+
+Python fixture verification: **19 tests passed**, including six actual
+subprocess exit-code cases; Ruff lint/format passed. Native coverage includes
+12 real CLI tests, 21 repository tests, two shared-fixture tests and five schema
+regressions. Their hosted implementation results remain pending. The branch
+incorporates the authority prerequisite and current master; it stays draft
+until authority PR #434 is merged and final-head lifecycle checks pass.
+
+Timeline/detail are local implementations with **partial Python parity**.
+Legacy feed/snapshot timeline projection is deferred to the transfer slice;
+derived follow-up, analysis and recommendation fields remain outside this
+local capability. No placeholders are returned for those unimplemented fields.

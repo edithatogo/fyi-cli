@@ -1,5 +1,6 @@
 //! Thin local-only CLI handlers; no source clients or remote sync operations.
 use crate::{Commands, OutputFormat};
+use fyi_core::db::local::requests::NewLocalRequest;
 use fyi_core::db::local::{parse_authorities_csv, LocalError, MAX_LOCAL_INPUT_BYTES};
 use fyi_core::db::DbPool;
 use std::io::Read;
@@ -62,6 +63,92 @@ fn execute(command: &Commands, format: OutputFormat) -> Result<(), Box<dyn std::
                     );
                 }
             }
+        }
+        Commands::RegisterRequest {
+            authority_slug,
+            title,
+            body,
+            tags,
+            status,
+            fyi_request_id,
+            db,
+        } => {
+            let request = NewLocalRequest {
+                authority_slug: authority_slug.clone(),
+                title: title.clone(),
+                body: body.clone(),
+                tags: tags.clone().unwrap_or_default(),
+                status: status.clone(),
+                fyi_request_id: *fyi_request_id,
+            };
+            let id = runtime.block_on(async {
+                let db = DbPool::open_local_existing(Path::new(db), false).await?;
+                let result = db.register_local_request(&request).await;
+                db.pool().close().await;
+                result
+            })?;
+            if format == OutputFormat::Json {
+                println!("{}", serde_json::json!({"id": id}));
+            } else {
+                println!("Registered request");
+            }
+        }
+        Commands::ListRequests { db } => {
+            let requests = runtime.block_on(async {
+                let db = DbPool::open_local_existing(Path::new(db), true).await?;
+                let result = db.list_local_requests().await;
+                db.pool().close().await;
+                result
+            })?;
+            if format == OutputFormat::Json {
+                println!("{}", serde_json::to_string_pretty(&requests)?);
+            } else {
+                for request in requests {
+                    println!(
+                        "{}\t{}\t{}\t{}\t{}",
+                        request.id,
+                        request.authority_slug,
+                        request.title,
+                        request.status.as_deref().unwrap_or("None"),
+                        request.fyi_request_id.map(|id| id.to_string()).unwrap_or_default()
+                    );
+                }
+            }
+        }
+        Commands::SetStatus {
+            request_id,
+            status,
+            db,
+        } => {
+            let changed = runtime.block_on(async {
+                let db = DbPool::open_local_existing(Path::new(db), false).await?;
+                let result = db.set_local_request_status(*request_id, status).await;
+                db.pool().close().await;
+                result
+            })?;
+            if format == OutputFormat::Json {
+                println!("{}", serde_json::json!({"id": request_id, "status": status, "changed": changed}));
+            } else {
+                println!("Updated request {request_id} to {status}");
+            }
+        }
+        Commands::RequestTimeline { request_id, db } => {
+            let timeline = runtime.block_on(async {
+                let db = DbPool::open_local_existing(Path::new(db), true).await?;
+                let result = db.local_request_timeline(*request_id).await;
+                db.pool().close().await;
+                result
+            })?;
+            println!("{}", serde_json::to_string_pretty(&timeline)?);
+        }
+        Commands::RequestDetail { request_id, db } => {
+            let detail = runtime.block_on(async {
+                let db = DbPool::open_local_existing(Path::new(db), true).await?;
+                let result = db.local_request_detail(*request_id).await;
+                db.pool().close().await;
+                result
+            })?;
+            println!("{}", serde_json::to_string_pretty(&detail)?);
         }
         _ => return Err(LocalError::InvalidInput("unsupported local command").into()),
     }

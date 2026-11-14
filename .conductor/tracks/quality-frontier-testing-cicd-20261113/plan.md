@@ -26,18 +26,41 @@
 
 ## Phase 5: CI hardening
 
-- [x] Pin all GitHub Actions to full commit SHAs (pinned_actions). [checkpoint: 253428b]
+- [x] Pin all GitHub Actions to full commit SHAs (pinned_actions). Historical checkpoint 253428b did not cover all workflows; the 2026-11-14 review pins the 14 remaining floating references and validates all 24 workflows.
 - [x] Add dependency_review workflow for PRs. [checkpoint: 253428b]
-- [x] Add actionlint workflow linting. [checkpoint: 253428b]
+- [x] Enforce actionlint findings as failures with a read-only local reporter; historical checkpoint 253428b installed the action but left its fail-open defaults. Matching actionlint 1.17.1 and ShellCheck 0.11.0 pass locally after repairing four unquoted shell expansions.
 - [~] Add least-privilege, concurrency, immutable actions.
-- [ ] Schedule expensive lanes (mutation, E2E) to keep PR checks fast.
-- [ ] Retain CI evidence (artifacts, logs).
+  - Workflow-hardening slice verified locally; mutation/profiling concurrency and evidence follow in the second slice.
+- [~] Verify expensive lanes and bounded PR checks; repair virtualenv mutation execution and benchmark collection, retain full authoritative tests.
+- [~] Retain CI evidence (artifacts, logs and source/run provenance), including failure paths.
 
 ## Phase 6: Verification and closure
 
-- [x] Run full CI locally and confirm all required checks pass. (55 Python tests pass, 13 Rust acquisition_receipts tests pass, all YAML workflows valid)
-- [x] Update track metadata status to `completed`. [checkpoint: dd6c469]
-- [~] Close issue #280. (Requires GitHub issue closure - track metadata marked completed)
+- [ ] Independently verify the final commits with targeted local tests and all required hosted checks. The historical 55 Python / 13 Rust test counts do not establish current acceptance.
+- [ ] Record implementation PRs, exact final heads, CI run IDs, merge commits, risks and exclusions in acceptance evidence.
+- [ ] Reconcile metadata, plan and registry against merged PR #431, then archive through the established `.conductor/archive/` procedure.
+- [x] Verify issue #280 is already closed (2026-11-13); preserve its state and reconcile its existing #320/#321 evidence with this track's #414 implementation and the current review.
+
+## Independent close-out review — 2026-11-14
+
+Baseline: `062c2647e9dc5300fee249cdd7b81a3d164807bc` (merged PR #430).
+PR #431 is open and owns the registry/execution-order updates. Do not modify
+`.conductor/tracks.md` until its merged version is available. Source acquisition,
+receipts, Wayback/CDX, downstream parity and issues #309/#310/#312 remain with
+`source-adapter-boundary-20260812`.
+
+Implementation sequence under this existing track:
+
+1. Focused workflow permissions, immutable references, concurrency, time bounds
+   and fail-closed linting, with regression contracts.
+2. Extended-lane execution and retained provenance/failure evidence, preserving
+   Python's 70% mutation threshold, Rust's strict cargo-mutants exit semantics,
+   the 90% Rust coverage gate and all source-boundary tests.
+3. Independent final-head verification, merge/branch reconciliation and archive.
+
+The standalone harness-inventory step is redundant: `verify_test_harness.py --run`
+always validates the inventory before executing its layers. Remove only that
+duplicate validation; keep every test layer and mandatory gate.
 
 ## Task Order
 

@@ -15,10 +15,8 @@ impl Workspace {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let path = std::env::temp_dir().join(format!(
-            "fyi-local-requests-{}-{nonce}",
-            std::process::id()
-        ));
+        let path =
+            std::env::temp_dir().join(format!("fyi-local-requests-{}-{nonce}", std::process::id()));
         fs::create_dir(&path).unwrap();
         Self(path)
     }
@@ -227,14 +225,7 @@ async fn blank_registration_fields_and_invalid_identifiers_fail_before_any_mutat
         (" \t ", "PRIVATE-BODY-SENTINEL"),
         ("PRIVATE-TITLE-SENTINEL", " \r\n "),
     ] {
-        let output = work.run(&[
-            "register-request",
-            "alpha",
-            title,
-            body,
-            "--db",
-            "local.db",
-        ]);
+        let output = work.run(&["register-request", "alpha", title, body, "--db", "local.db"]);
         assert_eq!(output.status.code(), Some(1), "{output:?}");
         assert!(output.stdout.is_empty());
         let error = String::from_utf8_lossy(&output.stderr);
@@ -331,11 +322,15 @@ async fn local_reads_preserve_nullable_stored_fields_without_inventing_defaults(
             "fyi_request_id": null
         }])
     );
-    let stored: (Option<String>, Option<String>, Option<String>, Option<String>) =
-        sqlx::query_as("SELECT tags, status, created_at, updated_at FROM tracked_requests")
-            .fetch_one(db.pool())
-            .await
-            .unwrap();
+    let stored: (
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+    ) = sqlx::query_as("SELECT tags, status, created_at, updated_at FROM tracked_requests")
+        .fetch_one(db.pool())
+        .await
+        .unwrap();
     assert_eq!(stored, (None, None, None, None));
     assert_eq!(event_count(&db).await, 1);
     db.pool().close().await;
@@ -409,7 +404,9 @@ async fn invalid_registration_and_missing_requests_fail_without_mutation_or_sens
     }
     assert_eq!(work.run(&["register-request"]).status.code(), Some(2));
     assert_eq!(
-        work.run(&["request-detail", "not-an-integer"]).status.code(),
+        work.run(&["request-detail", "not-an-integer"])
+            .status
+            .code(),
         Some(2)
     );
     assert_eq!(work.json(&["list-requests", "--db", "local.db"]), json!([]));
@@ -504,7 +501,10 @@ async fn event_failure_rolls_back_registration_and_autoincrement_allocation() {
         .await
         .unwrap();
     work.register();
-    assert_eq!(work.json(&["list-requests", "--db", "local.db"])[0]["id"], 1);
+    assert_eq!(
+        work.json(&["list-requests", "--db", "local.db"])[0]["id"],
+        1
+    );
     assert_remote_tables_empty(&db).await;
     db.pool().close().await;
 }
@@ -576,13 +576,7 @@ async fn local_and_remote_identifiers_beyond_i32_remain_usable_without_truncatio
     let detail = work.json(&["request-detail", "2147483648", "--db", "local.db"]);
     assert_eq!(detail["id"], json!(2147483648_i64));
     assert_eq!(detail["fyi_request_id"], json!(4294967296_i64));
-    work.success(&[
-        "set-status",
-        "2147483648",
-        "reviewed",
-        "--db",
-        "local.db",
-    ]);
+    work.success(&["set-status", "2147483648", "reviewed", "--db", "local.db"]);
     let timeline = work.json(&["request-timeline", "2147483648", "--db", "local.db"]);
     assert_eq!(timeline.as_array().unwrap().len(), 2);
     assert_remote_tables_empty(&db).await;

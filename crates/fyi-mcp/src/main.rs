@@ -1,5 +1,5 @@
 use axum::{
-    extract::State,
+    extract::{Request, State},
     http::{header, HeaderMap, StatusCode},
     response::{IntoResponse, Response},
     routing::get,
@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::path::PathBuf;
 use std::sync::Arc;
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::net::TcpListener;
 
 pub mod policy;
@@ -40,7 +40,6 @@ pub struct JsonRpcRequest {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct JsonRpcResponse {
     pub jsonrpc: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub result: Option<Value>,
@@ -875,10 +874,59 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
     remote_policy: &RemoteMcpPolicy,
     write_gate: &RemoteWriteGate,
 ) -> Option<JsonRpcResponse> {
+    if req.jsonrpc != "2.0" || req.id.as_ref().is_some_and(|id| !valid_request_id(id)) {
+        return Some(JsonRpcResponse::error(
+            None,
+            -32600,
+            "Invalid Request".into(),
+        ));
+    }
+    // A tools/call without an ID is not a request. Never execute a write on
+    // the notification path, and never reply to valid notifications.
+    req.id.as_ref()?;
+    if req
+        .params
+        .as_ref()
+        .is_some_and(|params| !params.is_object())
+    {
+        return Some(JsonRpcResponse::error(
+            req.id,
+            -32602,
+            "Invalid params".into(),
+        ));
+    }
     match req.method.as_str() {
         "initialize" => {
+            let Some(params) = req.params.as_ref() else {
+                return Some(JsonRpcResponse::error(
+                    req.id,
+                    -32602,
+                    "Invalid initialize params".into(),
+                ));
+            };
+            if params
+                .get("protocolVersion")
+                .and_then(Value::as_str)
+                .is_none_or(str::is_empty)
+                || !params.get("capabilities").is_some_and(Value::is_object)
+                || params
+                    .pointer("/clientInfo/name")
+                    .and_then(Value::as_str)
+                    .is_none()
+                || params
+                    .pointer("/clientInfo/version")
+                    .and_then(Value::as_str)
+                    .is_none()
+            {
+                return Some(JsonRpcResponse::error(
+                    req.id,
+                    -32602,
+                    "Invalid initialize params".into(),
+                ));
+            }
+            let version = negotiated_protocol_version(params);
             let res = json!({
-                "protocolVersion": "2024-11-05",
+                "protocolVersion": version,
                 "capabilities": {
                     "tools": {},
                     "resources": {
@@ -889,7 +937,7 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                 },
                 "serverInfo": {
                     "name": "fyi-mcp",
-                    "version": "0.1.2",
+                    "version": env!("CARGO_PKG_VERSION"),
                     "title": "FYI MCP",
                     "description": "Local FOI/OIA request tracker and Alaveteli MCP server for FYI.org.nz and multi-jurisdiction instances."
                 },
@@ -898,9 +946,15 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
             });
             Some(JsonRpcResponse::success(req.id, res))
         }
+        "ping" => Some(JsonRpcResponse::success(req.id, json!({}))),
         "notifications/initialized" => {
-            // Notifications do not return responses
-            None
+            // Real notifications were filtered before dispatch. An ID-bearing
+            // call to a notification method is an invalid request, not silence.
+            Some(JsonRpcResponse::error(
+                req.id,
+                -32600,
+                "Notification method requires no ID".into(),
+            ))
         }
         "tools/list" => {
             let mut tools = json!({
@@ -2514,15 +2568,15 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                 }
                 _ => Some(JsonRpcResponse::error(
                     req.id,
-                    -32601,
-                    format!("Tool '{}' not found", name),
+                    -32602,
+                    "Unknown tool".into(),
                 )),
             }
         }
         _ => Some(JsonRpcResponse::error(
             req.id,
             -32601,
-            format!("Method '{}' not found", req.method),
+            "Method not found".into(),
         )),
     }
 }
@@ -2995,6 +3049,144 @@ struct HttpState {
 
 const MCP_PROTOCOL_VERSION: &str = "2025-06-18";
 const MCP_FALLBACK_PROTOCOL_VERSION: &str = "2025-03-26";
+const MAX_MCP_FRAME_BYTES: usize = 1024 * 1024;
+const MAX_MCP_BATCH_MESSAGES: usize = 64;
+
+fn valid_request_id(id: &Value) -> bool {
+    id.is_string() || id.is_i64() || id.is_u64()
+}
+
+fn negotiated_protocol_version(params: &Value) -> &'static str {
+    if params.get("protocolVersion").and_then(Value::as_str) == Some(MCP_FALLBACK_PROTOCOL_VERSION)
+    {
+        MCP_FALLBACK_PROTOCOL_VERSION
+    } else {
+        MCP_PROTOCOL_VERSION
+    }
+}
+
+/// Parse the wire envelope separately from method parameters. Parser diagnostics
+/// must never echo caller-controlled content or internal paths.
+async fn handle_wire_message(
+    db: &DbPool,
+    value: Value,
+    policy: &RemoteMcpPolicy,
+    gate: &RemoteWriteGate,
+) -> Option<JsonRpcResponse> {
+    let invalid = || {
+        Some(JsonRpcResponse::error(
+            None,
+            -32600,
+            "Invalid Request".into(),
+        ))
+    };
+    let Some(object) = value.as_object() else {
+        return invalid();
+    };
+    if object.get("jsonrpc").and_then(Value::as_str) != Some("2.0")
+        || object.get("id").is_some_and(|id| !valid_request_id(id))
+    {
+        return invalid();
+    }
+    // This server sends no client-directed requests. Accept well-formed client
+    // responses without replying to a response or treating it as a tool call.
+    if !object.contains_key("method") {
+        let valid_result = object.get("result").is_some_and(Value::is_object);
+        let valid_error = object.get("error").is_some_and(|error| {
+            error.get("code").is_some_and(Value::is_i64)
+                && error.get("message").is_some_and(Value::is_string)
+        });
+        if object.contains_key("id")
+            && (valid_result ^ valid_error)
+            && (object.contains_key("result") ^ object.contains_key("error"))
+            && !object.contains_key("params")
+        {
+            return None;
+        }
+        return invalid();
+    }
+    if !object.get("method").is_some_and(Value::is_string)
+        || object.contains_key("result")
+        || object.contains_key("error")
+    {
+        return invalid();
+    }
+    if !object.contains_key("id") {
+        return None;
+    }
+    if object
+        .get("params")
+        .is_some_and(|params| !params.is_object())
+    {
+        return Some(JsonRpcResponse::error(
+            object.get("id").cloned(),
+            -32602,
+            "Invalid params".into(),
+        ));
+    }
+    match serde_json::from_value(value) {
+        Ok(request) => handle_jsonrpc_request_with_policy_and_gate(db, request, policy, gate).await,
+        Err(_) => invalid(),
+    }
+}
+
+async fn handle_wire_frame(
+    db: &DbPool,
+    bytes: &[u8],
+    policy: &RemoteMcpPolicy,
+    gate: &RemoteWriteGate,
+    version: &mut &'static str,
+) -> Option<Value> {
+    let value: Value = match serde_json::from_slice(bytes) {
+        Ok(value) => value,
+        Err(_) => {
+            return Some(json!(JsonRpcResponse::error(
+                None,
+                -32700,
+                "Parse error".into()
+            )))
+        }
+    };
+    if let Some(batch) = value.as_array() {
+        if *version != MCP_FALLBACK_PROTOCOL_VERSION
+            || batch.is_empty()
+            || batch.len() > MAX_MCP_BATCH_MESSAGES
+            || batch
+                .iter()
+                .any(|message| message.get("method").and_then(Value::as_str) == Some("initialize"))
+        {
+            return Some(json!(JsonRpcResponse::error(
+                None,
+                -32600,
+                "Invalid Request".into()
+            )));
+        }
+        let mut responses = Vec::new();
+        for message in batch {
+            if let Some(response) = handle_wire_message(db, message.clone(), policy, gate).await {
+                responses.push(json!(response));
+            }
+        }
+        return (!responses.is_empty()).then(|| json!(responses));
+    }
+    let initializing = value.get("method").and_then(Value::as_str) == Some("initialize");
+    let response = handle_wire_message(db, value, policy, gate).await?;
+    if initializing {
+        if let Some(negotiated) = response
+            .result
+            .as_ref()
+            .and_then(|result| result.get("protocolVersion"))
+            .and_then(Value::as_str)
+        {
+            *version = if negotiated == MCP_FALLBACK_PROTOCOL_VERSION {
+                MCP_FALLBACK_PROTOCOL_VERSION
+            } else {
+                MCP_PROTOCOL_VERSION
+            };
+        }
+    }
+    Some(json!(response))
+}
 
 fn http_transport_enabled() -> bool {
     std::env::var("FYI_MCP_TRANSPORT")
@@ -3018,44 +3210,61 @@ fn authorized(headers: &HeaderMap, expected: Option<&str>) -> bool {
     let Some(expected) = expected else {
         return false;
     };
+    if expected.is_empty() || headers.get_all(header::AUTHORIZATION).iter().count() != 1 {
+        return false;
+    }
     let Some(value) = headers
         .get(header::AUTHORIZATION)
         .and_then(|value| value.to_str().ok())
     else {
         return false;
     };
-    value
-        .strip_prefix("Bearer ")
-        .is_some_and(|token| token == expected)
+    let Some(token) = value.strip_prefix("Bearer ") else {
+        return false;
+    };
+    // Avoid content-dependent early exit for equal-length secret values.
+    token.len() == expected.len()
+        && token
+            .bytes()
+            .zip(expected.bytes())
+            .fold(0_u8, |different, (a, b)| different | (a ^ b))
+            == 0
 }
 
 fn accepts_mcp_response(headers: &HeaderMap) -> bool {
-    let Some(value) = headers
-        .get(header::ACCEPT)
-        .and_then(|value| value.to_str().ok())
-    else {
-        return false;
-    };
-
-    let media_types = value
-        .split(',')
-        .filter_map(|part| part.split(';').next())
-        .map(str::trim)
-        .collect::<Vec<_>>();
-    media_types.contains(&"application/json") && media_types.contains(&"text/event-stream")
+    let mut json = false;
+    let mut events = false;
+    for header in headers.get_all(header::ACCEPT) {
+        let Ok(value) = header.to_str() else {
+            return false;
+        };
+        for entry in value.split(',') {
+            let mut parts = entry.split(';');
+            let media_type = parts.next().unwrap_or("").trim();
+            let acceptable = parts.all(|part| {
+                let Some((key, value)) = part.trim().split_once('=') else {
+                    return false;
+                };
+                !key.eq_ignore_ascii_case("q")
+                    || value.parse::<f32>().is_ok_and(|q| q > 0.0 && q <= 1.0)
+            });
+            json |= acceptable && media_type.eq_ignore_ascii_case("application/json");
+            events |= acceptable && media_type.eq_ignore_ascii_case("text/event-stream");
+        }
+    }
+    json && events
 }
 
 fn supported_protocol_version(headers: &HeaderMap) -> Result<(), StatusCode> {
-    let Some(value) = headers
-        .get("MCP-Protocol-Version")
-        .and_then(|value| value.to_str().ok())
-    else {
+    let Some(value) = headers.get("MCP-Protocol-Version") else {
         // The specification permits servers to assume 2025-03-26 when the
         // client omitted the header and no negotiated session identifies it.
         return Ok(());
     };
 
-    if value == MCP_PROTOCOL_VERSION || value == MCP_FALLBACK_PROTOCOL_VERSION {
+    if headers.get_all("MCP-Protocol-Version").iter().count() == 1
+        && (value == MCP_PROTOCOL_VERSION || value == MCP_FALLBACK_PROTOCOL_VERSION)
+    {
         Ok(())
     } else {
         Err(StatusCode::BAD_REQUEST)
@@ -3069,7 +3278,7 @@ async fn healthz() -> impl IntoResponse {
 async fn http_mcp(
     State(state): State<HttpState>,
     headers: HeaderMap,
-    Json(req): Json<JsonRpcRequest>,
+    request: Request,
 ) -> Response {
     if !authorized(&headers, state.bearer_token.as_deref()) {
         return Response::builder()
@@ -3078,14 +3287,44 @@ async fn http_mcp(
             .body(axum::body::Body::empty())
             .expect("static unauthorized response should build");
     }
+    // The bearer profile is for native/server clients. Browser origins are
+    // denied rather than trusting an attacker-controlled Host/forwarded header.
+    if headers.contains_key(header::ORIGIN) {
+        return StatusCode::FORBIDDEN.into_response();
+    }
     if !accepts_mcp_response(&headers) || supported_protocol_version(&headers).is_err() {
         return StatusCode::BAD_REQUEST.into_response();
     }
-    match handle_jsonrpc_request_with_policy_and_gate(
+    if headers.get_all(header::CONTENT_TYPE).iter().count() != 1
+        || !headers
+            .get(header::CONTENT_TYPE)
+            .and_then(|value| value.to_str().ok())
+            .is_some_and(|value| {
+                value.split(';').next().is_some_and(|media_type| {
+                    media_type.trim().eq_ignore_ascii_case("application/json")
+                })
+            })
+    {
+        return StatusCode::UNSUPPORTED_MEDIA_TYPE.into_response();
+    }
+    let body = match axum::body::to_bytes(request.into_body(), MAX_MCP_FRAME_BYTES).await {
+        Ok(bytes) => bytes,
+        Err(_) => return StatusCode::PAYLOAD_TOO_LARGE.into_response(),
+    };
+    let mut version = if headers
+        .get("MCP-Protocol-Version")
+        .is_some_and(|value| value == MCP_PROTOCOL_VERSION)
+    {
+        MCP_PROTOCOL_VERSION
+    } else {
+        MCP_FALLBACK_PROTOCOL_VERSION
+    };
+    match handle_wire_frame(
         &state.db,
-        req,
+        &body,
         &state.remote_policy,
         &state.write_gate,
+        &mut version,
     )
     .await
     {
@@ -3094,7 +3333,16 @@ async fn http_mcp(
     }
 }
 
-async fn http_mcp_get() -> Response {
+async fn http_mcp_get(State(state): State<HttpState>, headers: HeaderMap) -> Response {
+    if !authorized(&headers, state.bearer_token.as_deref()) {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    if headers.contains_key(header::ORIGIN) {
+        return StatusCode::FORBIDDEN.into_response();
+    }
+    if supported_protocol_version(&headers).is_err() {
+        return StatusCode::BAD_REQUEST.into_response();
+    }
     Response::builder()
         .status(StatusCode::METHOD_NOT_ALLOWED)
         .header(header::ALLOW, "POST")
@@ -3119,31 +3367,39 @@ async fn run_stdio(
     write_gate: &RemoteWriteGate,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let stdin = tokio::io::stdin();
-    let mut reader = BufReader::new(stdin).lines();
+    let mut reader = BufReader::new(stdin);
     let mut stdout = tokio::io::stdout();
+    let mut version = MCP_PROTOCOL_VERSION;
 
-    while let Some(line) = reader.next_line().await? {
-        if line.trim().is_empty() {
+    loop {
+        let mut line = Vec::new();
+        let read = (&mut reader)
+            .take((MAX_MCP_FRAME_BYTES + 1) as u64)
+            .read_until(b'\n', &mut line)
+            .await?;
+        if read == 0 {
+            break;
+        }
+        if line.len() > MAX_MCP_FRAME_BYTES {
+            let response =
+                JsonRpcResponse::error(None, -32600, "Request exceeds frame limit".into());
+            stdout
+                .write_all((serde_json::to_string(&response)? + "\n").as_bytes())
+                .await?;
+            stdout.flush().await?;
+            // Do not allocate or wait indefinitely to drain an oversized frame.
+            break;
+        }
+        if line.iter().all(u8::is_ascii_whitespace) {
             continue;
         }
-
-        match serde_json::from_str::<JsonRpcRequest>(&line) {
-            Ok(req) => {
-                if let Some(resp) =
-                    handle_jsonrpc_request_with_policy_and_gate(db, req, remote_policy, write_gate)
-                        .await
-                {
-                    let resp_str = serde_json::to_string(&resp)? + "\n";
-                    stdout.write_all(resp_str.as_bytes()).await?;
-                    stdout.flush().await?;
-                }
-            }
-            Err(e) => {
-                let resp = JsonRpcResponse::error(None, -32700, format!("Parse error: {}", e));
-                let resp_str = serde_json::to_string(&resp)? + "\n";
-                stdout.write_all(resp_str.as_bytes()).await?;
-                stdout.flush().await?;
-            }
+        if let Some(response) =
+            handle_wire_frame(db, &line, remote_policy, write_gate, &mut version).await
+        {
+            stdout
+                .write_all((serde_json::to_string(&response)? + "\n").as_bytes())
+                .await?;
+            stdout.flush().await?;
         }
     }
     Ok(())
@@ -3173,7 +3429,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let db_path = database_url_from_env();
 
-    tracing::info!(database_url = %db_path, "Connecting to database");
+    tracing::info!("Connecting to local database");
     let db = open_database(&db_path).await?;
     db.run_migrations().await?;
     ensure_authorities_table(db.pool()).await?;
@@ -3195,6 +3451,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         run_stdio(&db, &remote_policy, &write_gate).await
     }
 }
+
+#[cfg(test)]
+mod transport_tests;
 
 #[cfg(test)]
 mod tests {
@@ -3319,7 +3578,11 @@ mod tests {
             jsonrpc: "2.0".to_string(),
             id: Some(json!(1)),
             method: "initialize".to_string(),
-            params: None,
+            params: Some(json!({
+                "protocolVersion": MCP_PROTOCOL_VERSION,
+                "capabilities": {},
+                "clientInfo": {"name": "contract-test", "version": "1"}
+            })),
         };
 
         let resp = handle_jsonrpc_request(&db, req).await.unwrap();
@@ -3328,7 +3591,7 @@ mod tests {
         let result = resp.result.unwrap();
         assert_eq!(
             result.get("protocolVersion").unwrap().as_str().unwrap(),
-            "2024-11-05"
+            MCP_PROTOCOL_VERSION
         );
         assert!(result.pointer("/capabilities/resources").is_some());
         assert!(result.pointer("/capabilities/prompts").is_some());

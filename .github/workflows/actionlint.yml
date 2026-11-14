@@ -6,17 +6,27 @@ on:
   pull_request:
     branches: [ main, master ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
   actionlint:
     name: Workflow Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout sources
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
 
       - name: Run actionlint
         uses: reviewdog/action-actionlint@14c77d7b3f9227e5a1d1e3c2e6b7da4e0c4db1a0
+        with:
+          reporter: local
+          filter_mode: nofilter
+          fail_level: any

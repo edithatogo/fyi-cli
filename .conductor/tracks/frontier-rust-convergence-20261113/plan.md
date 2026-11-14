@@ -143,3 +143,15 @@ Track stays **in_progress**. No new manual approval layer is introduced.
   failed on the unimplemented authority handler. Native implementation and
   final-head verification are pending. Registry and source/quality/localisation
   workstream files remain unchanged.
+
+- [x] Native local authority core/CLI implementation passed the locked Rust
+  1.99.1 all-feature MSRV workflow at `33b043d` (run `43553220643`, job
+  `132320153668`). Final-head required Actions and merge remain pending; the
+  local command inventory records the intentional Python compatibility limits.
+
+- [~] PR #440 implements retained local registration/listing, atomic status
+  history, local timeline and detail after hosted RED at `ddb1b3e` (run
+  `43553385063`, 11 failing/1 passing CLI contracts). Shared Python lifecycle
+  fixtures: 19 passed. Native implementation verification and prerequisite
+  authority merge remain pending; export/import/legacy migration are a
+  separate bounded slice. Full detail/reporting parity is not claimed.

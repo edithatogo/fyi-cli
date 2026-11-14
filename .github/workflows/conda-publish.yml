@@ -10,19 +10,25 @@ on:
         required: true
         type: string
 
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.version || github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
-  packages: write
 
 jobs:
   build-conda:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
     - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      with:
+        persist-credentials: false
 
     - name: Setup Miniconda
-      uses: conda-incubator/setup-miniconda@v3
+      uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3
       with:
         auto-update-conda: true
         python-version: '3.12'
@@ -41,7 +47,7 @@ jobs:
         else
           VERSION=${{ github.event.inputs.version }}
         fi
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
     - name: Update meta.yaml with version
       run: |
@@ -52,8 +58,8 @@ jobs:
       run: |
         SOURCE_URL="https://github.com/edithatogo/fyi-cli/archive/refs/tags/fyi-mcp-v${{ steps.version.outputs.version }}.tar.gz"
         HASH=$(curl -sL "$SOURCE_URL" | sha256sum | cut -d' ' -f1)
-        echo "source_url=$SOURCE_URL" >> $GITHUB_OUTPUT
-        echo "hash=$HASH" >> $GITHUB_OUTPUT
+        echo "source_url=$SOURCE_URL" >> "$GITHUB_OUTPUT"
+        echo "hash=$HASH" >> "$GITHUB_OUTPUT"
 
     - name: Update meta.yaml with source
       run: |
