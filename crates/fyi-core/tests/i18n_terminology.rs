@@ -85,7 +85,14 @@ fn six_locale_glossaries_match_independent_goldens() {
     );
     for fixture in fixtures {
         let engine = LocalizationEngine::try_new(&fixture.locale).unwrap();
-        assert_eq!(fixture.terms.len(), Term::ALL.len());
+        assert_eq!(
+            fixture
+                .terms
+                .iter()
+                .map(|(term, _)| *term)
+                .collect::<Vec<_>>(),
+            Term::ALL
+        );
         for (concept, text) in fixture.terms {
             let actual = registry
                 .lookup(&fixture.jurisdiction_id, &engine, concept)
@@ -117,11 +124,11 @@ fn changing_display_language_never_changes_jurisdiction_or_legal_names() {
                     assert_eq!(term.source_locale, None);
                     assert_eq!(term.message_bundle_version, None);
                     assert_eq!(
-                        term.text,
+                        term.text.as_str(),
                         if concept == Term::LawName {
-                            &profile.law_name
+                            profile.law_name.as_str()
                         } else {
-                            &profile.law_abbreviation
+                            profile.law_abbreviation.as_str()
                         }
                     );
                 } else {

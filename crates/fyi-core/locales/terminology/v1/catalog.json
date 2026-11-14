@@ -1,0 +1,95 @@
+{
+  "version": {"format_version": 1, "revision": "2026-11-14.1"},
+  "profiles": [
+    {
+      "id": "nz-oia",
+      "country": "NZ",
+      "law_name": "Official Information Act",
+      "law_abbreviation": "OIA",
+      "request_abbreviation": "OIA",
+      "authority_term": "agency",
+      "source_url": "https://www.ombudsman.parliament.nz/what-ombudsman-can-help/requests-official-information/your-ability-request-official-information",
+      "source_checked_at": "2026-11-14"
+    },
+    {
+      "id": "au-foi",
+      "country": "AU",
+      "law_name": "Freedom of Information Act 1982",
+      "law_abbreviation": "FOI",
+      "request_abbreviation": "FOI",
+      "authority_term": "agency",
+      "source_url": "https://www.oaic.gov.au/about-the-OAIC/access-our-information/freedom-of-information-requests-to-the-oaic",
+      "source_checked_at": "2026-11-14"
+    },
+    {
+      "id": "au-qld-rti",
+      "country": "AU",
+      "law_name": "Right to Information Act 2009",
+      "law_abbreviation": "RTI",
+      "request_abbreviation": "RTI",
+      "authority_term": "agency",
+      "source_url": "https://www.rti.qld.gov.au/right-to-information-act",
+      "source_checked_at": "2026-11-14"
+    },
+    {
+      "id": "au-tas-rti",
+      "country": "AU",
+      "law_name": "Right to Information Act 2009",
+      "law_abbreviation": "RTI",
+      "request_abbreviation": "RTI",
+      "authority_term": "authority",
+      "source_url": "https://www.ombudsman.tas.gov.au/right-to-information/right-to-information-faqs",
+      "source_checked_at": "2026-11-14"
+    },
+    {
+      "id": "gb-foia",
+      "country": "GB",
+      "law_name": "Freedom of Information Act 2000",
+      "law_abbreviation": "FOIA",
+      "request_abbreviation": "FOI",
+      "authority_term": "authority",
+      "source_url": "https://ico.org.uk/for-organisations/foi/what-is-the-foi-act-and-are-we-covered/",
+      "source_checked_at": "2026-11-14"
+    },
+    {
+      "id": "de-ifg",
+      "country": "DE",
+      "law_name": "Informationsfreiheitsgesetz",
+      "law_abbreviation": "IFG",
+      "request_abbreviation": "IFG",
+      "authority_term": "authority",
+      "source_url": "https://www.bundesfinanzministerium.de/Web/DE/Service/Kontakt/Informationsfreiheitsgesetz/informationsfreiheitsgesetz.html",
+      "source_checked_at": "2026-11-14"
+    },
+    {
+      "id": "fr-crpa",
+      "country": "FR",
+      "law_name": "Code des relations entre le public et l’administration",
+      "law_abbreviation": "CRPA",
+      "request_abbreviation": "CRPA",
+      "authority_term": "authority",
+      "source_url": "https://www.cada.fr/administration/la-communication-des-documents-administratifs",
+      "source_checked_at": "2026-11-14"
+    },
+    {
+      "id": "es-ltaibg",
+      "country": "ES",
+      "law_name": "Ley 19/2013 de transparencia, acceso a la información pública y buen gobierno",
+      "law_abbreviation": "LTAIBG",
+      "request_abbreviation": "LTAIBG",
+      "authority_term": "authority",
+      "source_url": "https://consejodetransparencia.es/consejo-transparencia/que-es",
+      "source_checked_at": "2026-11-14"
+    },
+    {
+      "id": "us-foia",
+      "country": "US",
+      "law_name": "Freedom of Information Act",
+      "law_abbreviation": "FOIA",
+      "request_abbreviation": "FOIA",
+      "authority_term": "agency",
+      "source_url": "https://www.foia.gov/about.html",
+      "source_checked_at": "2026-11-14"
+    }
+  ]
+}
