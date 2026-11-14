@@ -69,11 +69,14 @@ attempted a live feed. The current owner PR file lists contain no scheduler test
 overlap. This repair is limited to test fixtures and this existing track; no
 source implementation, shared test configuration, runtime lock or workflow edit.
 
-- [~] Add an isolated subprocess regression that denies DNS/socket I/O before
+- [x] Add an isolated subprocess regression that denies DNS/socket I/O before
   imports and fails on attempts even when legacy tests swallow exceptions.
-  RED: 36 legacy tests reported passes while the probe blocked 28 attempts.
-- [ ] Replace network feed retrieval in the three legacy scheduler test modules
+  RED `5f45cec`: 36 legacy tests reported passes while the probe blocked 28 attempts.
+- [x] Replace network feed retrieval in the three legacy scheduler test modules
   with synthetic successful/unavailable feed fixtures; retain real local cycle
-  and database/report execution.
-- [ ] Verify the negative-control probe, real cycle outputs and scoped tests;
-  hand off a separate focused PR before resuming broader hosted verification.
+  and database/report execution. Implementation `d1295c8`.
+- [x] Verify the negative-control probe, real cycle outputs and scoped tests:
+  39 passed; guarded full Python run 1,515 passed/two skipped, zero external
+  Python DNS/socket attempts. See `offline-scheduler-evidence.md` for limits.
+- [~] Hand off a separate focused PR before resuming broader hosted verification;
+  final-head checks/review and merge remain with the sole integration coordinator.
