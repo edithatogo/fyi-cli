@@ -860,8 +860,7 @@ fn main() {
             let result = std::fs::File::open(path)
                 .map_err(|error| format!("reading receipt failed: {error}"))
                 .and_then(|file| {
-                    fyi_core::receipt_wire::read_receipt(file)
-                        .map_err(|error| format!("{error:#}"))
+                    fyi_core::receipt_wire::read_receipt(file).map_err(|error| format!("{error:#}"))
                 })
                 .and_then(|receipt| {
                     if let Some(saved_result) = result_file {

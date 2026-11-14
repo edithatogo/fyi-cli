@@ -72,8 +72,14 @@ fn integer_float_boolean_null_and_string_types_are_preserved() {
     }));
     let receipt = parse_receipt_bytes(&bytes).unwrap();
     assert_eq!(canonical_json_bytes(&receipt).unwrap(), bytes);
-    assert_eq!(receipt["request_bounds"]["ints"][0].as_i64(), Some(i64::MIN));
-    assert_eq!(receipt["request_bounds"]["ints"][1].as_u64(), Some(u64::MAX));
+    assert_eq!(
+        receipt["request_bounds"]["ints"][0].as_i64(),
+        Some(i64::MIN)
+    );
+    assert_eq!(
+        receipt["request_bounds"]["ints"][1].as_u64(),
+        Some(u64::MAX)
+    );
     let zero = receipt["request_bounds"]["floats"][0].as_f64().unwrap();
     assert_eq!(zero.to_bits(), (-0.0_f64).to_bits());
 }
