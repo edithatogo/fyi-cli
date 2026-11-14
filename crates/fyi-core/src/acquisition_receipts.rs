@@ -3,6 +3,8 @@
 //! This is a boundary contract, not an HTTP client. It verifies canonical
 //! content digests and structural invariants without contacting source sites.
 //! The v1 fixture originates in the existing Python receipt schema/serializer.
+mod canonical;
+
 use crate::provenance::sha256_hex;
 use anyhow::{bail, ensure, Context, Result};
 use chrono::DateTime;
@@ -17,7 +19,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 /// This matches Python's `json.dumps(sort_keys=True, separators=(",", ":"),
 /// ensure_ascii=False, allow_nan=False) + "\n"` for the receipt-v1 subset.
 pub fn canonical_json_bytes(value: &Value) -> Result<Vec<u8>> {
-    let mut data = serde_json::to_vec(value).context("receipt cannot be serialized")?;
+    let mut data = canonical::to_vec(value).context("receipt cannot be serialized")?;
     data.push(b'\n');
     Ok(data)
 }
