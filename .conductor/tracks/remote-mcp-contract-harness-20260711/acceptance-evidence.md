@@ -52,6 +52,14 @@ and opening the shared upstream circuit before I/O. Query, ID and filter
 validation now precedes admission; repeated invalid calls preserve zero usage
 and a closed circuit.
 
+PR #441 passed all 12 required checks on final head
+`bc88340807a475170dea49222090e63adcd4f33a` while current with master:
+[CI](https://github.com/edithatogo/fyi-cli/actions/runs/43558786976) and
+[CodeQL](https://github.com/edithatogo/fyi-cli/actions/runs/43558786984).
+It was squash-merged as `6c89bcdc11b0b5e70b7e840c4d6dfc8aae6998b1`.
+The final base refreshes preserved all nine owned files byte for byte;
+the source implementation was not changed to accommodate concurrent workstreams.
+
 Attachment tests reject traversal and observed in-root file/directory symlinks.
 Process restart durability, attachment byte immutability and source raw-byte/
 retry/fault contracts remain separate unverified dependencies.
@@ -95,6 +103,14 @@ scope bound; recapture from the executable repaired that demonstrated drift.
 The existing Python Tests job collects the SDK suite; missing Cargo and a
 missing binary now fail on GitHub Actions rather than silently skipping it.
 The separate Layered Harness Contract job only validates the fixtures.
+
+The preliminary hosted Python run at PR #443 head
+`be1fe5a4421e88ea825479e01db6a3074e14f8fb` installed the locked MCP SDK 1.30.0
+and executed all 13 SDK cases successfully. The complete Python suite reported
+1,449 passed and two unrelated skips in 195.97 seconds:
+[CI run and retained Python evidence](https://github.com/edithatogo/fyi-cli/actions/runs/43558901343).
+The final base refresh changes only this evidence and its timestamp; required
+checks are still verified separately on that final head before merge.
 
 An empty-database persistent HTTP assessment (ten warmups, 100 measured calls)
 recorded p50 3.612 ms, p95 4.154 ms, maximum 6.007 ms, final/peak RSS 20,291,584
@@ -181,8 +197,9 @@ the reusable audit serializer tests. Existing local update/import semantics
 are documented accurately, without changing the local-management workstream.
 
 Required hosted checks are reviewed on each final head before merge. Parallel
-TUI and packaging merges advanced master, requiring refreshed heads and new
-required checks for PR #441. The final review fix is included in that branch.
+TUI, packaging and quality-infrastructure merges advanced master, requiring
+refreshed heads and new required checks for PR #441. That slice is now merged;
+the schema/client slice retains its separate final-head gate.
 Final PR heads, Actions links and merge commits are recorded in the PRs and
 the delivery report. Source acquisition, SQLite core, localization, CLI
 dispatch, TUI, packaging and shared workflows remain with their assigned owners.
