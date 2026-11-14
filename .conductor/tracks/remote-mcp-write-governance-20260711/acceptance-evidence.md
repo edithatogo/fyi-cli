@@ -15,6 +15,12 @@ source transports, application CLI, i18n, shared registry and workflows are
 unchanged. Master #452 was reconciled before the implementation commit, keeping
 its shared credential derivation intact.
 
+Published focused PR: [#457](https://github.com/edithatogo/fyi-cli/pull/457).
+Test-only checkpoint: [`f5b130b`](https://github.com/edithatogo/fyi-cli/commit/f5b130b503809395aaf556d9bfa7a9009d3af34a).
+Implementation: [`dbee12d`](https://github.com/edithatogo/fyi-cli/commit/dbee12d5ad42db30f8c15150c355cc85d5a39972),
+exact locally tested tree `1772fd8aff4191a707e4ac9ec62e10b8c198e470`.
+[Coordinator handoff](https://github.com/edithatogo/fyi-cli/pull/457#issuecomment-6877876150).
+
 ## Test-first evidence
 
 At baseline `70fef29`, the real-binary

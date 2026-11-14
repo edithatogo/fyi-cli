@@ -3,7 +3,7 @@
   "type": "feature",
   "status": "in-progress",
   "created_at": "2026-07-11T08:34:24Z",
-  "updated_at": "2026-11-14T13:17:18Z",
+  "updated_at": "2026-11-14T13:19:48Z",
   "description": "Governed remote MCP writes; durable replay/audit implementation under verification, source and platform acceptance remain open",
   "github_parent_issue": 169,
   "github_issue": 171,
@@ -11,5 +11,16 @@
     "remote-mcp-observability-security-20260711",
     "remote-mcp-read-surface-20260711",
     "remote-mcp-contract-harness-20260711"
-  ]
+  ],
+  "active_increment": {
+    "issue": 169,
+    "pull_request": 457,
+    "branch": "feat/mcp-durable-write-journal-169-20261114",
+    "test_first_commit": "f5b130b503809395aaf556d9bfa7a9009d3af34a",
+    "implementation_commit": "dbee12d5ad42db30f8c15150c355cc85d5a39972",
+    "status": "draft_awaiting_hosted_verification_and_integration",
+    "merge_window": "awaiting_integration_coordinator"
+  },
+  "acceptance_evidence": "acceptance-evidence.md",
+  "closure_status": "not_archived_acceptance_evidence_incomplete"
 }

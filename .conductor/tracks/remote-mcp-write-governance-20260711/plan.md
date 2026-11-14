@@ -41,12 +41,12 @@ durable production write log. The parent and this track remain incomplete.
 
 - [x] Add tests first for required persistent write state, restart replay denial,
   concurrent admission, failure/cancellation reservations and audit privacy.
-  Initial RED checkpoint `d49c16a`; rebased test-only checkpoint `899f65c`.
-- [~] Implement a bounded MCP-owned SQLite journal. Persist a reservation before
+  Initial local RED checkpoint `d49c16a`; published test-only checkpoint `f5b130b`.
+- [x] Implement a bounded MCP-owned SQLite journal (`dbee12d`, PR #457). Persist a reservation before
   any upstream dispatch; retain uncertain outcomes, fail on storage corruption,
   and store only opaque scope tags and fixed audit fields, never request content,
   raw idempotency/confirmation tokens or credential values.
-- [~] Integrate production startup and prepare/commit/reject/replay/outcome events;
+- [x] Integrate production startup and prepare/commit/reject/replay/outcome events (`dbee12d`);
   preserve the existing payload-bound monotonic confirmation gate.
 - [~] Run focused and workspace verification, targeted mutations and final-head
   hosted gates; hand off a focused PR to the sole integration coordinator.
