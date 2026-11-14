@@ -148,3 +148,12 @@ Track stays **in_progress**. No new manual approval layer is introduced.
   1.99.1 all-feature MSRV workflow at `33b043d` (run `43553220643`, job
   `132320153668`). Final-head required Actions and merge remain pending; the
   local command inventory records the intentional Python compatibility limits.
+
+- [x] PR #440 implements retained local registration/listing, atomic status
+  history, local timeline and detail after hosted RED at `ddb1b3e` (run
+  `43553385063`, 11 failing/1 passing CLI contracts). Shared Python lifecycle
+  fixtures: 19 passed. Native implementation verification passed at `cd160e8`
+  (CI `43558451180`, MSRV `43558451176`); authority prerequisite #434 merged
+  as `7cf2fd2` after all required checks, with remote/local branch pruning
+  verified. Reconciled lifecycle final-head acceptance remains pending. Export/import/legacy migration are a
+  separate bounded slice. Full detail/reporting parity is not claimed.

@@ -36,10 +36,10 @@ The `capture`, `internet-archive-cdx`, `internet-archive-replay`, `discover` and
 | `init-db` | Initializes the Rust schema and rejects legacy Python databases; migration is not implemented | Independent output/state equivalence, failure semantics and side-effect parity |
 | `import-authorities` | Native local CSV import implemented; partial parity (network options excluded, invalid rows rejected atomically) | Shared Python/Rust catalogue fixtures, SQL rollback, no remote sync effects; see local request-management evidence |
 | `list-authorities` | Native local listing implemented with text/JSON output; partial parity (explicit tie order and read-only schema validation) | Shared Python/Rust catalogue fixtures, real CLI output and missing-database checks |
-| `register-request` | Unimplemented in Rust; exits with an error | Independent output/state equivalence, failure semantics and side-effect parity |
-| `list-requests` | Unimplemented in Rust; exits with an error | Independent output/state equivalence, failure semantics and side-effect parity |
-| `set-status` | Unimplemented in Rust; exits with an error | Independent output/state equivalence, failure semantics and side-effect parity |
-| `request-timeline` | Unimplemented in Rust; exits with an error | Independent output/state equivalence, failure semantics and side-effect parity |
+| `register-request` | Native local registration implemented; partial parity (strict validation, explicit local-only identity/history) | Shared Python/Rust fixtures, actual CLI acknowledgements, foreign keys, rollback and zero sync/queue effects |
+| `list-requests` | Native ascending-ID local listing with exact five-field text/JSON projection; JSON is a Rust extension | Shared fixtures, nullable fields, i64 IDs, sensitive-field omission and existing-file read checks |
+| `set-status` | Native atomic status/history update; partial parity (missing IDs fail, repeated status is a no-op) | Old/new status history, concurrent writes, timestamp stability and late-failure rollback |
+| `request-timeline` | Native local creation/status timeline implemented; partial parity (legacy feed/snapshot projection pending) | Snapshot-consistent read, chronological timestamps, stable sequence ties, null/legacy fallback and missing-ID failures |
 | `export-requests` | Unimplemented in Rust; exits with an error | Independent output/state equivalence, failure semantics and side-effect parity |
 | `import-requests` | Unimplemented in Rust; exits with an error | Independent output/state equivalence, failure semantics and side-effect parity |
 | `build-prefilled-url` | Named Rust handler exists; implementation equivalence not established | Independent output/state equivalence, failure semantics and side-effect parity |
@@ -54,7 +54,7 @@ The `capture`, `internet-archive-cdx`, `internet-archive-replay`, `discover` and
 | `run-cycle` | Unimplemented in Rust; exits with an error | Independent output/state equivalence, failure semantics and side-effect parity |
 | `scheduler` | Unimplemented in Rust; exits with an error | Independent output/state equivalence, failure semantics and side-effect parity |
 | `serve` | Unimplemented in Rust; exits with an error | Independent output/state equivalence, failure semantics and side-effect parity |
-| `request-detail` | Unimplemented in Rust; exits with an error | Independent output/state equivalence, failure semantics and side-effect parity |
+| `request-detail` | Native full local record plus timeline implemented; partial Python parity (derived reports not implemented) | Twelve stored fields and explicit nulls, body only on explicit detail, consistent timeline; no fabricated derived fields |
 | `export-request` | Unimplemented in Rust; exits with an error | Independent output/state equivalence, failure semantics and side-effect parity |
 | `follow-up-draft` | Unimplemented in Rust; exits with an error | Independent output/state equivalence, failure semantics and side-effect parity |
 | `attachment-manifest` | Unimplemented in Rust; exits with an error | Independent output/state equivalence, failure semantics and side-effect parity |
