@@ -4,6 +4,8 @@
 //! `statutory_deadline_days`, and provides overdue helpers with store-friendly
 //! serde types.
 
+pub mod statutory;
+
 use crate::jurisdiction::Instance;
 use chrono::{Datelike, NaiveDate};
 use serde::{Deserialize, Serialize};
