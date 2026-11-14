@@ -3,7 +3,7 @@
   "type": "feature",
   "status": "in-progress",
   "created_at": "2026-07-11T08:34:24Z",
-  "updated_at": "2026-11-14T15:18:39Z",
+  "updated_at": "2026-11-14T16:23:00Z",
   "description": "Security policy, observability, auditability, and operator controls for remote MCP operations",
   "github_parent_issue": 169,
   "github_issue": 172,
@@ -11,8 +11,8 @@
     "issue": 172,
     "branch": "feat/mcp-dispatch-observability-169-20261115",
     "dependency_pull_request": 459,
-    "dependency_head": "94e52ab64dde827c891bc8619c18c3c1efd76357",
-    "status": "locally_verified_pending_hosted_checks_and_coordinator_integration",
+    "dependency_head": "2f528c8bca43565a58818f81b8b0faeda99fc30f",
+    "status": "integrated_with_merged_dependencies_pending_final_head_checks",
     "merge_window": "sole_integration_coordinator_required",
     "evidence": "dispatch-observability-evidence.md",
     "scope": "MCP admitted-dispatch events, spans, process metrics and local status resource",
@@ -31,7 +31,10 @@
     "guarded_python_tests_skipped": 2,
     "external_python_network_attempts": 0,
     "pull_request": 460,
-    "pull_request_base": "master"
+    "pull_request_base": "master",
+    "original_dependency_head": "94e52ab64dde827c891bc8619c18c3c1efd76357",
+    "dependency_merge": "3730a8d98104bf485d2e7ffeedc024176420d811",
+    "historical_verification_scope": "Original candidate before durable journal and shared-process harness integration; final hosted receipt is on PR 460"
   },
   "remaining_blockers": [
     "Source-owned typed private HTTP outcomes and cache provenance",
@@ -39,5 +42,21 @@
     "Correlated pacing, cache, retry, throttle and guardrail child events",
     "Supported runtime/platform qualification and original track review",
     "Sole-coordinator reconciliation and final integrated-head checks"
-  ]
+  ],
+  "archive_allowed": false,
+  "final_integration": {
+    "base_merge": "3730a8d98104bf485d2e7ffeedc024176420d811",
+    "original_head": "0ecb2114cece3eabdb1b546ccbfc73aa57c69a92",
+    "merged_dependencies": [
+      458,
+      457,
+      459
+    ],
+    "required_contexts": 12,
+    "coverage_gate_percent": 90,
+    "status": "pending_exact_head_hosted_execution",
+    "receipt_url": "https://github.com/edithatogo/fyi-cli/pull/460",
+    "journal_completion": "success_and_error_results_retained",
+    "shared_process_replay_test": "preserved_from_merged_459"
+  }
 }

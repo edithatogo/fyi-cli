@@ -14,13 +14,15 @@ terminal outcome counters, fixed cumulative duration buckets, saturation and
 process lifetime. Events/spans use server correlation and exclude caller data.
 No additional backend, budget, journal or mandatory dependency is introduced.
 
-The implementation base is #459's fixed
+The original implementation base was #459's fixed
 `94e52ab64dde827c891bc8619c18c3c1efd76357`, including #458's offline fixture repair.
 During work, the coordinator verified and merged #458 as
 `393241da3dd3124c969e2d3f4304b27a2cf8fd22` and refreshed #457 to
 `c8150242d5306bfb1c410eaae9114a0de6fbe13b`. Neither published branch was changed
 by this workstream. Source/runtime/CI/i18n owners' files remain outside the delta;
-there is no Cargo manifest/lock, shared registry, source, db.rs or sync.rs change.
+the original isolated delta had no Cargo manifest/lock, shared registry, source,
+db.rs or sync.rs change. Final integration corrects only this MCP track's stale
+completed registry/index entries; the source/runtime/CI boundaries remain intact.
 
 ## Test-first implementation
 
@@ -49,7 +51,7 @@ Implementation `985a1dd151328d7e7c6e7c3d2454b2d7b9a16a4d` has full tree
 `963bbdf89899d2c8af29c540ce50d573faafe1c7`, exactly matching the locally verified
 implementation (`09c5756e6f2638fea25baba551d21e69de777a37`).
 
-## Local verification, 2026-11-14 UTC
+## Historical original-candidate verification, 2026-11-14 UTC
 
 Environment: Linux x86_64, Rust **1.99.1**, Python **3.12.14**, locked MCP SDK
 **1.30.0** and unchanged `uv.lock`.
@@ -67,7 +69,7 @@ Environment: Linux x86_64, Rust **1.99.1**, Python **3.12.14**, locked MCP SDK
 
 The fixed SDK executable SHA-256 is
 `24f1f5b5f15682f3c0aa99ee1599b4ee5b1f8442c84ed6dfb5b7666379550f62`.
-It is built from this increment, without the separately pending #457 journal.
+It was built from this original candidate without #457's subsequently merged journal.
 The full suite includes #459's production header/body timeouts and connection
 closure checks. The local guard is a Python DNS/socket sensor, **not an OS or
 native-binary sandbox claim**. The TLS server is loopback-only, refuses other
@@ -87,7 +89,7 @@ privacy, collector retention, reset, rollout and rollback boundaries. The
 versioned schema is `tests/fixtures/remote_mcp/status-v1.schema.json`.
 
 Prepare/reject/cache replay do not enter dispatch metrics. The existing write
-journal remains responsible for durable governance events after #457 integration.
+journal from merged #457 remains responsible for durable governance events.
 A successful dispatch is not a guarantee that later journal completion succeeds,
 an upstream request is legally valid, or a write can safely be replayed.
 
@@ -97,14 +99,41 @@ guardrail events and metrics, supported platform/runtime qualification and the
 remaining track reviews. Metrics do not infer HTTP counts, bytes or status from
 MCP payloads or private error strings. No full phase/track closure is claimed.
 
-## Final-head handoff
+## Final integration with merged prerequisites
 
-Focused draft: [PR #460](https://github.com/edithatogo/fyi-cli/pull/460).
+Focused PR: [#460](https://github.com/edithatogo/fyi-cli/pull/460). Its original
+head was `0ecb2114cece3eabdb1b546ccbfc73aa57c69a92`. The requested sequential
+window follows these verified merges:
 
-Hosted candidate checks and the sole coordinator's final integrated-head review
-remain pending. Optional queued offline AI is not passed or required-review
-evidence. The intended dependency order remains #458, coordinator #457/#459
-integration, then this independent observability delta. The coordinator must
-preserve `finish_durable` while adding the typed operation argument at the
-`remote_commit_write` dispatch call; this workstream will supply any exact local
-combination evidence separately without moving a published integration branch.
+| Dependency | Final head | Squash merge | Final hosted evidence |
+| --- | --- | --- | --- |
+| #458 offline repair | `d42a78f1e941b39ddf82df8eba77c3a6cab0a4db` | `393241da3dd3124c969e2d3f4304b27a2cf8fd22` | All 12 protected checks; 1,515 Python passes, two skips. |
+| #457 durable journal | `c8150242d5306bfb1c410eaae9114a0de6fbe13b` | `103844052210104666e01d4994d9e2f77986851d` | All 12 protected checks; 696 Rust passes, one ignored; 1,515 Python passes, two skips; 94.92% line coverage. |
+| #459 source/replay contracts | `2f528c8bca43565a58818f81b8b0faeda99fc30f` | `3730a8d98104bf485d2e7ffeedc024176420d811` | All 12 protected checks; 696 Rust passes, one ignored; 1,553 Python passes, two skips; 94.93% line coverage. |
+
+#459's [final run](https://github.com/edithatogo/fyi-cli/actions/runs/43610577668)
+executed all 38 upstream-module and 22 client-module cases. Its downloaded JUnit
+artifact digest and source/checkout identity were verified. The new real
+multi-process shared-journal case passed in 0.414 seconds, including exactly one
+POST, private duplicate rejection, responsive clients and third-process restart
+replay denial. Header/body timeout cases passed in 60.281/60.275 seconds. Those
+tests and current harness/track evidence are retained byte-for-byte from merged
+master during this reconciliation.
+
+The sole production conflict is resolved by passing the typed operation to
+`execute_remote_operation` and passing its entire `Result` to `finish_durable`.
+No early `?` skips durable failure completion. This retains the separate journal
+boundary while observing admitted dispatches. The original advisory combined-tree
+receipt on #460 is historical; it did not include the later shared-process test.
+
+The final combined candidate requires fresh hosted execution of all required
+checks and the unchanged 90% coverage gate. The PR records the exact resulting
+head, checked merge tree, run/artifact identities, review readback and actual
+merge/pruning outcome. No candidate count, queued optional AI job or earlier pass
+qualifies that final head. The local coordinator environment has no Rust compiler;
+no compiler/dependency download is used to replace hosted execution.
+
+The original track remains in progress and unarchived. This track's two stale
+completed registry/index entries are corrected to active; other entries retain
+their owners. No source transport, application CLI/database/i18n, shared workflow,
+runtime, packaging, Cargo or lock changes are made by this integration.

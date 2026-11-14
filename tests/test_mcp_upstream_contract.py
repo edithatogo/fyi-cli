@@ -9,6 +9,7 @@ import time
 from email import policy
 from email.parser import BytesParser
 from pathlib import Path
+from typing import TYPE_CHECKING
 from urllib.parse import urlencode
 
 import anyio
@@ -23,6 +24,10 @@ from tests.mcp_upstream_fixture import (
     upstream_server,
     upstream_session,
 )
+
+if TYPE_CHECKING:
+    from mcp import ClientSession
+    from mcp.types import CallToolResult
 
 # Register the existing fixture; Cargo remains the single executable builder.
 mcp_binary = test_mcp_client_interop.mcp_binary
@@ -173,6 +178,98 @@ def test_actual_sdk_to_source_success_contract(
 
     anyio.run(scenario)
     _diagnostics_are_private(tmp_path)
+
+
+@LINUX_TLS
+@pytest.mark.integration
+@pytest.mark.e2e
+@pytest.mark.security
+def test_shared_journal_allows_one_subprocess_write_and_blocks_restart_replay(
+    mcp_binary: Path,
+    tmp_path: Path,
+) -> None:
+    case = next(case for case in _fixture()["cases"] if case["id"] == "create")
+    tokens: list[str] = []
+    responses: list[str] = []
+    replay_error = "a durable write attempt already exists; reconcile its outcome before retrying"
+
+    async def scenario() -> None:
+        with anyio.fail_after(20), upstream_server(tmp_path, case["exchanges"]) as upstream:
+            # Both actual processes use the same private state directory. Start
+            # them sequentially, then prepare both before either can dispatch.
+            async with (
+                upstream_session(mcp_binary, tmp_path, upstream, writes=True) as first,
+                upstream_session(mcp_binary, tmp_path, upstream, writes=True) as second,
+            ):
+                sessions = (first, second)
+                for session in sessions:
+                    prepared = await session.call_tool(case["tool"], case["arguments"])
+                    assert not prepared.isError
+                    assert prepared.structuredContent["status"] == "prepared"
+                    tokens.append(prepared.structuredContent["confirmation_token"])
+                assert len(set(tokens)) == 2
+                assert upstream.observed == [], "prepare performed source I/O"
+
+                start = anyio.Event()
+                results: list[CallToolResult] = []
+
+                async def commit(session: ClientSession, token: str) -> None:
+                    await start.wait()
+                    results.append(
+                        await session.call_tool(
+                            case["tool"],
+                            {
+                                "instance_id": "synthetic",
+                                "phase": "commit",
+                                "idempotency_key": case["arguments"]["idempotency_key"],
+                                "confirmation_token": token,
+                            },
+                        ),
+                    )
+
+                async with anyio.create_task_group() as group:
+                    for session, token in zip(sessions, tokens, strict=True):
+                        group.start_soon(commit, session, token)
+                    start.set()
+                succeeded = [result for result in results if not result.isError]
+                rejected = [result for result in results if result.isError]
+                assert len(succeeded) == len(rejected) == 1
+                assert succeeded[0].structuredContent == case["expected"]
+                assert rejected[0].content[0].text == replay_error
+                responses.extend(result.model_dump_json() for result in results)
+                for session in sessions:
+                    await session.send_ping()
+
+            # A successful result is process-local; a new process must retain
+            # the reservation and require reconciliation without redispatch.
+            async with upstream_session(mcp_binary, tmp_path, upstream, writes=True) as restarted:
+                replay = await restarted.call_tool(case["tool"], case["arguments"])
+                assert replay.isError
+                assert replay.content[0].text == replay_error
+                responses.append(replay.model_dump_json())
+                await restarted.send_ping()
+            upstream.assert_complete()
+            assert len(upstream.observed) == 1, "competing processes dispatched duplicate writes"
+            request = upstream.observed[0]
+            assert request.headers["x-fyi-bot-token"] == SYNTHETIC_HEADER_VALUE
+            assert json.loads(request.body) == case["exchanges"][0]["request_json"]
+
+    anyio.run(scenario)
+    _diagnostics_are_private(tmp_path)
+    private_values = [
+        SYNTHETIC_HEADER_VALUE,
+        case["arguments"]["body"],
+        case["arguments"]["idempotency_key"],
+        *tokens,
+    ]
+    artifacts = [tmp_path / "upstream-server.stderr", *(tmp_path / "write-state").iterdir()]
+    for artifact in artifacts:
+        contents = artifact.read_bytes()
+        for private in private_values:
+            assert private.encode() not in contents
+    for response in responses:
+        for private in private_values:
+            assert private not in response
 
 
 @LINUX_TLS

@@ -26,7 +26,8 @@ This directory contains the canonical Conductor project context and management f
 
 ### Active Tracks
 - **i18n-localization-framework** — Fluent, typed letters and terminology are merged (#436, #447, #450); calendars/statutory rules, human review and remaining integration/performance acceptance stay open under #39.
-- **remote-mcp-contract-harness-20260711** — Executable protocol, SDK, confirmation, budget, degraded-startup and credential-isolation contracts are delivered; source/fault/transfer, broader property/mutation and platform acceptance remain open under #169/#173.
+- **remote-mcp-contract-harness-20260711** — Executable protocol, SDK and synthetic upstream contracts are delivered; feed/cache/transfer, broader property/mutation and platform acceptance remain open under #169/#173.
+- **remote-mcp-write-governance-20260711** — Governed writes and a bounded durable journal are implemented; immutable attachment submission, atomic upstream state changes and platform qualification remain open under #169/#171.
 - **rust-mcp-tui-implementation** — TUI presentation verified separately; request-management/CLI integration and runtime acceptance remain open (PR #435)
 - **frontier-rust-convergence-20261113** — Frontier capability contract, Rust convergence, 3.15/1.99 compatibility gates, CI/harness and Conductor self-repair (planning; not yet implemented)
 - **test-acceleration-20261113** — Bounded local test-acceleration profiles (slow marker, xdist, testmon, bounded gremlins trial, VCR/Freezegun/pytest-picked decisions) for issue #322 (completed via PR; CI full suite authoritative)
@@ -37,12 +38,12 @@ This directory contains the canonical Conductor project context and management f
 - **foi-platform-landscape_20260712** - Source-backed map of non-Alaveteli FOI platforms, with Phase 3 drift monitoring still open
 - **jurisdiction-capture-completion-20260721** - Bounded jurisdiction capture increments; live runs remain operator-authorised
 
+- **remote-mcp-observability-security-20260711** - Bounded MCP dispatch telemetry; source correlation, raw metrics and platform acceptance remain open (#172, #460)
+
 ### Completed Tracks
 - **quality-frontier-testing-cicd-20261113** — Independently verified and archived for issue #280 (PRs #414, #433 and #437); [acceptance evidence](./archive/quality-frontier-testing-cicd-20261113/acceptance-evidence.md).
 - **python-security-quality-fuzzing-20260813** - Hypothesis gate, bounded Atheris fuzzing, and zero-vulnerability Python security baseline (PR #390)
-- **remote-mcp-observability-security-20260711** - Default-deny policy, observability, and operator controls
 - **remote-mcp-read-surface-20260711** - Guarded read-only remote SyncClient tools
-- **remote-mcp-write-governance-20260711** - Governed prepare/commit remote writes
 - **resource-aware-autonomous-agent** - Header-aware adaptive pacing, load memory, plan reflection, identity hygiene, filesystem cache, and local traces for sustainable Alaveteli access
 - **research-grade-quality** - >95% test coverage, >90% mutation score, and load/performance testing baseline
 - **integrate-fyi-cli-history** - Migration from 14 versioned archives

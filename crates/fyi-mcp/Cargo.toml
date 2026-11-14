@@ -24,4 +24,6 @@ chrono = { version = "0.4", features = ["serde"] }
 sqlx = { version = "0.9.0", features = ["runtime-tokio", "tls-rustls-ring", "sqlite"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+hmac = "0.12"
+sha2 = "0.10"
 

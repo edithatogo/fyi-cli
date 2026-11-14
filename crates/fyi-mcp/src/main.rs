@@ -35,6 +35,7 @@ mod telemetry;
 use policy::RemoteMcpPolicy;
 use telemetry::{DispatchOutcome, RemoteOperation};
 pub mod write_gate;
+pub mod write_journal;
 use write_gate::RemoteWriteGate;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -1935,6 +1936,11 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
             if let Err(message) =
                 arguments::validate_arguments(&definition["inputSchema"], &mut arguments)
             {
+                if is_remote_write(name) {
+                    if let Err(error) = write_gate.record_rejection(name).await {
+                        return Some(tool_error(req.id, error));
+                    }
+                }
                 return Some(JsonRpcResponse::error(req.id, -32602, message.into()));
             }
 
@@ -2753,7 +2759,9 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                         )
                         .await
                     } else {
-                        write_gate.prepare(remote_policy, instance_id, name, &arguments)
+                        write_gate
+                            .prepare_durable(remote_policy, instance_id, name, &arguments)
+                            .await
                     };
                     match result {
                         Ok(payload) => Some(tool_success(req.id, payload)),
@@ -2968,8 +2976,9 @@ async fn remote_commit_write(
         .get("idempotency_key")
         .and_then(Value::as_str)
         .ok_or_else(|| "idempotency_key is required for commit".to_string())?;
-    let (prepared, permit) =
-        gate.reserve_for(policy, token, instance_id, operation, idempotency_key)?;
+    let (prepared, permit) = gate
+        .reserve_durable(policy, token, instance_id, operation, idempotency_key)
+        .await?;
     let instance = policy
         .instance(instance_id)
         .ok_or_else(|| "remote instance is not configured".to_string())?;
@@ -3069,10 +3078,9 @@ async fn remote_commit_write(
             _ => Err("unsupported remote write operation".to_string()),
         }
     };
-    let payload =
-        execute_remote_operation(policy, permit, observed_operation, operation_future).await?;
-    gate.remember_result(&prepared, payload.clone())?;
-    Ok(payload)
+    let result =
+        execute_remote_operation(policy, permit, observed_operation, operation_future).await;
+    gate.finish_durable(&prepared, result).await
 }
 
 async fn validated_attachment_paths(arguments: &Value) -> Result<Vec<PathBuf>, String> {
@@ -3708,6 +3716,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .init();
 
     let remote_policy = RemoteMcpPolicy::from_env()?;
+    let write_gate = RemoteWriteGate::from_env(&remote_policy).await?;
     let policy_status = remote_policy.status();
     tracing::info!(
         remote_enabled = policy_status.remote_enabled,
@@ -3724,7 +3733,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     db.run_migrations().await?;
     ensure_authorities_table(db.pool()).await?;
 
-    let write_gate = RemoteWriteGate::default();
     if http_transport_enabled() {
         let bearer_token = configured_bearer_token()?;
         run_http(

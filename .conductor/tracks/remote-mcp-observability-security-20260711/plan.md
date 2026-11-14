@@ -30,10 +30,12 @@
 
 ## Bounded MCP dispatch increment — 2026-11-15
 
-Focused draft [#460](https://github.com/edithatogo/fyi-cli/pull/460).
+Focused PR [#460](https://github.com/edithatogo/fyi-cli/pull/460).
 Existing ordinary ChatGPT workstream; sole integration coordinator retains final
-verification, refresh, merge and pruning. Based on fixed #459, including #458's
-offline acquisition repair; #457 remains a separate fixed journal candidate.
+verification, reconciliation, merge and pruning. The original candidate used
+fixed #459; final integration now retains merged #458/#457/#459, including the
+shared-journal concurrent-process/restart/privacy test. The final head and
+required Actions receipt are recorded on the PR.
 
 - [x] Write executed failing tests for local status discovery, fixed metric
   dimensions, byte accounting, failure/timeout/cancellation and emitted privacy. `3e6051b` (RED).
@@ -41,11 +43,15 @@ offline acquisition repair; #457 remains a separate fixed journal candidate.
   and policy ownership; no additional budget engine or telemetry dependency. `985a1dd`.
 - [x] Verify local offline Rust/SDK/full Python contracts, linting and three
   targeted mutations; document measurement and retention scope. `985a1dd`.
-- [~] Verify required final-candidate GitHub checks, configured coverage and
-  review state; hand the focused draft to the sole integration coordinator.
+- [x] Reconcile once with merged #458/#457/#459 in the requested sequential
+  window, preserving durable completion for success and failure and the latest
+  harness/evidence. Base checkpoint `3730a8d`.
+- [~] Verify required final-head GitHub checks, configured coverage and review
+  state; record the actual merge and branch cleanup on #460.
 
 The original phase remains incomplete. Source-owned HTTP status/kind/retryability,
 raw-byte/cache/retry/throttle counters, pacing/cache/guardrail child events and
 cross-platform qualification are not established by MCP dispatch telemetry.
-No shared registry, source adapter, runtime or workflow changes are authorized
-by this slice. The existing durable write journal remains #457's responsibility.
+Only this track's stale completed registry/index entries are corrected to active;
+other workstreams are unchanged. Source adapters, runtime and workflows retain
+their owners. The existing durable write journal remains intact.

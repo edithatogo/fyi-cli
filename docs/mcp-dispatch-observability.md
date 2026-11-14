@@ -4,9 +4,10 @@ This is the MCP-owned portion of [#172](https://github.com/edithatogo/fyi-cli/is
 and [#169](https://github.com/edithatogo/fyi-cli/issues/169). It uses the existing
 `tracing` subscriber and policy object. It adds no exporter, backend dependency,
 budget engine, remote endpoint, request persistence or control-changing tool.
-Durable write-journal behavior belongs to the separately reviewed
-[#457](https://github.com/edithatogo/fyi-cli/pull/457); references to that journal
-below describe the combined deployment after the coordinator integrates it.
+Durable write-journal behavior is supplied by merged
+[#457](https://github.com/edithatogo/fyi-cli/pull/457). This increment retains that
+journal and the actual shared-process/restart contracts from merged
+[#459](https://github.com/edithatogo/fyi-cli/pull/459).
 
 ## Local status resource
 
@@ -143,6 +144,8 @@ This increment does not complete #172's original correlated source observability
 Source-owned typed outcomes and cache provenance, raw allowance sharing, retry /
 throttle / cache / guardrail events, bounded source metrics, and runtime/platform
 qualification remain required. Keep the existing Conductor track and #169/#172
-open. The sole integration coordinator must reconcile the separate journal and
-offline-harness candidates and verify all required checks on the eventual final
-integrated head; a local candidate or temporary combined tree is not that approval.
+open. The journal and offline harness are reconciled with their verified merged
+versions. All required checks must still pass on this increment's final integrated
+head; its [PR receipt](https://github.com/edithatogo/fyi-cli/pull/460) records that
+execution and merge outcome. A historical local candidate or temporary combined
+tree does not replace final-head verification.
