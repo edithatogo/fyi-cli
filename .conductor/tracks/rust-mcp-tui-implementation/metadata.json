@@ -3,17 +3,34 @@
   "type": "feature",
   "status": "in_progress",
   "created_at": "2026-06-14T23:50:00Z",
-  "updated_at": "2026-11-14T03:48:19Z",
+  "updated_at": "2026-11-14T07:04:00Z",
   "description": "Rust Rewrite Phase 2 - Command-line interface, native MCP server implementation, and Ratatui terminal UI dashboard.",
   "issue_number": 10,
-  "pull_request": 435,
+  "pull_request": 448,
   "tui_presentation": {
     "status": "implemented_and_locally_verified",
     "contract": "docs/tui-presentation-contract.md",
     "evidence": "tui-acceptance-evidence.md",
     "focused_tests": 39,
     "render_fixtures": 14,
-    "cli_dispatch": "blocked_by_request_management_integration",
+    "cli_dispatch": "bounded_runtime_verified_in_pr_448_pending_integration",
     "combined_track_closed": false
+  },
+  "tui_runtime": {
+    "pull_request": 448,
+    "status": "implementation_verified_pending_coordinator_integration",
+    "baseline": "39591dcf91bb50ed847b0d36bdc3bd670a7e60a7",
+    "verified_head": "18cc6eeac934354ee9a25240af2b5be65965e2db",
+    "hosted_test_merge": "4e23ec366c670cf0efa61e7cbd69e192a1ba646d",
+    "required_checks_passed": 12,
+    "new_executable_tests": 24,
+    "workspace_line_coverage_percent": 94.34,
+    "scope": "read_only_local_metadata_snapshot_and_terminal_lifecycle",
+    "timelines": "unavailable",
+    "manual_accessibility": "not_verified",
+    "performance_budgets": "not_verified",
+    "integration_coordinator": "Issue fixes and PR merges",
+    "exclusive_slot": "requested",
+    "retirement_bundles_integrated": false
   }
 }
