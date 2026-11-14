@@ -104,3 +104,36 @@ See `docs/remote-mcp-security.md` for setup, retention, incident recovery and
 rollback. The sole integration coordinator owns final head/base reconciliation,
 required-check verification, merge and branch pruning. No optional queued AI job
 is counted as passed; no gate or original acceptance item is waived.
+
+## Final journal integration receipt — 15 November 2026 AEST
+
+The user's later instruction authorized sequential integration. The offline
+scheduler repair #458 was merged first as `393241d`; that repaired master was
+incorporated once into #457 without changing its 14-file journal delta.
+
+Final head `c8150242d5306bfb1c410eaae9114a0de6fbe13b` passed all 12 protected
+contexts, matched by head and required GitHub app identity, plus Rust 1.99.1
+MSRV and the ordinary security/property/workflow checks. It was squash-merged
+as `103844052210104666e01d4994d9e2f77986851d`. The final head, GitHub tested
+merge `74c00b3c17e8c081c0e31c5fd733c8954cda675a` and actual merge share tree
+`ad93f7c4802e340283ade9260492dd5c4df02812`. The expected-head guard was used,
+and automatic remote branch pruning was verified.
+
+- [Workspace](https://github.com/edithatogo/fyi-cli/actions/runs/43607883572/job/132486348230):
+  **696 passed, zero failed, one ignored**, including **153 MCP tests**.
+- [Coverage](https://github.com/edithatogo/fyi-cli/actions/runs/43607883572/job/132486348292):
+  **695 instrumented tests passed**, one ignored; **14,517/15,294 lines (94.92%)**,
+  retaining the 90% gate and all existing exclusions.
+- [Python](https://github.com/edithatogo/fyi-cli/actions/runs/43607883572/job/132486348262):
+  **1,515 passed, two skipped**; all **22 MCP client cases** and the offline
+  scheduler denial sensor executed on Python **3.12.16**, locked SDK **1.30.0**.
+- [CodeQL](https://github.com/edithatogo/fyi-cli/actions/runs/43607883581) passed.
+  Final review/inline-thread readback found none; no independent human approval
+  is claimed. Optional self-hosted offline AI remained queued and is not a pass.
+
+Successful source workflows and the additional actual concurrent-process
+shared-journal scenario belong to #459's separately verified combined head.
+This receipt does not qualify Python 3.15.1, Windows/macOS MCP runtime/ACL,
+immutable attachment content or atomic upstream state changes. #169/#171 and
+this existing track remain open. The registry's stale completed label is
+reconciled with that status as part of #459; no new track or waiver is created.

@@ -255,15 +255,15 @@ This file tracks all major tracks for the project. Each track has its own detail
   *GitHub parent: [#169](https://github.com/edithatogo/fyi-cli/issues/169)*
   *GitHub issue: [#173](https://github.com/edithatogo/fyi-cli/issues/173)*
   *Link: [./tracks/remote-mcp-contract-harness-20260711/](./tracks/remote-mcp-contract-harness-20260711/)*
-  *Description: Executable MCP catalogue/exchange fixtures, official SDK stdio/HTTP contracts, private errors, bounded confirmations and measured local budgets. Source fixture/fault, broader mutation/property and Windows/macOS evidence remain open; see acceptance-evidence.md in the existing track.*
+  *Description: Executable MCP catalogue/exchange fixtures, official SDK stdio/HTTP and synthetic upstream contracts, private errors, bounded confirmations and measured local budgets. RSS/Atom, source cache/transfer, broader mutation/property and Windows/macOS evidence remain open; see acceptance-evidence.md in the existing track.*
   *Dependencies: remote-mcp-observability-security, remote-mcp-read-surface*
   *Priority: high*
 
-- [x] **Track: remote-mcp-write-governance** (COMPLETED 2026-07-11, PR #178; correction #180; attachment contract #183)
+- [~] **Track: remote-mcp-write-governance** (IN PROGRESS 2026-11-15; durable journal #457; original attachment/state/platform acceptance incomplete)
   *GitHub parent: [#169](https://github.com/edithatogo/fyi-cli/issues/169)*
   *GitHub issue: [#171](https://github.com/edithatogo/fyi-cli/issues/171)*
   *Link: [./tracks/remote-mcp-write-governance-20260711/](./tracks/remote-mcp-write-governance-20260711/)*
-  *Description: Explicitly enabled prepare/commit remote writes with protected credentials, idempotency, replay protection, attachment bounds, optimistic state concurrency, and durable audit.*
+  *Description: Explicitly enabled prepare/commit remote writes with protected credentials, bounded durable replay/audit, attachment bounds and client state preflight. Immutable attachment bytes, atomic upstream state changes and full platform/runtime acceptance remain open; the track is not archived.*
   *Dependencies: remote-mcp-observability-security, remote-mcp-read-surface, remote-mcp-contract-harness*
   *Priority: high*
 

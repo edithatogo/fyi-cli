@@ -4,6 +4,11 @@ This document records executable evidence for the existing
 `remote-mcp-contract-harness-20260711` track. All examples and tests use
 synthetic local state. No CI probe sends a request to a live authority.
 
+The [actual upstream harness](mcp-upstream-harness.md) adds versioned synthetic
+JSON/multipart/status/fault exchanges through the production executable and
+`SyncClient`, with exact wire assertions. Its Linux-only TLS trust fixture and
+remaining source/feed/raw-budget/platform boundaries are documented separately.
+
 ## Supported wire profiles
 
 | Profile | Behaviour | Automated sensor |
