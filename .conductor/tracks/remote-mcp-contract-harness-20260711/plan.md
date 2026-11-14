@@ -9,10 +9,10 @@
 
 ## Phase 2: Layered test harness
 
-- [~] Task: Add unit, integration, end-to-end stdio, smoke/system, regression, and sanity suites — startup-degraded mode and restart recovery now have executable SDK evidence; successful source read/commit integration remains open
+- [~] Task: Add unit, integration, end-to-end stdio, smoke/system, regression, and sanity suites — startup recovery plus successful SDK/source calls for all eight current tools now execute locally; source feeds/cache/raw-budget/platform acceptance remains open
 - [~] Task: Add property tests for bounds, normalization, state expectations, and redaction
 - [x] Task: Add edge and security tests for SSRF, capabilities, guardrails, and secrets
-- [~] Task: Conductor review verification 'Layered test harness' — local/SDK modes, startup-degraded denial, restart recovery and privacy passed; source fault and full successful remote integration remain open
+- [~] Task: Conductor review verification 'Layered test harness' — current-tool SDK/source success, status/disconnect/chunk/redirect faults and measured header/body timeouts pass on Linux; full original feed/cache/raw-budget/platform criteria remain open
 
 ## Phase 3: Mutation and performance
 
@@ -38,7 +38,7 @@ The registry previously described this track as implemented, but its plan and me
 - This slice targets the existing 2025-06-18 and 2025-03-26 profiles; it does not claim later MCP revisions.
 - Remaining evidence is tracked in `acceptance-evidence.md`; unchecked acceptance gates remain open.
 
-Confirmation and MCP operation-budget slice: deterministic expiry/scope/replay, concurrency, byte/duration, privacy and invalid-confirmation regressions pass; source raw-byte/retry and cross-restart/attachment guarantees remain open (see acceptance evidence).
+Confirmation and MCP operation-budget slice: deterministic expiry/scope/replay, concurrency, byte/duration, privacy and invalid-confirmation regressions pass. Bounded durable reservation/audit is now verified in merged #457; source raw-byte/retry and immutable attachment guarantees remain open (see acceptance evidence).
 
 ## Current closure decision
 
@@ -79,4 +79,39 @@ source implementation, shared test configuration, runtime lock or workflow edit.
   39 passed; guarded full Python run 1,515 passed/two skipped, zero external
   Python DNS/socket attempts. See `offline-scheduler-evidence.md` for limits.
 - [x] Publish focused PR #458 before resuming broader hosted verification.
-- [~] Final-head checks/review and merge remain with the sole integration coordinator.
+- [x] Final-head review and all 12 protected checks passed on `d42a78f`;
+  squash-merged as `393241d` after the explicit user integration instruction.
+  Hosted Python: 1,515 passed/two skipped; remote branch deletion verified.
+
+## Actual upstream fixture increment — 2026-11-14
+
+Baseline `76de6a2` preserves the coordinator's #452/#456 integration. The
+unpublished increment was then reconciled onto #458 at `d42a78f` before its
+combined guarded verification. In this
+ordinary ChatGPT workstream, tests first expose the missing versioned actual
+MCP-to-source exchange corpus. An ephemeral local TLS/CONNECT fixture can drive
+the unchanged production `SyncClient` without a production testing bypass,
+external DNS/request, system trust modification or committed private key.
+
+- [x] Add versioned synthetic wire exchanges for the existing five read and
+  three write tools, preserving supported JSON shapes and Unicode.
+  RED `0883e4c`, implementation `95631aa`; 37 tests and three caught mutations.
+- [x] Execute real SDK prepare/commit/replay, exact wire payload/count,
+  read-only denial, state preflight and bounded multipart assertions.
+- [x] Add deterministic status/malformed/disconnect/chunk/redirect failures
+  and measure production header/body timeout, connection closure and recovery;
+  keep unexecuted cache, raw-transfer and platform requirements explicit.
+- [x] Record local test-first/mutation evidence: 37 upstream tests, three caught
+  mutations, guarded combined Python run 1,552 passed/two skipped and zero
+  external Python DNS/socket attempts.
+- [x] Publish focused PR #459 with #458 as an explicit integration dependency.
+- [x] Add a bounded three-process shared-journal integration case to the
+  existing SDK/source harness: concurrent confirmations, one observed POST,
+  responsive clients, restart replay denial and private responses/logs/storage.
+- [~] Execute and record the combined final head in PR #459 under the explicit
+  user instruction to proceed with sequential integration. Required gates and
+  broader acceptance remain unchanged.
+
+This does not replace #457's durable journal or alter source, archive, runtime
+or workflow ownership. A source fixture is synthetic compatibility evidence,
+not a claim that a live jurisdiction/platform has certified the behavior.

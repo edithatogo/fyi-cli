@@ -11,7 +11,7 @@
 
 - [ ] Task: Write failing WireMock tests for prepare/commit request creation and correspondence
 - [x] Task: Implement governed request creation and correspondence tools via SyncClient
-- [~] Task: Add idempotency, safe errors, and durable redacted audit events — durable journal and restart/audit assertions pass locally; hosted candidate evidence and successful MCP-to-source writes are pending
+- [x] Task: Add idempotency, safe errors, and durable redacted audit events — bounded journal and restart/audit assertions verified on final #457 head `c815024`; merged as `1038440`. Successful source workflows are a separate #459 contract.
 - [ ] Task: Conductor review verification 'Request and correspondence writes'
 
 ## Phase 3: Attachments and state updates
@@ -48,8 +48,10 @@ durable production write log. The parent and this track remain incomplete.
   raw idempotency/confirmation tokens or credential values.
 - [x] Integrate production startup and prepare/commit/reject/replay/outcome events (`dbee12d`);
   preserve the existing payload-bound monotonic confirmation gate.
-- [~] Run focused and workspace verification, targeted mutations and final-head
-  hosted gates; hand off a focused PR to the sole integration coordinator.
+- [x] Run focused and workspace verification, targeted mutations and final-head
+  hosted gates. After #458's offline repair and the explicit user integration
+  instruction, #457 head `c815024` passed all 12 protected checks and merged as
+  `1038440`; the tested tree and remote branch deletion were verified.
 
 Source transfer and platform acceptance remain with their owners. This increment
 does not establish atomic upstream compare-and-set or immutable attachment bytes.

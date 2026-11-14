@@ -1,0 +1,679 @@
+{
+  "schema_version": 1,
+  "fixture_id": "remote-mcp-upstream-v1",
+  "origin": "https://mcp-fixture.invalid",
+  "provenance": "synthetic; not live-platform certification",
+  "cases": [
+    {
+      "id": "health",
+      "tool": "remote_health",
+      "arguments": {
+        "instance_id": "synthetic"
+      },
+      "exchanges": [
+        {
+          "method": "GET",
+          "path": "/api/v2/request.json",
+          "status": 200,
+          "json": []
+        }
+      ],
+      "expected": {
+        "instance_id": "synthetic",
+        "network_reachable": true,
+        "api_reachable": true
+      }
+    },
+    {
+      "id": "version_object",
+      "tool": "remote_version",
+      "arguments": {
+        "instance_id": "synthetic"
+      },
+      "exchanges": [
+        {
+          "method": "GET",
+          "path": "/api/v2/version.json",
+          "status": 200,
+          "json": {
+            "version": "synthetic-v1 Café 東京"
+          }
+        }
+      ],
+      "expected": {
+        "instance_id": "synthetic",
+        "version": "synthetic-v1 Café 東京"
+      }
+    },
+    {
+      "id": "version_string",
+      "tool": "remote_version",
+      "arguments": {
+        "instance_id": "synthetic"
+      },
+      "exchanges": [
+        {
+          "method": "GET",
+          "path": "/api/v2/version.json",
+          "status": 200,
+          "json": "synthetic-v1 Café 東京"
+        }
+      ],
+      "expected": {
+        "instance_id": "synthetic",
+        "version": "synthetic-v1 Café 東京"
+      }
+    },
+    {
+      "id": "version_chunked_unicode",
+      "tool": "remote_version",
+      "arguments": {
+        "instance_id": "synthetic"
+      },
+      "exchanges": [
+        {
+          "method": "GET",
+          "path": "/api/v2/version.json",
+          "status": 200,
+          "json": {
+            "version": "synthetic-v1 Café 東京"
+          },
+          "chunked": true
+        }
+      ],
+      "expected": {
+        "instance_id": "synthetic",
+        "version": "synthetic-v1 Café 東京"
+      }
+    },
+    {
+      "id": "version_same_origin_redirect",
+      "tool": "remote_version",
+      "arguments": {
+        "instance_id": "synthetic"
+      },
+      "exchanges": [
+        {
+          "method": "GET",
+          "path": "/api/v2/version.json",
+          "status": 302,
+          "headers": {
+            "Location": "/api/v2/version-v1.json"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/v2/version-v1.json",
+          "status": 200,
+          "json": {
+            "version": "synthetic-v1"
+          }
+        }
+      ],
+      "expected": {
+        "instance_id": "synthetic",
+        "version": "synthetic-v1"
+      }
+    },
+    {
+      "id": "request_complete",
+      "tool": "remote_get_request",
+      "arguments": {
+        "instance_id": "synthetic",
+        "request_id": 7001
+      },
+      "exchanges": [
+        {
+          "method": "GET",
+          "path": "/api/v2/request/7001.json",
+          "status": 200,
+          "json": {
+            "id": 7001,
+            "title": "Synthetic Café 東京",
+            "body": "Synthetic request content Café 東京",
+            "status": "waiting_response",
+            "url": "https://mcp-fixture.invalid/request/7001"
+          }
+        }
+      ],
+      "expected": {
+        "instance_id": "synthetic",
+        "request": {
+          "id": 7001,
+          "title": "Synthetic Café 東京",
+          "body": "Synthetic request content Café 東京",
+          "status": "waiting_response",
+          "url": "https://mcp-fixture.invalid/request/7001"
+        }
+      }
+    },
+    {
+      "id": "request_minimal",
+      "tool": "remote_get_request",
+      "arguments": {
+        "instance_id": "synthetic",
+        "request_id": 7001
+      },
+      "exchanges": [
+        {
+          "method": "GET",
+          "path": "/api/v2/request/7001.json",
+          "status": 200,
+          "json": {
+            "id": 7001,
+            "title": "Synthetic minimal",
+            "body": "Synthetic body"
+          }
+        }
+      ],
+      "expected": {
+        "instance_id": "synthetic",
+        "request": {
+          "id": 7001,
+          "title": "Synthetic minimal",
+          "body": "Synthetic body"
+        }
+      }
+    },
+    {
+      "id": "search_array",
+      "tool": "remote_search_requests",
+      "arguments": {
+        "instance_id": "synthetic",
+        "query": "Café & 東京",
+        "limit": 1
+      },
+      "exchanges": [
+        {
+          "method": "GET",
+          "path": "/search.json?q=Caf%C3%A9+%26+%E6%9D%B1%E4%BA%AC&per_page=1",
+          "status": 200,
+          "json": [
+            {
+              "id": 7001,
+              "title": "Synthetic Café 東京",
+              "body": "Synthetic request content Café 東京",
+              "status": "waiting_response",
+              "url": "https://mcp-fixture.invalid/request/7001"
+            },
+            {
+              "id": 7002,
+              "title": "Second synthetic request",
+              "body": "Synthetic request content Café 東京",
+              "status": "waiting_response",
+              "url": "https://mcp-fixture.invalid/request/7002"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "instance_id": "synthetic",
+        "query": "Café & 東京",
+        "requests": [
+          {
+            "id": 7001,
+            "title": "Synthetic Café 東京",
+            "body": "Synthetic request content Café 東京",
+            "status": "waiting_response",
+            "url": "https://mcp-fixture.invalid/request/7001"
+          }
+        ]
+      }
+    },
+    {
+      "id": "search_results",
+      "tool": "remote_search_requests",
+      "arguments": {
+        "instance_id": "synthetic",
+        "query": "Café & 東京",
+        "limit": 1
+      },
+      "exchanges": [
+        {
+          "method": "GET",
+          "path": "/search.json?q=Caf%C3%A9+%26+%E6%9D%B1%E4%BA%AC&per_page=1",
+          "status": 200,
+          "json": {
+            "results": [
+              {
+                "id": 7001,
+                "title": "Synthetic Café 東京",
+                "body": "Synthetic request content Café 東京",
+                "status": "waiting_response",
+                "url": "https://mcp-fixture.invalid/request/7001"
+              },
+              {
+                "id": 7002,
+                "title": "Second synthetic request",
+                "body": "Synthetic request content Café 東京",
+                "status": "waiting_response",
+                "url": "https://mcp-fixture.invalid/request/7002"
+              }
+            ],
+            "total": 2
+          }
+        }
+      ],
+      "expected": {
+        "instance_id": "synthetic",
+        "query": "Café & 東京",
+        "requests": [
+          {
+            "id": 7001,
+            "title": "Synthetic Café 東京",
+            "body": "Synthetic request content Café 東京",
+            "status": "waiting_response",
+            "url": "https://mcp-fixture.invalid/request/7001"
+          }
+        ]
+      }
+    },
+    {
+      "id": "search_requests",
+      "tool": "remote_search_requests",
+      "arguments": {
+        "instance_id": "synthetic",
+        "query": "Café & 東京",
+        "limit": 1
+      },
+      "exchanges": [
+        {
+          "method": "GET",
+          "path": "/search.json?q=Caf%C3%A9+%26+%E6%9D%B1%E4%BA%AC&per_page=1",
+          "status": 200,
+          "json": {
+            "requests": [
+              {
+                "id": 7001,
+                "title": "Synthetic Café 東京",
+                "body": "Synthetic request content Café 東京",
+                "status": "waiting_response",
+                "url": "https://mcp-fixture.invalid/request/7001"
+              },
+              {
+                "id": 7002,
+                "title": "Second synthetic request",
+                "body": "Synthetic request content Café 東京",
+                "status": "waiting_response",
+                "url": "https://mcp-fixture.invalid/request/7002"
+              }
+            ]
+          }
+        }
+      ],
+      "expected": {
+        "instance_id": "synthetic",
+        "query": "Café & 東京",
+        "requests": [
+          {
+            "id": 7001,
+            "title": "Synthetic Café 東京",
+            "body": "Synthetic request content Café 東京",
+            "status": "waiting_response",
+            "url": "https://mcp-fixture.invalid/request/7001"
+          }
+        ]
+      }
+    },
+    {
+      "id": "authorities_array",
+      "tool": "remote_list_authorities",
+      "arguments": {
+        "instance_id": "synthetic",
+        "filter": "café",
+        "limit": 1
+      },
+      "exchanges": [
+        {
+          "method": "GET",
+          "path": "/api/v2/authority.json",
+          "status": 200,
+          "json": [
+            {
+              "id": "authority-1",
+              "slug": "synthetic-cafe",
+              "name": "CAFÉ Synthetic Council",
+              "url": "https://mcp-fixture.invalid/body/synthetic-cafe"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "instance_id": "synthetic",
+        "authorities": [
+          {
+            "id": "authority-1",
+            "slug": "synthetic-cafe",
+            "name": "CAFÉ Synthetic Council",
+            "url": "https://mcp-fixture.invalid/body/synthetic-cafe"
+          }
+        ]
+      }
+    },
+    {
+      "id": "authorities_authorities",
+      "tool": "remote_list_authorities",
+      "arguments": {
+        "instance_id": "synthetic",
+        "filter": "café",
+        "limit": 1
+      },
+      "exchanges": [
+        {
+          "method": "GET",
+          "path": "/api/v2/authority.json",
+          "status": 200,
+          "json": {
+            "authorities": [
+              {
+                "id": "authority-1",
+                "slug": "synthetic-cafe",
+                "name": "CAFÉ Synthetic Council",
+                "url": "https://mcp-fixture.invalid/body/synthetic-cafe"
+              }
+            ]
+          }
+        }
+      ],
+      "expected": {
+        "instance_id": "synthetic",
+        "authorities": [
+          {
+            "id": "authority-1",
+            "slug": "synthetic-cafe",
+            "name": "CAFÉ Synthetic Council",
+            "url": "https://mcp-fixture.invalid/body/synthetic-cafe"
+          }
+        ]
+      }
+    },
+    {
+      "id": "create",
+      "tool": "remote_create_request",
+      "arguments": {
+        "instance_id": "synthetic",
+        "title": "Synthetic Café 東京",
+        "body": "Synthetic submission body Café 東京",
+        "external_user_name": "Synthetic Client",
+        "external_url": "https://mcp-fixture.invalid/client/1",
+        "tags": "synthetic fixture",
+        "idempotency_key": "synthetic-create"
+      },
+      "exchanges": [
+        {
+          "method": "POST",
+          "path": "/api/v2/request",
+          "status": 201,
+          "request_json": {
+            "title": "Synthetic Café 東京",
+            "body": "Synthetic submission body Café 東京",
+            "external_user_name": "Synthetic Client",
+            "external_url": "https://mcp-fixture.invalid/client/1",
+            "tags": "synthetic fixture"
+          },
+          "json": {
+            "id": 7001,
+            "url": "https://mcp-fixture.invalid/request/7001"
+          }
+        }
+      ],
+      "expected": {
+        "instance_id": "synthetic",
+        "request": {
+          "id": 7001,
+          "url": "https://mcp-fixture.invalid/request/7001"
+        }
+      },
+      "write": true
+    },
+    {
+      "id": "correspondence_json",
+      "tool": "remote_add_correspondence",
+      "arguments": {
+        "instance_id": "synthetic",
+        "direction": "response",
+        "body": "Synthetic correspondence Café 東京",
+        "sent_at": "2026-11-14T00:00:00Z",
+        "state": "successful",
+        "request_id": 7001,
+        "idempotency_key": "synthetic-correspondence"
+      },
+      "exchanges": [
+        {
+          "method": "POST",
+          "path": "/api/v2/request/7001/correspondence.json",
+          "status": 201,
+          "request_json": {
+            "direction": "response",
+            "body": "Synthetic correspondence Café 東京",
+            "sent_at": "2026-11-14T00:00:00Z",
+            "state": "successful"
+          },
+          "json": {
+            "success": true
+          }
+        }
+      ],
+      "expected": {
+        "instance_id": "synthetic",
+        "correspondence": {
+          "success": true
+        }
+      },
+      "write": true
+    },
+    {
+      "id": "state_preflight",
+      "tool": "remote_update_state",
+      "arguments": {
+        "instance_id": "synthetic",
+        "request_id": 7001,
+        "expected_current_state": "waiting_response",
+        "state": "successful",
+        "idempotency_key": "synthetic-state"
+      },
+      "exchanges": [
+        {
+          "method": "GET",
+          "path": "/api/v2/request/7001.json",
+          "status": 200,
+          "json": {
+            "id": 7001,
+            "title": "Synthetic Café 東京",
+            "body": "Synthetic request content Café 東京",
+            "status": "waiting_response",
+            "url": "https://mcp-fixture.invalid/request/7001"
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v2/request/7001/state.json",
+          "status": 200,
+          "request_json": {
+            "state": "successful"
+          },
+          "json": {
+            "updated": true
+          }
+        }
+      ],
+      "expected": {
+        "instance_id": "synthetic",
+        "state": {
+          "updated": true
+        }
+      },
+      "write": true
+    },
+    {
+      "id": "correspondence_multipart",
+      "tool": "remote_add_correspondence",
+      "arguments": {
+        "instance_id": "synthetic",
+        "direction": "response",
+        "body": "Synthetic correspondence Café 東京",
+        "sent_at": "2026-11-14T00:00:00Z",
+        "state": "successful",
+        "request_id": 7001,
+        "idempotency_key": "synthetic-attachment",
+        "attachments": [
+          "report.txt"
+        ]
+      },
+      "exchanges": [
+        {
+          "method": "POST",
+          "path": "/api/v2/request/7001/correspondence.json",
+          "status": 201,
+          "request_parts": {
+            "direction": "response",
+            "body": "Synthetic correspondence Café 東京",
+            "sent_at": "2026-11-14T00:00:00Z",
+            "state": "successful",
+            "attachment_0": "Synthetic attachment Café 東京"
+          },
+          "json": {
+            "success": true
+          }
+        }
+      ],
+      "expected": {
+        "instance_id": "synthetic",
+        "correspondence": {
+          "success": true
+        }
+      },
+      "write": true,
+      "files": {
+        "report.txt": "Synthetic attachment Café 東京"
+      }
+    }
+  ],
+  "errors": [
+    {
+      "id": "status_401",
+      "method": "GET",
+      "path": "/api/v2/version.json",
+      "status": 401,
+      "body": "synthetic-upstream-private-error",
+      "headers": {}
+    },
+    {
+      "id": "status_403",
+      "method": "GET",
+      "path": "/api/v2/version.json",
+      "status": 403,
+      "body": "synthetic-upstream-private-error",
+      "headers": {}
+    },
+    {
+      "id": "status_404",
+      "method": "GET",
+      "path": "/api/v2/version.json",
+      "status": 404,
+      "body": "synthetic-upstream-private-error",
+      "headers": {}
+    },
+    {
+      "id": "status_429",
+      "method": "GET",
+      "path": "/api/v2/version.json",
+      "status": 429,
+      "body": "synthetic-upstream-private-error",
+      "headers": {
+        "Retry-After": "0"
+      }
+    },
+    {
+      "id": "status_500",
+      "method": "GET",
+      "path": "/api/v2/version.json",
+      "status": 500,
+      "body": "synthetic-upstream-private-error",
+      "headers": {}
+    },
+    {
+      "id": "status_503",
+      "method": "GET",
+      "path": "/api/v2/version.json",
+      "status": 503,
+      "body": "synthetic-upstream-private-error",
+      "headers": {
+        "Retry-After": "0"
+      }
+    },
+    {
+      "id": "malformed_json",
+      "method": "GET",
+      "path": "/api/v2/version.json",
+      "status": 200,
+      "body": "{synthetic-upstream-private-error"
+    },
+    {
+      "id": "missing_version",
+      "method": "GET",
+      "path": "/api/v2/version.json",
+      "status": 200,
+      "json": {
+        "unexpected": "synthetic-upstream-private-error"
+      }
+    },
+    {
+      "id": "uncached_304",
+      "method": "GET",
+      "path": "/api/v2/version.json",
+      "status": 304,
+      "headers": {
+        "ETag": "synthetic-validator"
+      }
+    },
+    {
+      "id": "disconnect",
+      "method": "GET",
+      "path": "/api/v2/version.json",
+      "status": 200,
+      "fault": "disconnect"
+    },
+    {
+      "id": "truncated",
+      "method": "GET",
+      "path": "/api/v2/version.json",
+      "status": 200,
+      "fault": "truncated",
+      "body": "synthetic-upstream-private-error"
+    },
+    {
+      "id": "malformed_chunk",
+      "method": "GET",
+      "path": "/api/v2/version.json",
+      "status": 200,
+      "fault": "malformed_chunk",
+      "body": "synthetic-upstream-private-error"
+    },
+    {
+      "id": "malformed_headers",
+      "method": "GET",
+      "path": "/api/v2/version.json",
+      "status": 200,
+      "fault": "malformed_headers"
+    },
+    {
+      "id": "foreign_redirect",
+      "method": "GET",
+      "path": "/api/v2/version.json",
+      "status": 302,
+      "headers": {
+        "Location": "https://unconfigured.invalid/private"
+      }
+    },
+    {
+      "id": "loopback_redirect",
+      "method": "GET",
+      "path": "/api/v2/version.json",
+      "status": 302,
+      "headers": {
+        "Location": "https://127.0.0.1/private"
+      }
+    }
+  ]
+}
