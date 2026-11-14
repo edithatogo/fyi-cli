@@ -5,7 +5,8 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 const CORPUS: &str = include_str!("../../../conformance/acquisition/numeric-v1-python.json");
-const RECEIPT: &str = include_str!("../../../conformance/acquisition/receipt-v1-exponent-python.json");
+const RECEIPT: &str =
+    include_str!("../../../conformance/acquisition/receipt-v1-exponent-python.json");
 
 #[derive(Deserialize)]
 struct Corpus {
@@ -65,6 +66,14 @@ fn canonical_numbers_preserve_integer_types_and_nested_strings() {
         "\"text\":\"λ\\n\\\"\\\\\"},\"z\":[0,1.0,-0.0,1e-07,null,true]}\n"
     );
     assert_eq!(canonical_json_bytes(&value).unwrap(), expected.as_bytes());
+}
+
+#[test]
+fn minimized_parser_round_trip_regression_preserves_bits() {
+    let bits = 12_099_760_289_525_035_016_u64;
+    let bytes = canonical_json_bytes(&Value::from(f64::from_bits(bits))).unwrap();
+    let parsed: Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(parsed.as_f64().unwrap().to_bits(), bits);
 }
 
 proptest! {

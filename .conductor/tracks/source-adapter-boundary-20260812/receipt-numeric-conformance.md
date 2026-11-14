@@ -13,28 +13,47 @@ The application remains Rust-first. Python additions are independent test oracle
 
 ## Implementation plan
 
-- [ ] Reproduce current numeric byte/hash mismatches with a frozen CPython 3.13.5
+- [x] Reproduce current numeric byte/hash mismatches with a frozen CPython 3.13.5
   corpus: 29 explicit boundary cases and 31 seeded finite bit patterns (seed 310).
-- [ ] Verify the corpus independently in Python; test Rust numeric parsing,
-  canonical bytes, an entire self-digested Python receipt, nesting and tampering.
-- [ ] Use the existing Serde serializer with a narrow finite-float formatter;
+  Red checkpoint: `924684d`; hosted Workspace Tests job `132248038355`, run `43530904310`.
+- [x] Independently validate all 60 oracle cases, exact round trips and the signed
+  receipt in Python: 62 tests passed locally on Python 3.13.5.
+- [~] Use the existing Serde serializer with a narrow finite-float formatter;
   retain string escaping and integer serialization. Enable exact float parsing
   using serde_json's existing float_roundtrip feature rather than a new parser.
-- [ ] Run property-based bit-preserving round trips, workspace tests, strict
-  formatting/lint, Python tests, schema fixtures and all final-head hosted checks.
-- [ ] Record red/green verification evidence and merge only the tested head.
+- [~] Add a deterministic regression for the minimized property-test failure,
+  a nonfinite formatter guard and an offline CLI receipt-verification test.
+- [ ] Run final-head workspace tests, property tests, strict formatting/lint,
+  Python tests, schema fixtures and all hosted merge gates before merging.
 
-## Review focus and boundaries
+## Root cause and red evidence
 
-Cover signed zero; subnormals and largest finite doubles; exponents on either
-side of -4 and 16; integer versus floating-point representation; nested arrays,
-objects and Unicode escaping. Keep old immutable evidence unchanged. Full JSON
-Schema equivalence, arbitrary-precision integers, duplicate-key wire parsing,
-all-command receipt coverage and downstream shadow parity remain separate #310
-requirements. Do not close #310 or claim end-to-end archival parity here.
+The five new Rust tests compiled and all failed against the unchanged implementation.
+The serializer emitted `1e-7` where Python's v1 contract requires `1e-07`; a complete
+valid Python receipt consequently failed its self-digest check. Default float
+parsing changed bits `43abc16d674ec801` to the adjacent value. Property testing
+independently minimized another failing input to bits `12099760289525035016`.
+The preceding existing CLI/core suites passed. Rustfmt separately identified a
+line-wrap issue in the new test constant; that formatting is corrected, not waived.
 
-## Evidence
+## Compatibility and review boundaries
+
+The formatter changes notation only, using shortest round-trip digits and the
+Python exponent thresholds/sign/padding. It does not round via logarithms or
+scale floating-point values. Keep signed zero, exact integer types, strings and
+nested containers intact. The parser feature is additive; no package version or
+new library dependency is introduced.
+
+Prior Rust-generated receipts with non-Python float spelling may have incompatible
+v1 hashes. Preserve them as original evidence for explicit operator reconciliation;
+never rewrite or silently accept them via a legacy fallback. The checked-in old
+Python receipt remains an unchanged regression oracle. Existing raw payload and
+normalized result files are never modified by this correction.
+
+Full JSON Schema equivalence, arbitrary-precision integers, duplicate-key wire
+parsing, all-command receipt coverage and downstream shadow parity remain separate
+#310 requirements. Do not close #310 or claim end-to-end archival parity here.
 
 Local environment: Python 3.13.5 is available; Rust is not installed and GitHub
 cannot be resolved by the local container. Rust red/green and full workspace
-verification therefore use hosted PR checks, not a claimed local build.
+verification use hosted PR checks, not a claimed local build.
