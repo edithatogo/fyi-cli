@@ -155,3 +155,10 @@ Track stays **in_progress**. No new manual approval layer is introduced.
   fixtures: 19 passed. Native implementation verification and prerequisite
   authority merge remain pending; export/import/legacy migration are a
   separate bounded slice. Full detail/reporting parity is not claimed.
+
+- [~] PR #442 implements private versioned transfer and explicit legacy
+  adoption after 12 executable RED failures at `b902501` (CI `43556023145`).
+  Stored source provenance is preserved and projected locally; no acquisition
+  path is changed. Original SQLite fixtures, strict document/schema contracts,
+  replacement guards, concurrent imports and late-failure rollback tests are
+  included. Final native implementation gates and ordered merges are pending.

@@ -87,6 +87,8 @@ pub enum Commands {
     InitDb {
         #[arg(long, default_value = "fyi_system.db")]
         db: String,
+        #[arg(long, help = "Explicitly adopt a supported existing Python database")]
+        migrate_legacy: bool,
     },
     #[command(about = "Import authorities from a CSV file")]
     ImportAuthorities {
@@ -596,24 +598,18 @@ fn main() {
         .init();
 
     match &args.command {
-        Commands::InitDb { db } => {
-            if let Err(error) = initialize_database_file(db) {
-                eprintln!("Failed to initialize SQLite database at {db}: {error}");
-                std::process::exit(1);
-            }
-            println!("Initialized SQLite database at {}", db);
-        }
-        Commands::ImportAuthorities { .. }
+        Commands::InitDb { .. }
+        | Commands::ImportAuthorities { .. }
         | Commands::ListAuthorities { .. }
         | Commands::RegisterRequest { .. }
         | Commands::ListRequests { .. }
         | Commands::SetStatus { .. }
         | Commands::RequestTimeline { .. }
-        | Commands::RequestDetail { .. } => {
+        | Commands::RequestDetail { .. }
+        | Commands::ExportRequests { .. }
+        | Commands::ImportRequests { .. } => {
             local::run(&args.command, args.output_format);
         }
-        Commands::ExportRequests { .. } => unsupported_command("export-requests"),
-        Commands::ImportRequests { .. } => unsupported_command("import-requests"),
         Commands::BuildPrefilledUrl {
             authority_slug,
             title,
@@ -1401,18 +1397,6 @@ fn create_database_file(db: &str) -> std::io::Result<()> {
     Ok(())
 }
 
-fn initialize_database_file(db: &str) -> std::io::Result<()> {
-    create_database_file(db)?;
-    let runtime = Runtime::new()?;
-    runtime.block_on(async {
-        let pool = DbPool::new(&sqlite_url(db))
-            .await
-            .map_err(std::io::Error::other)?;
-        pool.initialize_rust_schema()
-            .await
-            .map_err(|error| std::io::Error::other(error.to_string()))
-    })
-}
 
 #[cfg(test)]
 mod tests {
@@ -1442,7 +1426,8 @@ mod tests {
         let args = Cli::try_parse_from(["fyi-cli", "init-db", "--db", "test.db"]).unwrap();
         assert_eq!(args.db, "test.db");
         match args.command {
-            Commands::InitDb { db } => {
+            Commands::InitDb { db, migrate_legacy } => {
+                assert!(!migrate_legacy);
                 assert_eq!(db, "test.db");
             }
             _ => panic!("Expected InitDb command"),

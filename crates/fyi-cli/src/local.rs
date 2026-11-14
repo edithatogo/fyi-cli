@@ -1,6 +1,7 @@
 //! Thin local-only CLI handlers; no source clients or remote sync operations.
 use crate::{Commands, OutputFormat};
 use fyi_core::db::local::requests::NewLocalRequest;
+use fyi_core::db::local::transfer::{encode_local_export, parse_local_import};
 use fyi_core::db::local::{parse_authorities_csv, LocalError, MAX_LOCAL_INPUT_BYTES};
 use fyi_core::db::DbPool;
 use std::io::Read;
@@ -24,6 +25,28 @@ pub fn run(command: &Commands, format: OutputFormat) {
 fn execute(command: &Commands, format: OutputFormat) -> Result<(), Box<dyn std::error::Error>> {
     let runtime = Runtime::new()?;
     match command {
+        Commands::InitDb { db, migrate_legacy } => {
+            if !migrate_legacy {
+                create_private_database(Path::new(db))?;
+            }
+            runtime.block_on(async {
+                let pool = DbPool::open_local_for_initialization(Path::new(db)).await?;
+                let result = if *migrate_legacy {
+                    pool.migrate_legacy_local_schema().await
+                } else {
+                    pool.initialize_rust_schema().await.map_err(|error| {
+                        error.downcast::<LocalError>().unwrap_or(LocalError::Schema)
+                    })
+                };
+                pool.pool().close().await;
+                result
+            })?;
+            if format == OutputFormat::Json {
+                println!("{}", serde_json::json!({"database": db, "migrated_legacy": migrate_legacy}));
+            } else {
+                println!("Initialized SQLite database at {db}");
+            }
+        }
         Commands::ImportAuthorities { csv_path, db } => {
             let file = std::fs::File::open(csv_path)
                 .map_err(|_| LocalError::InvalidInput("unable to read authority CSV"))?;
@@ -156,7 +179,85 @@ fn execute(command: &Commands, format: OutputFormat) -> Result<(), Box<dyn std::
             })?;
             println!("{}", serde_json::to_string_pretty(&detail)?);
         }
+        Commands::ExportRequests { output, db } => {
+            let document = runtime.block_on(async {
+                let pool = DbPool::open_local_existing(Path::new(db), true).await?;
+                let result = pool.export_local_requests().await;
+                pool.pool().close().await;
+                result
+            })?;
+            let bytes = encode_local_export(&document)?;
+            publish_private_export(Path::new(output), &bytes)?;
+            if format == OutputFormat::Json {
+                println!("{}", serde_json::json!({
+                    "output": output,
+                    "exported_requests": document.requests.len(),
+                    "schema_version": document.schema_version
+                }));
+            } else {
+                println!("{output}");
+            }
+        }
+        Commands::ImportRequests { input, replace, db } => {
+            let file = std::fs::File::open(input)
+                .map_err(|_| LocalError::InvalidInput("unable to read local request import"))?;
+            let mut bytes = Vec::new();
+            file.take((MAX_LOCAL_INPUT_BYTES + 1) as u64).read_to_end(&mut bytes)
+                .map_err(|_| LocalError::InvalidInput("unable to read local request import"))?;
+            let input = parse_local_import(&bytes)?;
+            let count = runtime.block_on(async {
+                let pool = DbPool::open_local_existing(Path::new(db), false).await?;
+                let result = pool.import_local_requests(&input, *replace).await;
+                pool.pool().close().await;
+                result
+            })?;
+            if format == OutputFormat::Json {
+                println!("{}", serde_json::json!({"imported_requests": count}));
+            } else {
+                println!("{count}");
+            }
+        }
         _ => return Err(LocalError::InvalidInput("unsupported local command").into()),
     }
     Ok(())
+}
+
+fn create_private_database(path: &Path) -> Result<(), LocalError> {
+    if let Some(parent) = path.parent().filter(|parent| !parent.as_os_str().is_empty()) {
+        std::fs::create_dir_all(parent).map_err(|_| LocalError::Open)?;
+    }
+    let mut options = std::fs::OpenOptions::new();
+    options.write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    match options.open(path) {
+        Ok(_) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => Ok(()),
+        Err(_) => Err(LocalError::Open),
+    }
+}
+
+fn publish_private_export(path: &Path, bytes: &[u8]) -> Result<(), LocalError> {
+    let invalid = || LocalError::InvalidInput("unable to publish private request export without overwriting existing data");
+    match std::fs::symlink_metadata(path) {
+        Ok(metadata) => {
+            if !metadata.is_file() || metadata.file_type().is_symlink() || metadata.len() != bytes.len() as u64 {
+                return Err(invalid());
+            }
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                if metadata.permissions().mode() & 0o077 != 0 {
+                    return Err(invalid());
+                }
+            }
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(_) => return Err(invalid()),
+    }
+    fyi_core::acquisition_receipts::write_evidence_bytes_atomic(path, bytes)
+        .map_err(|_| invalid())
 }

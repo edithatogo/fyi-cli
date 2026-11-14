@@ -47,5 +47,20 @@ transition. Existing rows without native history expose only their known
 creation/latest-update projections, without inserting invented events.
 Native timelines sort parsed timestamps newest-first, using descending event
 ID for ties, and preserve original timestamp strings. Invalid legacy time text
-is retained and sorted after parseable times. This does not claim legacy
-feed/snapshot projection or Python derived-detail reporting parity.
+is retained and sorted after parseable times. Stored feed/snapshot projection is specified by the legacy fixture and the
+provenance tests; Python derived-detail reporting remains outside this scope.
+
+## Transfer and migration
+
+`transfer-v1.md` and `requests-v1-transfer.json` define the private versioned
+interchange contract. `legacy-v1.sql` captures the complete Python schema and
+synthetic records, including IDs above i32, true NULL fields, raw Unicode/CRLF
+data, linked and unrelated evidence, run logs, cache rows and shared pacing
+state. `legacy-v1-expected.json` independently freezes all original schemas,
+rows, defaults, allocator values and Python projections. Four Python tests
+verify this fixture; native migration and transfer contracts compare against it.
+
+This is a lossless local-domain transfer, not a whole-database backup. Existing
+full database files should be retained when migrating; native export excludes
+unrelated legacy/remote tables. The document includes sensitive bodies and raw
+linked evidence. Both import and encoded export are bounded to 16 MiB.

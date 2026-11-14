@@ -10,7 +10,8 @@ request bodies and original linked evidence. Export is an explicit private read.
 All keys are required. Unknown keys, duplicate keys, missing keys, trailing
 content and incorrect JSON types are rejected. Nullable keys must explicitly
 contain either their stated value type or null. Inputs are UTF-8 JSON bounded
-to 16 MiB. `format` is exactly `fyi-local-requests`; `schema_version` is integer
+to 16 MiB. Serialized exports use the same bound so every published document
+can be reimported. `format` is exactly `fyi-local-requests`; `schema_version` is integer
 1. Future or unknown versions are rejected before mutation.
 
 | Field | Contract |
@@ -35,7 +36,7 @@ record was deleted or belongs to an omitted unrelated source record. Repeated
 export of unchanged state has identical bytes.
 
 New files use the existing atomic no-clobber publication library and Unix mode
-0600. An identical existing destination succeeds unchanged; a different file,
+0600. An identical private existing destination succeeds unchanged; a different file,
 directory or symlink fails without replacement. Windows permission behavior is
 governed by the existing filesystem ACL; POSIX mode is not claimed there.
 
@@ -51,7 +52,8 @@ It preserves omitted authority catalogue rows; supplied authority changes are
 allowed only in this explicit mode. Source evidence remains immutable:
 existing feed/snapshot IDs accept identical contents only. Replacement must
 not orphan retained linked feeds, rebind their request to a different external
-identity, detach previously linked snapshots, or reparent an event ID. A
+identity, detach previously linked snapshots, or rewrite/reparent an existing
+event ID. Omitted local events may be removed only by explicit replacement. A
 validation failure or later SQL error rolls the complete transaction back.
 Unrelated source records, caches, run logs and every remote/sync table remain
 unchanged. ID sequences never decrease, including when replacing with an empty

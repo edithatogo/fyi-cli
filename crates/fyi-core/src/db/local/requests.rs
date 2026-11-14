@@ -1,9 +1,9 @@
 //! Local request tracking remains separate from remote request synchronization.
 
-use super::{LocalError, MAX_LOCAL_INPUT_BYTES};
+use super::{required_nullable, LocalError, MAX_LOCAL_INPUT_BYTES};
 use crate::db::DbPool;
 use chrono::{DateTime, NaiveDateTime, SecondsFormat, Utc};
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 use sqlx::{Connection, FromRow, Sqlite, SqliteConnection, Transaction};
 use std::cmp::Ordering;
 
@@ -71,14 +71,6 @@ pub struct TrackedRequest {
     pub last_seen_at: Option<String>,
     #[serde(deserialize_with = "required_nullable")]
     pub last_event_title: Option<String>,
-}
-
-fn required_nullable<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
-where
-    D: Deserializer<'de>,
-    T: Deserialize<'de>,
-{
-    Option::<T>::deserialize(deserializer)
 }
 
 /// Listing deliberately omits request bodies, tags and provenance payloads.
@@ -332,7 +324,7 @@ pub(crate) async fn timeline_in_connection(
          WHERE tracked_request_id = ? ORDER BY id DESC",
     )
     .bind(request.id)
-    .fetch_all(connection)
+    .fetch_all(&mut *connection)
     .await?;
     let mut items = Vec::with_capacity(history.len() + 2);
     for event in &history {
@@ -379,6 +371,7 @@ pub(crate) async fn timeline_in_connection(
             });
         }
     }
+    super::provenance::append_timeline_in_connection(connection, request, &mut items).await?;
     sort_timeline_items(&mut items);
     Ok(items)
 }
@@ -400,7 +393,7 @@ pub(crate) fn sort_timeline_items(items: &mut [TimelineItem]) {
     });
 }
 
-fn parsed_timestamp(value: Option<&str>) -> Option<DateTime<Utc>> {
+pub(crate) fn parsed_timestamp(value: Option<&str>) -> Option<DateTime<Utc>> {
     let value = value?;
     if let Ok(timestamp) = DateTime::parse_from_rfc3339(value) {
         return Some(timestamp.with_timezone(&Utc));

@@ -33,15 +33,15 @@ The `capture`, `internet-archive-cdx`, `internet-archive-replay`, `discover` and
 ## Top-level names shared by Python and Rust
 | Name | Initial inspection | Required evidence |
 |---|---|---|
-| `init-db` | Initializes the Rust schema and rejects legacy Python databases; migration is not implemented | Independent output/state equivalence, failure semantics and side-effect parity |
+| `init-db` | Native initialization/known-prefix upgrade and explicit `--migrate-legacy` adoption implemented | Frozen complete Python SQLite fixture, repeated migration, malformed schemas/references, allocator integrity and SQLite-full rollback |
 | `import-authorities` | Native local CSV import implemented; partial parity (network options excluded, invalid rows rejected atomically) | Shared Python/Rust catalogue fixtures, SQL rollback, no remote sync effects; see local request-management evidence |
 | `list-authorities` | Native local listing implemented with text/JSON output; partial parity (explicit tie order and read-only schema validation) | Shared Python/Rust catalogue fixtures, real CLI output and missing-database checks |
 | `register-request` | Native local registration implemented; partial parity (strict validation, explicit local-only identity/history) | Shared Python/Rust fixtures, actual CLI acknowledgements, foreign keys, rollback and zero sync/queue effects |
 | `list-requests` | Native ascending-ID local listing with exact five-field text/JSON projection; JSON is a Rust extension | Shared fixtures, nullable fields, i64 IDs, sensitive-field omission and existing-file read checks |
 | `set-status` | Native atomic status/history update; partial parity (missing IDs fail, repeated status is a no-op) | Old/new status history, concurrent writes, timestamp stability and late-failure rollback |
-| `request-timeline` | Native local creation/status timeline implemented; partial parity (legacy feed/snapshot projection pending) | Snapshot-consistent read, chronological timestamps, stable sequence ties, null/legacy fallback and missing-ID failures |
-| `export-requests` | Unimplemented in Rust; exits with an error | Independent output/state equivalence, failure semantics and side-effect parity |
-| `import-requests` | Unimplemented in Rust; exits with an error | Independent output/state equivalence, failure semantics and side-effect parity |
+| `request-timeline` | Native creation/status and stored legacy feed/snapshot timeline implemented; partial parity (chronological ordering and missing-target errors differ) | Frozen Python projections with explicit chronological ordering, stable IDs, null/fallback/malformed JSON cases, snapshot-consistent read and missing-ID failures |
+| `export-requests` | Native private versioned local export implemented; deliberate format difference from Python arrays | Deterministic snapshot, IDs/nulls/history/linked provenance/sequences, 16 MiB reimport bound and atomic no-clobber files |
+| `import-requests` | Native strict versioned and complete legacy-array import implemented; partial parity (IDs retained, repeats do not append duplicates) | Exact roundtrip, collisions, guarded replacement, immutable evidence, late SQL rollback and zero sync effects |
 | `build-prefilled-url` | Named Rust handler exists; implementation equivalence not established | Independent output/state equivalence, failure semantics and side-effect parity |
 | `ingest-feed` | Unimplemented in Rust; exits with an error | Independent output/state equivalence, failure semantics and side-effect parity |
 | `reconcile-events` | Unimplemented in Rust; exits with an error | Independent output/state equivalence, failure semantics and side-effect parity |

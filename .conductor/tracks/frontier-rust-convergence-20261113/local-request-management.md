@@ -356,3 +356,73 @@ Timeline/detail are local implementations with **partial Python parity**.
 Legacy feed/snapshot timeline projection is deferred to the transfer slice;
 derived follow-up, analysis and recommendation fields remain outside this
 local capability. No placeholders are returned for those unimplemented fields.
+
+### Transfer and explicit migration implementation checkpoint
+
+PR [#442](https://github.com/edithatogo/fyi-cli/pull/442) records test-only head
+`b90250153a4836955e8402494bafdd0fe025cc19`. Hosted CI
+[43556023145](https://github.com/edithatogo/fyi-cli/actions/runs/43556023145),
+workspace job [132329012510](https://github.com/edithatogo/fyi-cli/actions/runs/43556023145/job/132329012510),
+compiled the tests and reported **12 expected failures**: imports/exports were
+unimplemented, `--migrate-legacy` was unknown, and native provenance tables
+were absent. Prerequisite lifecycle tests passed before those failures.
+Formatting-only corrections from this checkpoint were applied unchanged.
+
+The normative native fixture and contract are
+`conformance/local-management/requests-v1-transfer.json` and `transfer-v1.md`.
+The complete original Python database is frozen independently in
+`legacy-v1.sql`/`legacy-v1-expected.json`; four real Python reference tests pass.
+
+Implementation preserves the twelve request fields, authority identities,
+local history, linked feed/snapshot rows and all four allocator high-water
+marks. Direct typed deserialization rejects missing/duplicate/unknown fields
+and incorrect versions; legacy arrays are recognized separately and preserve
+original IDs. Repetition accepts identical rows without rewrites. Explicit
+replacement changes only the local request/event set, never lowers allocation
+state, never rewrites existing event/evidence IDs, and refuses orphaned feeds
+or detached snapshots. All effects share one immediate transaction; injected
+late SQL failures must roll back earlier writes and sequence changes.
+
+Export reads and validates references in one snapshot. It publishes private,
+atomic, no-clobber files through the existing byte-publication API without
+editing acquisition/receipt code. Both serialized exports and input documents
+are bounded to 16 MiB, so a published document can be reimported. Bodies and raw
+provenance are intentionally present in private exports; ordinary lists and
+errors remain minimal. Unlinked evidence and unrelated caches, rate-limit data,
+run logs and all remote/sync tables are outside the transfer format.
+
+`init-db --migrate-legacy` requires an existing regular nonsymlink file. Its
+classifier recognizes the complete known Python layout or a successful known
+SQLx prefix, validates physical layouts/markers/data/references/allocators,
+and applies existing embedded migrations on the same transaction connection.
+Original legacy tables remain in place. Unknown objects, triggers, generated
+columns, invalid references, future markers and malformed/partial ledgers
+fail without adoption. A real SQLite capacity-failure test covers rollback
+after migration work starts. Repeated current migration is a no-op.
+
+Stored feed/snapshot timeline projection now follows the shared Python fixture,
+with parsed chronological ordering while retaining original timestamp strings.
+Local and external IDs are never conflated. Malformed source payloads use safe
+display fallbacks and are retained verbatim in private transfer; reading them
+is not an acquisition, verification or reporting-parity claim.
+
+Native implementation verification is pending. The authored tests add 12 CLI,
+10 core transfer, 11 provenance and 10 legacy migration contracts, including
+concurrent imports, strict nullable keys, privacy, provenance identity and
+capacity rollback. No source, localization, CI or shared-registry implementation
+is changed by this slice.
+
+### Lifecycle native checkpoint and profiling correction
+
+At `595699ac55407616d2753eb300f70c1411aac1ad`, CI
+[43555983737](https://github.com/edithatogo/fyi-cli/actions/runs/43555983737)
+passed all required CI jobs, and MSRV/Conductor
+[43555983820](https://github.com/edithatogo/fyi-cli/actions/runs/43555983820)
+passed formatting, all-target/all-feature Clippy and all-feature tests.
+The separate profiling job caught a reference-test launcher issue: Scalene
+substituted its wrapper for `sys.executable`, changing observed child stderr.
+The fixture launcher now selects the same environment's actual interpreter.
+All assertions remain unchanged; the real profiler reproduced 3 failures/16
+passes before the correction and **19 passes** afterward. Ordinary reference
+tests and Ruff also passed. Final reconciled lifecycle-head checks remain the
+merge gate; this checkpoint is not a merge claim.

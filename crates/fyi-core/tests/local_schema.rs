@@ -15,7 +15,9 @@ async fn repeated_initialization_recognizes_native_tracking_and_preserves_record
         .await
         .unwrap();
     sqlx::query("INSERT INTO tracked_requests (authority_slug, title, body) VALUES ('alpha', 'Title', 'Body')")
-        .execute(db.pool()).await.unwrap();
+        .execute(db.pool())
+        .await
+        .unwrap();
     db.initialize_rust_schema().await.unwrap();
     db.validate_local_schema().await.unwrap();
     let title: String = sqlx::query_scalar("SELECT title FROM tracked_requests WHERE id = 1")
@@ -28,15 +30,19 @@ async fn repeated_initialization_recognizes_native_tracking_and_preserves_record
 #[tokio::test]
 async fn previous_native_schema_upgrades_only_through_explicit_initialization() {
     let db = database().await;
-    sqlx::query("DROP TABLE local_request_events")
-        .execute(db.pool())
+    sqlx::query("DROP TABLE feed_events").execute(db.pool())
         .await
         .unwrap();
-    sqlx::query("DROP TABLE tracked_requests")
-        .execute(db.pool())
+    sqlx::query("DROP TABLE request_snapshots").execute(db.pool())
         .await
         .unwrap();
-    sqlx::query("DELETE FROM _sqlx_migrations WHERE version = 20261114001000")
+    sqlx::query("DROP TABLE local_request_events").execute(db.pool())
+        .await
+        .unwrap();
+    sqlx::query("DROP TABLE tracked_requests").execute(db.pool())
+        .await
+        .unwrap();
+    sqlx::query("DELETE FROM _sqlx_migrations WHERE version >= 20261114001000")
         .execute(db.pool())
         .await
         .unwrap();
@@ -61,9 +67,15 @@ async fn genuine_ledger_does_not_authorize_malformed_local_request_tables() {
         "CREATE TABLE tracked_requests (id INTEGER PRIMARY KEY AUTOINCREMENT, authority_slug TEXT NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL)",
     ] {
         let db = database().await;
-        sqlx::query("DROP TABLE local_request_events").execute(db.pool()).await.unwrap();
-        sqlx::query("DROP TABLE tracked_requests").execute(db.pool()).await.unwrap();
-        sqlx::query(replacement).execute(db.pool()).await.unwrap();
+        sqlx::query("DROP TABLE local_request_events").execute(db.pool())
+        .await
+        .unwrap();
+        sqlx::query("DROP TABLE tracked_requests").execute(db.pool())
+        .await
+        .unwrap();
+        sqlx::query(replacement).execute(db.pool())
+        .await
+        .unwrap();
         let before: Vec<(String, Option<String>)> = sqlx::query_as("SELECT name, sql FROM sqlite_master ORDER BY name")
             .fetch_all(db.pool()).await.unwrap();
         assert!(db.validate_local_schema().await.is_err());
@@ -99,7 +111,9 @@ async fn corrupt_or_future_ledgers_are_not_repaired_by_initialization() {
         "DELETE FROM _sqlx_migrations WHERE version = 20260630000000",
     ] {
         let db = database().await;
-        sqlx::query(corruption).execute(db.pool()).await.unwrap();
+        sqlx::query(corruption).execute(db.pool())
+        .await
+        .unwrap();
         let before: Vec<(i64, bool, Vec<u8>)> = sqlx::query_as(
             "SELECT version, success, checksum FROM _sqlx_migrations ORDER BY version",
         )

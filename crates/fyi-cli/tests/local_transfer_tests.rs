@@ -97,9 +97,12 @@ impl Workspace {
     }
 
     async fn database(&self, name: &str) -> DbPool {
-        DbPool::new(&format!("sqlite://{}?mode=rwc", self.0.join(name).display()))
-            .await
-            .unwrap()
+        DbPool::new(&format!(
+            "sqlite://{}?mode=rwc",
+            self.0.join(name).display()
+        ))
+        .await
+        .unwrap()
     }
 
     async fn legacy(&self) {
@@ -113,8 +116,7 @@ impl Workspace {
     }
 
     fn export(&self, database: &str, output: &str) -> Value {
-        let acknowledgement =
-            self.json(&["export-requests", "--db", database, "--output", output]);
+        let acknowledgement = self.json(&["export-requests", "--db", database, "--output", output]);
         let document: Value =
             serde_json::from_slice(&fs::read(self.0.join(output)).unwrap()).unwrap();
         assert_eq!(
@@ -333,12 +335,7 @@ async fn malformed_orphaned_and_future_legacy_schemas_are_unchanged_on_failure()
             .await
             .unwrap();
         db.pool().close().await;
-        assert_private_failure(&work.run(&[
-            "init-db",
-            "--migrate-legacy",
-            "--db",
-            "legacy.db",
-        ]));
+        assert_private_failure(&work.run(&["init-db", "--migrate-legacy", "--db", "legacy.db"]));
         let db = work.database("legacy.db").await;
         assert_eq!(legacy_snapshot(&db).await, original);
         assert_eq!(schema_snapshot(&db).await, schema);
@@ -382,7 +379,10 @@ async fn native_roundtrip_preserves_provenance_nullable_fields_and_deleted_highw
     assert_eq!(document.as_object().unwrap().len(), 8);
     assert_eq!(document["authorities"], reference["authorities"]);
     assert_eq!(document["feed_events"], reference["feed_events"]);
-    assert_eq!(document["request_snapshots"], reference["request_snapshots"]);
+    assert_eq!(
+        document["request_snapshots"],
+        reference["request_snapshots"]
+    );
     assert_eq!(document["requests"][1], reference["requests"][1]);
     assert_eq!(
         document["requests"][0]["body"],
@@ -548,12 +548,7 @@ async fn strict_native_documents_reject_ambiguous_versions_fields_ids_and_refere
     variants.push(format!("{encoded} null"));
     for input in variants {
         fs::write(work.0.join("invalid.json"), input).unwrap();
-        assert_private_failure(&work.run(&[
-            "import-requests",
-            "invalid.json",
-            "--db",
-            "local.db",
-        ]));
+        assert_private_failure(&work.run(&["import-requests", "invalid.json", "--db", "local.db"]));
         let db = work.database("local.db").await;
         assert_eq!(local_snapshot(&db).await, original);
         db.pool().close().await;
@@ -586,12 +581,7 @@ async fn legacy_arrays_preserve_original_ids_and_reject_missing_identity() {
     let mut missing_id = requests.clone();
     missing_id[0].as_object_mut().unwrap().remove("id");
     work.write_json("missing-id.json", &missing_id);
-    assert_private_failure(&work.run(&[
-        "import-requests",
-        "missing-id.json",
-        "--db",
-        "local.db",
-    ]));
+    assert_private_failure(&work.run(&["import-requests", "missing-id.json", "--db", "local.db"]));
     let db = work.database("local.db").await;
     assert_eq!(local_snapshot(&db).await, original);
     assert_remote_tables_empty(&db).await;
@@ -800,12 +790,7 @@ async fn transfer_files_are_bounded_no_clobber_and_do_not_create_missing_databas
     for input in ["missing.json", "oversized.json", "."] {
         assert_private_failure(&work.run(&["import-requests", input, "--db", "local.db"]));
     }
-    assert_private_failure(&work.run(&[
-        "import-requests",
-        "native.json",
-        "--db",
-        "missing.db",
-    ]));
+    assert_private_failure(&work.run(&["import-requests", "native.json", "--db", "missing.db"]));
     assert_private_failure(&work.run(&["export-requests", "--db", "missing.db"]));
     assert!(!work.0.join("missing.db").exists());
     let db = work.database("local.db").await;
