@@ -9,6 +9,7 @@ use crate::jurisdiction::Instance;
 use chrono::{Days, NaiveDate};
 
 mod templates;
+pub mod terminology;
 use fluent_bundle::{concurrent::FluentBundle, FluentArgs, FluentResource};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;

@@ -61,7 +61,8 @@ hosted final-head evidence. PR [#436](https://github.com/edithatogo/fyi-cli/pull
 
 ## Outstanding acceptance criteria
 
-- Terminology/glossary registry beyond the existing catalog request terms.
+- Additional terminology regimes and human terminology review; the bounded registry
+  is implemented by increment 3 below.
 - National/regional/observed holidays and reviewed statutory counting rules.
 - Configurable external resource overrides and adding locales without code changes.
 - Human review of translations, register, citation wording and legal applicability.
@@ -165,3 +166,80 @@ Do not merge #447 into that feature branch. After #436 merges, retarget #447 to
 master, reconcile once in its assigned window, and require exact-final-head checks
 and review inspection. This dependent draft does not claim either merge complete.
 No manual, translation, legal or calendar approval is inferred from publication.
+
+## Increment 3: explicit jurisdiction terminology — 2026-11-14
+
+Issue #39 was reconciled against master
+`9050a6649ebbcf48e6e2919e5bc19bbed4b4f8c0`. The foundation is now merged:
+#436 at `a0fa71a373d0a8e2028aca3818666df328ab811b` and #447 at
+`4322d475594eeeafaef7adf18a634671b76dd085`. Their dated pending-merge observations
+above are retained as history. No open PR duplicated the remaining terminology
+work. The original July closures of #64–#67 did not evidence their full acceptance;
+those children are reopened with the exact outstanding scope. #63 remains closed.
+
+PR [#450](https://github.com/edithatogo/fyi-cli/pull/450) adds nine explicit regime
+profiles and eleven typed concepts, including OIA/FOI/RTI/IFG/FOIA, French CRPA and
+Spanish LTAIBG. Primary official references and the date checked are embedded with
+each profile and linked in the localization guide. The English/DE/FR/ES glossary
+resources share the existing Fluent parser and locale resolver; they serve all
+six advertised display locales. Legal names/abbreviations remain literal.
+
+Country, instance and display language do not select a regime. Unknown identifiers
+fail without revealing the supplied value. Lookup reports the selected profile,
+message locale and independent catalog/message versions. Custom catalogs replace
+the selected registry in memory; they neither merge silently nor load executable
+code, files or network resources. Input parsing rejects unsupported versions,
+unknown fields, duplicates, empty/oversized catalogs, malformed references and
+disallowed controls. Output remains plain text and rendered_unvalidated.
+
+### Executable verification and limits
+
+- Test-first remote checkpoint
+  [`5e6ad0aa9c9c`](https://github.com/edithatogo/fyi-cli/commit/5e6ad0aa9c9cd8e678afbac1c4a06f2230e29dde)
+  contains the contracts without production code. The
+  [hosted compiler log](https://github.com/edithatogo/fyi-cli/actions/runs/43594109805/job/132444851656)
+  reports E0432/E0433 for the absent i18n::terminology API. This is an observed
+  missing-feature compilation failure, not a claim that runnable tests failed.
+- Implementation checkpoint
+  [`9f34fdae895d`](https://github.com/edithatogo/fyi-cli/commit/9f34fdae895d162e3bac859a28117ef600d57c44)
+  passed all **12 initial terminology tests** in the existing instrumented
+  workspace run: **670 passed, zero failed, one ignored**, across 44 result
+  groups. The matrix exercises 9 profiles × 6 locales × 11 concepts, six
+  hand-authored glossaries, fallback provenance, literal Unicode, malformed
+  input/privacy, independent catalog versions and concurrent lookup.
+- That [coverage run](https://github.com/edithatogo/fyi-cli/actions/runs/43594411469/job/132445817337)
+  measured terminology **170/175 lines (97.14%)** and workspace
+  **13,975/14,780 lines (94.55%)**. The existing 90% workspace gate and exclusions
+  were unchanged. Strict hosted Clippy and Rust formatting also passed.
+- Final review adds a thirteenth test for exact UTF-8 byte limits, plus assertions
+  that custom-catalog revisions remain distinct and no embedded profiles leak
+  into a custom registry. The production source remains unchanged from the
+  measured checkpoint. The final PR head must pass all required checks again;
+  its exact result is recorded in the PR before coordinator handoff.
+- Local formatting, Conductor verification and whitespace checks pass.
+  **Local Rust tests and package-list verification are blocked**, not passed:
+  the cache lacks the already-merged Fluent dependency. Automatic review rejected
+  an index-updating test attempt and a separate dependency-fetch attempt; offline
+  Cargo reports the missing cache entry. Existing hosted runners restored their
+  dependency cache and supplied the executable evidence above. No dependency,
+  manifest or shared-workflow change was made to work around that limitation.
+
+Measured production identities:
+
+```text
+i18n.rs: 4f4588f5e3ad9f1990a7ff5267e4125c4cbecd2cdb0cbf128c471ed534a3f4b2
+i18n/terminology.rs: c0ed81901e36b5ba3cc07c12af64cd21499013268a2c347cd32f6ac33954bd47
+```
+
+The source references support naming/context, not human approval of translations,
+legal applicability, remedy availability or deadline correctness. Additional
+regimes, holiday/statutory rules, external message overrides, measured performance
+and manual acceptance remain open. Deadline/source/platform components are not
+modified. Reverting this increment removes the optional glossary API/resources;
+it does not change existing letters, instance metadata, database or submission.
+
+The track remains in_progress and archive_allowed remains false. The legacy
+shared tracks.md row still says #39 is completed/closed at the checked master;
+its reconciliation is explicitly handed to the sole integration coordinator with
+the final merge-window request. This PR updates the existing owned track and
+GitHub acceptance rather than claiming that stale shared status is evidence.
