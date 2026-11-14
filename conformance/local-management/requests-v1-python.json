@@ -1,0 +1,192 @@
+{
+  "schema_version": 1,
+  "reference": "src/fyi_system/cli.py local registration, list, status and timeline handlers; src/fyi_system/db.py",
+  "notes": [
+    "This document versions the fixtures, not the unversioned Python database.",
+    "All values are synthetic. Tests perform only local operations.",
+    "Registration timestamps come from SQLite and are checked independently of the frozen field projection.",
+    "No derived request-detail report, template, snapshot or acquisition parity is claimed."
+  ],
+  "valid_cases": [
+    {
+      "id": "registration_defaults",
+      "arguments": ["register-request", "alpha", "Records request", "SYNTHETIC-PRIVATE-BODY"],
+      "stdout": "Registered request\n",
+      "expected_row_without_timestamps": {
+        "id": 1,
+        "authority_slug": "alpha",
+        "title": "Records request",
+        "body": "SYNTHETIC-PRIVATE-BODY",
+        "tags": "",
+        "fyi_url": null,
+        "fyi_request_id": null,
+        "status": "draft",
+        "last_seen_at": null,
+        "last_event_title": null
+      },
+      "list_stdout": "1\talpha\tRecords request\tdraft\t\n"
+    },
+    {
+      "id": "nonblank_content_is_preserved_without_trimming",
+      "arguments": [
+        "register-request", "alpha", "  Records request — Māori  ",
+        "  SYNTHETIC-PRIVATE-BODY\r\nUnicode: Māori; café; 🧪\tend.\n  ",
+        "--tags", " topic:records, local ", "--status", "awaiting clarification"
+      ],
+      "stdout": "Registered request\n",
+      "expected_row_without_timestamps": {
+        "id": 1,
+        "authority_slug": "alpha",
+        "title": "  Records request — Māori  ",
+        "body": "  SYNTHETIC-PRIVATE-BODY\r\nUnicode: Māori; café; 🧪\tend.\n  ",
+        "tags": " topic:records, local ",
+        "fyi_url": null,
+        "fyi_request_id": null,
+        "status": "awaiting clarification",
+        "last_seen_at": null,
+        "last_event_title": null
+      },
+      "list_stdout": "1\talpha\t  Records request — Māori  \tawaiting clarification\t\n"
+    },
+    {
+      "id": "remote_i64_id_remains_separate_from_local_id",
+      "arguments": [
+        "register-request", "alpha", "Large remote ID", "SYNTHETIC-PRIVATE-BODY",
+        "--fyi-request-id", "4294967296", "--status", "submitted"
+      ],
+      "stdout": "Registered request\n",
+      "expected_row_without_timestamps": {
+        "id": 1,
+        "authority_slug": "alpha",
+        "title": "Large remote ID",
+        "body": "SYNTHETIC-PRIVATE-BODY",
+        "tags": "",
+        "fyi_url": null,
+        "fyi_request_id": 4294967296,
+        "status": "submitted",
+        "last_seen_at": null,
+        "last_event_title": null
+      },
+      "list_stdout": "1\talpha\tLarge remote ID\tsubmitted\t4294967296\n"
+    }
+  ],
+  "legacy_registration_differences": [
+    {
+      "id": "empty_title_is_accepted",
+      "arguments": ["register-request", "alpha", "", "SYNTHETIC-PRIVATE-BODY"],
+      "field": "title", "expected_value": "",
+      "rust_behavior": "Reject empty required title before writing any rows."
+    },
+    {
+      "id": "whitespace_title_is_accepted",
+      "arguments": ["register-request", "alpha", " \t ", "SYNTHETIC-PRIVATE-BODY"],
+      "field": "title", "expected_value": " \t ",
+      "rust_behavior": "Reject all-whitespace required title without trimming valid content."
+    },
+    {
+      "id": "empty_body_is_accepted",
+      "arguments": ["register-request", "alpha", "Records request", ""],
+      "field": "body", "expected_value": "",
+      "rust_behavior": "Reject empty required body before writing any rows."
+    },
+    {
+      "id": "whitespace_body_is_accepted",
+      "arguments": ["register-request", "alpha", "Records request", " \r\n "],
+      "field": "body", "expected_value": " \r\n ",
+      "rust_behavior": "Reject all-whitespace required body without trimming valid content."
+    },
+    {
+      "id": "unknown_authority_is_accepted",
+      "arguments": ["register-request", "missing", "Records request", "SYNTHETIC-PRIVATE-BODY"],
+      "field": "authority_slug", "expected_value": "missing",
+      "rust_behavior": "Enforce the authority foreign key on every write connection."
+    },
+    {
+      "id": "empty_status_is_accepted",
+      "arguments": [
+        "register-request", "alpha", "Records request", "SYNTHETIC-PRIVATE-BODY", "--status", ""
+      ],
+      "field": "status", "expected_value": "",
+      "rust_behavior": "Reject empty or all-whitespace status labels."
+    },
+    {
+      "id": "control_character_status_is_accepted",
+      "arguments": [
+        "register-request", "alpha", "Records request", "SYNTHETIC-PRIVATE-BODY", "--status", "bad\nstatus"
+      ],
+      "field": "status", "expected_value": "bad\nstatus",
+      "rust_behavior": "Reject control characters in status labels."
+    },
+    {
+      "id": "zero_remote_id_is_accepted",
+      "arguments": [
+        "register-request", "alpha", "Records request", "SYNTHETIC-PRIVATE-BODY", "--fyi-request-id", "0"
+      ],
+      "field": "fyi_request_id", "expected_value": 0,
+      "rust_behavior": "Require a positive remote identifier when supplied."
+    }
+  ],
+  "status_reference": {
+    "seed_timestamp": "2026-01-01 00:00:00",
+    "cases": [
+      {
+        "id": "same_status_rewrites_time",
+        "statuses": ["draft"],
+        "timestamps": ["2026-01-02T00:00:00+00:00"],
+        "timeline": [
+          {"ts": "2026-01-02T00:00:00+00:00", "kind": "tracked_request", "title": "Tracked request updated", "detail": "Status: draft"},
+          {"ts": "2026-01-01 00:00:00", "kind": "tracked_request", "title": "Tracked request created", "detail": "Records request"}
+        ],
+        "rust_behavior": "A same-status operation is an explicit no-op preserving timestamps and history."
+      },
+      {
+        "id": "intermediate_status_history_is_lost",
+        "statuses": ["submitted", "awaiting clarification"],
+        "timestamps": ["2026-01-02T00:00:00+00:00", "2026-01-03T00:00:00+00:00"],
+        "timeline": [
+          {"ts": "2026-01-03T00:00:00+00:00", "kind": "tracked_request", "title": "Tracked request updated", "detail": "Status: awaiting clarification"},
+          {"ts": "2026-01-01 00:00:00", "kind": "tracked_request", "title": "Tracked request created", "detail": "Records request"}
+        ],
+        "rust_behavior": "Store every successful status change atomically with its original timestamp."
+      }
+    ]
+  },
+  "exit_cases": [
+    {
+      "id": "missing_required_registration_arguments",
+      "arguments": ["register-request"],
+      "exit_code": 2, "stdout": "", "stderr_contains": "required",
+      "rust_behavior": "Same parser-error exit code."
+    },
+    {
+      "id": "malformed_request_identifier",
+      "arguments": ["request-detail", "not-an-integer"],
+      "exit_code": 2, "stdout": "", "stderr_contains": "invalid int value",
+      "rust_behavior": "Same parser-error exit code; diagnostic wording is implementation-specific."
+    },
+    {
+      "id": "missing_request_detail",
+      "arguments": ["request-detail", "404"],
+      "exit_code": 1, "stdout": "", "stderr_contains": "Request 404 not found",
+      "rust_behavior": "Same failure exit code without derived-report placeholder output."
+    },
+    {
+      "id": "missing_request_timeline_succeeds",
+      "arguments": ["request-timeline", "404"],
+      "exit_code": 0, "stdout": "[]\n", "stderr_contains": "",
+      "rust_behavior": "Missing request fails with exit code 1 and empty stdout."
+    },
+    {
+      "id": "missing_status_target_succeeds",
+      "arguments": ["set-status", "404", "submitted"],
+      "exit_code": 0, "stdout": "Updated request 404 to submitted\n", "stderr_contains": "",
+      "rust_behavior": "Missing request fails with exit code 1 and no mutation."
+    },
+    {
+      "id": "sqlite_integer_overflow_is_a_runtime_error",
+      "arguments": ["request-detail", "9223372036854775808"],
+      "exit_code": 1, "stdout": "", "stderr_contains": "OverflowError",
+      "rust_behavior": "Out-of-range i64 identifiers fail at argument parsing with exit code 2."
+    }
+  ]
+}

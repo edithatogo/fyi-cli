@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Offline monitoring fixture</title>
+    <link>https://fyi.example/</link>
+    <description>Synthetic empty feed for database-path smoke tests.</description>
+  </channel>
+</rss>
