@@ -1,5 +1,5 @@
-//! The v1 Python float notation, using Rust's shortest round-trip digits.
-//! Serde still owns string escaping, containers and exact integer serialization.
+//! The v1 Python float notation, retaining Serde JSON's shortest decimal digits.
+//! Serde owns tie rounding, string escaping, containers and integer serialization.
 use serde::Serialize;
 use serde_json::{ser::Formatter, Serializer, Value};
 use std::io::{self, Write};
@@ -24,25 +24,42 @@ impl Formatter for PythonFloatFormatter {
                 "nonfinite receipt number",
             ));
         }
-        // LowerExp without a precision supplies shortest round-trip digits.
-        // Only notation changes: no logarithms, scaling or decimal rounding.
-        let scientific = format!("{value:e}");
-        let (mantissa, exponent) = scientific
-            .split_once('e')
-            .ok_or_else(|| io::Error::other("missing numeric exponent"))?;
-        let exponent: i32 = exponent
-            .parse()
-            .map_err(|_| io::Error::other("invalid numeric exponent"))?;
-        if !(-4..16).contains(&exponent) {
-            return write!(writer, "{mantissa}e{exponent:+03}");
-        }
-        let (sign, unsigned) = match mantissa.strip_prefix('-') {
+        // Use the default Serde formatter, NOT this receipt formatter. Rust's
+        // LowerExp shortest conversion uses a different decimal midpoint tie
+        // rule (rust-lang/rust#130936). Reuse Serde's digits; only change notation.
+        let rendered = serde_json::to_string(&value).map_err(io::Error::other)?;
+        let (sign, unsigned) = match rendered.strip_prefix('-') {
             Some(unsigned) => ("-", unsigned),
-            None => ("", mantissa),
+            None => ("", rendered.as_str()),
         };
-        let digits = unsigned.replace('.', "");
-        let point = exponent + 1;
+        let (mantissa, scale) = match unsigned.split_once('e') {
+            Some((mantissa, exponent)) => (
+                mantissa,
+                exponent
+                    .parse::<i32>()
+                    .map_err(|_| io::Error::other("invalid numeric exponent"))?,
+            ),
+            None => (unsigned, 0),
+        };
+        let point = mantissa.find('.').unwrap_or(mantissa.len()) as i32;
+        let digits = mantissa.replace('.', "");
+        let significant = digits.trim_start_matches('0');
+        if significant.is_empty() {
+            return write!(writer, "{sign}0.0");
+        }
+        let leading_zeros = (digits.len() - significant.len()) as i32;
+        let exponent = scale + point - leading_zeros - 1;
+        let digits = significant.trim_end_matches('0');
         writer.write_all(sign.as_bytes())?;
+        if !(-4..16).contains(&exponent) {
+            let (first, rest) = digits.split_at(1);
+            writer.write_all(first.as_bytes())?;
+            if !rest.is_empty() {
+                write!(writer, ".{rest}")?;
+            }
+            return write!(writer, "e{exponent:+03}");
+        }
+        let point = exponent + 1;
         if point <= 0 {
             write!(writer, "0.{}{digits}", "0".repeat((-point) as usize))
         } else {
