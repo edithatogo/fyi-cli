@@ -1,0 +1,13 @@
+40x12
+|┌ FYI | read-only | data visible ──────┐|
+|│[Requests]  Tab: switch               │|
+|└──────────────────────────────────────┘|
+|┌ Requests 1-3 / 4 ────────────────────┐|
+|│   ID     Status       Title          │|
+|│>! 7101   Awaiting res PRIVATE SYNTHET│|
+|│   7102   Draft        Draft courtyard│|
+|│   7103   Successful   Bridge records │|
+|└──────────────────────────────────────┘|
+|┌ Controls ────────────────────────────┐|
+|│Tab view | p privacy | ? help | q quit│|
+|└──────────────────────────────────────┘|

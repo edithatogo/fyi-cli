@@ -1,0 +1,25 @@
+80x24
+|┌ FYI | read-only | data hidden ───────────────────────────────────────────────┐|
+|│ Summary │ [Requests] │ Timeline │ Drafts                                     │|
+|└──────────────────────────────────────────────────────────────────────────────┘|
+|┌Help (Up/Down scroll, Esc close)──────────────────────────────────────────────┐|
+|│Read-only local snapshot                                                      │|
+|│Tab / Shift+Tab: switch views                                                 │|
+|│Up/Down or j/k: select a row                                                  │|
+|│Home/End, PageUp/PageDown: navigate                                           │|
+|│Enter: selected request timeline                                              │|
+|│d: request/event details; arrows scroll                                       │|
+|│Timeline: [ / ] select a request                                              │|
+|│/: filter visible requests; Enter: apply                                      │|
+|│Filter: Esc clears; q is query text                                           │|
+|│p: reveal/hide sensitive text locally                                         │|
+|│F1 / ?: help; Up/Down: scroll help                                            │|
+|│Esc: close panel or leave timeline                                            │|
+|│q: quit; Ctrl+C/Ctrl+Q: quit anywhere                                         │|
+|│No save, export, sync or credential actions                                   │|
+|│                                                                              │|
+|│                                                                              │|
+|└──────────────────────────────────────────────────────────────────────────────┘|
+|┌ Controls ────────────────────────────────────────────────────────────────────┐|
+|│Tab view | arrows/Home/End/PgUp/PgDn | / filter | p privacy | ? help | q quit │|
+|└──────────────────────────────────────────────────────────────────────────────┘|
