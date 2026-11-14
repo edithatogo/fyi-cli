@@ -70,7 +70,7 @@ hook is claimed installed.
 
 ## Actual vulnerability remediation
 
-The existing audit uses CLI ignores for RUSTSEC-2026-0387,
+The current suppressions have been reduced from 20 historical RustSec entries to seven, after 13 were verified as not encountered in the master 9050a664 Cargo-deny audit. This does **not** establish that any of the five explicitly ignored active advisories have been fixed.\n\nThe existing audit uses CLI ignores for RUSTSEC-2026-0387,
 RUSTSEC-2026-0459 and RUSTSEC-2026-0370/0371/0372. Resolve or
 remove their affected transitive dependencies using
 `cargo tree -i <crate>` and lockfile evidence. For SQLite, check
