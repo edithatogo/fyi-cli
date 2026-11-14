@@ -42,7 +42,6 @@ jobs:
         run: |
           uv sync --python 3.15.1 --extra dev --frozen
           uv run --no-sync --python 3.15.1 python scripts/verify_python315_runtime.py
-          uv run --no-sync --python 3.15.1 python scripts/verify_python315_runtime.py
       - name: Run explicit Hypothesis gate
         run: uv run pytest -q tests/test_hypothesis.py tests/test_fuzz.py
 
@@ -63,7 +62,6 @@ jobs:
       - name: Install locked dependencies
         run: |
           uv sync --python 3.15.1 --extra dev --frozen
-          uv run --no-sync --python 3.15.1 python scripts/verify_python315_runtime.py
           uv run --no-sync --python 3.15.1 python scripts/verify_python315_runtime.py
       - name: Check Python quality
         run: |
