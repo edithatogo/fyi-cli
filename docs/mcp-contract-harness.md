@@ -4,6 +4,11 @@ This document records executable evidence for the existing
 `remote-mcp-contract-harness-20260711` track. All examples and tests use
 synthetic local state. No CI probe sends a request to a live authority.
 
+The [actual upstream harness](mcp-upstream-harness.md) adds versioned synthetic
+JSON/multipart/status/fault exchanges through the production executable and
+`SyncClient`, with exact wire assertions. Its Linux-only TLS trust fixture and
+remaining source/feed/raw-budget/platform boundaries are documented separately.
+
 ## Supported wire profiles
 
 | Profile | Behaviour | Automated sensor |
@@ -180,8 +185,20 @@ remote outcome is uncertain. Completed results remain retrievable without a
 fresh dispatch allowance, subject to current capability and operator controls.
 The ledger and raw payloads are excluded from diagnostic formatting.
 
-Restarting loses the ledger. This is not durable, cross-process idempotency, and
-an uncertain remote outcome requires reconciliation before another key is used.
+Production write-enabled startup now additionally requires the private absolute
+`FYI_MCP_REMOTE_WRITE_STATE_DIR`. A bounded SQLite journal commits an opaque
+instance/operation/key reservation and audit event before dispatch. Reservations
+survive restart and are never automatically evicted. Matching in-process cached
+results remain retrievable; after restart, even a recorded success requires
+operator reconciliation because request/result content is not persisted.
+Concurrent journal connections cannot reserve the same scope twice. Storage,
+integrity, format and capacity errors fail closed. All processes serving the
+same configuration must use the same protected state directory.
+
+This is durable local replay denial, not an upstream exactly-once guarantee.
+An uncertain remote outcome requires reconciliation before another key is used.
+The synchronous gate methods remain the in-memory state machine; production
+dispatch uses its durable wrappers. See [journal operations and recovery](remote-mcp-security.md#durable-write-state-and-recovery).
 Serialized-state limits are not a measured heap/RSS ceiling. Attachment paths
 reject traversal and observed symlinks before canonicalization; source APIs
 still reopen paths, so this does not prove content immutability from preparation
@@ -279,6 +296,27 @@ No deterministic mid-body disconnect or malformed HTTP chunk test was found.
 These gaps are missing evidence, not demonstrated source defects. MCP timeout,
 clock, circuit, confirmation and returned-payload tests cover their own boundary
 and do not substitute for the missing source-transfer assertions.
+
+## Per-instance credential configuration (#169)
+
+Policy validation and write credential lookup share the existing environment-name
+derivation. Generated tests cover 480 case/separator-alias configurations across
+both instance orders and every write-capability pair. Distinct-ID tests preserve
+exact identity and independent read/write controls; legacy operator-key examples
+remain unchanged.
+
+The existing Rust wire harness also launches the real executable with two
+ambiguous configurations. Each must fail within five seconds, before creating a
+database or producing protocol output, with no synthetic private ID, endpoint,
+database path or credential in stderr. No test issues a source-network request.
+Run `cargo test --locked -p fyi-mcp credential` for the focused contracts, or the
+full MCP suite for framing, policy, confirmation and replay compatibility.
+
+The test-first checkpoint is `d17d5dfaefe17947c62f963b2c90a2995a9c1daf`:
+both the generated rejection test and executable startup test failed against
+unchanged master `9050a6649ebbcf48e6e2919e5bc19bbed4b4f8c0`; the distinct-ID
+compatibility test passed. These configuration properties do not complete the
+separate source URL/path/pagination, state or transport-budget acceptance gates.
 
 ## Compatibility and release-readiness matrix
 

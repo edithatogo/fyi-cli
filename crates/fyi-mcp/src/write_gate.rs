@@ -1,10 +1,14 @@
-//! Bounded, process-local confirmation and replay protection for remote writes.
+//! Bounded confirmations with persistent production replay protection.
 //!
 //! Unused confirmations expire after five monotonic minutes. Once a confirmation
 //! is consumed, its idempotency reservation is never evicted during this process:
 //! an uncertain upstream outcome must not silently permit a duplicate write.
+//! Production startup also requires a private durable journal for enabled writes.
+//! The synchronous methods remain the in-memory confirmation state machine;
+//! production dispatch uses the asynchronous durable methods below.
 
 use crate::policy::{RemoteCapability, RemoteMcpPolicy, RemoteRequestPermit};
+use crate::write_journal::{WriteJournal, WriteScope};
 use fyi_core::security::generate_totp_secret;
 use serde_json::{json, Value};
 use std::collections::HashMap;
@@ -65,6 +69,7 @@ struct WriteEntry {
 #[derive(Clone, Default)]
 pub struct RemoteWriteGate {
     entries: Arc<Mutex<HashMap<WriteKey, WriteEntry>>>,
+    journal: Option<WriteJournal>,
 }
 
 impl std::fmt::Debug for RemoteWriteGate {
@@ -76,6 +81,140 @@ impl std::fmt::Debug for RemoteWriteGate {
 }
 
 impl RemoteWriteGate {
+    /// Production gates require a private persistent state directory whenever
+    /// any instance has write capability, even when temporarily degraded.
+    pub async fn from_env(policy: &RemoteMcpPolicy) -> Result<Self, String> {
+        if !policy
+            .status()
+            .instances
+            .iter()
+            .any(|instance| instance.write_enabled)
+        {
+            return Ok(Self::default());
+        }
+        let directory = std::env::var_os("FYI_MCP_REMOTE_WRITE_STATE_DIR")
+            .filter(|value| !value.is_empty())
+            .ok_or_else(|| {
+                "FYI_MCP_REMOTE_WRITE_STATE_DIR is required for remote writes".to_string()
+            })?;
+        let journal = WriteJournal::open(std::path::Path::new(&directory)).await?;
+        Ok(Self::with_journal(journal))
+    }
+
+    /// Attach an already-open journal to a fresh in-process confirmation gate.
+    pub fn with_journal(journal: WriteJournal) -> Self {
+        Self {
+            journal: Some(journal),
+            ..Self::default()
+        }
+    }
+
+    /// Prepare or return an in-process cached result only after durable audit.
+    pub async fn prepare_durable(
+        &self,
+        policy: &RemoteMcpPolicy,
+        instance_id: &str,
+        operation: &str,
+        arguments: &Value,
+    ) -> Result<Value, String> {
+        let result = self.prepare(policy, instance_id, operation, arguments);
+        let Some(journal) = &self.journal else {
+            return result;
+        };
+        match result {
+            Ok(response) => {
+                let key = arguments["idempotency_key"]
+                    .as_str()
+                    .ok_or("idempotency_key is required")?;
+                let scope = WriteScope::new(instance_id, operation, key)?;
+                let cached = response["status"] == "already_committed";
+                if let Err(error) = journal.check_prepare(&scope, cached).await {
+                    let mut entries = self
+                        .entries
+                        .lock()
+                        .map_err(|_| "write confirmation state is unavailable")?;
+                    let key = WriteKey {
+                        instance_id: instance_id.into(),
+                        operation: operation.into(),
+                        idempotency_key: key.into(),
+                    };
+                    if entries
+                        .get(&key)
+                        .is_some_and(|entry| matches!(entry.state, WriteState::Pending { .. }))
+                    {
+                        entries.remove(&key);
+                    }
+                    return Err(error);
+                }
+                Ok(response)
+            }
+            Err(error) => {
+                journal.record_rejection(operation).await?;
+                Err(error)
+            }
+        }
+    }
+
+    /// Consume a valid confirmation, then durably reserve before network I/O.
+    /// Storage failure leaves the process-local attempt consumed and no dispatch
+    /// occurs. Competing processes are serialized by the SQLite transaction.
+    pub async fn reserve_durable(
+        &self,
+        policy: &RemoteMcpPolicy,
+        token: &str,
+        instance_id: &str,
+        operation: &str,
+        idempotency_key: &str,
+    ) -> Result<(PreparedWrite, RemoteRequestPermit), String> {
+        let result = self.reserve_for(policy, token, instance_id, operation, idempotency_key);
+        let Some(journal) = &self.journal else {
+            return result;
+        };
+        match result {
+            Ok((prepared, permit)) => {
+                let scope = WriteScope::new(instance_id, operation, idempotency_key)?;
+                journal.reserve(&scope).await?;
+                Ok((prepared, permit))
+            }
+            Err(error) => {
+                journal.record_rejection(operation).await?;
+                Err(error)
+            }
+        }
+    }
+
+    /// Persist the outcome before publishing or caching a successful response.
+    /// Failed/uncertain outcomes keep their reservation across restarts.
+    pub async fn finish_durable(
+        &self,
+        prepared: &PreparedWrite,
+        result: Result<Value, String>,
+    ) -> Result<Value, String> {
+        if let Some(journal) = &self.journal {
+            let scope = WriteScope::new(
+                &prepared.instance_id,
+                &prepared.operation,
+                &prepared.idempotency_key,
+            )?;
+            journal.complete(&scope, result.is_ok()).await?;
+        }
+        match result {
+            Ok(payload) => {
+                self.remember_result(prepared, payload.clone())?;
+                Ok(payload)
+            }
+            Err(error) => Err(error),
+        }
+    }
+
+    /// Persist a fixed-label rejection without recording rejected arguments.
+    pub async fn record_rejection(&self, operation: &str) -> Result<(), String> {
+        if let Some(journal) = &self.journal {
+            journal.record_rejection(operation).await?;
+        }
+        Ok(())
+    }
+
     pub fn prepare(
         &self,
         policy: &RemoteMcpPolicy,
@@ -450,6 +589,10 @@ fn fits_json_budget(value: &Value, limit: usize) -> bool {
     }
     serde_json::to_writer(ByteBudget(limit), value).is_ok()
 }
+
+#[cfg(test)]
+#[path = "write_gate_journal_tests.rs"]
+mod journal_tests;
 
 #[cfg(test)]
 mod tests {

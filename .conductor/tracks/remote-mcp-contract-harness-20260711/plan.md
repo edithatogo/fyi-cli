@@ -9,10 +9,10 @@
 
 ## Phase 2: Layered test harness
 
-- [~] Task: Add unit, integration, end-to-end stdio, smoke/system, regression, and sanity suites — startup-degraded mode and restart recovery now have executable SDK evidence; successful source read/commit integration remains open
+- [~] Task: Add unit, integration, end-to-end stdio, smoke/system, regression, and sanity suites — startup recovery plus successful SDK/source calls for all eight current tools now execute locally; source feeds/cache/raw-budget/platform acceptance remains open
 - [~] Task: Add property tests for bounds, normalization, state expectations, and redaction
 - [x] Task: Add edge and security tests for SSRF, capabilities, guardrails, and secrets
-- [~] Task: Conductor review verification 'Layered test harness' — local/SDK modes, startup-degraded denial, restart recovery and privacy passed; source fault and full successful remote integration remain open
+- [~] Task: Conductor review verification 'Layered test harness' — current-tool SDK/source success, status/disconnect/chunk/redirect faults and measured header/body timeouts pass on Linux; full original feed/cache/raw-budget/platform criteria remain open
 
 ## Phase 3: Mutation and performance
 
@@ -38,9 +38,21 @@ The registry previously described this track as implemented, but its plan and me
 - This slice targets the existing 2025-06-18 and 2025-03-26 profiles; it does not claim later MCP revisions.
 - Remaining evidence is tracked in `acceptance-evidence.md`; unchecked acceptance gates remain open.
 
-Confirmation and MCP operation-budget slice: deterministic expiry/scope/replay, concurrency, byte/duration, privacy and invalid-confirmation regressions pass; source raw-byte/retry and cross-restart/attachment guarantees remain open (see acceptance evidence).
+Confirmation and MCP operation-budget slice: deterministic expiry/scope/replay, concurrency, byte/duration, privacy and invalid-confirmation regressions pass. Bounded durable reservation/audit is now verified in merged #457; source raw-byte/retry and immutable attachment guarantees remain open (see acceptance evidence).
 
 ## Current closure decision
+
+- [x] Independent #169 increment: reject ambiguous per-instance credential
+  environment mappings; verify generated identifier aliases and actual subprocess
+  startup/privacy rejection before database creation. Reuse the existing MCP
+  policy and Rust wire harness; retain separate source/platform acceptance.
+  PR #452, RED checkpoint `d17d5df`, implementation `80d5f13`;
+  480 generated configurations, 133 MCP tests and
+  663 workspace tests passed; three targeted mutations caught at the original
+  implementation checkpoint. After the user's explicit merge instruction, final
+  combined head `5f2a3a3` passed all 12 protected contexts, MSRV and 676 workspace
+  tests (one ignored), then merged as `e953438`. The feature branch was deleted;
+  broader acceptance remains open.
 
 Keep this track open and do not archive. The MCP implementation and executable
 contract sensors are delivered in small PR slices; original source fixture/fault,
@@ -49,3 +61,57 @@ broader property/mutation and platform criteria remain partially evidenced.
 commands and the distinction between executed handlers and synthetic examples.
 No source transport, database core, localization, CLI dispatch, shared workflow
 or packaging changes are authorized by this reconciliation.
+
+## Offline fixture repair required by #169 — 2026-11-14
+
+Automatic review stopped full Python verification when legacy scheduler tests
+attempted a live feed. The current owner PR file lists contain no scheduler test
+overlap. This repair is limited to test fixtures and this existing track; no
+source implementation, shared test configuration, runtime lock or workflow edit.
+
+- [x] Add an isolated subprocess regression that denies DNS/socket I/O before
+  imports and fails on attempts even when legacy tests swallow exceptions.
+  RED `5f45cec`: 36 legacy tests reported passes while the probe blocked 28 attempts.
+- [x] Replace network feed retrieval in the three legacy scheduler test modules
+  with synthetic successful/unavailable feed fixtures; retain real local cycle
+  and database/report execution. Implementation `d1295c8`.
+- [x] Verify the negative-control probe, real cycle outputs and scoped tests:
+  39 passed; guarded full Python run 1,515 passed/two skipped, zero external
+  Python DNS/socket attempts. See `offline-scheduler-evidence.md` for limits.
+- [x] Publish focused PR #458 before resuming broader hosted verification.
+- [x] Final-head review and all 12 protected checks passed on `d42a78f`;
+  squash-merged as `393241d` after the explicit user integration instruction.
+  Hosted Python: 1,515 passed/two skipped; remote branch deletion verified.
+
+## Actual upstream fixture increment — 2026-11-14
+
+Baseline `76de6a2` preserves the coordinator's #452/#456 integration. The
+unpublished increment was then reconciled onto #458 at `d42a78f` before its
+combined guarded verification. In this
+ordinary ChatGPT workstream, tests first expose the missing versioned actual
+MCP-to-source exchange corpus. An ephemeral local TLS/CONNECT fixture can drive
+the unchanged production `SyncClient` without a production testing bypass,
+external DNS/request, system trust modification or committed private key.
+
+- [x] Add versioned synthetic wire exchanges for the existing five read and
+  three write tools, preserving supported JSON shapes and Unicode.
+  RED `0883e4c`, implementation `95631aa`; 37 tests and three caught mutations.
+- [x] Execute real SDK prepare/commit/replay, exact wire payload/count,
+  read-only denial, state preflight and bounded multipart assertions.
+- [x] Add deterministic status/malformed/disconnect/chunk/redirect failures
+  and measure production header/body timeout, connection closure and recovery;
+  keep unexecuted cache, raw-transfer and platform requirements explicit.
+- [x] Record local test-first/mutation evidence: 37 upstream tests, three caught
+  mutations, guarded combined Python run 1,552 passed/two skipped and zero
+  external Python DNS/socket attempts.
+- [x] Publish focused PR #459 with #458 as an explicit integration dependency.
+- [x] Add a bounded three-process shared-journal integration case to the
+  existing SDK/source harness: concurrent confirmations, one observed POST,
+  responsive clients, restart replay denial and private responses/logs/storage.
+- [~] Execute and record the combined final head in PR #459 under the explicit
+  user instruction to proceed with sequential integration. Required gates and
+  broader acceptance remain unchanged.
+
+This does not replace #457's durable journal or alter source, archive, runtime
+or workflow ownership. A source fixture is synthetic compatibility evidence,
+not a claim that a live jurisdiction/platform has certified the behavior.

@@ -181,11 +181,11 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Description: Instance registry, FoiProvider trait, capabilities model, DB instance_id migration, config + --instance CLI/MCP surface.*
   *Status: TARGET ACHIEVED*
 
-- [x] **Track: i18n-localization-framework** (COMPLETED 2026-07-08, PR #126)
-  *Issue: #39 (closed)*
+- [~] **Track: i18n-localization-framework** (IN PROGRESS 2026-11-14; Fluent PR #436, typed-letter PR #447 and terminology PR #450 merged; original acceptance incomplete)
+  *Issue: [#39](https://github.com/edithatogo/fyi-cli/issues/39) (open)*
   *Link: [./tracks/i18n-localization-framework/](./tracks/i18n-localization-framework/)*
   *Description: fluent-rs i18n, locale-aware templates, terminology map, working-day/deadline engine + holiday calendars.*
-  *Status: TARGET ACHIEVED*
+  *Status: Automated message/template/terminology contracts delivered; reviewed calendars/statutory rules, human translation/legal review, external overrides and measured performance remain open. See the existing track's acceptance-evidence.md; archive_allowed=false.*
 
 - [x] **Track: jurisdiction-au-righttoknow** (COMPLETED 2026-07-08, PR #126)
   *Issue: #40 (closed)*
@@ -242,7 +242,7 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Priority: high*
   *Results: Stable JSONL body records with normalized tags, malformed-input recovery, named shared limiter, and provenance-preserving JSON mode.*
 
-- [x] **Track: remote-mcp-observability-security** (IMPLEMENTED 2026-07-11, PR #175)
+- [~] **Track: remote-mcp-observability-security** (IN PROGRESS; bounded MCP dispatch increment #460, source/platform acceptance open)
   *GitHub parent: [#169](https://github.com/edithatogo/fyi-cli/issues/169)*
   *GitHub issue: [#172](https://github.com/edithatogo/fyi-cli/issues/172)*
   *Link: [./tracks/remote-mcp-observability-security-20260711/](./tracks/remote-mcp-observability-security-20260711/)*
@@ -257,19 +257,19 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Dependencies: remote-mcp-observability-security*
   *Priority: high*
 
-- [~] **Track: remote-mcp-contract-harness** (IN PROGRESS 2026-11-14; protocol PR #438, confirmation/budget PR #441, schema/SDK PR #443; original acceptance incomplete)
+- [~] **Track: remote-mcp-contract-harness** (IN PROGRESS 2026-11-14; protocol PR #438, confirmation/budget PR #441, schema/SDK PR #443, degraded-startup PR #449 and credential-namespace PR #452 merged; original acceptance incomplete)
   *GitHub parent: [#169](https://github.com/edithatogo/fyi-cli/issues/169)*
   *GitHub issue: [#173](https://github.com/edithatogo/fyi-cli/issues/173)*
   *Link: [./tracks/remote-mcp-contract-harness-20260711/](./tracks/remote-mcp-contract-harness-20260711/)*
-  *Description: Executable MCP catalogue/exchange fixtures, official SDK stdio/HTTP contracts, private errors, bounded confirmations and measured local budgets. Source fixture/fault, broader mutation/property and Windows/macOS evidence remain open; see acceptance-evidence.md in the existing track.*
+  *Description: Executable MCP catalogue/exchange fixtures, official SDK stdio/HTTP and synthetic upstream contracts, private errors, bounded confirmations and measured local budgets. RSS/Atom, source cache/transfer, broader mutation/property and Windows/macOS evidence remain open; see acceptance-evidence.md in the existing track.*
   *Dependencies: remote-mcp-observability-security, remote-mcp-read-surface*
   *Priority: high*
 
-- [x] **Track: remote-mcp-write-governance** (COMPLETED 2026-07-11, PR #178; correction #180; attachment contract #183)
+- [~] **Track: remote-mcp-write-governance** (IN PROGRESS 2026-11-15; durable journal #457; original attachment/state/platform acceptance incomplete)
   *GitHub parent: [#169](https://github.com/edithatogo/fyi-cli/issues/169)*
   *GitHub issue: [#171](https://github.com/edithatogo/fyi-cli/issues/171)*
   *Link: [./tracks/remote-mcp-write-governance-20260711/](./tracks/remote-mcp-write-governance-20260711/)*
-  *Description: Explicitly enabled prepare/commit remote writes with protected credentials, idempotency, replay protection, attachment bounds, optimistic state concurrency, and durable audit.*
+  *Description: Explicitly enabled prepare/commit remote writes with protected credentials, bounded durable replay/audit, attachment bounds and client state preflight. Immutable attachment bytes, atomic upstream state changes and full platform/runtime acceptance remain open; the track is not archived.*
   *Dependencies: remote-mcp-observability-security, remote-mcp-read-surface, remote-mcp-contract-harness*
   *Priority: high*
 

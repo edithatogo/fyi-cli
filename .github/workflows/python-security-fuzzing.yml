@@ -35,11 +35,13 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          python-version: "3.12"
+          python-version: "3.15.1"
       - name: Set up uv
         uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
       - name: Install locked dependencies
-        run: uv sync --extra dev --frozen
+        run: |
+          uv sync --python 3.15.1 --extra dev --frozen
+          uv run --no-sync --python 3.15.1 python scripts/verify_python315_runtime.py
       - name: Run explicit Hypothesis gate
         run: uv run pytest -q tests/test_hypothesis.py tests/test_fuzz.py
 
@@ -54,11 +56,13 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          python-version: "3.12"
+          python-version: "3.15.1"
       - name: Set up uv
         uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
       - name: Install locked dependencies
-        run: uv sync --extra dev --frozen
+        run: |
+          uv sync --python 3.15.1 --extra dev --frozen
+          uv run --no-sync --python 3.15.1 python scripts/verify_python315_runtime.py
       - name: Check Python quality
         run: |
           uv run ruff check \
@@ -101,12 +105,13 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          python-version: "3.12"
+          python-version: "3.15.1"
       - name: Set up uv
         uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
       - name: Install locked fuzz dependencies
         run: |
-          uv sync --extra dev --frozen
+          uv sync --python 3.15.1 --extra dev --frozen
+          uv run --no-sync --python 3.15.1 python scripts/verify_python315_runtime.py
           uv pip install --python .venv/bin/python atheris==3.1.0
       - name: Select bounded duration
         id: bounds

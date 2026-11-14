@@ -251,6 +251,7 @@ async def _sdk_session(
                         "FYI_MCP_REMOTE_INSTANCES": "synthetic=https://mcp-fixture.invalid",
                         "FYI_MCP_REMOTE_READ": "synthetic",
                         "FYI_MCP_REMOTE_WRITE": "synthetic" if remote_write else "",
+                        "FYI_MCP_REMOTE_WRITE_STATE_DIR": str(directory / "remote-write-state"),
                     },
                 )
             server = StdioServerParameters(

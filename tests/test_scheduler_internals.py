@@ -4,6 +4,10 @@ import time
 from pathlib import Path
 from unittest.mock import patch, MagicMock, call
 from fyi_system.scheduler import run_scheduler, run_cycle
+from tests import scheduler_feed_fixture
+
+local_scheduler_feed = scheduler_feed_fixture.local_scheduler_feed
+pytestmark = pytest.mark.usefixtures("local_scheduler_feed")
 
 
 class TestSchedulerInternals:

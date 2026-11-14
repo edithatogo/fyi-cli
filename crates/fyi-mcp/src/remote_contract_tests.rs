@@ -32,15 +32,9 @@ async fn invalid_read_arguments_never_spend_allowance_or_open_the_circuit() {
             ),
             ("remote_list_authorities", json!({"filter":"x".repeat(101)})),
         ] {
-            assert!(remote_read(
-                &policy,
-                "synthetic",
-                operation,
-                &arguments,
-                "synthetic-correlation"
-            )
-            .await
-            .is_err());
+            assert!(remote_read(&policy, "synthetic", operation, &arguments)
+                .await
+                .is_err());
         }
     }
     let status = policy.status();
@@ -60,9 +54,11 @@ async fn successful_remote_result_is_counted_before_publication() {
     let permit = policy
         .begin_request("synthetic", RemoteCapability::Read)
         .unwrap();
-    let result = execute_remote_operation(&policy, permit, async { Ok(payload.clone()) })
-        .await
-        .unwrap();
+    let result = execute_remote_operation(&policy, permit, RemoteOperation::Version, async {
+        Ok(payload.clone())
+    })
+    .await
+    .unwrap();
     assert_eq!(result, payload);
     let status = policy.status();
     assert_eq!(status.instances[0].requests_used, 1);
@@ -79,7 +75,7 @@ async fn oversized_remote_result_is_never_returned_or_refunded() {
     let permit = policy
         .begin_request("synthetic", RemoteCapability::Read)
         .unwrap();
-    let error = execute_remote_operation(&policy, permit, async {
+    let error = execute_remote_operation(&policy, permit, RemoteOperation::Version, async {
         Ok(json!({"private":"synthetic-disclosure-marker"}))
     })
     .await
@@ -99,7 +95,7 @@ async fn failed_remote_future_has_a_private_error_and_releases_concurrency() {
         let permit = policy
             .begin_request("synthetic", RemoteCapability::Read)
             .unwrap();
-        let error = execute_remote_operation(&policy, permit, async {
+        let error = execute_remote_operation(&policy, permit, RemoteOperation::Version, async {
             Err("synthetic-secret upstream response /private/path".into())
         })
         .await
@@ -119,7 +115,13 @@ async fn timeout_drops_the_remote_future_and_preserves_consumed_request() {
     let permit = policy
         .begin_request("synthetic", RemoteCapability::Read)
         .unwrap();
-    let result = execute_remote_operation(&policy, permit, std::future::pending()).await;
+    let result = execute_remote_operation(
+        &policy,
+        permit,
+        RemoteOperation::Version,
+        std::future::pending(),
+    )
+    .await;
     assert_eq!(
         result.unwrap_err(),
         "remote operation timed out; see operator audit telemetry"
@@ -136,7 +138,7 @@ async fn policy_change_before_result_publication_fails_closed() {
     let permit = policy
         .begin_request("synthetic", RemoteCapability::Write)
         .unwrap();
-    let result = execute_remote_operation(&policy, permit, async {
+    let result = execute_remote_operation(&policy, permit, RemoteOperation::Version, async {
         policy.set_degraded(true);
         Ok(json!({"ok":true}))
     })

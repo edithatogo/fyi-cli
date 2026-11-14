@@ -157,6 +157,93 @@ and body once (`&`, `<`, `>`, quotes and apostrophes). It is text for an HTML di
 context, not an HTML document or email header. Provenance fields remain structured
 data and need context-appropriate handling by their consumer.
 
+## Explicit jurisdiction terminology
+
+`i18n::terminology::TerminologyRegistry` supplies eleven typed concepts:
+law name, law abbreviation, request, authority, deadline, department, ministry,
+agency, follow-up, internal review and appeal. Select the legal regime explicitly;
+a country code, instance identifier or display language is not a regime selector.
+Unknown identifiers return an error instead of falling back to a different law.
+
+```rust
+use fyi_core::i18n::{LocalizationEngine, ValidationStatus};
+use fyi_core::i18n::terminology::{Term, TerminologyRegistry};
+
+let registry = TerminologyRegistry::embedded()?;
+let german = LocalizationEngine::try_new("de-DE")?;
+let term = registry.lookup("nz-oia", &german, Term::Request)?;
+assert_eq!(term.text, "OIA-Anfrage");
+assert_eq!(term.jurisdiction_id, "nz-oia");
+assert_eq!(term.validation, ValidationStatus::RenderedUnvalidated);
+# Ok::<(), Box<dyn std::error::Error>>(())
+```
+
+The selected regime survives every locale change. Legal names and abbreviations
+are returned literally; display labels use the existing strict Fluent renderer
+and existing locale-resolution chain. English variants share the English glossary;
+German, French and Spanish have their own resources. Results report the requested
+and resolved locale, actual message source, catalog revision, message revision and
+dated source reference. Literal law names have no message-source locale.
+
+The embedded catalog supports the following explicit profiles. References were
+checked on **2026-11-14** for law names, abbreviations and terminology context.
+They do not establish applicability to a particular authority or approve our
+translations.
+
+| Profile | Terminology scope | Reference |
+| --- | --- | --- |
+| `nz-oia` | NZ central-government OIA; local-government LGOIMA remains separate | [NZ Ombudsman](https://www.ombudsman.parliament.nz/what-ombudsman-can-help/requests-official-information/your-ability-request-official-information) |
+| `au-foi` | Australian Commonwealth FOI | [OAIC](https://www.oaic.gov.au/about-the-OAIC/access-our-information/freedom-of-information-requests-to-the-oaic) |
+| `au-qld-rti` | Queensland RTI | [Queensland Government](https://www.rti.qld.gov.au/right-to-information-act) |
+| `au-tas-rti` | Tasmanian RTI | [Ombudsman Tasmania](https://www.ombudsman.tas.gov.au/right-to-information/right-to-information-faqs) |
+| `gb-foia` | UK FOIA 2000 / FOI; Scottish FOISA is separate | [ICO](https://ico.org.uk/for-organisations/foi/what-is-the-foi-act-and-are-we-covered/) |
+| `de-ifg` | German federal IFG; does not select a state law | [Federal Ministry of Finance](https://www.bundesfinanzministerium.de/Web/DE/Service/Kontakt/Informationsfreiheitsgesetz/informationsfreiheitsgesetz.html) |
+| `fr-crpa` | French CRPA access terminology; CADA is a review body | [CADA](https://www.cada.fr/administration/la-communication-des-documents-administratifs) |
+| `es-ltaibg` | Spanish LTAIBG / Ley 19/2013 terminology | [Council for Transparency and Good Governance](https://consejodetransparencia.es/consejo-transparencia/que-es) |
+| `us-foia` | US federal FOIA; state public-records laws are separate | [FOIA.gov](https://www.foia.gov/about.html) |
+
+This is a bounded display glossary, not a comprehensive law catalog. No existing
+instance catalog, letter citation, deadline or submission route is rewritten.
+An agency/ministry/department noun is a display choice, not a legal classification.
+Likewise, rendering a follow-up, internal-review or appeal label does not establish
+that a particular remedy exists. All output remains plain text and
+`rendered_unvalidated`; consumers apply the escaping required by their display.
+
+### Extending the glossary
+
+Profiles and four shared language resources live in
+`crates/fyi-core/locales/terminology/v1/`, independently versioned from letter
+resources. To add a regime, add an explicit identifier and sourced profile to
+`catalog.json`, update its content revision, and add exact golden expectations.
+No Rust registration table is needed for an additional profile.
+
+The data-only `TerminologyRegistry::from_json` API accepts an entire caller-supplied
+catalog in memory. It performs no filesystem or network access, does not merge
+silently with embedded profiles and does not load Fluent overrides. Callers choose
+which registry to use. This provides a profile extension point; arbitrary locale
+registration and external message-resource loading remain separate requirements.
+
+Catalog format version 1 rejects unknown fields, duplicate identifiers, empty
+catalogs, malformed dates and oversized input (256 KiB maximum). Identifiers use
+lowercase ASCII letters, digits and hyphens; country metadata uses two uppercase
+ASCII letters. These syntax checks do not validate an ISO assignment or legal
+coverage. Names must be nonempty, bounded single-line text without control or
+Unicode line/paragraph separators. Source references must be HTTPS URLs without
+credentials, query strings or fragments. Validation errors omit supplied values
+and source text. Source URLs are recorded, never fetched by the registry.
+
+Run the existing Rust integration harness:
+
+```sh
+cargo test --locked --offline -p fyi-core --test i18n_terminology
+```
+
+The offline command requires a pre-populated dependency cache. Review the six
+hand-authored glossaries in `tests/fixtures/i18n/terminology.json` with competent
+language/jurisdiction reviewers before claiming translation or legal approval.
+The automated matrix checks nine profiles × six locales × eleven concepts,
+fallback provenance, malformed catalogs, literal Unicode and concurrent lookup.
+
 ## Deadline boundary
 
 The i18n module now delegates arithmetic and catalog defaults to `deadlines.rs`.
@@ -203,7 +290,8 @@ the low-level data-only bundle parser does not imply an override-loading facilit
 
 ## Remaining acceptance work
 
-Terminology/glossary coverage, holiday calendars, statutory-rule validation,
+Additional terminology regimes, holiday calendars, statutory-rule validation,
 additional locales, external overrides, translation review and legal review remain
-open. Performance and the track's 95% i18n coverage target require measured evidence.
+open. Performance requires measured evidence; historical coverage measurements
+are recorded in the track and do not certify a changed implementation.
 The required workspace Rust coverage gate remains 90%; this work does not change it.
