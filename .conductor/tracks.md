@@ -250,11 +250,11 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Dependencies: remote-mcp-observability-security*
   *Priority: high*
 
-- [x] **Track: remote-mcp-contract-harness** (IMPLEMENTED 2026-07-11, PR #177; correction #180)
+- [~] **Track: remote-mcp-contract-harness** (IN PROGRESS 2026-11-14; protocol PR #438, confirmation/budget PR #441, schema/SDK PR #443; original acceptance incomplete)
   *GitHub parent: [#169](https://github.com/edithatogo/fyi-cli/issues/169)*
   *GitHub issue: [#173](https://github.com/edithatogo/fyi-cli/issues/173)*
   *Link: [./tracks/remote-mcp-contract-harness-20260711/](./tracks/remote-mcp-contract-harness-20260711/)*
-  *Description: Versioned compatibility fixtures plus unit, integration, end-to-end, property, mutation, edge, performance, security, compatibility, usability, regression, sanity, and smoke/system sensors.*
+  *Description: Executable MCP catalogue/exchange fixtures, official SDK stdio/HTTP contracts, private errors, bounded confirmations and measured local budgets. Source fixture/fault, broader mutation/property and Windows/macOS evidence remain open; see acceptance-evidence.md in the existing track.*
   *Dependencies: remote-mcp-observability-security, remote-mcp-read-surface*
   *Priority: high*
 

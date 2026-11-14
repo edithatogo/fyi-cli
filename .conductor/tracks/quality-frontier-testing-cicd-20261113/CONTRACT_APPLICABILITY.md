@@ -1,51 +1,46 @@
-# Contract Testing Applicability Analysis
+# Contract testing applicability and preserved boundaries
 
-Contract testing applicability for fyi-cli API boundaries.
-Generated during Conductor track `quality-frontier-testing-cicd-20261113` (issue #280).
+Reconciled on 2026-11-14 for issue #280. Contract tests already existed when the
+CI close-out review began; this track preserves them and adds executable workflow
+contracts for the demonstrated CI defects.
 
-## Existing Contract Test Infrastructure
+## Existing contracts
 
-| Test File | Covers | Status |
-|-----------|--------|--------|
-| `tests/test_api_contract.py` | FYI.org.nz API request/response schemas | Active |
-| `tests/test_api_contract_inventory.py` | API contract inventory (surfaces, coverage, risk) | Active |
-| `tests/test_australian_capability_contracts.py` | Australian jurisdiction capability contracts | Active |
-| `tests/test_harness_contract.py` | Test harness layer contracts | Active |
-| `tests/test_remote_mcp_contract.py` | Remote MCP compatibility contracts | Active |
-| `scripts/api_contract_inventory.py` | Contract inventory generation script | Active |
+| Boundary | Representative evidence | Interpretation |
+| --- | --- | --- |
+| API request/response/error shapes | `tests/test_api_contract.py`, `tests/test_api_contract_inventory.py` | Existing schema assertions and boundary inventory; any failed assertion fails the test gate |
+| Authority input and acquisition | `tests/test_importers.py` | CSV parsing, row validation, URL mock transport, idempotent database effects and receipt metadata |
+| Acquisition receipt wire/integrity | Python receipt tests, `crates/fyi-core/tests/acquisition_receipts.rs`, `conformance/acquisition/` | Existing golden, digest and negative tests; not a claim of completed source-adapter parity |
+| Archive payload preservation | `tests/test_archive_capture.py` | Existing mocked original-payload and WARC/WACZ checks; downstream parity remains separately owned |
+| Remote MCP | `tests/test_remote_mcp_contract.py`, `scripts/verify_remote_mcp_contract.py` | Existing compatibility/guardrail contract |
+| Layered harness | `tests/test_harness_contract.py`, `scripts/verify_test_harness.py` | Inventory validation runs before executable safe layers |
 
-## API Boundaries and Contract Coverage
+The historical statements that import-authority contracts and mutation thresholds
+were absent were stale. The old plan also conflated contract assertions with the
+mutation score: contract tests must pass their assertions; mutation analysis has
+its separate unchanged threshold/exit policy.
 
-| API Boundary | Module | CLI Command | Contract Tests | Status |
-|-------------|--------|-------------|----------------|--------|
-| FYI.org.nz request page | `src/fyi_system/fetch.py` | `fetch-request-page` | Yes (`test_api_contract.py`) | Covered |
-| FYI.org.nz discover bodies | `src/fyi_system/discovery.py` | `discover-bodies` | Yes (`test_api_contract.py`) | Covered |
-| FYI.org.nz search feed | `src/fyi_system/discovery.py` | `discover` | Yes (`test_api_contract.py`) | Covered |
-| FYI.org.nz numeric ID probing | `src/fyi_system/discovery.py` | `discover --backfill-ids` | Partial | **Partial** |
-| Internet Archive CDX | `src/fyi_system/internet_archive_cdx.py` | `internet-archive-cdx` | Yes (`test_internet_archive_cdx.py`) | Covered |
-| Internet Archive replay | `src/fyi_system/internet_archive_replay.py` | `internet-archive-replay` | Yes (`test_internet_archive_replay.py`) | Covered |
-| Historical index | `src/fyi_system/historical_index.py` | `historical-index` | Yes (`test_historical_index.py`) | Covered |
-| Australian capabilities | `src/fyi_system/australian_capabilities.py` | N/A (library) | Yes (`test_australian_capability_contracts.py`) | Covered |
-| Remote MCP | `crates/fyi-mcp/src/` | N/A (Rust MCP server) | Yes (`test_remote_mcp_contract.py`) | Covered |
-| Import authorities (CSV/URL) | `src/fyi_system/importers.py` | `import-authorities` | No | **Gap** |
-| Ingest feed (RSS) | `src/fyi_system/monitor.py` | `ingest-feed` | No | **Gap** |
-| Archive capture | `src/fyi_system/archive_capture.py` | `capture` | Partial (`test_archive_capture.py`) | **Partial** |
+## Added CI contracts
 
-## Contract Test Standards
+- `tests/test_workflow_hardening.py`: every direct remote action/reusable workflow
+  is SHA-pinned; explicit permissions and concurrency; scoped writes, credential
+  handling, lint failure behavior and dependency-review threshold.
+- `tests/test_ci_gate_contract.py`: mandatory commands, time bounds, scoped OIDC,
+  90% Rust coverage and the retained single harness invocation.
+- `tests/test_extended_workflow_evidence.py`: scheduled/manual extended lanes,
+  actual benchmark collection, mutation environment/thresholds, retained evidence
+  and failing command exit preservation through log pipelines.
+- `tests/test_ci_artifact_evidence.py`: Python, security and coverage provenance,
+  reports and failure artifacts; executable failures prove logging cannot mask
+  either test or coverage-threshold failure.
 
-All contract tests must:
-1. Define input/output schemas explicitly
-2. Validate response structure against schema
-3. Test error responses (4xx, 5xx)
-4. Test edge cases (empty responses, missing fields)
-5. Be replayable with fixture data (no live network)
+These contracts use existing pytest/PyYAML and shell infrastructure. They do not
+introduce another Conductor track or governance system.
 
-## Gaps Identified
+## Scope exclusions
 
-1. **import-authorities** (`importers.py`): No contract tests for CSV parsing or URL-based import
-2. **ingest-feed** (`monitor.py`): No contract tests for RSS feed parsing
-3. **archive_capture** (`archive_capture.py`): Partial contract coverage; needs WARC/WACZ contract tests
-
-## Recommendation
-
-Add contract tests for import-authorities and ingest-feed first, then complete archive_capture contract coverage.
+Full JSON Schema/canonicalization parity, all source command receipt coverage,
+attachment/redirect provenance, Wayback/CDX implementation and `fyi-archive`
+cutover remain under `source-adapter-boundary-20260812` and issues #309/#310/#312.
+This review neither edits that implementation nor marks its acceptance complete.
+Live authority/API behavior is outside deterministic contract testing.

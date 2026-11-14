@@ -2,7 +2,7 @@
 
 Date: 2026-11-14
 Parent track: `frontier-rust-convergence-20261113`
-Status: all nine local handlers implemented; final-head acceptance and ordered merges pending
+Status: all nine local handlers implemented and contract-tested; Python parity remains partial
 
 ## Ownership and scope
 
@@ -219,15 +219,15 @@ Rust safety extension. Tests do not access the network.
 
 ## Verification and compatibility ledger
 
-Implementation evidence is recorded below. Final-head merge acceptance remains
-pending separately from passing capability tests. The parent track remains in
-progress; this document does not close it or authorize Python retirement.
+Completed delivery and pending acceptance are distinguished below. The parent
+track remains in progress; this document does not close it or authorize Python
+retirement.
 
 | Slice | Failing contract commit/run | Implementation commit | Final-head checks | PR / merge / branch pruning |
 |---|---|---|---|---|
-| Authorities | `c9f7db3`; run `43552118106`, 2 expected failures | `33b043d`; MSRV `43553220643` | Repeated green checkpoints; current reconciled head pending | #434; merge/pruning pending |
-| Request lifecycle | `ddb1b3e`; run `43553385063`, 11 expected failures | `595699a`; CI `43555983737`, MSRV `43555983820` | Profiler correction passed; fixture collision corrected, reconciled head pending | #440; merge/pruning pending |
-| Export/import and migration | `b902501`; run `43556023145`, 12 expected failures | `a8c3ab7`; workspace/coverage `43557565910` | 43 transfer/provenance/migration contracts passed; fmt/lint and additional negative validation corrected, final head pending | #442; merge/pruning pending |
+| Authorities | `c9f7db3`; run `43552118106`, 2 expected failures | `33b043d`; MSRV `43553220643` | `34feb0a`: all 12 protected contexts and 32 applicable checks passed | #434 merged as `7cf2fd2`; remote/local branch pruned |
+| Request lifecycle | `ddb1b3e`; run `43553385063`, 11 expected failures | `cd160e8`; CI `43558451180`, MSRV `43558451176` | `30d1a7f`: all 12 protected contexts and 32 applicable checks passed | #440 merged as `ca09010`; remote/local branch pruned |
+| Export/import and migration | `b902501`; run `43556023145`, 12 expected failures | `f92c06a`; CI `43558598482`, MSRV `43558598445` | All 12 protected contexts, 108 combined local contracts and 93.25% line coverage passed; final head additionally gated after actual prerequisite merges | #442 records final accepted head, merge SHA and branch-pruning evidence |
 
 Required local commands are targeted Rust tests, `cargo fmt --all -- --check`,
 and the repository Clippy invocation with warnings denied. Hosted final-head
@@ -235,17 +235,17 @@ required Actions remain authoritative, including the existing 90% Rust coverage
 gate and mandatory security checks. No threshold or exclusion changes are part
 of this workstream.
 
-| Command | Baseline state | Completion evidence required |
+| Command | Native local state | Executable evidence and compatibility limit |
 |---|---|---|
-| `import-authorities` | Unimplemented | Local CSV, CLI, transaction and repeat-operation fixtures |
-| `list-authorities` | Unimplemented | Exact text/JSON projection and deterministic ordering |
-| `register-request` | Unimplemented | Local-only registration, FK/ID/privacy and atomic creation history |
-| `list-requests` | Unimplemented | Minimal projection, ordering and read-only database opening |
-| `set-status` | Unimplemented | Atomic history, no-op stability and explicit compatibility differences |
-| `request-timeline` | Unimplemented | Local events plus separately documented legacy feed/snapshot coverage |
-| `request-detail` | Unimplemented | Full local projection; derived Python fields tracked separately |
-| `export-requests` | Unimplemented | Versioned, deterministic, private, lossless local export |
-| `import-requests` | Unimplemented | Strict versions, IDs/references, idempotency and full rollback |
+| `import-authorities` | Implemented | Shared CSV/CLI/rollback/repetition fixtures; network mode excluded and invalid rows rejected atomically |
+| `list-authorities` | Implemented | Exact text/JSON projection, explicit nulls and deterministic name/slug ordering |
+| `register-request` | Implemented | Local-only registration, FK/i64/privacy and atomic creation history; native validation is stricter |
+| `list-requests` | Implemented | Five-field projection, ordering, sensitive-field omission and existing-file read checks |
+| `set-status` | Implemented | Atomic history and stable no-op; missing IDs fail instead of Python's silent success |
+| `request-timeline` | Implemented | Native history and stored feed/snapshot fixtures; parsed chronology and missing-ID behavior intentionally differ |
+| `request-detail` | Implemented local record; partial Python detail | Twelve stored fields plus consistent timeline; six Python detail fields remain unimplemented |
+| `export-requests` | Implemented | Versioned deterministic private local export with IDs/provenance/sequences; deliberately differs from Python's array |
+| `import-requests` | Implemented | Strict versioned/complete legacy arrays, retained IDs, idempotency, guarded replacement and full rollback |
 
 Update each command independently as implemented, partial, unimplemented or
 explicitly retired. No command is retired by this contract. Mark functional
@@ -310,6 +310,54 @@ Master subsequently advanced through independently verified MCP PR #438 to
 `19f3cf376101500036951f9a3d3733da49f0df8b`. This branch incorporates that
 merge without editing its implementation. Final-head mandatory verification
 will run again on the reconciled authority head before merge.
+
+### Verified authority delivery
+
+PR [#434](https://github.com/edithatogo/fyi-cli/pull/434) squash-merged on
+2026-11-14 as `7cf2fd2a062ecba450637c45a31b8919fa2b86f5` from accepted head
+`34feb0af831e4e67d0a0b67cb8660e8b55cadaa5`. All twelve protected contexts
+passed with their expected GitHub app IDs, and all 32 applicable checks passed.
+Final-head runs include CI
+[43560612069](https://github.com/edithatogo/fyi-cli/actions/runs/43560612069),
+CodeQL [43560612021](https://github.com/edithatogo/fyi-cli/actions/runs/43560612021),
+and MSRV/Conductor
+[43560612100](https://github.com/edithatogo/fyi-cli/actions/runs/43560612100).
+The optional offline AI lane is not reported as a pass.
+
+GitHub's closed/merged state and fetched master were verified. The squash tree
+exactly matched the accepted head. The remote feature ref was deleted and the
+local authority branch was pruned after that verification. The lifecycle branch
+incorporates the actual authority merge; independently merged MCP/quality and
+packaging implementation remains unchanged.
+
+### Verified lifecycle acceptance checkpoint
+
+Head `cd160e8e7d20c37b0e8a23e4eafc71388075faa8` passed all 12 live protected
+contexts in CI
+[43558451180](https://github.com/edithatogo/fyi-cli/actions/runs/43558451180)
+and CodeQL
+[43558451223](https://github.com/edithatogo/fyi-cli/actions/runs/43558451223).
+Rust 1.99.1 MSRV/Conductor
+[43558451176](https://github.com/edithatogo/fyi-cli/actions/runs/43558451176)
+passed formatting, all-target/all-feature Clippy with warnings denied and
+all-feature workspace tests. Privacy, dependency review, profiling, Python
+security/fuzzing, workflow lint and existing portability checks also passed.
+The optional self-hosted offline AI lane has no designated runner and remains
+queued; it is not claimed as a pass.
+
+This verifies the five lifecycle commands and the prerequisite authorities,
+including 21 lifecycle repository tests, two shared-fixture tests, five schema
+tests and twelve actual lifecycle CLI tests. New CLI fixtures use an atomic
+sequence in their temporary directory names after a real parallel coverage run
+exposed a timestamp-only name collision. The Python subprocess fixture now
+selects its environment's interpreter when run under Scalene; normal and
+profiled fixture cases pass without relaxing stderr or exit assertions.
+
+The actual authority merge is now incorporated. Lifecycle delivery still
+requires green checks on its exact reconciled final head. Legacy source
+projection and transfer/migration are delivered in
+the separate third slice. Python detail's derived report schemas remain outside
+the implemented local-record contract.
 
 ### Request lifecycle implementation checkpoint
 
@@ -450,5 +498,75 @@ and a valid positive control. The corrected head must pass all gates again.
 The lifecycle coverage run at `92f4c6b` exposed a timestamp-only temporary
 directory collision between parallel CLI tests, before the affected test reached
 application code. Its helper now includes a process-wide atomic sequence; the
-authority helper receives the same correction in the lifecycle slice. No test
+authority helper receives the same correction in the authority slice. No test
 assertion, concurrency requirement, coverage threshold or workflow is weakened.
+
+### Complete native contract checkpoint
+
+Corrected head `f92c06a948c6410fa02814ac6c6aea3d6852224f` passed all 12
+protected contexts and all applicable hosted supplementary checks. CI
+[43558598482](https://github.com/edithatogo/fyi-cli/actions/runs/43558598482),
+MSRV/Conductor
+[43558598445](https://github.com/edithatogo/fyi-cli/actions/runs/43558598445),
+CodeQL [43558598452](https://github.com/edithatogo/fyi-cli/actions/runs/43558598452),
+privacy, dependency review, profiling, Python security/fuzzing and existing
+receipt-portability workflows all passed. The optional self-hosted offline AI
+lane remains queued without its designated runner and is not reported as a pass.
+
+Workspace job
+[132336981971](https://github.com/edithatogo/fyi-cli/actions/runs/43558598482/job/132336981971)
+passed **108 local Rust contracts: 80 core and 28 CLI**, with no ignored or
+filtered tests in those suites. This includes the new nonpositive-guess negative
+test. Coverage job
+[132336981964](https://github.com/edithatogo/fyi-cli/actions/runs/43558598482/job/132336981964)
+reported **93.25% lines** against the unchanged 90% gate. One private-file test
+is Unix-specific; this Linux result does not claim all local commands were
+executed on Windows. All **34 Python reference fixture cases** also passed
+together locally, and the existing Conductor validator passed.
+
+All nine local handlers now have implementation and executable evidence. None
+is wholly unimplemented or retired. Full Python/Rust parity is not established:
+`request-detail` does not implement `latest_snapshot`, `follow_up`,
+`follow_up_variants`, `follow_up_pack`, `response_analysis` or `next_best_action`.
+Stored snapshots in the timeline do not establish those detail/report schemas.
+The other intentional differences remain in the fixtures and command inventory.
+
+This checkpoint establishes compiled behavior. Authority and lifecycle delivery
+are separately verified below. Final transfer acceptance uses the exact-head
+checks, accepted commit and merge/pruning evidence in
+PR [#442](https://github.com/edithatogo/fyi-cli/pull/442), after incorporation of
+both actual prerequisite merges. The parent Rust convergence track remains in
+progress and Python retirement is not authorized.
+
+### Verified lifecycle delivery and final local scope
+
+PR [#440](https://github.com/edithatogo/fyi-cli/pull/440) squash-merged on
+2026-11-14 as `ca090106e26b0ec1c0c50bf3ef5c4891637ea78d` from accepted head
+`30d1a7f34707aec68150e9306f91edee7d457d47`. After readiness, all twelve live
+protected contexts passed with the expected app IDs, and all 32 applicable
+checks passed. Final-head CI
+[43561445356](https://github.com/edithatogo/fyi-cli/actions/runs/43561445356),
+MSRV/Conductor
+[43561445367](https://github.com/edithatogo/fyi-cli/actions/runs/43561445367),
+and CodeQL
+[43561445383](https://github.com/edithatogo/fyi-cli/actions/runs/43561445383)
+provide the acceptance evidence. The optional offline AI lane is excluded from
+passing claims.
+
+Merged metadata, fetched master and the accepted-head tree were verified. The
+remote lifecycle ref was deleted and the local branch pruned afterward. The
+transfer branch incorporates this actual squash merge. History-only merge
+conflicts were resolved only after proving the already-integrated prerequisite
+tree was identical to the accepted squash tree; no independently owned source
+implementation was overwritten.
+
+The retained local scope is implemented: authority CSV import/listing, local
+request registration/listing/status/history/detail, deterministic private
+transfer and explicit known-legacy adoption. Existing `DbPool`, SQLx migrations,
+serialization and atomic file-publication APIs are reused. Local registration
+never writes remote request/sync/queue state, and stored-source projection never
+acquires network data. The command inventory and fixture README explicitly
+retain the intentional validation/output differences and unimplemented Python
+detail/report fields. No requested command is retired. The shared Conductor
+registry and source-acquisition, CI/CD and localization implementations receive
+no authored changes from this workstream.

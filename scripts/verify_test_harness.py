@@ -73,7 +73,10 @@ LAYERS = (
     Layer(
         "performance",
         ("tests/test_benchmarks.py", ".github/workflows/profiling.yml"),
-        ("pytest", "tests/test_benchmarks.py", "--benchmark-only"),
+        (
+            "pytest", "tests/test_benchmarks.py",
+            "-o", "python_functions=benchmark_*", "--benchmark-only",
+        ),
         expensive=True,
     ),
     Layer(

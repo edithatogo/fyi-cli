@@ -134,7 +134,7 @@ Track stays **in_progress**. No new manual approval layer is introduced.
 
 ## Retained local management — 14 November 2026
 
-- [~] Implement local authority import/listing, followed by request lifecycle and
+- [x] Implement local authority import/listing, followed by request lifecycle and
   versioned interchange/explicit legacy migration. Reuse the existing SQLx pool
   and distinguish local tracking from remote synchronization.
 - Contract and per-command evidence: [local-request-management.md](local-request-management.md).
@@ -149,16 +149,27 @@ Track stays **in_progress**. No new manual approval layer is introduced.
   `132320153668`). Final-head required Actions and merge remain pending; the
   local command inventory records the intentional Python compatibility limits.
 
-- [~] PR #440 implements retained local registration/listing, atomic status
+- [x] PR #440 implements retained local registration/listing, atomic status
   history, local timeline and detail after hosted RED at `ddb1b3e` (run
   `43553385063`, 11 failing/1 passing CLI contracts). Shared Python lifecycle
-  fixtures: 19 passed. Native implementation verification and prerequisite
-  authority merge remain pending; export/import/legacy migration are a
+  fixtures: 19 passed. Native implementation verification passed at `cd160e8`
+  (CI `43558451180`, MSRV `43558451176`); authority prerequisite #434 merged
+  as `7cf2fd2` after all required checks, with remote/local branch pruning
+  verified. Lifecycle #440 subsequently merged as `ca09010` from final head
+  `30d1a7f` with all 12 protected contexts and 32 applicable checks passing;
+  its remote/local branches were pruned after merge verification.
+  Export/import/legacy migration are a
   separate bounded slice. Full detail/reporting parity is not claimed.
 
-- [~] PR #442 implements private versioned transfer and explicit legacy
+- [x] PR #442 implements private versioned transfer and explicit legacy
   adoption after 12 executable RED failures at `b902501` (CI `43556023145`).
   Stored source provenance is preserved and projected locally; no acquisition
   path is changed. Original SQLite fixtures, strict document/schema contracts,
   replacement guards, concurrent imports and late-failure rollback tests are
-  included. Final native implementation gates and ordered merges are pending.
+  included. At `f92c06a`, all 108 local Rust contracts passed in CI
+  `43558598482`; Rustfmt/all-feature Clippy/MSRV passed in `43558598445`,
+  and line coverage was 93.25% against the unchanged 90% gate. All 34 Python
+  reference cases and the Conductor validator also passed. Both actual
+  prerequisite merges are incorporated; #442 records its final accepted head,
+  checks, merge and branch cleanup. Full Python detail/report parity and Python
+  retirement remain unimplemented; the parent track stays in progress.
