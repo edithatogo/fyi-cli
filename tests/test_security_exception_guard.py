@@ -151,3 +151,38 @@ def test_pre_push_runs_real_cargo_advisory_scan() -> None:
     assert "cargo-deny-advisories" in hook
     assert "cargo deny check advisories" in hook
     assert "pre-push" in hook
+
+
+RETIRED_NONMATCHING = frozenset({
+    "RUSTSEC-2022-0093", "RUSTSEC-2024-0344", "RUSTSEC-2024-0363",
+    "RUSTSEC-2024-0384", "RUSTSEC-2024-0388", "RUSTSEC-2025-0009",
+    "RUSTSEC-2025-0010", "RUSTSEC-2025-0134", "RUSTSEC-2026-0098",
+    "RUSTSEC-2026-0099", "RUSTSEC-2026-0104", "RUSTSEC-2026-0174",
+    "RUSTSEC-2026-0190",
+})
+
+
+def test_confirmed_nonmatching_advisory_ignores_are_retired() -> None:
+    import tomllib
+
+    root = Path(__file__).resolve().parents[1]
+    with (root / "deny.toml").open("rb") as stream:
+        ignored = set(tomllib.load(stream)["advisories"]["ignore"])
+    policy = json.loads(
+        (root / "security/advisory-exceptions.json").read_text(encoding="utf-8")
+    )
+    assert RETIRED_NONMATCHING.isdisjoint(ignored)
+    assert RETIRED_NONMATCHING.isdisjoint(policy["exceptions"])
+
+
+def test_retired_ids_cannot_be_added_back_to_grandfathered_list() -> None:
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "security_exception_guard", Path(__file__).resolve().parents[1]
+        / "scripts/verify_security_exceptions.py"
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert RETIRED_NONMATCHING.isdisjoint(module.GRANDFATHERED)

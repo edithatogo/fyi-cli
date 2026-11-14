@@ -17,13 +17,10 @@ import tomllib
 # Immutable baseline: policy edits alone cannot authorise newly ignored IDs.
 # Reduce this set as exceptions are remediated; never extend it.
 GRANDFATHERED = frozenset({
-    "RUSTSEC-2026-0190", "RUSTSEC-2024-0344", "RUSTSEC-2024-0388",
-    "RUSTSEC-2022-0093", "RUSTSEC-2026-0174", "RUSTSEC-2024-0384",
-    "RUSTSEC-2024-0436", "RUSTSEC-2025-0009", "RUSTSEC-2025-0010",
-    "RUSTSEC-2023-0071", "RUSTSEC-2025-0134", "RUSTSEC-2026-0098",
-    "RUSTSEC-2026-0099", "RUSTSEC-2026-0104", "RUSTSEC-2024-0363",
-    "RUSTSEC-2026-0387", "RUSTSEC-2026-0459", "RUSTSEC-2026-0370",
-    "RUSTSEC-2026-0371", "RUSTSEC-2026-0372",
+    "RUSTSEC-2024-0436", "RUSTSEC-2023-0071",
+    "RUSTSEC-2026-0387", "RUSTSEC-2026-0459",
+    "RUSTSEC-2026-0370", "RUSTSEC-2026-0371",
+    "RUSTSEC-2026-0372",
 })
 ADVISORY = re.compile(r"^RUSTSEC-\d{4}-\d{4}$")
 CLI_IGNORE = re.compile(r"--ignore(?:=|\s+)([^\s\\]+)")
