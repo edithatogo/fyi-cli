@@ -173,3 +173,22 @@ Track stays **in_progress**. No new manual approval layer is introduced.
   prerequisite merges are incorporated; #442 records its final accepted head,
   checks, merge and branch cleanup. Full Python detail/report parity and Python
   retirement remain unimplemented; the parent track stays in progress.
+
+## Python 3.15 security dependencies — 15 November 2026
+
+PR #454 merged as `e34ebac`, but its final head `a0b8e4a` retained five
+failed security/fuzzing jobs in run `43646518760`. The mandatory local
+development/CI runtime remains CPython 3.15.1. This follow-up preserves the
+existing audit, fuzz targets, bounds and quality gates.
+
+- [~] Add executable audit startup/parser regressions, qualify released
+  `pip-api` 0.0.35, and regenerate the lock without unrelated dependency churn.
+  RED: both new regressions fail on repository-local CPython 3.15.1 with
+  locked `pip-api` 0.0.34 / `pip-audit` 2.10.1 because `sre_constants` is
+  absent (2 failed in 0.81 seconds; zero external Python network attempts).
+- [~] Qualify a CPython 3.15.1 Atheris source candidate, including actual
+  instrumentation and bounded fuzz execution. Closed, unmerged upstream PR
+  google/atheris#115 is investigation input, not accepted compatibility evidence.
+- [ ] Record exact-head hosted checks/review and obtain the coordinator's
+  sequential merge window. Retain any unqualified dependency as an explicit
+  blocker; do not downgrade Python, suppress failures or close this track.
