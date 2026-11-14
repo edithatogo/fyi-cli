@@ -192,3 +192,15 @@ existing audit, fuzz targets, bounds and quality gates.
 - [ ] Record exact-head hosted checks/review and obtain the coordinator's
   sequential merge window. Retain any unqualified dependency as an explicit
   blocker; do not downgrade Python, suppress failures or close this track.
+
+### Audit dependency execution evidence
+
+Both regressions above passed after replacing only `pip-api` with 0.0.35:
+2 passed in 0.63 seconds on verified CPython 3.15.1, with zero external
+Python network attempts. `uv lock` resolved 126 packages and changed only
+`pip-api` 0.0.34 to 0.0.35; the explicit dev floor prevents regression.
+The final test import was adjusted to satisfy Ruff PLC0415. The local
+executor became unavailable before the final lint/test, complete advisory
+scan or Atheris runtime qualification returned, so those results remain
+pending hosted verification. No full-environment or full-suite local pass
+is claimed.

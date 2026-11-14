@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+from importlib import import_module
 from typing import TYPE_CHECKING
 
 import pytest
@@ -36,7 +37,7 @@ def test_locked_audit_cli_starts_on_the_selected_interpreter(tmp_path: Path) -> 
 @pytest.mark.security
 def test_audit_parser_preserves_pinned_versions_and_hashes(tmp_path: Path) -> None:
     """Parse a local export-shaped requirement without resolving or downloading it."""
-    import pip_api
+    pip_api = import_module("pip_api")
 
     requirement = tmp_path / "requirements.txt"
     digest = "0" * 64
