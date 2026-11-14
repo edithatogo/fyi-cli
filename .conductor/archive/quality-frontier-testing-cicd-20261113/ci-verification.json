@@ -1,0 +1,1163 @@
+{
+  "schema_version": 1,
+  "track_id": "quality-frontier-testing-cicd-20261113",
+  "baseline_commit": "062c2647e9dc5300fee249cdd7b81a3d164807bc",
+  "execution_order_merge": "a816dcd425a7b6277761a18faeae1685202eefde",
+  "implementation_pull_requests": [
+    {
+      "number": 433,
+      "url": "https://github.com/edithatogo/fyi-cli/pull/433",
+      "final_head": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+      "merge_commit": "797e76cf120988372f4df1f2efb9c9e164c69050",
+      "branch": "fix/quality-frontier-workflow-hardening",
+      "remote_branch_pruned": true,
+      "required_checks": [
+        {
+          "context": "Rustfmt",
+          "app_id": 15368
+        },
+        {
+          "context": "Clippy Lints",
+          "app_id": 15368
+        },
+        {
+          "context": "Workspace Tests",
+          "app_id": 15368
+        },
+        {
+          "context": "Package Smoke",
+          "app_id": 15368
+        },
+        {
+          "context": "Security Audit",
+          "app_id": 15368
+        },
+        {
+          "context": "Code Coverage",
+          "app_id": 15368
+        },
+        {
+          "context": "Layered Harness Contract",
+          "app_id": 15368
+        },
+        {
+          "context": "Python Tests",
+          "app_id": 15368
+        },
+        {
+          "context": "CodeQL",
+          "app_id": 57789
+        },
+        {
+          "context": "Analyze (python)",
+          "app_id": 15368
+        },
+        {
+          "context": "Analyze (javascript-typescript)",
+          "app_id": 15368
+        },
+        {
+          "context": "Packaging Assets",
+          "app_id": 15368
+        }
+      ],
+      "additional_gate_names": [
+        "Workflow Lint",
+        "Dependency Review",
+        "privacy-and-secrets",
+        "Python Security and Quality",
+        "Hypothesis PR Gate",
+        "Atheris (receipt)",
+        "Atheris (cdx)",
+        "Atheris (wayback)",
+        "Atheris (redaction)",
+        "Conductor contracts",
+        "Rust 1.99.1 MSRV",
+        "Property Tests",
+        "Keyring isolation (4 workers)",
+        "profile"
+      ],
+      "check_snapshot_at_merge": [
+        {
+          "name": "codecov/patch",
+          "app_id": 254,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/runs/132318529202"
+        },
+        {
+          "name": "CodeQL",
+          "app_id": 57789,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/runs/132317634045"
+        },
+        {
+          "name": "Rust 1.99.1 MSRV",
+          "app_id": 15368,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345792/job/132317480545"
+        },
+        {
+          "name": "Conductor contracts",
+          "app_id": 15368,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345792/job/132317480255"
+        },
+        {
+          "name": "Workspace Tests",
+          "app_id": 15368,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345893/job/132317479368"
+        },
+        {
+          "name": "Package Smoke",
+          "app_id": 15368,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345893/job/132317479304"
+        },
+        {
+          "name": "Rustfmt",
+          "app_id": 15368,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345893/job/132317479254"
+        },
+        {
+          "name": "Code Coverage",
+          "app_id": 15368,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345893/job/132317479249"
+        },
+        {
+          "name": "Property Tests",
+          "app_id": 15368,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345893/job/132317479226"
+        },
+        {
+          "name": "Packaging Assets",
+          "app_id": 15368,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345893/job/132317479171"
+        },
+        {
+          "name": "Python Tests",
+          "app_id": 15368,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345893/job/132317479100"
+        },
+        {
+          "name": "Layered Harness Contract",
+          "app_id": 15368,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345893/job/132317479096"
+        },
+        {
+          "name": "Security Audit",
+          "app_id": 15368,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345893/job/132317479033"
+        },
+        {
+          "name": "Clippy Lints",
+          "app_id": 15368,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345893/job/132317478812"
+        },
+        {
+          "name": "Python 3.15 security and fuzzing compatibility evidence",
+          "app_id": 15368,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552346001/job/132317474331"
+        },
+        {
+          "name": "Python 3.15 compatibility sensor (non-blocking)",
+          "app_id": 15368,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "in_progress",
+          "conclusion": null,
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552346001/job/132317474177"
+        },
+        {
+          "name": "offline-ai-security / offline-security",
+          "app_id": 15368,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "queued",
+          "conclusion": null,
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345978/job/132317413435"
+        },
+        {
+          "name": "Hypothesis PR Gate",
+          "app_id": 15368,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345807/job/132317410698"
+        },
+        {
+          "name": "Atheris (receipt)",
+          "app_id": 15368,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345807/job/132317410646"
+        },
+        {
+          "name": "Workflow Lint",
+          "app_id": 15368,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345772/job/132317410642"
+        },
+        {
+          "name": "Python Security and Quality",
+          "app_id": 15368,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345807/job/132317410582"
+        },
+        {
+          "name": "Atheris (wayback)",
+          "app_id": 15368,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345807/job/132317410562"
+        },
+        {
+          "name": "Atheris (cdx)",
+          "app_id": 15368,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345807/job/132317410550"
+        },
+        {
+          "name": "Analyze (javascript-typescript)",
+          "app_id": 15368,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345779/job/132317410367"
+        },
+        {
+          "name": "Atheris (redaction)",
+          "app_id": 15368,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345807/job/132317410223"
+        },
+        {
+          "name": "Analyze (python)",
+          "app_id": 15368,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345779/job/132317410200"
+        },
+        {
+          "name": "Dependency Review",
+          "app_id": 15368,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345815/job/132317410108"
+        },
+        {
+          "name": "privacy-and-secrets",
+          "app_id": 15368,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345774/job/132317410103"
+        },
+        {
+          "name": "profile",
+          "app_id": 15368,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345821/job/132317409947"
+        },
+        {
+          "name": "Keyring isolation (4 workers)",
+          "app_id": 15368,
+          "head_sha": "e9765d84bed06cf1cecaea25db5e3ca21666904c",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345780/job/132317409897"
+        }
+      ],
+      "workflow_runs": [
+        {
+          "id": 43552345815,
+          "name": "Dependency Review",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345815"
+        },
+        {
+          "id": 43552345780,
+          "name": "Test profile isolation",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345780"
+        },
+        {
+          "id": 43552345978,
+          "name": "Offline AI security",
+          "status": "pending",
+          "conclusion": null,
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345978"
+        },
+        {
+          "id": 43552345774,
+          "name": "Privacy and secrets",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345774"
+        },
+        {
+          "id": 43552345772,
+          "name": "Actionlint",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345772"
+        },
+        {
+          "id": 43552345807,
+          "name": "Python Security and Fuzzing",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345807"
+        },
+        {
+          "id": 43552345792,
+          "name": "Frontier Conductor and MSRV contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345792"
+        },
+        {
+          "id": 43552345779,
+          "name": "CodeQL",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345779"
+        },
+        {
+          "id": 43552345821,
+          "name": "Profiling",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345821"
+        },
+        {
+          "id": 43552345893,
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552345893"
+        },
+        {
+          "id": 43552346001,
+          "name": "Python 3.15 migration compatibility",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43552346001"
+        }
+      ]
+    },
+    {
+      "number": 437,
+      "url": "https://github.com/edithatogo/fyi-cli/pull/437",
+      "final_head": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+      "base_commit": "d98c09ed98f0ee311713c24cef6abb28d98e8d3c",
+      "branch": "fix/quality-frontier-evidence",
+      "required_checks": [
+        {
+          "context": "Rustfmt",
+          "app_id": 15368
+        },
+        {
+          "context": "Clippy Lints",
+          "app_id": 15368
+        },
+        {
+          "context": "Workspace Tests",
+          "app_id": 15368
+        },
+        {
+          "context": "Package Smoke",
+          "app_id": 15368
+        },
+        {
+          "context": "Security Audit",
+          "app_id": 15368
+        },
+        {
+          "context": "Code Coverage",
+          "app_id": 15368
+        },
+        {
+          "context": "Layered Harness Contract",
+          "app_id": 15368
+        },
+        {
+          "context": "Python Tests",
+          "app_id": 15368
+        },
+        {
+          "context": "CodeQL",
+          "app_id": 57789
+        },
+        {
+          "context": "Analyze (python)",
+          "app_id": 15368
+        },
+        {
+          "context": "Analyze (javascript-typescript)",
+          "app_id": 15368
+        },
+        {
+          "context": "Packaging Assets",
+          "app_id": 15368
+        }
+      ],
+      "additional_gate_names": [
+        "Workflow Lint",
+        "Dependency Review",
+        "privacy-and-secrets",
+        "Python Security and Quality",
+        "Hypothesis PR Gate",
+        "Atheris (receipt)",
+        "Atheris (cdx)",
+        "Atheris (wayback)",
+        "Atheris (redaction)",
+        "Conductor contracts",
+        "Rust 1.99.1 MSRV",
+        "Property Tests",
+        "Keyring isolation (4 workers)",
+        "profile"
+      ],
+      "check_snapshot_at_merge": [
+        {
+          "name": "codecov/patch",
+          "app_id": 254,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/runs/132336136709"
+        },
+        {
+          "name": "CodeQL",
+          "app_id": 57789,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/runs/132334973303"
+        },
+        {
+          "name": "offline-ai-security / offline-security",
+          "app_id": 15368,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "queued",
+          "conclusion": null,
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732259/job/132334284996"
+        },
+        {
+          "name": "Keyring isolation (4 workers)",
+          "app_id": 15368,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732484/job/132334283792"
+        },
+        {
+          "name": "Hypothesis PR Gate",
+          "app_id": 15368,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732039/job/132334282988"
+        },
+        {
+          "name": "Python Security and Quality",
+          "app_id": 15368,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732039/job/132334282957"
+        },
+        {
+          "name": "Atheris (cdx)",
+          "app_id": 15368,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732039/job/132334282933"
+        },
+        {
+          "name": "Atheris (wayback)",
+          "app_id": 15368,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732039/job/132334282931"
+        },
+        {
+          "name": "Security Audit",
+          "app_id": 15368,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732005/job/132334282925"
+        },
+        {
+          "name": "Atheris (receipt)",
+          "app_id": 15368,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732039/job/132334282914"
+        },
+        {
+          "name": "Package Smoke",
+          "app_id": 15368,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732005/job/132334282841"
+        },
+        {
+          "name": "Workspace Tests",
+          "app_id": 15368,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732005/job/132334282830"
+        },
+        {
+          "name": "Python Tests",
+          "app_id": 15368,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732005/job/132334282825"
+        },
+        {
+          "name": "Rust 1.99.1 MSRV",
+          "app_id": 15368,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732017/job/132334282823"
+        },
+        {
+          "name": "privacy-and-secrets",
+          "app_id": 15368,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732108/job/132334282806"
+        },
+        {
+          "name": "Code Coverage",
+          "app_id": 15368,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732005/job/132334282804"
+        },
+        {
+          "name": "Property Tests",
+          "app_id": 15368,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732005/job/132334282801"
+        },
+        {
+          "name": "Layered Harness Contract",
+          "app_id": 15368,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732005/job/132334282800"
+        },
+        {
+          "name": "Clippy Lints",
+          "app_id": 15368,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732005/job/132334282782"
+        },
+        {
+          "name": "Dependency Review",
+          "app_id": 15368,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732064/job/132334282763"
+        },
+        {
+          "name": "Python 3.15 security and fuzzing compatibility evidence",
+          "app_id": 15368,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732023/job/132334282742"
+        },
+        {
+          "name": "Packaging Assets",
+          "app_id": 15368,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732005/job/132334282720"
+        },
+        {
+          "name": "Atheris (redaction)",
+          "app_id": 15368,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732039/job/132334282656"
+        },
+        {
+          "name": "Conductor contracts",
+          "app_id": 15368,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732017/job/132334282643"
+        },
+        {
+          "name": "Workflow Lint",
+          "app_id": 15368,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732042/job/132334282604"
+        },
+        {
+          "name": "Rustfmt",
+          "app_id": 15368,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732005/job/132334282550"
+        },
+        {
+          "name": "Analyze (javascript-typescript)",
+          "app_id": 15368,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557731996/job/132334282532"
+        },
+        {
+          "name": "profile",
+          "app_id": 15368,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557731993/job/132334282506"
+        },
+        {
+          "name": "Python 3.15 compatibility sensor (non-blocking)",
+          "app_id": 15368,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732023/job/132334282491"
+        },
+        {
+          "name": "Analyze (python)",
+          "app_id": 15368,
+          "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557731996/job/132334282258"
+        }
+      ],
+      "workflow_runs": [
+        {
+          "id": 43557732259,
+          "name": "Offline AI security",
+          "status": "queued",
+          "conclusion": null,
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732259"
+        },
+        {
+          "id": 43557732042,
+          "name": "Actionlint",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732042"
+        },
+        {
+          "id": 43557732064,
+          "name": "Dependency Review",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732064"
+        },
+        {
+          "id": 43557731993,
+          "name": "Profiling",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557731993"
+        },
+        {
+          "id": 43557732484,
+          "name": "Test profile isolation",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732484"
+        },
+        {
+          "id": 43557732108,
+          "name": "Privacy and secrets",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732108"
+        },
+        {
+          "id": 43557732039,
+          "name": "Python Security and Fuzzing",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732039"
+        },
+        {
+          "id": 43557731996,
+          "name": "CodeQL",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557731996"
+        },
+        {
+          "id": 43557732017,
+          "name": "Frontier Conductor and MSRV contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732017"
+        },
+        {
+          "id": 43557732023,
+          "name": "Python 3.15 migration compatibility",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732023"
+        },
+        {
+          "id": 43557732005,
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/edithatogo/fyi-cli/actions/runs/43557732005"
+        }
+      ],
+      "artifacts": [
+        {
+          "id": 14099590309,
+          "name": "python-tests-ff347f3306c950455f11b7835c5a779e86bc2796-43557732005-1",
+          "size_in_bytes": 28059,
+          "digest": "sha256:a6bc7c3e12b95e062e80e84837d26824b4f5f9e1b3e78d233d527ba92dc37f74",
+          "expired": false,
+          "created_at": "2026-11-14T04:45:24Z",
+          "expires_at": "2026-11-28T04:45:23Z",
+          "workflow_run": {
+            "id": 43557732005,
+            "repository_id": 1176910266,
+            "head_repository_id": 1176910266,
+            "head_branch": "fix/quality-frontier-evidence",
+            "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202"
+          },
+          "inspection": {
+            "artifact_id": 14099590309,
+            "run_id": 43557732005,
+            "digest_verified": true,
+            "files": [
+              "environment.txt",
+              "junit.xml",
+              "install.log",
+              "pytest.log"
+            ],
+            "provenance": {
+              "environment.txt": "event_sha=ff347f3306c950455f11b7835c5a779e86bc2796\nsource_head_sha=51e49d4b51d40dfbe4dcce3bca428e917719f202\ncheckout_sha=ff347f3306c950455f11b7835c5a779e86bc2796\nrun_id=43557732005\nrun_attempt=1\nevent=pull_request\nrun_url=https://github.com/edithatogo/fyi-cli/actions/runs/43557732005\n2026-11-14T04:43:25Z\nLinux runnervmccnms 7.0.0-1019-azure #20-Ubuntu SMP PREEMPT Mon Oct 19 22:41:16 UTC 2026 x86_64 GNU/Linux\nuv 0.13.8 (x86_64-unknown-linux-gnu)\nPython 3.12.16\npytest 9.1.1\n"
+            },
+            "log_tails": {
+              "install.log": [
+                " + sse-starlette==3.4.5",
+                " + starlette==1.3.1",
+                " + tomli==2.4.1",
+                " + tomli-w==1.2.0",
+                " + typer==0.26.8",
+                " + typing-extensions==4.15.0",
+                " + typing-inspection==0.4.2",
+                " + uncalled-for==0.3.2",
+                " + urllib3==2.8.0",
+                " + uv==0.13.8",
+                " + uvicorn==0.49.0",
+                " + warcio==1.8.1",
+                " + watchfiles==1.2.0",
+                " + websockets==16.0"
+              ],
+              "pytest.log": [
+                "tests/test_south_africa_capture_capability_audit.py ..                   [ 82%]",
+                "tests/test_uk_ie_capture_capability_audit.py ..                          [ 82%]",
+                "tests/test_us_federal_capture_capability_audit.py ..                     [ 82%]",
+                "tests/test_verify_packaging_assets.py ..........                         [ 83%]",
+                "tests/test_verify_release_scope.py .....                                 [ 84%]",
+                "tests/test_webapp.py ................................................... [ 87%]",
+                ".............................................                            [ 91%]",
+                "tests/test_webapp_forms-IASN2001657.py .....                             [ 91%]",
+                "tests/test_webapp_forms.py .....                                         [ 92%]",
+                "tests/test_workflow_hardening.py ....................................... [ 95%]",
+                "................................................................         [100%]",
+                "",
+                "- generated xml file: /home/runner/work/fyi-cli/fyi-cli/artifacts/python-tests/junit.xml -",
+                "================= 1308 passed, 2 skipped in 105.84s (0:01:45) =================="
+              ]
+            },
+            "junit": [
+              {
+                "file": "junit.xml",
+                "suites": [
+                  {
+                    "name": "pytest",
+                    "errors": "0",
+                    "failures": "0",
+                    "skipped": "2",
+                    "tests": "1310",
+                    "time": "105.798",
+                    "timestamp": "2026-11-14T04:43:37.556691+00:00",
+                    "hostname": "runnervmccnms"
+                  }
+                ]
+              }
+            ],
+            "skipped_tests": [
+              {
+                "name": {
+                  "classname": "tests.test_discovery_smoke",
+                  "name": "test_discover_feed_live_single_page_smoke",
+                  "time": "0.000"
+                },
+                "skip": {
+                  "type": "pytest.skip",
+                  "message": "set FYI_LIVE_SMOKE=1 to run live FYI.org.nz smoke tests"
+                },
+                "text": "/home/runner/work/fyi-cli/fyi-cli/tests/test_discovery_smoke.py:16: set FYI_LIVE_SMOKE=1 to run live FYI.org.nz smoke tests"
+              },
+              {
+                "name": {
+                  "classname": "tests.test_discovery_smoke",
+                  "name": "test_righttoknow_discover_and_capture_live_smoke",
+                  "time": "0.000"
+                },
+                "skip": {
+                  "type": "pytest.skip",
+                  "message": "set FYI_LIVE_SMOKE=1 to run live RightToKnow smoke tests"
+                },
+                "text": "/home/runner/work/fyi-cli/fyi-cli/tests/test_discovery_smoke.py:29: set FYI_LIVE_SMOKE=1 to run live RightToKnow smoke tests"
+              }
+            ]
+          }
+        },
+        {
+          "id": 14099386223,
+          "name": "coverage-ff347f3306c950455f11b7835c5a779e86bc2796-43557732005-1",
+          "size_in_bytes": 78346,
+          "digest": "sha256:7c8fe596a608d33262cb1cdca5b3f7487d87d688b019c8603aaf2b6edd7b22d2",
+          "expired": false,
+          "created_at": "2026-11-14T04:46:38Z",
+          "expires_at": "2026-11-28T04:46:37Z",
+          "workflow_run": {
+            "id": 43557732005,
+            "repository_id": 1176910266,
+            "head_repository_id": 1176910266,
+            "head_branch": "fix/quality-frontier-evidence",
+            "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202"
+          },
+          "inspection": {
+            "artifact_id": 14099386223,
+            "run_id": 43557732005,
+            "digest_verified": true,
+            "files": [
+              "artifacts/coverage/environment.txt",
+              "artifacts/coverage/tests.log",
+              "artifacts/coverage/summary.log",
+              "lcov.info"
+            ],
+            "provenance": {
+              "artifacts/coverage/environment.txt": "event_sha=ff347f3306c950455f11b7835c5a779e86bc2796\nsource_head_sha=51e49d4b51d40dfbe4dcce3bca428e917719f202\ncheckout_sha=ff347f3306c950455f11b7835c5a779e86bc2796\nrun_id=43557732005\nrun_attempt=1\nevent=pull_request\nrun_url=https://github.com/edithatogo/fyi-cli/actions/runs/43557732005\n2026-11-14T04:42:43Z\nLinux runnervmccnms 7.0.0-1019-azure #20-Ubuntu SMP PREEMPT Mon Oct 19 22:41:16 UTC 2026 x86_64 GNU/Linux\nrustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1\ncargo 1.99.1 (5f94df478 2026-08-27)\ncargo-llvm-cov 0.9.1\n"
+            },
+            "log_tails": {
+              "artifacts/coverage/tests.log": [
+                "",
+                "\u001b[1m\u001b[92m     Running\u001b[0m tests/wire_contract.rs (target/llvm-cov-target/debug/deps/wire_contract-f4eae88d0838ba29)",
+                "",
+                "running 5 tests",
+                "test notifications_never_reply_or_execute_writes ... ok",
+                "test malformed_frames_have_stable_private_errors_and_recover ... ok",
+                "test oversized_stdio_frame_is_rejected_without_unbounded_drain ... ok",
+                "test legacy_batches_are_bounded_and_exclude_notification_responses ... ok",
+                "test stdio_negotiates_supported_revisions_and_answers_ping ... ok",
+                "",
+                "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s",
+                "",
+                "",
+                "    Finished report saved to lcov.info"
+              ],
+              "artifacts/coverage/summary.log": [
+                "fyi-core/src/notifications.rs                          272                24    91.18%          26                 4    84.62%         192                13    93.23%           0                 0         -",
+                "fyi-core/src/provenance.rs                             480                30    93.75%          23                 1    95.65%         302                23    92.38%           0                 0         -",
+                "fyi-core/src/provider_contract.rs                       43                 0   100.00%           2                 0   100.00%          28                 0   100.00%           0                 0         -",
+                "fyi-core/src/providers.rs                              598                 6    99.00%          44                 0   100.00%         371                 0   100.00%           0                 0         -",
+                "fyi-core/src/providers/fragdenstaat.rs                 284                62    78.17%          29                 7    75.86%         199                50    74.87%           0                 0         -",
+                "fyi-core/src/receipt_wire.rs                            95                10    89.47%          14                 3    78.57%          71                 7    90.14%           0                 0         -",
+                "fyi-core/src/search.rs                                 362                17    95.30%          25                 2    92.00%         195                 8    95.90%           0                 0         -",
+                "fyi-core/src/security.rs                               936               195    79.17%         116                36    68.97%         603                85    85.90%           0                 0         -",
+                "fyi-core/src/shared_pacing.rs                          263                24    90.87%          10                 0   100.00%         172                 0   100.00%           0                 0         -",
+                "fyi-core/src/sync.rs                                  4622               333    92.80%         261                23    91.19%        2965               176    94.06%           0                 0         -",
+                "fyi-mcp/src/policy.rs                                  446               104    76.68%          37                11    70.27%         326                75    76.99%           0                 0         -",
+                "fyi-mcp/src/write_gate.rs                              203                43    78.82%          14                 4    71.43%         147                24    83.67%           0                 0         -",
+                "--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------",
+                "TOTAL                                                15146              1424    90.60%        1037               141    86.40%        9933               737    92.58%           0                 0         -"
+              ]
+            },
+            "junit": [],
+            "lcov": {
+              "bytes": 453359,
+              "source_files": 25,
+              "has_line_hits": true
+            }
+          }
+        },
+        {
+          "id": 14099356004,
+          "name": "security-audit-ff347f3306c950455f11b7835c5a779e86bc2796-43557732005-1",
+          "size_in_bytes": 62212,
+          "digest": "sha256:e0edf8c9c34bc6eca39367d55a9709a377d08ad6a1044e08666f42581dc055aa",
+          "expired": false,
+          "created_at": "2026-11-14T04:49:31Z",
+          "expires_at": "2026-11-28T04:49:30Z",
+          "workflow_run": {
+            "id": 43557732005,
+            "repository_id": 1176910266,
+            "head_repository_id": 1176910266,
+            "head_branch": "fix/quality-frontier-evidence",
+            "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202"
+          },
+          "inspection": {
+            "artifact_id": 14099356004,
+            "run_id": 43557732005,
+            "digest_verified": true,
+            "files": [
+              "deny.log",
+              "audit.log",
+              "environment.txt",
+              "install-audit.log",
+              "install-deny.log"
+            ],
+            "provenance": {
+              "environment.txt": "event_sha=ff347f3306c950455f11b7835c5a779e86bc2796\nsource_head_sha=51e49d4b51d40dfbe4dcce3bca428e917719f202\ncheckout_sha=ff347f3306c950455f11b7835c5a779e86bc2796\nrun_id=43557732005\nrun_attempt=1\nevent=pull_request\nrun_url=https://github.com/edithatogo/fyi-cli/actions/runs/43557732005\n2026-11-14T04:44:08Z\nLinux runnervmccnms 7.0.0-1019-azure #20-Ubuntu SMP PREEMPT Mon Oct 19 22:41:16 UTC 2026 x86_64 GNU/Linux\nrustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1\ncargo 1.99.1 (5f94df478 2026-08-27)\ncargo-audit-audit 0.23.0\ncargo-deny 0.20.2\n"
+            },
+            "log_tails": {
+              "deny.log": [
+                "",
+                "\u001b[0m\u001b[1m\u001b[38;5;11mwarning[advisory-not-detected]\u001b[0m\u001b[1m: advisory was not encountered\u001b[0m",
+                "   \u001b[0m\u001b[36m┌─\u001b[0m /home/runner/work/fyi-cli/fyi-cli/deny.toml:16:4",
+                "   \u001b[0m\u001b[36m│\u001b[0m",
+                "\u001b[0m\u001b[36m16\u001b[0m \u001b[0m\u001b[36m│\u001b[0m   \"\u001b[0m\u001b[33mRUSTSEC-2026-0190\u001b[0m\", # curve25519-dalek timing variability (via arti-client -> tor-*)",
+                "   \u001b[0m\u001b[36m│\u001b[0m    \u001b[0m\u001b[33m━━━━━━━━━━━━━━━━━\u001b[0m \u001b[0m\u001b[33mno crate matched advisory criteria\u001b[0m",
+                "",
+                "\u001b[0m\u001b[1m\u001b[38;5;11mwarning[advisory-not-detected]\u001b[0m\u001b[1m: advisory was not encountered\u001b[0m",
+                "   \u001b[0m\u001b[36m┌─\u001b[0m /home/runner/work/fyi-cli/fyi-cli/deny.toml:44:4",
+                "   \u001b[0m\u001b[36m│\u001b[0m",
+                "\u001b[0m\u001b[36m44\u001b[0m \u001b[0m\u001b[36m│\u001b[0m   \"\u001b[0m\u001b[33mRUSTSEC-2026-0387\u001b[0m\",",
+                "   \u001b[0m\u001b[36m│\u001b[0m    \u001b[0m\u001b[33m━━━━━━━━━━━━━━━━━\u001b[0m \u001b[0m\u001b[33mno crate matched advisory criteria\u001b[0m",
+                "",
+                "advisories \u001b[32mok\u001b[0m, bans \u001b[32mok\u001b[0m, licenses \u001b[32mok\u001b[0m, sources \u001b[32mok\u001b[0m"
+              ],
+              "audit.log": [
+                "\u001b[0m\u001b[0m\u001b[1m\u001b[32m    Fetching\u001b[0m advisory database from `https://github.com/RustSec/advisory-db.git`",
+                "\u001b[0m\u001b[0m\u001b[1m\u001b[32m      Loaded\u001b[0m 1509 security advisories (from /home/runner/.cargo/advisory-db)",
+                "\u001b[0m\u001b[0m\u001b[1m\u001b[32m    Updating\u001b[0m crates.io index",
+                "\u001b[0m\u001b[0m\u001b[1m\u001b[32m    Scanning\u001b[0m Cargo.lock for vulnerabilities (749 crate dependencies)"
+              ],
+              "install-audit.log": [
+                "\u001b[1m\u001b[92m   Compiling\u001b[0m rustls-webpki v0.103.16",
+                "\u001b[1m\u001b[92m   Compiling\u001b[0m tokio-rustls v0.26.5",
+                "\u001b[1m\u001b[92m   Compiling\u001b[0m rustls-platform-verifier v0.7.0",
+                "\u001b[1m\u001b[92m   Compiling\u001b[0m hyper-rustls v0.27.10",
+                "\u001b[1m\u001b[92m   Compiling\u001b[0m reqwest v0.13.5",
+                "\u001b[1m\u001b[92m   Compiling\u001b[0m gix-transport v0.62.0",
+                "\u001b[1m\u001b[92m   Compiling\u001b[0m tame-index v0.26.3",
+                "\u001b[1m\u001b[92m   Compiling\u001b[0m gix-protocol v0.68.0",
+                "\u001b[1m\u001b[92m   Compiling\u001b[0m gix v0.90.0",
+                "\u001b[1m\u001b[92m   Compiling\u001b[0m rustsec v0.34.0",
+                "\u001b[1m\u001b[92m   Compiling\u001b[0m cargo-audit v0.23.0",
+                "\u001b[1m\u001b[92m    Finished\u001b[0m `release` profile [optimized] target(s) in 3m 04s",
+                "\u001b[1m\u001b[92m  Installing\u001b[0m /home/runner/.cargo/bin/cargo-audit",
+                "\u001b[1m\u001b[92m   Installed\u001b[0m package `cargo-audit v0.23.0` (executable `cargo-audit`)"
+              ],
+              "install-deny.log": [
+                "\u001b[1m\u001b[92m   Compiling\u001b[0m krates v0.21.2",
+                "\u001b[1m\u001b[92m   Compiling\u001b[0m clap v4.6.1",
+                "\u001b[1m\u001b[92m   Compiling\u001b[0m strum v0.28.0",
+                "\u001b[1m\u001b[92m   Compiling\u001b[0m fern v0.7.1",
+                "\u001b[1m\u001b[92m   Compiling\u001b[0m codespan v0.13.1",
+                "\u001b[1m\u001b[92m   Compiling\u001b[0m memmap2 v0.9.11",
+                "\u001b[1m\u001b[92m   Compiling\u001b[0m nu-ansi-term v0.50.3",
+                "\u001b[1m\u001b[92m   Compiling\u001b[0m jiff v0.2.24",
+                "\u001b[1m\u001b[92m   Compiling\u001b[0m zstd v0.13.3",
+                "\u001b[1m\u001b[92m   Compiling\u001b[0m spdx v0.13.4",
+                "\u001b[1m\u001b[92m   Compiling\u001b[0m cargo-deny v0.20.2",
+                "\u001b[1m\u001b[92m    Finished\u001b[0m `release` profile [optimized] target(s) in 1m 58s",
+                "\u001b[1m\u001b[92m  Installing\u001b[0m /home/runner/.cargo/bin/cargo-deny",
+                "\u001b[1m\u001b[92m   Installed\u001b[0m package `cargo-deny v0.20.2` (executable `cargo-deny`)"
+              ]
+            },
+            "junit": []
+          }
+        },
+        {
+          "id": 14098574411,
+          "name": "profiling-ff347f3306c950455f11b7835c5a779e86bc2796-43557731993-1",
+          "size_in_bytes": 23568,
+          "digest": "sha256:18cb4b2088e070cada0d516c71db5f94be36186e4ad04266f595221dfa644cb3",
+          "expired": false,
+          "created_at": "2026-11-14T04:41:53Z",
+          "expires_at": "2026-11-28T04:41:52Z",
+          "workflow_run": {
+            "id": 43557731993,
+            "repository_id": 1176910266,
+            "head_repository_id": 1176910266,
+            "head_branch": "fix/quality-frontier-evidence",
+            "head_sha": "51e49d4b51d40dfbe4dcce3bca428e917719f202"
+          },
+          "inspection": {
+            "artifact_id": 14098574411,
+            "run_id": 43557731993,
+            "digest_verified": true,
+            "files": [
+              "benchmark.json",
+              "benchmark.log",
+              "benchmark.xml",
+              "environment.txt",
+              "install.log"
+            ],
+            "provenance": {
+              "environment.txt": "source_sha=51e49d4b51d40dfbe4dcce3bca428e917719f202\nworkflow_sha=ff347f3306c950455f11b7835c5a779e86bc2796\nrun_id=43557731993\nrun_attempt=1\nevent=pull_request\nff347f3306c950455f11b7835c5a779e86bc2796\n2026-11-14T04:41:42Z\nLinux runnervmccnms 7.0.0-1019-azure #20-Ubuntu SMP PREEMPT Mon Oct 19 22:41:16 UTC 2026 x86_64 GNU/Linux\nuv 0.13.8 (x86_64-unknown-linux-gnu)\nPython 3.12.16\npytest 9.1.1\nScalene version 2.3.0 (2026.05.08)\n\n"
+            },
+            "log_tails": {
+              "benchmark.log": [
+                "benchmark_email_redaction_simple            6.3100 (1.0)          20.5600 (1.0)           6.5129 (1.0)        0.8467 (1.0)           6.4090 (1.0)        0.0690 (1.0)         11;57  153,540.7190 (1.0)         789           1",
+                "benchmark_email_redaction_multiple          7.5310 (1.19)         24.9970 (1.22)          7.8098 (1.20)       0.8731 (1.03)          7.6820 (1.20)       0.1600 (2.32)       56;102  128,043.8350 (0.83)       3546           1",
+                "benchmark_email_redaction_large           237.2620 (37.60)       403.8680 (19.64)       251.7845 (38.66)     34.0540 (40.22)       241.6280 (37.70)      6.6300 (96.09)       14;18    3,971.6501 (0.03)        202           1",
+                "benchmark_db_query                        274.6970 (43.53)       327.3350 (15.92)       288.4295 (44.29)     10.8275 (12.79)       285.0730 (44.48)     13.0900 (189.71)       36;5    3,467.0519 (0.02)        133           1",
+                "benchmark_db_insert                       760.3770 (120.50)    6,045.8680 (294.06)    1,135.9672 (174.42)   946.4784 (>1000.0)     890.6300 (138.97)    81.8417 (>1000.0)       3;6      880.3071 (0.01)         45           1",
+                "benchmark_concurrent_reads              3,112.8330 (493.32)    3,697.6740 (179.85)    3,388.5201 (520.28)   193.0023 (227.94)    3,379.2125 (527.26)   297.9810 (>1000.0)       6;0      295.1141 (0.00)         14           1",
+                "benchmark_db_init                       8,266.3180 (>1000.0)   8,433.2560 (410.18)    8,349.7870 (>1000.0)  118.0430 (139.41)    8,349.7870 (>1000.0)  166.9380 (>1000.0)       0;0      119.7635 (0.00)          2           1",
+                "benchmark_dashboard_generation         34,778.5330 (>1000.0)  35,653.4290 (>1000.0)  35,215.9810 (>1000.0)  618.6449 (730.64)   35,215.9810 (>1000.0)  874.8960 (>1000.0)       0;0       28.3962 (0.00)          2           1",
+                "-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------",
+                "",
+                "Legend:",
+                "  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.",
+                "  OPS: Operations Per Second, computed as 1 / Mean",
+                "============================== 8 passed in 4.48s ==============================="
+              ],
+              "install.log": [
+                " + sse-starlette==3.4.5",
+                " + starlette==1.3.1",
+                " + tomli==2.4.1",
+                " + tomli-w==1.2.0",
+                " + typer==0.26.8",
+                " + typing-extensions==4.15.0",
+                " + typing-inspection==0.4.2",
+                " + uncalled-for==0.3.2",
+                " + urllib3==2.8.0",
+                " + uv==0.13.8",
+                " + uvicorn==0.49.0",
+                " + warcio==1.8.1",
+                " + watchfiles==1.2.0",
+                " + websockets==16.0"
+              ]
+            },
+            "junit": [
+              {
+                "file": "benchmark.xml",
+                "suites": [
+                  {
+                    "name": "pytest",
+                    "errors": "0",
+                    "failures": "0",
+                    "skipped": "0",
+                    "tests": "8",
+                    "time": "3.916",
+                    "timestamp": "2026-11-14T04:41:48.291707+00:00",
+                    "hostname": "runnervmccnms"
+                  }
+                ]
+              }
+            ],
+            "benchmark_count": 8,
+            "skipped_tests": []
+          }
+        }
+      ],
+      "verified_at": "2026-11-14T04:50:25.879Z",
+      "merge_commit": "78e62066cc823659593034cc9f23f69ab9a5f6d9",
+      "remote_branch_pruned": true,
+      "local_branch_pruned": true,
+      "merge_verified": true
+    }
+  ],
+  "evidence_limits": [
+    "Python 3.15 sensors are optional capability diagnostics; a successful wrapper does not imply every scanned tool is compatible.",
+    "Offline AI security uses a separately managed self-hosted runner and was queued/pending. It is not one of the live protected-branch required contexts.",
+    "Full mutation campaigns and full scheduled Scalene runs are not inferred from workflow-contract results."
+  ],
+  "archive_closeout": {
+    "procedure": ".conductor/workflow.md: move merged completed track to archive and reconcile registry/index",
+    "implementation_verified_at": "2026-11-14T04:50:25.879Z",
+    "archive_final_gate": "Closing PR conversation records its exact final head, check evidence, merge commit and branch pruning."
+  }
+}
