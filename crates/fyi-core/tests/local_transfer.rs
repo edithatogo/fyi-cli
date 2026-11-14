@@ -140,14 +140,57 @@ async fn oversized_export_is_rejected_without_disclosing_the_private_body() {
         .unwrap();
     let mut document = db.export_local_requests().await.unwrap();
     assert!(encode_local_export(&document).is_ok());
-    document.requests[0].body =
-        format!("SYNTHETIC-PRIVATE-OVERSIZE:{}", "x".repeat(17 * 1024 * 1024));
+    document.requests[0].body = format!(
+        "SYNTHETIC-PRIVATE-OVERSIZE:{}",
+        "x".repeat(17 * 1024 * 1024)
+    );
     let error = encode_local_export(&document).unwrap_err();
     assert!(matches!(&error, LocalError::InvalidInput(_)));
     let diagnostic = error.to_string();
     assert!(diagnostic.contains("16 MiB"));
     assert!(!diagnostic.contains("SYNTHETIC-PRIVATE-OVERSIZE"));
     assert!(diagnostic.len() < 256);
+}
+
+#[tokio::test]
+async fn nonpositive_feed_guesses_fail_validation_without_changing_rows_or_allocators() {
+    let db = database().await;
+    db.import_local_authorities(&[LocalAuthority {
+        slug: "retained-only".to_owned(),
+        name: "Original retained authority".to_owned(),
+        url: None,
+    }])
+    .await
+    .unwrap();
+    let before = state(&db).await;
+    for guess in [0, -1] {
+        let mut document = native_document();
+        document["feed_events"][0]["request_id_guess"] = json!(guess);
+        let input = parsed(&document);
+        let LocalImport::Versioned(native) = &input else {
+            panic!("the native fixture must remain a versioned document");
+        };
+        assert!(encode_local_export(native).is_err(), "guess {guess}");
+        for replace in [false, true] {
+            assert!(
+                db.import_local_requests(&input, replace).await.is_err(),
+                "guess {guess}, replace {replace}"
+            );
+            assert_eq!(state(&db).await, before);
+        }
+    }
+    assert_eq!(
+        db.import_local_requests(&parsed(&native_document()), false)
+            .await
+            .unwrap(),
+        2
+    );
+    let guesses: Vec<Option<i64>> =
+        sqlx::query_scalar("SELECT request_id_guess FROM feed_events ORDER BY id")
+            .fetch_all(db.pool())
+            .await
+            .unwrap();
+    assert_eq!(guesses, vec![Some(9007), Some(9007)]);
 }
 
 #[tokio::test]
@@ -275,7 +318,10 @@ async fn native_export_order_is_independent_of_import_order_and_preserves_high_w
     let first_bytes = exported(&first).await;
     assert_eq!(exported(&first).await, first_bytes);
     assert_eq!(exported(&second).await, first_bytes);
-    assert_eq!(serde_json::from_slice::<Value>(&first_bytes).unwrap(), document);
+    assert_eq!(
+        serde_json::from_slice::<Value>(&first_bytes).unwrap(),
+        document
+    );
 }
 
 #[tokio::test]

@@ -397,11 +397,12 @@ async fn validate_allocators(connection: &mut SqliteConnection) -> Result<(), Lo
             continue;
         }
         schema::validate_autoincrement(connection, table).await?;
-        let (maximum, minimum): (i64, i64) = sqlx::query_as(query)
-            .fetch_one(&mut *connection)
-            .await?;
+        let (maximum, minimum): (i64, i64) =
+            sqlx::query_as(query).fetch_one(&mut *connection).await?;
         if minimum <= 0
-            || markers.get(table).is_some_and(|sequence| *sequence < maximum)
+            || markers
+                .get(table)
+                .is_some_and(|sequence| *sequence < maximum)
             || (maximum > 0 && !markers.contains_key(table))
         {
             return Err(LocalError::Schema);

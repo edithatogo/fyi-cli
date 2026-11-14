@@ -9,6 +9,14 @@ const LEGACY_SQL: &str = include_str!("../../../conformance/local-management/leg
 const LEGACY_EXPECTED: &str =
     include_str!("../../../conformance/local-management/legacy-v1-expected.json");
 
+type CacheRow = (
+    String,
+    Option<String>,
+    Option<String>,
+    Option<String>,
+    Option<String>,
+);
+
 async fn legacy_database() -> DbPool {
     let db = DbPool::new_in_memory().await.unwrap();
     sqlx::raw_sql(LEGACY_SQL).execute(db.pool()).await.unwrap();
@@ -45,13 +53,7 @@ async fn retained_state(db: &DbPool) -> Value {
     .fetch_all(db.pool())
     .await
     .unwrap();
-    let cache: Vec<(
-        String,
-        Option<String>,
-        Option<String>,
-        Option<String>,
-        Option<String>,
-    )> = sqlx::query_as(
+    let cache: Vec<CacheRow> = sqlx::query_as(
         "SELECT url, etag, last_modified, response_body, cached_at
          FROM http_cache ORDER BY url",
     )
@@ -109,14 +111,21 @@ async fn fixture_timeline_preserves_python_projections_with_correct_chronologica
         "SYNTHETIC-PRIVATE-FEED-3",
         "SYNTHETIC-PRIVATE-CACHE-7",
     ] {
-        assert!(!rendered.contains(excluded), "leaked or mislinked {excluded}");
+        assert!(
+            !rendered.contains(excluded),
+            "leaked or mislinked {excluded}"
+        );
     }
 }
 
 #[tokio::test]
 async fn local_and_remote_request_ids_never_substitute_for_provenance_links() {
     let db = legacy_database().await;
-    assert!(db.local_request_timeline(2147483650).await.unwrap().is_empty());
+    assert!(db
+        .local_request_timeline(2147483650)
+        .await
+        .unwrap()
+        .is_empty());
     sqlx::query(
         "INSERT INTO feed_events (
             id, feed_url, title, request_id_guess, tracked_request_id, seen_at
@@ -144,7 +153,9 @@ async fn local_and_remote_request_ids_never_substitute_for_provenance_links() {
     assert_eq!(timeline[0].title, "Explicit local link");
     let other = serde_json::to_value(db.local_request_timeline(7).await.unwrap()).unwrap();
     assert!(!other.to_string().contains("Explicit local link"));
-    assert!(!other.to_string().contains("Same numeric ID is not a remote link"));
+    assert!(!other
+        .to_string()
+        .contains("Same numeric ID is not a remote link"));
 }
 
 #[tokio::test]
@@ -187,7 +198,9 @@ async fn feed_fallbacks_preserve_null_time_and_never_project_raw_payloads() {
             "detail": "https://example.invalid/link"
         })
     );
-    assert!(!serde_json::to_string(&timeline).unwrap().contains("PRIVATE-RAW-FEED"));
+    assert!(!serde_json::to_string(&timeline)
+        .unwrap()
+        .contains("PRIVATE-RAW-FEED"));
 }
 
 #[tokio::test]
@@ -283,7 +296,9 @@ async fn malformed_or_nonobject_snapshot_json_has_safe_defaults_and_preserves_st
                 "detail": ""
             })
         );
-        assert!(!serde_json::to_string(&timeline).unwrap().contains("PRIVATE-SNAPSHOT-RAW"));
+        assert!(!serde_json::to_string(&timeline)
+            .unwrap()
+            .contains("PRIVATE-SNAPSHOT-RAW"));
         let stored: String =
             sqlx::query_scalar("SELECT raw_json FROM request_snapshots WHERE id = 101")
                 .fetch_one(db.pool())
@@ -296,7 +311,10 @@ async fn malformed_or_nonobject_snapshot_json_has_safe_defaults_and_preserves_st
 #[tokio::test]
 async fn equal_instants_keep_descending_ids_within_deterministic_source_groups() {
     let db = legacy_database().await;
-    for (id, timestamp) in [(101_i64, "2026-02-03T14:05:06+10:00"), (102, "2026-02-03T04:05:06Z")] {
+    for (id, timestamp) in [
+        (101_i64, "2026-02-03T14:05:06+10:00"),
+        (102, "2026-02-03T04:05:06Z"),
+    ] {
         sqlx::query(
             "INSERT INTO feed_events (id, feed_url, title, tracked_request_id, published, seen_at)
              VALUES (?, 'https://example.invalid/feed', ?, 7, ?, NULL)",
@@ -319,8 +337,15 @@ async fn equal_instants_keep_descending_ids_within_deterministic_source_groups()
         .unwrap();
     }
     let timeline = db.local_request_timeline(7).await.unwrap();
-    let first: Vec<_> = timeline.iter().take(4).map(|item| item.title.as_str()).collect();
-    assert_eq!(first, ["feed-102", "feed-101", "snapshot-102", "snapshot-101"]);
+    let first: Vec<_> = timeline
+        .iter()
+        .take(4)
+        .map(|item| item.title.as_str())
+        .collect();
+    assert_eq!(
+        first,
+        ["feed-102", "feed-101", "snapshot-102", "snapshot-101"]
+    );
     assert_eq!(timeline[0].ts.as_deref(), Some("2026-02-03T04:05:06Z"));
     assert_eq!(timeline[1].ts.as_deref(), Some("2026-02-03T14:05:06+10:00"));
 }
@@ -401,7 +426,10 @@ fn feed_json_requires_explicit_nullable_keys_and_rejects_extensions() {
     for field in complete.as_object().unwrap().keys() {
         let mut missing = complete.clone();
         missing.as_object_mut().unwrap().remove(field);
-        assert!(serde_json::from_value::<FeedEvent>(missing).is_err(), "{field}");
+        assert!(
+            serde_json::from_value::<FeedEvent>(missing).is_err(),
+            "{field}"
+        );
     }
     let mut unknown = complete.clone();
     unknown["private_payload"] = json!("not an allowed extension");
@@ -425,7 +453,10 @@ fn snapshot_json_requires_timestamp_key_and_preserves_explicit_null() {
     for field in complete.as_object().unwrap().keys() {
         let mut missing = complete.clone();
         missing.as_object_mut().unwrap().remove(field);
-        assert!(serde_json::from_value::<RequestSnapshot>(missing).is_err(), "{field}");
+        assert!(
+            serde_json::from_value::<RequestSnapshot>(missing).is_err(),
+            "{field}"
+        );
     }
     let mut unknown = complete;
     unknown["body"] = json!("not a top-level snapshot field");

@@ -241,31 +241,45 @@ pub(crate) async fn validate_provenance(
     connection: &mut SqliteConnection,
     required: bool,
 ) -> Result<(), LocalError> {
-    validate_columns(connection, "feed_events", &[
-        ("id", "INTEGER", 0, 1, None),
-        ("feed_url", "TEXT", 1, 0, None),
-        ("event_id", "TEXT", 0, 0, None),
-        ("title", "TEXT", 0, 0, None),
-        ("link", "TEXT", 0, 0, None),
-        ("published", "TEXT", 0, 0, None),
-        ("summary", "TEXT", 0, 0, None),
-        ("request_id_guess", "INTEGER", 0, 0, None),
-        ("tracked_request_id", "INTEGER", 0, 0, None),
-        ("raw_json", "TEXT", 0, 0, None),
-        ("seen_at", "TEXT", 0, 0, Some("CURRENT_TIMESTAMP")),
-    ], required).await?;
-    validate_columns(connection, "request_snapshots", &[
-        ("id", "INTEGER", 0, 1, None),
-        ("fyi_request_id", "INTEGER", 1, 0, None),
-        ("source_url", "TEXT", 1, 0, None),
-        ("raw_json", "TEXT", 1, 0, None),
-        ("fetched_at", "TEXT", 0, 0, Some("CURRENT_TIMESTAMP")),
-    ], required).await?;
+    validate_columns(
+        connection,
+        "feed_events",
+        &[
+            ("id", "INTEGER", 0, 1, None),
+            ("feed_url", "TEXT", 1, 0, None),
+            ("event_id", "TEXT", 0, 0, None),
+            ("title", "TEXT", 0, 0, None),
+            ("link", "TEXT", 0, 0, None),
+            ("published", "TEXT", 0, 0, None),
+            ("summary", "TEXT", 0, 0, None),
+            ("request_id_guess", "INTEGER", 0, 0, None),
+            ("tracked_request_id", "INTEGER", 0, 0, None),
+            ("raw_json", "TEXT", 0, 0, None),
+            ("seen_at", "TEXT", 0, 0, Some("CURRENT_TIMESTAMP")),
+        ],
+        required,
+    )
+    .await?;
+    validate_columns(
+        connection,
+        "request_snapshots",
+        &[
+            ("id", "INTEGER", 0, 1, None),
+            ("fyi_request_id", "INTEGER", 1, 0, None),
+            ("source_url", "TEXT", 1, 0, None),
+            ("raw_json", "TEXT", 1, 0, None),
+            ("fetched_at", "TEXT", 0, 0, Some("CURRENT_TIMESTAMP")),
+        ],
+        required,
+    )
+    .await?;
     for table in ["feed_events", "request_snapshots"] {
         if required || table_exists(connection, table).await? {
             validate_autoincrement(connection, table).await?;
             let keys: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM pragma_foreign_key_list(?)")
-                .bind(table).fetch_one(&mut *connection).await?;
+                .bind(table)
+                .fetch_one(&mut *connection)
+                .await?;
             if keys != 0 {
                 return Err(LocalError::Schema);
             }
@@ -275,12 +289,18 @@ pub(crate) async fn validate_provenance(
 }
 
 /// Legacy feed references have no declared FK; enforce them explicitly at boundaries.
-pub(crate) async fn validate_local_references(connection: &mut SqliteConnection) -> Result<(), LocalError> {
-    let invalid = sqlx::query("PRAGMA foreign_key_check").fetch_all(&mut *connection).await?;
+pub(crate) async fn validate_local_references(
+    connection: &mut SqliteConnection,
+) -> Result<(), LocalError> {
+    let invalid = sqlx::query("PRAGMA foreign_key_check")
+        .fetch_all(&mut *connection)
+        .await?;
     let orphan: bool = sqlx::query_scalar(
         "SELECT EXISTS(SELECT 1 FROM feed_events f WHERE f.tracked_request_id IS NOT NULL
          AND NOT EXISTS(SELECT 1 FROM tracked_requests r WHERE r.id = f.tracked_request_id))",
-    ).fetch_one(connection).await?;
+    )
+    .fetch_one(connection)
+    .await?;
     if !invalid.is_empty() || orphan {
         return Err(LocalError::Schema);
     }

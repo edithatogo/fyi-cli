@@ -2,8 +2,8 @@
 pub(crate) mod legacy;
 pub mod provenance;
 pub mod requests;
-pub mod transfer;
 pub(crate) mod schema;
+pub mod transfer;
 
 use super::DbPool;
 use serde::{Deserialize, Deserializer, Serialize};

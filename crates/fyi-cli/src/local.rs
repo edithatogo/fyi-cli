@@ -42,7 +42,10 @@ fn execute(command: &Commands, format: OutputFormat) -> Result<(), Box<dyn std::
                 result
             })?;
             if format == OutputFormat::Json {
-                println!("{}", serde_json::json!({"database": db, "migrated_legacy": migrate_legacy}));
+                println!(
+                    "{}",
+                    serde_json::json!({"database": db, "migrated_legacy": migrate_legacy})
+                );
             } else {
                 println!("Initialized SQLite database at {db}");
             }
@@ -189,11 +192,14 @@ fn execute(command: &Commands, format: OutputFormat) -> Result<(), Box<dyn std::
             let bytes = encode_local_export(&document)?;
             publish_private_export(Path::new(output), &bytes)?;
             if format == OutputFormat::Json {
-                println!("{}", serde_json::json!({
-                    "output": output,
-                    "exported_requests": document.requests.len(),
-                    "schema_version": document.schema_version
-                }));
+                println!(
+                    "{}",
+                    serde_json::json!({
+                        "output": output,
+                        "exported_requests": document.requests.len(),
+                        "schema_version": document.schema_version
+                    })
+                );
             } else {
                 println!("{output}");
             }
@@ -202,7 +208,8 @@ fn execute(command: &Commands, format: OutputFormat) -> Result<(), Box<dyn std::
             let file = std::fs::File::open(input)
                 .map_err(|_| LocalError::InvalidInput("unable to read local request import"))?;
             let mut bytes = Vec::new();
-            file.take((MAX_LOCAL_INPUT_BYTES + 1) as u64).read_to_end(&mut bytes)
+            file.take((MAX_LOCAL_INPUT_BYTES + 1) as u64)
+                .read_to_end(&mut bytes)
                 .map_err(|_| LocalError::InvalidInput("unable to read local request import"))?;
             let input = parse_local_import(&bytes)?;
             let count = runtime.block_on(async {
@@ -223,7 +230,10 @@ fn execute(command: &Commands, format: OutputFormat) -> Result<(), Box<dyn std::
 }
 
 fn create_private_database(path: &Path) -> Result<(), LocalError> {
-    if let Some(parent) = path.parent().filter(|parent| !parent.as_os_str().is_empty()) {
+    if let Some(parent) = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+    {
         std::fs::create_dir_all(parent).map_err(|_| LocalError::Open)?;
     }
     let mut options = std::fs::OpenOptions::new();
@@ -241,10 +251,17 @@ fn create_private_database(path: &Path) -> Result<(), LocalError> {
 }
 
 fn publish_private_export(path: &Path, bytes: &[u8]) -> Result<(), LocalError> {
-    let invalid = || LocalError::InvalidInput("unable to publish private request export without overwriting existing data");
+    let invalid = || {
+        LocalError::InvalidInput(
+            "unable to publish private request export without overwriting existing data",
+        )
+    };
     match std::fs::symlink_metadata(path) {
         Ok(metadata) => {
-            if !metadata.is_file() || metadata.file_type().is_symlink() || metadata.len() != bytes.len() as u64 {
+            if !metadata.is_file()
+                || metadata.file_type().is_symlink()
+                || metadata.len() != bytes.len() as u64
+            {
                 return Err(invalid());
             }
             #[cfg(unix)]
@@ -258,6 +275,5 @@ fn publish_private_export(path: &Path, bytes: &[u8]) -> Result<(), LocalError> {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
         Err(_) => return Err(invalid()),
     }
-    fyi_core::acquisition_receipts::write_evidence_bytes_atomic(path, bytes)
-        .map_err(|_| invalid())
+    fyi_core::acquisition_receipts::write_evidence_bytes_atomic(path, bytes).map_err(|_| invalid())
 }

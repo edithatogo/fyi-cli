@@ -30,16 +30,20 @@ async fn repeated_initialization_recognizes_native_tracking_and_preserves_record
 #[tokio::test]
 async fn previous_native_schema_upgrades_only_through_explicit_initialization() {
     let db = database().await;
-    sqlx::query("DROP TABLE feed_events").execute(db.pool())
+    sqlx::query("DROP TABLE feed_events")
+        .execute(db.pool())
         .await
         .unwrap();
-    sqlx::query("DROP TABLE request_snapshots").execute(db.pool())
+    sqlx::query("DROP TABLE request_snapshots")
+        .execute(db.pool())
         .await
         .unwrap();
-    sqlx::query("DROP TABLE local_request_events").execute(db.pool())
+    sqlx::query("DROP TABLE local_request_events")
+        .execute(db.pool())
         .await
         .unwrap();
-    sqlx::query("DROP TABLE tracked_requests").execute(db.pool())
+    sqlx::query("DROP TABLE tracked_requests")
+        .execute(db.pool())
         .await
         .unwrap();
     sqlx::query("DELETE FROM _sqlx_migrations WHERE version >= 20261114001000")
@@ -111,9 +115,7 @@ async fn corrupt_or_future_ledgers_are_not_repaired_by_initialization() {
         "DELETE FROM _sqlx_migrations WHERE version = 20260630000000",
     ] {
         let db = database().await;
-        sqlx::query(corruption).execute(db.pool())
-        .await
-        .unwrap();
+        sqlx::query(corruption).execute(db.pool()).await.unwrap();
         let before: Vec<(i64, bool, Vec<u8>)> = sqlx::query_as(
             "SELECT version, success, checksum FROM _sqlx_migrations ORDER BY version",
         )

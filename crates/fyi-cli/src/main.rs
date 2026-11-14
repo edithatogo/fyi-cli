@@ -1397,7 +1397,6 @@ fn create_database_file(db: &str) -> std::io::Result<()> {
     Ok(())
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -2,7 +2,7 @@
 
 Date: 2026-11-14
 Parent track: `frontier-rust-convergence-20261113`
-Status: implementation contract; capability acceptance remains pending
+Status: all nine local handlers implemented; final-head acceptance and ordered merges pending
 
 ## Ownership and scope
 
@@ -106,10 +106,10 @@ Python command does not have equivalent output-format handling.
 
 ### Slice 2: local request lifecycle
 
-- [ ] Implement registration and request listing.
-- [ ] Implement atomic status/history changes with stable no-op behaviour.
-- [ ] Implement local timeline and full local request detail.
-- [ ] Prove privacy, missing-record, ID-width, transaction and no-submission
+- [x] Implement registration and request listing.
+- [x] Implement atomic status/history changes with stable no-op behaviour.
+- [x] Implement local timeline and full local request detail.
+- [x] Prove privacy, missing-record, ID-width, transaction and no-submission
   contracts.
 
 `register-request AUTHORITY_SLUG TITLE BODY` retains `--tags`, `--status`,
@@ -154,11 +154,11 @@ may be exposed as a documented additive field.
 
 ### Slice 3: local transfer and legacy migration
 
-- [ ] Define and test a strict versioned local export contract.
-- [ ] Implement deterministic private export and transactional import.
-- [ ] Implement explicit legacy migration while retaining default fail-closed
+- [x] Define and test a strict versioned local export contract.
+- [x] Implement deterministic private export and transactional import.
+- [x] Implement explicit legacy migration while retaining default fail-closed
   initialization for unsupported databases.
-- [ ] Prove round trip, repeated import, collision policy, replacement rollback,
+- [x] Prove round trip, repeated import, collision policy, replacement rollback,
   legacy-data preservation and schema-version rejection.
 
 The versioned export contract must preserve authorities, tracked-request IDs and
@@ -219,15 +219,15 @@ Rust safety extension. Tests do not access the network.
 
 ## Verification and compatibility ledger
 
-All entries below are pending until linked evidence establishes otherwise. The
-parent track remains in progress; this document does not close it or authorize
-Python retirement.
+Implementation evidence is recorded below. Final-head merge acceptance remains
+pending separately from passing capability tests. The parent track remains in
+progress; this document does not close it or authorize Python retirement.
 
 | Slice | Failing contract commit/run | Implementation commit | Final-head checks | PR / merge / branch pruning |
 |---|---|---|---|---|
-| Authorities | Pending | Pending | Pending | Pending |
-| Request lifecycle | Pending | Pending | Pending | Pending |
-| Export/import and migration | Pending | Pending | Pending | Pending |
+| Authorities | `c9f7db3`; run `43552118106`, 2 expected failures | `33b043d`; MSRV `43553220643` | Repeated green checkpoints; current reconciled head pending | #434; merge/pruning pending |
+| Request lifecycle | `ddb1b3e`; run `43553385063`, 11 expected failures | `595699a`; CI `43555983737`, MSRV `43555983820` | Profiler correction passed; fixture collision corrected, reconciled head pending | #440; merge/pruning pending |
+| Export/import and migration | `b902501`; run `43556023145`, 12 expected failures | `a8c3ab7`; workspace/coverage `43557565910` | 43 transfer/provenance/migration contracts passed; fmt/lint and additional negative validation corrected, final head pending | #442; merge/pruning pending |
 
 Required local commands are targeted Rust tests, `cargo fmt --all -- --check`,
 and the repository Clippy invocation with warnings denied. Hosted final-head
@@ -406,8 +406,9 @@ Local and external IDs are never conflated. Malformed source payloads use safe
 display fallbacks and are retained verbatim in private transfer; reading them
 is not an acquisition, verification or reporting-parity claim.
 
-Native implementation verification is pending. The authored tests add 12 CLI,
-10 core transfer, 11 provenance and 10 legacy migration contracts, including
+The initial native implementation passed 12 CLI, 10 core transfer, 11 provenance
+and 10 legacy migration contracts. A further core negative test now covers
+nonpositive feed request-ID guesses. These suites include
 concurrent imports, strict nullable keys, privacy, provenance identity and
 capacity rollback. No source, localization, CI or shared-registry implementation
 is changed by this slice.
@@ -426,3 +427,28 @@ All assertions remain unchanged; the real profiler reproduced 3 failures/16
 passes before the correction and **19 passes** afterward. Ordinary reference
 tests and Ruff also passed. Final reconciled lifecycle-head checks remain the
 merge gate; this checkpoint is not a merge claim.
+
+### Compiled transfer checkpoint and fixture isolation correction
+
+At `a8c3ab7be4bc26fe6ad4180b8aebaac7157ddbdf`, CI
+[43557565910](https://github.com/edithatogo/fyi-cli/actions/runs/43557565910)
+passed the full workspace tests, package smoke, security audit, Python tests,
+layered harness and packaging checks. Workspace job
+[132333750724](https://github.com/edithatogo/fyi-cli/actions/runs/43557565910/job/132333750724)
+passed all **43** new transfer, legacy migration and provenance contracts.
+Coverage job
+[132333750628](https://github.com/edithatogo/fyi-cli/actions/runs/43557565910/job/132333750628)
+reported **93.35% line coverage**, above the unchanged 90% gate.
+
+Rustfmt corrections were applied from the MSRV diagnostic. Clippy reported a
+complex test tuple; a named row alias fixes it without suppressing the lint.
+Independent review found that native feed imports needed the same positive
+optional request-ID-guess validation as legacy adoption. Validation and a
+negative test for 0/-1 now cover both import modes, allocator/row preservation
+and a valid positive control. The corrected head must pass all gates again.
+
+The lifecycle coverage run at `92f4c6b` exposed a timestamp-only temporary
+directory collision between parallel CLI tests, before the affected test reached
+application code. Its helper now includes a process-wide atomic sequence; the
+authority helper receives the same correction in the lifecycle slice. No test
+assertion, concurrency requirement, coverage threshold or workflow is weakened.
