@@ -9,19 +9,19 @@
   ],
   "priority": "high",
   "github_issue": 39,
-  "github_pr": 447,
+  "github_pr": 450,
   "implementation_workflow": {
     "tracked_by": "github-issues-prs",
-    "branch": "feat/i18n-typed-request-templates-20261114"
+    "branch": "feat/i18n-issue39-20261114"
   },
-  "updated_at": "2026-11-14T05:30:00+00:00",
-  "reconciliation": "Historical completion was not supported by the original acceptance criteria. Standalone localization and typed template foundation in progress; shared registry deferred to its owner.",
+  "updated_at": "2026-11-14T12:28:00+00:00",
+  "reconciliation": "PRs #436 and #447 are merged in master 9050a66. Issue #39 remains open; terminology work resumes in PR #450, with holiday/statutory, human review and later acceptance still incomplete.",
   "archive_allowed": false,
   "verification": {
-    "phase_1": "Implemented; local 389 workspace tests, formatting, strict Clippy, 99.375% i18n coverage and 92.5052% workspace coverage passed. Final-head hosted checks required before merge.",
+    "phase_1": "Merged via PR #436 (a0fa71a); historical local and hosted evidence retained.",
     "evidence": "acceptance-evidence.md",
-    "remaining": "Human translation/legal review, terminology, holiday/statutory rules, external overrides, additional locales and measured performance criteria",
-    "phase_2": "Implemented; typed request/follow-up/internal-review/appeal variants, formal/informal registers, plain/HTML text, full-letter goldens and deadline delegation. Final-head hosted checks required before merge.",
+    "remaining": "Final-head integration; human terminology/translation/legal review; additional regime coverage; holiday/statutory rules; external overrides; additional locales; measured performance criteria; shared-registry reconciliation by the coordinator",
+    "phase_2": "Merged via PR #447 (4322d47); historical local and hosted evidence retained.",
     "coverage": {
       "i18n_lines_percent": 99.4550408719346,
       "template_lines_percent": 100.0,
@@ -29,12 +29,24 @@
       "workspace_lines_percent": 92.64825345247766,
       "workspace_gate_percent": 90,
       "additional_exclusions": false
+    },
+    "phase_3": "Implemented in PR #450. Hosted checkpoint 9f34fda passed 12 terminology contracts and 670 instrumented workspace tests (one ignored), strict Clippy and the unchanged coverage gate. Final head adds exact byte-boundary coverage and requires all hosted gates before coordinated merge.",
+    "terminology_checkpoint": {
+      "head": "9f34fdae895d162e3bac859a28117ef600d57c44",
+      "terminology_lines_covered": 170,
+      "terminology_lines_total": 175,
+      "workspace_lines_covered": 13975,
+      "workspace_lines_total": 14780,
+      "workspace_gate_percent": 90,
+      "additional_exclusions": false,
+      "local_rust_execution": "blocked: already-merged Fluent dependency absent from offline cache; executable evidence supplied by existing hosted CI"
     }
   },
   "historical_github_pr": 126,
   "github_prs": [
     126,
     436,
-    447
+    447,
+    450
   ]
 }
