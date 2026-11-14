@@ -14,7 +14,12 @@
     "tracked_by": "github-issues-prs",
     "branch": "60217257-implement-foi-tracks"
   },
-  "updated_at": "2026-11-14T14:50:00Z",
+  "updated_at": "2026-11-14T03:37:10.977151+00:00",
   "reconciliation": "Historical completion was not supported by the original acceptance criteria. Standalone localization and typed template foundation in progress; shared registry deferred to its owner.",
-  "archive_allowed": false
+  "archive_allowed": false,
+  "verification": {
+    "phase_1": "Implemented; local tests/format/Clippy passed. Required final-head hosted checks pending before merge.",
+    "evidence": "acceptance-evidence.md",
+    "remaining": "Phase 2, terminology, holiday/statutory rules, external overrides, additional locales, human translation/legal review"
+  }
 }

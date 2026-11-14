@@ -7,7 +7,7 @@ The baseline has six smoke tests and hardcoded greetings/terms, but no Fluent
 resources, typed templates, holiday calendars or reviewed translations. Work resumes
 within this track; shared registries remain untouched during parallel work.
 
-- [~] Bounded increment 1: versioned message bundles, explicit locale selection,
+- [x] Bounded increment 1: versioned message bundles, explicit locale selection,
   deterministic fallback and strict interpolation contracts.
 - [ ] Bounded increment 2: typed request/letter templates, golden fixtures and
   delegation to the existing deadline module.
@@ -18,18 +18,22 @@ Human language/legal review is distinct from automated rendering verification.
 ## Phase 1: Fluent-rs Integration
 
 ### 1.1 Core Integration
-- [ ] Task: Add `fluent-rs` and `unic-langid` dependencies
-- [ ] Task: Write failing tests for message bundle loading
-- [ ] Task: Create fluent message loader with fallback chains
-- [ ] Task: Implement locale detection and selection
+- [x] Task: Add `fluent-rs` and `unic-langid` dependencies
+- [x] Task: Write failing tests for message bundle loading
+- [x] Task: Create fluent message loader with fallback chains
+- [x] Task: Implement locale detection and selection
 - [ ] Task: Conductor - User Manual Verification 'Phase 1.1: Fluent Integration' (Protocol in workflow.md)
 
 ### 1.2 Message Bundles
-- [ ] Task: Create directory structure for .ftl files (locales/en-NZ/, locales/en-AU/, etc.)
-- [ ] Task: Create base English messages (en/common.ftl)
-- [ ] Task: Write tests for message interpolation
-- [ ] Task: Implement message formatting with variables
+- [x] Task: Create directory structure for .ftl files (locales/en-NZ/, locales/en-AU/, etc.)
+- [x] Task: Create base English messages (en/common.ftl)
+- [x] Task: Write tests for message interpolation
+- [x] Task: Implement message formatting with variables
 - [ ] Task: Conductor - User Manual Verification 'Phase 1.2: Message Bundles' (Protocol in workflow.md)
+
+Automated Phase 1 evidence: [acceptance-evidence.md](acceptance-evidence.md),
+red checkpoint `bc2c804`, 16 localization integration tests and 389 workspace tests
+passing with Rust 1.99.1. Manual/human review remains explicitly unchecked.
 
 ## Phase 2: Request Letter Templates
 

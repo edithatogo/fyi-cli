@@ -1,0 +1,79 @@
+{
+  "format_version": 1,
+  "bundle_revision": "2026-11-14.1",
+  "authority": "Te Whānau — Café",
+  "locales": [
+    {
+      "locale": "en-NZ",
+      "salutation": "Kia ora Te Whānau — Café",
+      "closing": "Yours sincerely",
+      "request_term": "request",
+      "shared_message_source_locale": "en",
+      "deadline_labels": [
+        { "days": 0, "label": "0 working days" },
+        { "days": 1, "label": "1 working day" },
+        { "days": 2, "label": "2 working days" }
+      ]
+    },
+    {
+      "locale": "en-AU",
+      "salutation": "Dear Te Whānau — Café",
+      "closing": "Yours sincerely",
+      "request_term": "request",
+      "shared_message_source_locale": "en",
+      "deadline_labels": [
+        { "days": 0, "label": "0 working days" },
+        { "days": 1, "label": "1 working day" },
+        { "days": 2, "label": "2 working days" }
+      ]
+    },
+    {
+      "locale": "en-GB",
+      "salutation": "Dear Te Whānau — Café",
+      "closing": "Yours sincerely",
+      "request_term": "request",
+      "shared_message_source_locale": "en",
+      "deadline_labels": [
+        { "days": 0, "label": "0 working days" },
+        { "days": 1, "label": "1 working day" },
+        { "days": 2, "label": "2 working days" }
+      ]
+    },
+    {
+      "locale": "de-DE",
+      "salutation": "Sehr geehrte/r Te Whānau — Café",
+      "closing": "Mit freundlichen Grüßen",
+      "request_term": "Anfrage",
+      "shared_message_source_locale": "de-DE",
+      "deadline_labels": [
+        { "days": 0, "label": "0 Werktage" },
+        { "days": 1, "label": "1 Werktag" },
+        { "days": 2, "label": "2 Werktage" }
+      ]
+    },
+    {
+      "locale": "fr-FR",
+      "salutation": "Bonjour Te Whānau — Café",
+      "closing": "Cordialement",
+      "request_term": "demande",
+      "shared_message_source_locale": "fr-FR",
+      "deadline_labels": [
+        { "days": 0, "label": "0 jours ouvrables" },
+        { "days": 1, "label": "1 jour ouvrable" },
+        { "days": 2, "label": "2 jours ouvrables" }
+      ]
+    },
+    {
+      "locale": "es-ES",
+      "salutation": "Estimado/a Te Whānau — Café",
+      "closing": "Atentamente",
+      "request_term": "solicitud",
+      "shared_message_source_locale": "es-ES",
+      "deadline_labels": [
+        { "days": 0, "label": "0 días hábiles" },
+        { "days": 1, "label": "1 día hábil" },
+        { "days": 2, "label": "2 días hábiles" }
+      ]
+    }
+  ]
+}

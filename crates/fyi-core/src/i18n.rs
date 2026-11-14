@@ -1,8 +1,250 @@
+//! Deterministic, data-only localization. Rendering never validates a legal request.
+//!
+//! Locale identifiers are normalized separately from user text. Interpolated text
+//! is preserved as supplied: there is no NFC/NFKC normalization, HTML escaping,
+//! recursive evaluation, filesystem access, or registered Fluent callback.
+
 use crate::jurisdiction::Instance;
 use chrono::{Datelike, NaiveDate};
+use fluent_bundle::{concurrent::FluentBundle, FluentArgs, FluentResource};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use std::sync::OnceLock;
+use thiserror::Error;
+use unic_langid::LanguageIdentifier;
 
+/// The locale coverage promised by the embedded resources, in stable order.
+pub const SUPPORTED_LOCALES: [&str; 6] = ["en-NZ", "en-AU", "en-GB", "de-DE", "fr-FR", "es-ES"];
+
+/// Version of the resource contract and independently maintained message content.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BundleVersion {
+    pub format_version: u32,
+    pub revision: String,
+}
+
+impl BundleVersion {
+    /// Metadata shipped alongside the embedded resources, independent of crate version.
+    pub fn embedded() -> Self {
+        serde_json::from_str(include_str!("../locales/v1/version.json"))
+            .expect("embedded bundle version is validated by localization tests")
+    }
+}
+
+/// How the requested identifier selected a message language, never a jurisdiction.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LocaleMatch {
+    Exact,
+    LanguageFallback,
+    BaseFallback,
+    InvalidFallback,
+}
+
+/// Inspectable, deterministic locale negotiation; no process locale is consulted.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LocaleResolution {
+    pub requested: String,
+    pub normalized: Option<String>,
+    pub resolved: String,
+    pub chain: Vec<String>,
+    pub matched: LocaleMatch,
+}
+
+/// Errors omit variable values and resource text, which may contain private data.
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+pub enum I18nError {
+    #[error("malformed locale identifier")]
+    InvalidLocale,
+    #[error("locale is not explicitly supported")]
+    UnsupportedLocale,
+    #[error("unsupported message bundle format version: {0}")]
+    UnsupportedBundleVersion(u32),
+    #[error("message bundle revision is empty")]
+    EmptyBundleRevision,
+    #[error("invalid Fluent resource")]
+    InvalidResource,
+    #[error("duplicate Fluent entry")]
+    DuplicateMessage,
+    #[error("missing message: {key}")]
+    MissingMessage { key: String },
+    #[error("message formatting failed (missing variable or invalid expression): {key}")]
+    Formatting { key: String },
+}
+
+/// Parsed Fluent resource with explicit schema/content versioning.
+///
+/// No functions are registered. Unknown functions and missing variables are errors;
+/// partial output from Fluent is never returned as a successful rendering.
+pub struct MessageBundle {
+    version: BundleVersion,
+    bundle: FluentBundle<FluentResource>,
+}
+
+impl MessageBundle {
+    /// Parse a complete resource, rejecting syntax errors and duplicate entries.
+    pub fn from_ftl(locale: &str, version: BundleVersion, source: &str) -> Result<Self, I18nError> {
+        if version.format_version != 1 {
+            return Err(I18nError::UnsupportedBundleVersion(version.format_version));
+        }
+        if version.revision.trim().is_empty() {
+            return Err(I18nError::EmptyBundleRevision);
+        }
+        let locale: LanguageIdentifier = locale.parse().map_err(|_| I18nError::InvalidLocale)?;
+        let resource =
+            FluentResource::try_new(source.to_owned()).map_err(|_| I18nError::InvalidResource)?;
+        let mut bundle = FluentBundle::new_concurrent(vec![locale]);
+        // Preserve legacy plain-text output and argument bytes. RTL layout is not
+        // part of the supported locale contract; consumers own their display context.
+        bundle.set_use_isolating(false);
+        bundle
+            .add_resource(resource)
+            .map_err(|_| I18nError::DuplicateMessage)?;
+        Ok(Self { version, bundle })
+    }
+
+    fn contains(&self, key: &str) -> bool {
+        self.bundle
+            .get_message(key)
+            .and_then(|message| message.value())
+            .is_some()
+    }
+
+    /// Verify that required identifiers have message values (attributes alone do not count).
+    pub fn require_messages(&self, keys: &[&str]) -> Result<(), I18nError> {
+        for key in keys {
+            if !self.contains(key) {
+                return Err(I18nError::MissingMessage { key: (*key).into() });
+            }
+        }
+        Ok(())
+    }
+
+    /// Format once. Variable values are strings, never Fluent source or executable code.
+    /// Additional variables are ignored by Fluent; required variables must be present.
+    pub fn render(
+        &self,
+        key: &str,
+        variables: &BTreeMap<String, String>,
+    ) -> Result<String, I18nError> {
+        let message = self
+            .bundle
+            .get_message(key)
+            .ok_or_else(|| I18nError::MissingMessage { key: key.into() })?;
+        let pattern = message
+            .value()
+            .ok_or_else(|| I18nError::MissingMessage { key: key.into() })?;
+        let mut args = FluentArgs::new();
+        for (name, value) in variables {
+            args.set(name.as_str(), value.as_str());
+        }
+        let mut errors = Vec::new();
+        let output = self
+            .bundle
+            .format_pattern(pattern, Some(&args), &mut errors);
+        if !errors.is_empty() {
+            return Err(I18nError::Formatting { key: key.into() });
+        }
+        Ok(output.into_owned())
+    }
+}
+
+/// Rendered text and the resource layer that actually supplied it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RenderedMessage {
+    pub text: String,
+    pub source_locale: String,
+    pub bundle_version: BundleVersion,
+}
+
+fn embedded_bundles() -> &'static BTreeMap<&'static str, MessageBundle> {
+    static BUNDLES: OnceLock<BTreeMap<&'static str, MessageBundle>> = OnceLock::new();
+    BUNDLES.get_or_init(|| {
+        let english = include_str!("../locales/v1/en/common.ftl");
+        [
+            ("base", "en", english),
+            ("en", "en", english),
+            (
+                "en-NZ",
+                "en-NZ",
+                include_str!("../locales/v1/en-NZ/common.ftl"),
+            ),
+            (
+                "en-AU",
+                "en-AU",
+                include_str!("../locales/v1/en-AU/common.ftl"),
+            ),
+            (
+                "en-GB",
+                "en-GB",
+                include_str!("../locales/v1/en-GB/common.ftl"),
+            ),
+            (
+                "de-DE",
+                "de-DE",
+                include_str!("../locales/v1/de-DE/common.ftl"),
+            ),
+            (
+                "fr-FR",
+                "fr-FR",
+                include_str!("../locales/v1/fr-FR/common.ftl"),
+            ),
+            (
+                "es-ES",
+                "es-ES",
+                include_str!("../locales/v1/es-ES/common.ftl"),
+            ),
+        ]
+        .into_iter()
+        .map(|(layer, locale, source)| {
+            (
+                layer,
+                MessageBundle::from_ftl(locale, BundleVersion::embedded(), source)
+                    .expect("embedded resources are validated by localization tests"),
+            )
+        })
+        .collect()
+    })
+}
+
+fn resolve_locale(requested: &str) -> LocaleResolution {
+    let parsed = requested.parse::<LanguageIdentifier>().ok();
+    let normalized = parsed.as_ref().map(ToString::to_string);
+    let (resolved, matched) = match normalized.as_deref() {
+        Some(locale) if SUPPORTED_LOCALES.contains(&locale) => {
+            (locale.to_owned(), LocaleMatch::Exact)
+        }
+        Some(_) => {
+            let language = parsed
+                .as_ref()
+                .map(|id| id.language.as_str())
+                .unwrap_or_default();
+            match language {
+                "en" => ("en".into(), LocaleMatch::LanguageFallback),
+                "de" => ("de-DE".into(), LocaleMatch::LanguageFallback),
+                "fr" => ("fr-FR".into(), LocaleMatch::LanguageFallback),
+                "es" => ("es-ES".into(), LocaleMatch::LanguageFallback),
+                _ => ("en".into(), LocaleMatch::BaseFallback),
+            }
+        }
+        None => ("en".into(), LocaleMatch::InvalidFallback),
+    };
+    let mut chain = vec![resolved.clone()];
+    if resolved.starts_with("en-") {
+        chain.push("en".into());
+    }
+    chain.push("base".into());
+    LocaleResolution {
+        requested: requested.into(),
+        normalized,
+        resolved,
+        chain,
+        matched,
+    }
+}
+
+/// Legacy serializable translation view; new consumers should use strict message rendering.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LocaleBundle {
     pub locale: String,
@@ -10,56 +252,28 @@ pub struct LocaleBundle {
 }
 
 impl LocaleBundle {
+    /// Preserve the legacy wire shape, while obtaining strings from versioned resources.
     pub fn for_locale(locale: &str) -> Self {
-        let locale = locale.to_ascii_lowercase();
-        let mut translations = BTreeMap::new();
-        if locale.starts_with("en") {
-            let salutation = if locale.starts_with("en-nz") {
-                "Kia ora {authority}"
-            } else {
-                "Dear {authority}"
-            };
-            translations.insert("salutation".to_string(), salutation.to_string());
-            translations.insert("request_term".to_string(), "request".to_string());
-            translations.insert("closing".to_string(), "Yours sincerely".to_string());
-            translations.insert("working_days".to_string(), "working days".to_string());
-            translations.insert("working_day".to_string(), "working day".to_string());
-            translations.insert("deadline".to_string(), "Statutory deadline".to_string());
-        } else if locale.starts_with("de") {
-            translations.insert(
-                "salutation".to_string(),
-                "Sehr geehrte/r {authority}".to_string(),
-            );
-            translations.insert("request_term".to_string(), "Anfrage".to_string());
-            translations.insert("closing".to_string(), "Mit freundlichen Grüßen".to_string());
-            translations.insert("working_days".to_string(), "Werktage".to_string());
-            translations.insert("working_day".to_string(), "Werktag".to_string());
-            translations.insert("deadline".to_string(), "Gesetzliche Frist".to_string());
-        } else if locale.starts_with("fr") {
-            translations.insert("salutation".to_string(), "Bonjour {authority}".to_string());
-            translations.insert("request_term".to_string(), "demande".to_string());
-            translations.insert("closing".to_string(), "Cordialement".to_string());
-            translations.insert("working_days".to_string(), "jours ouvrables".to_string());
-            translations.insert("working_day".to_string(), "jour ouvrable".to_string());
-            translations.insert("deadline".to_string(), "Délai légal".to_string());
-        } else {
-            translations.insert(
-                "salutation".to_string(),
-                "Estimado/a {authority}".to_string(),
-            );
-            translations.insert("request_term".to_string(), "solicitud".to_string());
-            translations.insert("closing".to_string(), "Atentamente".to_string());
-            translations.insert("working_days".to_string(), "días hábiles".to_string());
-            translations.insert("working_day".to_string(), "día hábil".to_string());
-            translations.insert("deadline".to_string(), "Plazo legal".to_string());
-        }
-
+        let engine = LocalizationEngine::new(locale);
+        let variables = BTreeMap::from([("authority".into(), "{authority}".into())]);
+        let translations = [
+            "salutation",
+            "request_term",
+            "closing",
+            "working_days",
+            "working_day",
+            "deadline",
+        ]
+        .into_iter()
+        .map(|key| (key.into(), engine.embedded_message(key, &variables)))
+        .collect();
         Self {
-            locale,
+            locale: locale.to_ascii_lowercase(),
             translations,
         }
     }
 
+    /// Legacy explicit caller fallback; use `render_message` to detect missing messages.
     pub fn translate(&self, key: &str, fallback: &str) -> String {
         self.translations
             .get(key)
@@ -68,75 +282,117 @@ impl LocaleBundle {
     }
 }
 
+/// Locale formatting only: legal rules remain in `jurisdiction` and `deadlines`.
 #[derive(Debug, Clone)]
 pub struct LocalizationEngine {
     locale: String,
-    bundle: LocaleBundle,
+    resolution: LocaleResolution,
 }
 
 impl LocalizationEngine {
+    /// Compatibility constructor with observable, deterministic English/language fallback.
     pub fn new(locale: &str) -> Self {
-        let bundle = LocaleBundle::for_locale(locale);
         Self {
-            locale: locale.to_string(),
-            bundle,
+            locale: locale.into(),
+            resolution: resolve_locale(locale),
         }
     }
 
+    /// Select only a supported identifier; normalize case and `_` separators first.
+    pub fn try_new(locale: &str) -> Result<Self, I18nError> {
+        let normalized: LanguageIdentifier =
+            locale.parse().map_err(|_| I18nError::InvalidLocale)?;
+        if !SUPPORTED_LOCALES.contains(&normalized.to_string().as_str()) {
+            return Err(I18nError::UnsupportedLocale);
+        }
+        Ok(Self::new(locale))
+    }
+
+    /// Original caller-supplied identifier, retained for source compatibility.
     pub fn locale(&self) -> &str {
         &self.locale
     }
 
+    /// Selected locale and ordered message fallback layers.
+    pub fn resolution(&self) -> &LocaleResolution {
+        &self.resolution
+    }
+
+    /// Resolve a message in order. A malformed existing translation is an error, not a fallback.
+    pub fn render_message(
+        &self,
+        key: &str,
+        variables: &BTreeMap<String, String>,
+    ) -> Result<RenderedMessage, I18nError> {
+        for layer in &self.resolution.chain {
+            if let Some(bundle) = embedded_bundles().get(layer.as_str()) {
+                if bundle.bundle.get_message(key).is_some() {
+                    return Ok(RenderedMessage {
+                        text: bundle.render(key, variables)?,
+                        source_locale: layer.clone(),
+                        bundle_version: bundle.version.clone(),
+                    });
+                }
+            }
+        }
+        Err(I18nError::MissingMessage { key: key.into() })
+    }
+
+    fn embedded_message(&self, key: &str, variables: &BTreeMap<String, String>) -> String {
+        self.render_message(key, variables)
+            .expect("embedded message contract is validated by localization tests")
+            .text
+    }
+
+    /// Legacy unvalidated plain-text scaffold; its last line remains the sign-off.
     pub fn render_request_template(&self, authority_name: &str, law_name: &str) -> String {
-        let salutation = self
-            .bundle
-            .translate("salutation", "Dear {authority}")
-            .replace("{authority}", authority_name);
+        let variables = BTreeMap::from([("authority".into(), authority_name.into())]);
         format!(
             "{}\n\nUnder {} I am requesting information for this {}.\n\n{}",
-            salutation,
+            self.embedded_message("salutation", &variables),
             law_name,
-            self.bundle.translate("request_term", "request"),
-            self.bundle.translate("closing", "Yours sincerely")
+            self.embedded_message("request_term", &variables),
+            self.embedded_message("closing", &variables)
         )
     }
 
+    /// Format a supplied count; this label does not decide a statutory counting rule.
     pub fn deadline_label(&self, days: usize) -> String {
-        let singular = self.bundle.translate("working_day", "working day");
-        let plural = self.bundle.translate("working_days", "working days");
-        let noun = if days == 1 { singular } else { plural };
-        format!("{} {}", days, noun)
+        let key = if days == 1 {
+            "working_day"
+        } else {
+            "working_days"
+        };
+        format!("{} {}", days, self.embedded_message(key, &BTreeMap::new()))
     }
 
+    /// Legacy instance scaffold. Legal references come from the supplied catalog instance.
     pub fn render_request_template_with_instance(
         &self,
         authority_name: &str,
         instance: &Instance,
     ) -> String {
-        let salutation = self
-            .bundle
-            .translate("salutation", "Dear {authority}")
-            .replace("{authority}", authority_name);
+        let variables = BTreeMap::from([("authority".into(), authority_name.into())]);
         let law_name = instance.foi_law.law_name.as_str();
         let citation = instance.foi_law.citation.as_deref().unwrap_or(law_name);
-        let request_term = instance.foi_law.request_term.as_str();
-        let appeal_body = instance
+        let appeal = instance
             .foi_law
             .appeal_body
             .as_deref()
-            .map(|body| format!("If this request is refused, I may seek review by {}.", body))
+            .map(|body| {
+                format!(
+                    "\n\nIf this request is refused, I may seek review by {}.",
+                    body
+                )
+            })
             .unwrap_or_default();
         format!(
             "{}\n\nUnder {} ({}) I am making this {}.{}",
-            salutation,
+            self.embedded_message("salutation", &variables),
             law_name,
             citation,
-            request_term,
-            if appeal_body.is_empty() {
-                String::new()
-            } else {
-                format!("\n\n{}", appeal_body)
-            }
+            instance.foi_law.request_term,
+            appeal
         )
     }
 
