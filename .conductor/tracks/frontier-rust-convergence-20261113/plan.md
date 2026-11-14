@@ -173,3 +173,75 @@ Track stays **in_progress**. No new manual approval layer is introduced.
   prerequisite merges are incorporated; #442 records its final accepted head,
   checks, merge and branch cleanup. Full Python detail/report parity and Python
   retirement remain unimplemented; the parent track stays in progress.
+
+## Python 3.15 security dependencies — 15 November 2026
+
+PR #454 merged as `e34ebac`, but its final head `a0b8e4a` retained five
+failed security/fuzzing jobs in run `43646518760`. The mandatory local
+development/CI runtime remains CPython 3.15.1. This follow-up preserves the
+existing audit, fuzz targets, bounds and quality gates.
+
+- [~] Add executable audit startup/parser regressions, qualify released
+  `pip-api` 0.0.35, and regenerate the lock without unrelated dependency churn.
+  RED: both new regressions fail on repository-local CPython 3.15.1 with
+  locked `pip-api` 0.0.34 / `pip-audit` 2.10.1 because `sre_constants` is
+  absent (2 failed in 0.81 seconds; zero external Python network attempts).
+- [~] Qualify a CPython 3.15.1 Atheris source candidate, including actual
+  instrumentation and bounded fuzz execution. Closed, unmerged upstream PR
+  google/atheris#115 is investigation input, not accepted compatibility evidence.
+- [ ] Record exact-head hosted checks/review and obtain the coordinator's
+  sequential merge window. Retain any unqualified dependency as an explicit
+  blocker; do not downgrade Python, suppress failures or close this track.
+
+### Audit dependency execution evidence
+
+Both regressions above passed after replacing only `pip-api` with 0.0.35:
+2 passed in 0.63 seconds on verified CPython 3.15.1, with zero external
+Python network attempts. `uv lock` resolved 126 packages and changed only
+`pip-api` 0.0.34 to 0.0.35; the explicit dev floor prevents regression.
+The final test import was adjusted to satisfy Ruff PLC0415. The local
+executor became unavailable before the final lint/test, complete advisory
+scan or Atheris runtime qualification returned, so those results remain
+pending hosted verification. No full-environment or full-suite local pass
+is claimed.
+
+### Atheris source candidate and acceptance boundary
+
+The canonical fuzz dependency is pinned to upstream PR #115's exact source
+commit `d82f7720122e2a07618e337e364426327e506f3f`, separately from the application's
+locked dependencies. The same requirement is installed and audited; the
+full locked dependency audit is retained without new exclusions. PR #115
+is closed and unmerged, and its skipped build does not establish support.
+
+A source wheel built locally on CPython 3.15.1 using GCC 14 and the verified
+Debian LLVM 19 libFuzzer package. Its SHA-256 was
+`0ef2bc4a8c8ab9ae6d885ef4d54ba15ee6e9c0c7427a056448fa2c4fc17d001e`.
+That proves compilation only; it is not a distributed or accepted wheel.
+An initial test invocation used the checkout package path incorrectly.
+The corrected installed-package invocation did not return before the
+executor became unavailable; no runtime pass is claimed.
+
+The existing Ubuntu Atheris jobs now require the pinned upstream opcode
+consistency and instrumentation suites plus bytes/string/Unicode crash
+discovery in fresh processes before running the unchanged receipt, CDX,
+Wayback and redaction targets. Qualification output is retained on failure
+through the existing artifact path. Existing target/input/time/memory
+bounds, least privileges, action pins and audit failure behavior remain.
+
+- [ ] Verify the final head's complete audit, upstream qualification, four
+  real fuzz targets, regression tests and all required/ordinary checks.
+- [ ] Obtain independent final-head review and the sole coordinator's
+  sequential integration window before enabling merge eligibility.
+- [ ] Replace the source candidate with a qualified supported upstream
+  release when available; Linux qualification does not establish Windows,
+  macOS, free-threaded Python or complete upstream-suite support.
+
+The parent track remains active. The historical Python 3.12 fuzzing
+description above predates #454; this repair retains required Python
+3.15.1 and does not claim full migration or source cutover.
+
+Workflow regression checkpoint `1eb63e0` was published before implementation
+in draft PR #461. Its hosted jobs remained queued while the local executor
+was unavailable, so no executed RED result is claimed for the new static
+workflow contracts. The four failed Atheris installations in #454 remain
+the observed failure baseline. Final-head hosted execution is mandatory.
