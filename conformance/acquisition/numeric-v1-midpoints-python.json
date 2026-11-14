@@ -1,0 +1,23 @@
+{
+  "schema": "urn:fyi-cli:receipt-numeric-conformance",
+  "schema_version": "1.0.0",
+  "source": "https://github.com/rust-lang/rust/issues/130936",
+  "oracle": "CPython 3.13.5; shortest JSON float spelling, ties to even",
+  "cases": [
+    {"bits":"42d98144178b5f88","canonical":"112171935477118.12\n"},
+    {"bits":"42e4a7a3e51977f4","canonical":"181681934355391.62\n"},
+    {"bits":"c3008492e7e178d2","canonical":"-581170764721946.2\n"},
+    {"bits":"42ddf065822d8f68","canonical":"131673329546813.62\n"},
+    {"bits":"43043bc382cb22aa","canonical":"711901304153173.2\n"},
+    {"bits":"42d4c06e72dda788","canonical":"91266877191838.12\n"},
+    {"bits":"42b0bdaba0d41450","canonical":"18406814307348.312\n"},
+    {"bits":"c301a4ddffb8ad92","canonical":"-620793498637746.2\n"},
+    {"bits":"c30946d7f15a7c4a","canonical":"-889345962364809.2\n"},
+    {"bits":"c302e0a49fc98cb2","canonical":"-664193405104534.2\n"},
+    {"bits":"c2e1e48c7ceabca4","canonical":"-157386457699813.12\n"},
+    {"bits":"43001ce83796b552","canonical":"566922914748074.2\n"},
+    {"bits":"42e966e3eb938364","canonical":"223437609802779.12\n"},
+    {"bits":"430adbe785c881ca","canonical":"945017102864441.2\n"},
+    {"bits":"42bd860541392710","canonical":"32461450983719.062\n"}
+  ]
+}
