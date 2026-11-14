@@ -9,12 +9,12 @@
   ],
   "priority": "high",
   "github_issue": 39,
-  "github_pr": 436,
+  "github_pr": 447,
   "implementation_workflow": {
     "tracked_by": "github-issues-prs",
     "branch": "feat/i18n-typed-request-templates-20261114"
   },
-  "updated_at": "2026-11-14T03:37:10.977151+00:00",
+  "updated_at": "2026-11-14T05:30:00+00:00",
   "reconciliation": "Historical completion was not supported by the original acceptance criteria. Standalone localization and typed template foundation in progress; shared registry deferred to its owner.",
   "archive_allowed": false,
   "verification": {
@@ -34,6 +34,7 @@
   "historical_github_pr": 126,
   "github_prs": [
     126,
-    436
+    436,
+    447
   ]
 }

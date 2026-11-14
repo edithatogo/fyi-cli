@@ -138,3 +138,30 @@ Manual language/legal review remains unchecked. Phases 1 and 2 implementation an
 automated verification are complete; the whole track remains active for the
 outstanding original criteria above. Subsequent PR/head/merge evidence is recorded
 only after the required final-head checks pass.
+
+## Coordinated integration checkpoint — 2026-11-14 05:30 UTC
+
+The resumed work rechecked PR [#436](https://github.com/edithatogo/fyi-cli/pull/436)
+at exact head `727b841588591e980b1a6b1eb5dc906b73998048`: all 12 live protected
+contexts succeeded with their required GitHub App IDs (Actions 15368; CodeQL
+57789). CI run `43554070706` and 30 of 31 check runs succeeded. The remaining
+optional self-hosted `offline-ai-security / offline-security` job was queued,
+not passed. There were no review submissions or inline review threads. The earlier
+automated review at `8810332` reported no findings; localization source, resources,
+tests and guide are byte-unchanged between that reviewed head and `727b841`.
+
+Master had advanced to `7cf2fd2a062ecba450637c45a31b8919fa2b86f5` after #434.
+#436 was behind and unmerged. Read-only merge-tree inspection was clean, but no
+remote head was refreshed. These results verify the implementation checkpoint;
+they do not certify a future reconciled head. The sole integration coordinator,
+`FYI-CLI — Issue fixes and PR merges`, owns the exclusive final verification/merge
+window following source PRs #432 and #445 (or an explicitly deferred source slot).
+
+The existing typed implementation was preserved at
+`75d932b545de0fe91aaa89ae16427c86871c517c`; both production hashes above still
+match the measured source. Draft PR [#447](https://github.com/edithatogo/fyi-cli/pull/447)
+exposes its 19-file localization-only delta against the #436 feature branch.
+Do not merge #447 into that feature branch. After #436 merges, retarget #447 to
+master, reconcile once in its assigned window, and require exact-final-head checks
+and review inspection. This dependent draft does not claim either merge complete.
+No manual, translation, legal or calendar approval is inferred from publication.

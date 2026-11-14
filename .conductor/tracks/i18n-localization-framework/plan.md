@@ -15,6 +15,12 @@ within this track; shared registries remain untouched during parallel work.
 The historical checklist below is reconciled only against inspectable evidence.
 Human language/legal review is distinct from automated rendering verification.
 
+Delivery checkpoint (2026-11-14 05:30 UTC): foundation PR #436 has successful
+required checks at `727b841` but awaits its coordinated final master refresh and
+merge. Typed-template PR #447 is a dependent draft preserving implementation
+`75d932b`; it must follow #436, retarget to master and qualify its final head.
+See the dated integration evidence below; neither PR is claimed merged here.
+
 ## Phase 1: Fluent-rs Integration
 
 ### 1.1 Core Integration
