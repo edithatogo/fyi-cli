@@ -5,18 +5,23 @@ use serde_json::{json, Value};
 use std::fs;
 use std::path::PathBuf;
 use std::process::{Command, Output};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 struct Workspace(PathBuf);
 
 impl Workspace {
     fn new() -> Self {
+        static NEXT_ID: AtomicU64 = AtomicU64::new(0);
         let nonce = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let path =
-            std::env::temp_dir().join(format!("fyi-local-requests-{}-{nonce}", std::process::id()));
+        let sequence = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+        let path = std::env::temp_dir().join(format!(
+            "fyi-local-requests-{}-{nonce}-{sequence}",
+            std::process::id()
+        ));
         fs::create_dir(&path).unwrap();
         Self(path)
     }

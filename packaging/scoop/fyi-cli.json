@@ -1,28 +1,17 @@
 {
   "version": "0.1.2",
-  "description": "Privacy-focused multi-jurisdiction FOI/OIA CLI and MCP server for Alaveteli instances",
+  "description": "Multi-jurisdiction FOI/Alaveteli request management CLI",
   "homepage": "https://github.com/edithatogo/fyi-cli",
   "license": "MIT",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/edithatogo/fyi-cli/releases/download/fyi-mcp-v0.1.2/fyi-mcp-0.1.2-win32.mcpb",
-      "hash": "87ef957d9c4dbf30322e7872ea4f23f92f8640344ceac2bb8a3b5fa22bc7fc2f"
+      "url": "https://github.com/edithatogo/fyi-cli/releases/download/v1.2.0/fyi-cli-windows-amd64.exe.zip",
+      "hash": "8b4c38ead64c8efb80dfc53ff4a4c875be41169b6469fefaef96cf56211875f5"
     }
   },
-  "bin": "fyi-mcp.exe",
-  "checkver": {
-    "github": "https://github.com/edithatogo/fyi-cli"
-  },
-  "autoupdate": {
-    "architecture": {
-      "64bit": {
-        "url": "https://github.com/edithatogo/fyi-cli/releases/download/fyi-mcp-v$version/fyi-mcp-$version-win32.mcpb"
-      }
-    }
-  },
+  "bin": "fyi-cli.exe",
   "notes": [
-    "This Scoop manifest currently points at the published Windows MCPB asset.",
-    "Prefer cargo install / release binaries once cargo-dist Windows CLI assets are stable.",
-    "MCPB packages the fyi-mcp server; CLI install paths are documented in INSTALL.md."
+    "Review packet only; release integrity and native installation remain unverified.",
+    "Historical release v1.2.0 contains Rust component 0.1.2. Automatic version updates are disabled until release authority is reconciled."
   ]
 }

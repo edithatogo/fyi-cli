@@ -29,8 +29,7 @@ sqlx = { version = "0.9.0", features = ["runtime-tokio", "sqlite"] }
 [features]
 dhat-on = ["dep:dhat"]
 
-# cargo-binstall resolution hints (see packaging/cargo-binstall/metadata.toml)
+# Public binstall is blocked until crate identity and release assets are qualified.
+# See packaging/cargo-binstall/metadata.toml and packaging/SUBMISSION_RUNBOOK.md.
 [package.metadata.binstall]
-pkg-url = "{ repo }/releases/download/{ name }-v{ version }/{ name }-{ version }-{ target }{ archive-suffix }"
-bin-dir = "{ bin }{ binary-ext }"
-pkg-fmt = "tgz"
+disabled-strategies = ["crate-meta-data", "quick-install", "compile"]
