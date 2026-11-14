@@ -56,6 +56,17 @@ pub struct RemoteInstancePolicy {
     pub budget: RemoteBudget,
 }
 
+impl RemoteInstancePolicy {
+    /// Protected server-side credential name; never reads or exposes its value.
+    /// Policy construction rejects aliases of this legacy operator-facing name.
+    pub fn bot_token_env_name(&self) -> String {
+        format!(
+            "FYI_MCP_REMOTE_BOT_TOKEN_{}",
+            self.instance_id.to_ascii_uppercase().replace('-', "_")
+        )
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RemotePolicyStatus {
     pub schema_version: u8,
@@ -203,11 +214,18 @@ impl RemoteMcpPolicy {
             ));
         }
         let mut map = BTreeMap::new();
+        let mut credential_names = BTreeSet::new();
         for instance in instances {
             validate_instance(&instance)?;
+            let credential_name = instance.bot_token_env_name();
             if map.insert(instance.instance_id.clone(), instance).is_some() {
                 return Err(PolicyError::InvalidConfiguration(
                     "duplicate remote instance id".into(),
+                ));
+            }
+            if !credential_names.insert(credential_name) {
+                return Err(PolicyError::InvalidConfiguration(
+                    "remote instance ids must use distinct credential environment variables".into(),
                 ));
             }
         }
@@ -714,6 +732,89 @@ mod tests {
         let mut bad = instance(true, false);
         bad.base_url = "https://user:pass@example.com".into();
         assert!(RemoteMcpPolicy::new(vec![bad]).is_err());
+    }
+
+    #[test]
+    fn credential_mappings_reject_generated_case_and_separator_aliases() {
+        // Each group maps to the same protected environment variable. Exercise
+        // both configuration orders and every pair of write-capability flags.
+        for prefix in ["a", "z", "0", "region1"] {
+            let aliases = [
+                format!("{prefix}-api"),
+                format!("{prefix}_api"),
+                format!("{prefix}-API"),
+                format!("{prefix}_API"),
+                format!("{prefix}-aPi"),
+                format!("{prefix}_aPi"),
+            ];
+            for (index, left) in aliases.iter().enumerate() {
+                for right in &aliases[index + 1..] {
+                    for (first, second) in [(left, right), (right, left)] {
+                        for (first_write, second_write) in
+                            [(false, false), (false, true), (true, false), (true, true)]
+                        {
+                            let mut first_instance = instance(true, first_write);
+                            first_instance.instance_id = first.clone();
+                            first_instance.base_url = "https://first.example".into();
+                            let mut second_instance = instance(true, second_write);
+                            second_instance.instance_id = second.clone();
+                            second_instance.base_url = "https://second.example".into();
+                            let error = RemoteMcpPolicy::new(vec![first_instance, second_instance])
+                                .expect_err("credential aliases must fail before dispatch");
+                            assert_eq!(
+                                error,
+                                PolicyError::InvalidConfiguration(
+                                    "remote instance ids must use distinct credential environment variables"
+                                        .into()
+                                )
+                            );
+                            assert!(!error.to_string().contains(first));
+                            assert!(!error.to_string().contains(second));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn distinct_credential_mappings_preserve_instance_identity_and_capabilities() {
+        for (first, second) in [
+            ("north-foi", "south_foi"),
+            ("a1", "a_1"),
+            ("1a", "_1a"),
+            ("MiXeD", "mixed2"),
+        ] {
+            let mut read_only = instance(true, false);
+            read_only.instance_id = first.into();
+            let mut write_only = instance(false, true);
+            write_only.instance_id = second.into();
+            let policy = RemoteMcpPolicy::new(vec![read_only, write_only]).unwrap();
+            assert!(policy.authorize(first, RemoteCapability::Read).is_ok());
+            assert!(policy.authorize(first, RemoteCapability::Write).is_err());
+            assert!(policy.authorize(second, RemoteCapability::Write).is_ok());
+            assert!(policy.authorize(second, RemoteCapability::Read).is_err());
+            let ids: BTreeSet<_> = policy
+                .status()
+                .instances
+                .into_iter()
+                .map(|instance| instance.instance_id)
+                .collect();
+            assert_eq!(ids, BTreeSet::from([first.into(), second.into()]));
+        }
+    }
+
+    #[test]
+    fn credential_environment_names_preserve_existing_operator_keys() {
+        for (id, expected) in [
+            ("nz", "FYI_MCP_REMOTE_BOT_TOKEN_NZ"),
+            ("nz-fyi", "FYI_MCP_REMOTE_BOT_TOKEN_NZ_FYI"),
+            ("MiXeD_id-7", "FYI_MCP_REMOTE_BOT_TOKEN_MIXED_ID_7"),
+        ] {
+            let mut configured = instance(true, true);
+            configured.instance_id = id.into();
+            assert_eq!(configured.bot_token_env_name(), expected);
+        }
     }
 
     fn bounded_policy(max_requests: u32, max_bytes: u64) -> RemoteMcpPolicy {

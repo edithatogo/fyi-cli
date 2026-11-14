@@ -280,6 +280,27 @@ These gaps are missing evidence, not demonstrated source defects. MCP timeout,
 clock, circuit, confirmation and returned-payload tests cover their own boundary
 and do not substitute for the missing source-transfer assertions.
 
+## Per-instance credential configuration (#169)
+
+Policy validation and write credential lookup share the existing environment-name
+derivation. Generated tests cover 480 case/separator-alias configurations across
+both instance orders and every write-capability pair. Distinct-ID tests preserve
+exact identity and independent read/write controls; legacy operator-key examples
+remain unchanged.
+
+The existing Rust wire harness also launches the real executable with two
+ambiguous configurations. Each must fail within five seconds, before creating a
+database or producing protocol output, with no synthetic private ID, endpoint,
+database path or credential in stderr. No test issues a source-network request.
+Run `cargo test --locked -p fyi-mcp credential` for the focused contracts, or the
+full MCP suite for framing, policy, confirmation and replay compatibility.
+
+The test-first checkpoint is `d17d5dfaefe17947c62f963b2c90a2995a9c1daf`:
+both the generated rejection test and executable startup test failed against
+unchanged master `9050a6649ebbcf48e6e2919e5bc19bbed4b4f8c0`; the distinct-ID
+compatibility test passed. These configuration properties do not complete the
+separate source URL/path/pagination, state or transport-budget acceptance gates.
+
 ## Compatibility and release-readiness matrix
 
 | Combination or requirement | Evidence | Status |
