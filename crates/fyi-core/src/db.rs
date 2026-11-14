@@ -1,3 +1,5 @@
+pub mod local;
+
 use crate::api::{AlaveteliCorrespondence, AlaveteliRequest, CorrespondenceDirection};
 use chrono::Utc;
 use serde::Serialize;
@@ -132,6 +134,7 @@ impl DbPool {
                 "legacy Python database detected; preserve it and use a separate Rust database until migration is supported"
             );
         }
+        self.validate_local_authorities_schema(false).await?;
         self.run_migrations().await?;
         Ok(())
     }

@@ -34,8 +34,8 @@ The `capture`, `internet-archive-cdx`, `internet-archive-replay`, `discover` and
 | Name | Initial inspection | Required evidence |
 |---|---|---|
 | `init-db` | Initializes the Rust schema and rejects legacy Python databases; migration is not implemented | Independent output/state equivalence, failure semantics and side-effect parity |
-| `import-authorities` | Unimplemented in Rust; exits with an error | Independent output/state equivalence, failure semantics and side-effect parity |
-| `list-authorities` | Unimplemented in Rust; exits with an error | Independent output/state equivalence, failure semantics and side-effect parity |
+| `import-authorities` | Native local CSV import implemented; partial parity (network options excluded, invalid rows rejected atomically) | Shared Python/Rust catalogue fixtures, SQL rollback, no remote sync effects; see local request-management evidence |
+| `list-authorities` | Native local listing implemented with text/JSON output; partial parity (explicit tie order and read-only schema validation) | Shared Python/Rust catalogue fixtures, real CLI output and missing-database checks |
 | `register-request` | Unimplemented in Rust; exits with an error | Independent output/state equivalence, failure semantics and side-effect parity |
 | `list-requests` | Unimplemented in Rust; exits with an error | Independent output/state equivalence, failure semantics and side-effect parity |
 | `set-status` | Unimplemented in Rust; exits with an error | Independent output/state equivalence, failure semantics and side-effect parity |
