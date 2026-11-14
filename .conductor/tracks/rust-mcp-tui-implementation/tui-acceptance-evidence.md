@@ -1,6 +1,6 @@
 # TUI presentation acceptance evidence
 
-Status: presentation merged as #435; bounded runtime #448 under verification, 2026-11-14. Final-head Actions remain the merge gate.
+Status: presentation merged as #435; bounded runtime #448 verified in the PR and awaiting coordinator integration, 2026-11-14. Required checks on any final refreshed head remain the merge gate.
 PR: [#435](https://github.com/edithatogo/fyi-cli/pull/435).
 Scope: the standalone read-only presentation portion of Phase 2.3 only.
 Contract: [TUI presentation contract](../../../docs/tui-presentation-contract.md).
@@ -124,13 +124,40 @@ RED checkpoint: `1578de7e36df33ab49689ecb8a7bf6dbeadc5562`.
 ran three new executable launch tests; all three failed against the unsupported
 dispatch as expected. Rustfmt and strict Clippy passed on that tests-only head.
 
-Implementation checkpoint: `a0d66629ea5bd9be52baff53b2f2338eaad649e7`.
-Strict Clippy and the Conductor contract passed; the MSRV workflow correctly
-rejected formatting differences. Its exact rustfmt changes are applied in the
-following checkpoint. Workspace/PTY tests and coverage are not claimed passed
-until the exact candidate results are recorded in the PR. No local Rust execution
-is claimed: the current executor has no Rust toolchain; the existing hosted
-workflows provide the native execution evidence without CI modifications.
+Verified implementation head: `18cc6eeac934354ee9a25240af2b5be65965e2db`.
+Production code last changed at `1b514875cb7e74ea52d6b6f0bb0ebe7f2a5ed86c`;
+the subsequent correction reconstructs the displayed PTY screen across incremental
+ANSI updates, retaining privacy-negative assertions. The preceding raw-byte
+substring assertion failed because cursor-positioned updates fragment sentences;
+the captured hosted output reproduces that test-fixture defect. Native tests pass
+with the corrected fixture. Earlier rustfmt failures were corrected without
+changing formatting gates.
+
+All 12 required check names and app IDs were matched against live master branch
+metadata and observed successful on this head. Hosted PR tests checked out GitHub
+test merge `4e23ec366c670cf0efa61e7cbd69e192a1ba646d`, combining this head with
+master `234d90511b7e15866669994d49115358a8860a83`. The feature branch itself
+remains based on `39591dcf91bb50ed847b0d36bdc3bd670a7e60a7`; this observation
+does not certify a later master or independently refresh the branch.
+
+| Verification | Observed result and evidence |
+| --- | --- |
+| Workspace Tests | [Run 43568586512 / job 132367765122](https://github.com/edithatogo/fyi-cli/actions/runs/43568586512/job/132367765122): 615 passed, zero failed, one existing ignored worker across 37 suites including the core doctest. |
+| Bounded increment tests | 24 new executable tests passed: 5 core overview, 5 adapter, 10 runtime (including the subprocess worker), 4 CLI integration. The 39 existing TUI presentation tests also pass. |
+| Real Linux PTY | The executable CLI test passed in both Workspace Tests and instrumented coverage; it launches real local data and verifies privacy, navigation, resize, quit/signals, error cleanup and unchanged database files. |
+| Rustfmt, strict Clippy, Package Smoke, Security Audit, Layered Harness Contract, Python Tests, Packaging Assets | All successful in [CI run 43568586512](https://github.com/edithatogo/fyi-cli/actions/runs/43568586512). |
+| Code Coverage | [Job 132367765136](https://github.com/edithatogo/fyi-cli/actions/runs/43568586512/job/132367765136): 94.34% line coverage, unchanged 90% gate and existing exclusions. Adapter and overview: 100% lines each; runtime: 95.60% lines. |
+| Codecov patch | [Check 132369349801](https://github.com/edithatogo/fyi-cli/runs/132369349801): success, 98.65% against the existing 90% target. Four changed lines are not covered; no inclusive 100% claim is made. |
+| CodeQL and both language-analysis contexts | All successful in [CodeQL run 43568586551](https://github.com/edithatogo/fyi-cli/actions/runs/43568586551), including the required CodeQL app ID 57789. |
+| Pinned Rust 1.99.1 and Conductor | Both successful in [run 43568586505](https://github.com/edithatogo/fyi-cli/actions/runs/43568586505). |
+| Local non-Rust verification | Fixture Ruff, Python syntax, Conductor verifier and `git diff --check` passed. The captured PTY trace replay also passed. |
+| Optional offline AI | Queued without a runner when required checks were recorded; not counted as passed or required. |
+
+No local Rust execution is claimed: the current executor has no Rust toolchain.
+The existing hosted workflows provide native execution without CI modifications.
+This evidence-only follow-up must itself receive required checks before final
+integration; its results belong in #448's exact-head record, not a recursive
+documentation commit. No historical green result substitutes for final checks.
 
 Executable scope includes bounded/partial/empty metadata, real authority mapping,
 unknown status/attention, explicit unavailable timelines, unchanged database
