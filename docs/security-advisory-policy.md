@@ -88,3 +88,26 @@ Python 3.15.1 qualification of **every** active Python CI runtime is
 a separate shared-workflow change owned by the sole integration
 coordinator; adding a qualified Python security-policy step does not
 qualify the old 3.12 jobs.
+
+
+## Independent security review correction — implicit cargo-audit configuration
+
+The first review of PR #451 uncovered a **P1 fail-closed bypass**:
+`.cargo/audit.toml` contained 19 implicit `advisories.ignore` entries
+which were never checked by the initial guard. Four (`RUSTSEC-2025-0141`,
+`RUSTSEC-2026-0002`, `RUSTSEC-2026-0097`,
+`RUSTSEC-2026-0186`) were not even in the grandfathered 20-ID policy.
+
+The guard now parses `.cargo/audit.toml` with `tomllib` and rejects
+**every implicit suppression**, including otherwise grandfathered IDs,
+malformed configurations or a non-list ignore value. The configuration
+retains its `[advisories]` section but sets `ignore = []`.
+Tests demonstrate that adding a new or an existing ID there fails.
+`cargo audit` still runs with its five explicit, documented transitional
+CLI ignores. Removing this hidden bypass may expose additional real
+advisories; the resulting audit must be allowed to fail until those risks
+are resolved. Do not restore hidden exceptions to obtain a green check.
+
+The independent review finding is evidence of the defect, not an
+automatic approval of the fix. Latest-head required Actions, review
+resolution and sole-integrator merge remain mandatory.
