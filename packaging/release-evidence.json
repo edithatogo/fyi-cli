@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "checked_at": "2026-11-14",
+  "repository": "https://github.com/edithatogo/fyi-cli",
+  "component_version": "0.1.2",
+  "source_commit": "86fcbd8914037735b6f27e5a329d5f3013033efd",
+  "release": {
+    "tag": "v1.2.0",
+    "url": "https://github.com/edithatogo/fyi-cli/releases/tag/v1.2.0",
+    "published_at": "2026-07-10T23:38:15Z",
+    "draft": false,
+    "prerelease": false,
+    "api_url": "https://api.github.com/repos/edithatogo/fyi-cli/releases/latest"
+  },
+  "sources": [
+    {
+      "url": "https://api.github.com/repos/edithatogo/fyi-cli/git/ref/tags/v1.2.0",
+      "result": "Lightweight tag resolves to source_commit; not a verified signed tag."
+    },
+    {
+      "url": "https://api.github.com/repos/edithatogo/fyi-cli/contents/crates/fyi-cli/Cargo.toml?ref=v1.2.0",
+      "result": "Published source declares fyi-cli version 0.1.2."
+    },
+    {
+      "url": "https://api.github.com/repos/edithatogo/fyi-cli/releases/tags/v0.1.2",
+      "result": "HTTP 404 on 2026-11-14."
+    },
+    {
+      "url": "https://api.github.com/repos/edithatogo/fyi-cli/git/ref/tags/v0.1.2",
+      "result": "HTTP 404 on 2026-11-14."
+    }
+  ],
+  "assets": [
+    {
+      "name": "fyi-cli-linux-amd64.tar.gz",
+      "sha256": "af89253ae418c95e62c13c64c41f1a1f2b02a780e47fe016776211f2d7e0520a",
+      "size": 5728722,
+      "url": "https://github.com/edithatogo/fyi-cli/releases/download/v1.2.0/fyi-cli-linux-amd64.tar.gz"
+    },
+    {
+      "name": "fyi-cli-linux-amd64.tar.gz.sha256",
+      "sha256": "78cff62809dc9d4c7668b9302ea52061eca93a2c8c11cf017e612e7c8b124f8d",
+      "size": 93,
+      "url": "https://github.com/edithatogo/fyi-cli/releases/download/v1.2.0/fyi-cli-linux-amd64.tar.gz.sha256"
+    },
+    {
+      "name": "fyi-cli-macos-amd64.tar.gz",
+      "sha256": "55502bd634e285345c94abac34a049885a38671f3c496c2b4a063a5fd13493c1",
+      "size": 4142168,
+      "url": "https://github.com/edithatogo/fyi-cli/releases/download/v1.2.0/fyi-cli-macos-amd64.tar.gz"
+    },
+    {
+      "name": "fyi-cli-macos-amd64.tar.gz.sha256",
+      "sha256": "f78bdd0671d4ba7d3619c6002692f39e1dca90f74ce6dc65e01786d253d6d674",
+      "size": 93,
+      "url": "https://github.com/edithatogo/fyi-cli/releases/download/v1.2.0/fyi-cli-macos-amd64.tar.gz.sha256"
+    },
+    {
+      "name": "fyi-cli-macos-arm64.tar.gz",
+      "sha256": "e254515e22dfdf8f2726a452516e8241d956f54e1401bf66a396e6b3e5eb7e9f",
+      "size": 3957634,
+      "url": "https://github.com/edithatogo/fyi-cli/releases/download/v1.2.0/fyi-cli-macos-arm64.tar.gz"
+    },
+    {
+      "name": "fyi-cli-macos-arm64.tar.gz.sha256",
+      "sha256": "2d173e2d97b45c72ab7c79489cb687bbfa86f7e94778389683cfcc29189d3c6b",
+      "size": 93,
+      "url": "https://github.com/edithatogo/fyi-cli/releases/download/v1.2.0/fyi-cli-macos-arm64.tar.gz.sha256"
+    },
+    {
+      "name": "fyi-cli-windows-amd64.exe.zip",
+      "sha256": "8b4c38ead64c8efb80dfc53ff4a4c875be41169b6469fefaef96cf56211875f5",
+      "size": 4231211,
+      "url": "https://github.com/edithatogo/fyi-cli/releases/download/v1.2.0/fyi-cli-windows-amd64.exe.zip"
+    },
+    {
+      "name": "fyi-cli-windows-amd64.exe.zip.sha256",
+      "sha256": "c336e3c583ae8bfadf6cd5b375fc78847651cfb35fe8b1c5d75500dd4ae2c2df",
+      "size": 96,
+      "url": "https://github.com/edithatogo/fyi-cli/releases/download/v1.2.0/fyi-cli-windows-amd64.exe.zip.sha256"
+    }
+  ],
+  "digest_evidence": "GitHub Release assets API digest fields; payload bytes have not been independently downloaded or executed in this audit.",
+  "verification": {
+    "downloaded_bytes": false,
+    "clean_install": false,
+    "signed_release": false,
+    "sbom": false,
+    "provenance": false
+  },
+  "submission_ready": false,
+  "blockers": [
+    "release-version-authority: public v1.2.0 contains Rust component 0.1.2; reconcile the next coordinated release without retagging or changing component authority here.",
+    "release-integrity: no SHA256SUMS, release-manifest.json or SBOM appears among the eight observed assets; provenance and a signed release have not been verified.",
+    "native-smoke: independently verify downloaded bytes and clean installation on every advertised target before submission."
+  ]
+}

@@ -1,59 +1,53 @@
-# Maintainer: edithatogo <https://github.com/edithatogo>
-# Draft AUR package for fyi-cli. Update pkgver, source URLs, and checksums
-# from the matching GitHub Release before submitting to the AUR.
-#
-# Build options:
-#   - Default: cargo build from GitHub source archive (reliable, no prebuilt asset required)
-#   - Optional: switch to prebuilt binaries once cargo-dist Linux assets are stable
-#
-# Suggested AUR package name: fyi-cli
-# Binary: fyi-cli (optional symlink fyi if desired)
+# Maintainer: edithatogo <15080672+edithatogo@users.noreply.github.com>
+# BLOCKED TEMPLATE: unresolved hashes are deliberately invalid; never use SKIP.
+# Historical GitHub release v1.2.0 contains Rust package metadata 0.1.2.
+# Reconcile that release/version mapping before submission; this is not master.
+# The separately hashed vendor archive must contain vendor/ and cargo-config.toml
+# generated from this exact source's Cargo.lock with cargo vendor --locked.
+# Generate that archive outside the build sandbox; review all bundled licences.
 
 pkgname=fyi-cli
 pkgver=0.1.2
 pkgrel=1
+_commit=86fcbd8914037735b6f27e5a329d5f3013033efd
 pkgdesc="Privacy-focused multi-jurisdiction FOI/OIA CLI and MCP server for Alaveteli"
 arch=('x86_64' 'aarch64')
 url="https://github.com/edithatogo/fyi-cli"
 license=('MIT')
 depends=('gcc-libs' 'openssl')
-makedepends=('cargo' 'git')
-# Optional runtime: fyi-mcp binary is built from the same workspace when requested.
-optdepends=(
-  'tor: optional Tor routing for privacy-sensitive requests'
-)
-provides=('fyi-cli' 'fyi-mcp')
-conflicts=()
+makedepends=('cargo' 'pkgconf')
+optdepends=('tor: optional Tor routing for privacy-sensitive requests')
+provides=('fyi-mcp')
 options=('!lto')
-source=("${pkgname}-${pkgver}.tar.gz::https://github.com/edithatogo/fyi-cli/archive/refs/tags/v${pkgver}.tar.gz")
-# Replace with actual sha256 from the release source archive before AUR publish:
-#   curl -sL "$source" | sha256sum
-sha256sums=('SKIP')
+source=(
+  "${pkgname}-${_commit}.tar.gz::https://github.com/edithatogo/fyi-cli/archive/${_commit}.tar.gz"
+  "fyi-cli-${pkgver}-vendor.tar.gz"
+)
+sha256sums=('@SOURCE_SHA256@' '@CARGO_VENDOR_SHA256@')
 
 prepare() {
-  cd "${srcdir}/fyi-cli-${pkgver}"
-  export RUSTUP_TOOLCHAIN=stable
-  cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+  cd "${srcdir}/fyi-cli-${_commit}"
+  test -d "${srcdir}/vendor"
+  test -f "${srcdir}/cargo-config.toml"
+  cp -a "${srcdir}/vendor" vendor
+  install -Dm644 "${srcdir}/cargo-config.toml" .cargo/vendor-config.toml
 }
 
 build() {
-  cd "${srcdir}/fyi-cli-${pkgver}"
-  export RUSTUP_TOOLCHAIN=stable
+  cd "${srcdir}/fyi-cli-${_commit}"
   export CARGO_TARGET_DIR=target
-  cargo build --frozen --release --package fyi-cli --package fyi-mcp
+  cargo --config .cargo/vendor-config.toml build --frozen --release --package fyi-cli --package fyi-mcp
 }
 
 check() {
-  cd "${srcdir}/fyi-cli-${pkgver}"
-  export RUSTUP_TOOLCHAIN=stable
-  # Lightweight smoke; full suite may need network fixtures.
-  cargo test --frozen --package fyi-cli -- --nocapture || true
+  cd "${srcdir}/fyi-cli-${_commit}"
+  cargo --config .cargo/vendor-config.toml test --frozen --release --package fyi-cli --package fyi-mcp
 }
 
 package() {
-  cd "${srcdir}/fyi-cli-${pkgver}"
-  install -Dm755 "target/release/fyi-cli" "${pkgdir}/usr/bin/fyi-cli"
-  install -Dm755 "target/release/fyi-mcp" "${pkgdir}/usr/bin/fyi-mcp"
+  cd "${srcdir}/fyi-cli-${_commit}"
+  install -Dm755 target/release/fyi-cli "${pkgdir}/usr/bin/fyi-cli"
+  install -Dm755 target/release/fyi-mcp "${pkgdir}/usr/bin/fyi-mcp"
   install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
   install -Dm644 README.md "${pkgdir}/usr/share/doc/${pkgname}/README.md"
 }
