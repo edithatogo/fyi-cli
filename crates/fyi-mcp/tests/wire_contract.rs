@@ -14,20 +14,25 @@ fn initialize(version: &str) -> Value {
     })
 }
 
-async fn exchange(lines: &[String]) -> (Vec<Value>, String) {
+fn isolated_command() -> Command {
     let mut command = Command::new(env!("CARGO_BIN_EXE_fyi-mcp"));
     for (name, _) in std::env::vars_os() {
         if name.to_string_lossy().starts_with("FYI_MCP_") || name == "DATABASE_URL" {
             command.env_remove(name);
         }
     }
-    let mut child = command
-        .env("FYI_MCP_EPHEMERAL", "1")
+    command
         .env("RUST_LOG", "info")
-        .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .kill_on_drop(true)
+        .kill_on_drop(true);
+    command
+}
+
+async fn exchange(lines: &[String]) -> (Vec<Value>, String) {
+    let mut child = isolated_command()
+        .env("FYI_MCP_EPHEMERAL", "1")
+        .stdin(Stdio::piped())
         .spawn()
         .expect("start the real MCP executable");
     let mut input = child.stdin.take().unwrap();
@@ -52,6 +57,79 @@ async fn exchange(lines: &[String]) -> (Vec<Value>, String) {
         .map(|line| serde_json::from_str(line).expect("stdout must contain only JSON-RPC"))
         .collect();
     (responses, String::from_utf8(output.stderr).unwrap())
+}
+
+#[tokio::test]
+async fn ambiguous_remote_credentials_fail_startup_before_database_or_protocol_output() {
+    struct ScratchDirectory(std::path::PathBuf);
+    impl Drop for ScratchDirectory {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let directory = std::env::temp_dir().join(format!(
+        "fyi-mcp-credential-contract-{}-{nonce}",
+        std::process::id()
+    ));
+    std::fs::create_dir(&directory).unwrap();
+    let directory = ScratchDirectory(directory);
+    for (index, (first, second)) in [
+        ("synthetic-private", "synthetic_private"),
+        ("SYNTHETIC_PRIVATE", "synthetic_private"),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let database = directory.0.join(format!("private-{index}.db"));
+        let output = tokio::time::timeout(
+            Duration::from_secs(5),
+            isolated_command()
+                .env("DATABASE_URL", format!("sqlite://{}", database.display()))
+                .env(
+                    "FYI_MCP_REMOTE_INSTANCES",
+                    format!("{first}=https://first.example,{second}=https://second.example"),
+                )
+                .env("FYI_MCP_REMOTE_READ", format!("{first},{second}"))
+                .env("FYI_MCP_REMOTE_WRITE", format!("{first},{second}"))
+                .env(
+                    "FYI_MCP_REMOTE_BOT_TOKEN_SYNTHETIC_PRIVATE",
+                    "synthetic-credential-never-disclose",
+                )
+                .stdin(Stdio::null())
+                .output(),
+        )
+        .await
+        .expect("invalid configuration must exit within five seconds")
+        .unwrap();
+        assert!(
+            !output.status.success(),
+            "ambiguous configuration was accepted"
+        );
+        assert!(output.stdout.is_empty());
+        assert!(
+            !database.exists(),
+            "invalid configuration created a database"
+        );
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        assert!(stderr.contains("distinct credential environment variables"));
+        for private in [
+            first,
+            second,
+            "first.example",
+            "second.example",
+            "synthetic-credential-never-disclose",
+            database.to_str().unwrap(),
+        ] {
+            assert!(
+                !stderr.contains(private),
+                "startup error exposed private input"
+            );
+        }
+    }
 }
 
 #[tokio::test]

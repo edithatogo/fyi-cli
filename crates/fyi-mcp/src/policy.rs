@@ -716,6 +716,76 @@ mod tests {
         assert!(RemoteMcpPolicy::new(vec![bad]).is_err());
     }
 
+    #[test]
+    fn credential_mappings_reject_generated_case_and_separator_aliases() {
+        // Each group maps to the same protected environment variable. Exercise
+        // both configuration orders and every pair of write-capability flags.
+        for prefix in ["a", "z", "0", "region1"] {
+            let aliases = [
+                format!("{prefix}-api"),
+                format!("{prefix}_api"),
+                format!("{prefix}-API"),
+                format!("{prefix}_API"),
+                format!("{prefix}-aPi"),
+                format!("{prefix}_aPi"),
+            ];
+            for (index, left) in aliases.iter().enumerate() {
+                for right in &aliases[index + 1..] {
+                    for (first, second) in [(left, right), (right, left)] {
+                        for (first_write, second_write) in
+                            [(false, false), (false, true), (true, false), (true, true)]
+                        {
+                            let mut first_instance = instance(true, first_write);
+                            first_instance.instance_id = first.clone();
+                            first_instance.base_url = "https://first.example".into();
+                            let mut second_instance = instance(true, second_write);
+                            second_instance.instance_id = second.clone();
+                            second_instance.base_url = "https://second.example".into();
+                            let error = RemoteMcpPolicy::new(vec![first_instance, second_instance])
+                                .expect_err("credential aliases must fail before dispatch");
+                            assert_eq!(
+                                error,
+                                PolicyError::InvalidConfiguration(
+                                    "remote instance ids must use distinct credential environment variables"
+                                        .into()
+                                )
+                            );
+                            assert!(!error.to_string().contains(first));
+                            assert!(!error.to_string().contains(second));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn distinct_credential_mappings_preserve_instance_identity_and_capabilities() {
+        for (first, second) in [
+            ("north-foi", "south_foi"),
+            ("a1", "a_1"),
+            ("1a", "_1a"),
+            ("MiXeD", "mixed2"),
+        ] {
+            let mut read_only = instance(true, false);
+            read_only.instance_id = first.into();
+            let mut write_only = instance(false, true);
+            write_only.instance_id = second.into();
+            let policy = RemoteMcpPolicy::new(vec![read_only, write_only]).unwrap();
+            assert!(policy.authorize(first, RemoteCapability::Read).is_ok());
+            assert!(policy.authorize(first, RemoteCapability::Write).is_err());
+            assert!(policy.authorize(second, RemoteCapability::Write).is_ok());
+            assert!(policy.authorize(second, RemoteCapability::Read).is_err());
+            let ids: BTreeSet<_> = policy
+                .status()
+                .instances
+                .into_iter()
+                .map(|instance| instance.instance_id)
+                .collect();
+            assert_eq!(ids, BTreeSet::from([first.into(), second.into()]));
+        }
+    }
+
     fn bounded_policy(max_requests: u32, max_bytes: u64) -> RemoteMcpPolicy {
         let mut configured = instance(true, true);
         configured.budget.max_requests = max_requests;
