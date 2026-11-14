@@ -43,9 +43,14 @@ permits enforce per-instance concurrency, count attempts before I/O, account
 rejected response bytes, enforce duration and release on cancellation. Synthetic
 future tests cover success, private upstream failure, timeout, oversized output,
 policy changes, invalid confirmation and changed commit payload. No live write
-is part of this verification. Rust 1.99.1 verification passed 97 MCP tests
-(92 unit/boundary and five executable), Clippy with warnings denied, formatting,
+is part of this verification. Rust 1.99.1 verification passed 98 MCP tests
+(93 unit/boundary and five executable), Clippy with warnings denied, formatting,
 and the Conductor contract check.
+
+Review additionally identified invalid read parameters consuming remote allowance
+and opening the shared upstream circuit before I/O. Query, ID and filter
+validation now precedes admission; repeated invalid calls preserve zero usage
+and a closed circuit.
 
 Attachment tests reject traversal and observed in-root file/directory symlinks.
 Process restart durability, attachment byte immutability and source raw-byte/
