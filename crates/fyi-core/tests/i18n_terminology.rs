@@ -26,6 +26,8 @@ fn synthetic_catalog() -> Value {
 #[test]
 fn embedded_profiles_cover_explicit_regimes_without_country_inference() {
     let registry = TerminologyRegistry::embedded().unwrap();
+    assert_eq!(registry.version().format_version, 1);
+    assert_eq!(registry.version().revision, "2026-11-14.1");
     let profiles = [
         ("au-foi", "AU", "FOI", "FOI request"),
         ("au-qld-rti", "AU", "RTI", "RTI request"),
@@ -208,13 +210,19 @@ fn profile_values_are_interpolated_once_as_literal_unicode() {
     catalog["profiles"][0]["law_name"] = json!(literal);
     let registry = TerminologyRegistry::from_json(&catalog.to_string()).unwrap();
     let english = LocalizationEngine::new("en-AU");
-    assert_eq!(
-        registry
-            .lookup("synthetic-law", &english, Term::Request)
-            .unwrap()
-            .text,
-        format!("{literal} request")
+    assert!(
+        registry.profile("nz-oia").is_none(),
+        "Custom catalogs must not merge silently"
     );
+    let rendered = registry
+        .lookup("synthetic-law", &english, Term::Request)
+        .unwrap();
+    assert_eq!(rendered.catalog_version.revision, "synthetic.1");
+    assert_eq!(
+        rendered.message_bundle_version.unwrap().revision,
+        "2026-11-14.1"
+    );
+    assert_eq!(rendered.text, format!("{literal} request"));
     assert_eq!(
         registry
             .lookup("synthetic-law", &english, Term::LawName)
@@ -222,6 +230,38 @@ fn profile_values_are_interpolated_once_as_literal_unicode() {
             .text,
         literal
     );
+}
+
+#[test]
+fn catalog_text_bounds_count_utf8_bytes_and_accept_the_exact_boundary() {
+    for (field, limit) in [
+        ("id", 64),
+        ("law_name", 512),
+        ("law_abbreviation", 256),
+        ("request_abbreviation", 256),
+    ] {
+        let mut catalog = synthetic_catalog();
+        let valid = if field == "id" {
+            "a".repeat(limit)
+        } else {
+            "é".repeat(limit / 2)
+        };
+        catalog["profiles"][0][field] = json!(valid);
+        assert!(
+            TerminologyRegistry::from_json(&catalog.to_string()).is_ok(),
+            "{field}"
+        );
+        catalog["profiles"][0][field] = json!(format!("{valid}x"));
+        assert!(
+            TerminologyRegistry::from_json(&catalog.to_string()).is_err(),
+            "{field}"
+        );
+    }
+    let mut catalog = synthetic_catalog();
+    catalog["version"]["revision"] = json!("r".repeat(64));
+    assert!(TerminologyRegistry::from_json(&catalog.to_string()).is_ok());
+    catalog["version"]["revision"] = json!("r".repeat(65));
+    assert!(TerminologyRegistry::from_json(&catalog.to_string()).is_err());
 }
 
 #[test]

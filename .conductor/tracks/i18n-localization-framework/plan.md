@@ -15,11 +15,18 @@ within this track; shared registries remain untouched during parallel work.
 The historical checklist below is reconciled only against inspectable evidence.
 Human language/legal review is distinct from automated rendering verification.
 
-Delivery checkpoint (2026-11-14 05:30 UTC): foundation PR #436 has successful
-required checks at `727b841` but awaits its coordinated final master refresh and
-merge. Typed-template PR #447 is a dependent draft preserving implementation
-`75d932b`; it must follow #436, retarget to master and qualify its final head.
-See the dated integration evidence below; neither PR is claimed merged here.
+Current reconciliation (2026-11-14): foundation PR #436 merged as `a0fa71a`,
+and typed-template PR #447 merged as `4322d47`. Both are present in master
+`9050a66`. Their earlier verification checkpoints below remain historical
+evidence. Issue #39 remains open; its closed historical children are not proof
+of the remaining terminology, calendar or legal acceptance.
+
+- [x] Bounded increment 3: explicit jurisdiction terminology profiles, localized
+  glossary lookup, source references and private catalog validation (PR #450).
+  Uses the existing Fluent/locale implementation; deadline and source owners'
+  components remain unchanged. Implementation checkpoint `9f34fda` passed 12
+  terminology contracts and 670 instrumented workspace tests; final-head checks
+  and coordinated integration remain required.
 
 ## Phase 1: Fluent-rs Integration
 
@@ -72,17 +79,19 @@ combined localization line coverage. Human review remains unchecked.
 ## Phase 3: Terminology Mapping
 
 ### 3.1 Term Registry
-- [~] Task: Create terminology registry data structure
-- [ ] Task: Map FOI term equivalents (OIA/FOI/RTI/IFG/FOIA)
-- [ ] Task: Map request-type terms across jurisdictions
-- [ ] Task: Map authority terms (department/ministry/agency)
+- [x] Task: Create terminology registry data structure — `9f34fda`
+- [x] Task: Map FOI term equivalents (OIA/FOI/RTI/IFG/FOIA) — nine explicit profiles;
+  additional regimes and legal applicability remain outside this bounded glossary
+- [x] Task: Map request-type terms across jurisdictions — typed display concepts
+- [x] Task: Map authority terms (department/ministry/agency)
 - [ ] Task: Conductor - User Manual Verification 'Phase 3.1: Registry' (Protocol in workflow.md)
 
 ### 3.2 Glossary Integration
-- [ ] Task: Create jurisdiction-specific glossaries
-- [ ] Task: Implement term lookup by jurisdiction and locale
-- [ ] Task: Write tests for term mapping accuracy
-- [ ] Task: Create glossary documentation
+- [x] Task: Create jurisdiction-specific glossaries — nine source-qualified profiles
+- [x] Task: Implement term lookup by jurisdiction and locale — no jurisdiction fallback
+- [x] Task: Write tests for term mapping accuracy — exact rendering/source contracts;
+  this does not certify human translation or legal accuracy
+- [x] Task: Create glossary documentation — API, extension contract and sources
 - [ ] Task: Conductor - User Manual Verification 'Phase 3.2: Glossary' (Protocol in workflow.md)
 
 ## Phase 4: Working-Day/Deadline Engine
@@ -116,7 +125,7 @@ combined localization line coverage. Human review remains unchecked.
 ### 5.1 German Localization (de-DE)
 - [x] Task: Create de-DE message bundles
 - [x] Task: Create German IFG request template
-- [ ] Task: Add German terminology (Informationsfreiheitsgesetz)
+- [x] Task: Add German terminology (Informationsfreiheitsgesetz) — bounded display glossary
 - [ ] Task: Add German holiday calendar
 - [ ] Task: Human review and verification
 - [ ] Task: Conductor - User Manual Verification 'Phase 5.1: German' (Protocol in workflow.md)
@@ -124,7 +133,7 @@ combined localization line coverage. Human review remains unchecked.
 ### 5.2 French Localization (fr-FR)
 - [x] Task: Create fr-FR message bundles
 - [x] Task: Create French CADA request template
-- [ ] Task: Add French terminology
+- [x] Task: Add French terminology — CRPA profile; CADA is not treated as a law
 - [ ] Task: Add French holiday calendar
 - [ ] Task: Human review and verification
 - [ ] Task: Conductor - User Manual Verification 'Phase 5.2: French' (Protocol in workflow.md)
@@ -132,7 +141,7 @@ combined localization line coverage. Human review remains unchecked.
 ### 5.3 Spanish Localization (es-ES)
 - [x] Task: Create es-ES message bundles
 - [x] Task: Create Spanish transparency request template
-- [ ] Task: Add Spanish terminology
+- [x] Task: Add Spanish terminology — sourced LTAIBG profile
 - [ ] Task: Add Spanish holiday calendar
 - [ ] Task: Human review and verification
 - [ ] Task: Conductor - User Manual Verification 'Phase 5.3: Spanish' (Protocol in workflow.md)
@@ -173,3 +182,7 @@ combined localization line coverage. Human review remains unchecked.
 - **2026-11-14**: Reconciled historical completion; Phases 1 and 2 implementation
   and automated verification complete. Manual translation/legal review and later
   acceptance criteria remain open. Canonical deadline arithmetic is reused.
+- **2026-11-14**: Reconciled merged #436/#447 and reopened incomplete children
+  #64–#67 under #39. PR #450 implements the bounded terminology/glossary contracts.
+  Human verification, calendars/statutory accuracy and broader acceptance remain
+  unchecked. Shared-registry reconciliation stays with the integration coordinator.
