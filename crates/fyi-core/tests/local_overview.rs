@@ -95,7 +95,7 @@ async fn oversized_text_is_bounded_in_sql_without_splitting_unicode() {
          VALUES ('maple', ?, 'PRIVATE-BODY', ?, ?)",
     )
     .bind("🧪".repeat(10_000))
-    .bind("x".repeat(10_000))
+    .bind(format!("draft{}unmapped", " ".repeat(10_000)))
     .bind("y".repeat(10_000))
     .execute(db.pool())
     .await
@@ -113,7 +113,8 @@ async fn oversized_text_is_bounded_in_sql_without_splitting_unicode() {
         Some("界".repeat(513).as_str())
     );
     assert_eq!(row.updated_at.as_ref().unwrap().chars().count(), 513);
-    assert_eq!(row.request.status.as_ref().unwrap().chars().count(), 129);
+    // A truncated known-looking prefix must not turn an unknown state into Draft.
+    assert_eq!(row.request.status.as_deref(), Some("unrecognized"));
 }
 
 #[tokio::test]

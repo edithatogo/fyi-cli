@@ -291,7 +291,10 @@ fn interrupted_poll_is_retried_without_exposing_a_signal_as_an_input_failure() {
         }
     })
     .unwrap();
-    assert_eq!(worker.receiver.blocking_recv(), Some(Ok(Event::FocusGained)));
+    assert_eq!(
+        worker.receiver.blocking_recv(),
+        Some(Ok(Event::FocusGained))
+    );
     worker.stop().unwrap();
 }
 

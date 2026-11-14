@@ -45,7 +45,8 @@ impl DbPool {
         let requests = sqlx::query_as(
             "SELECT r.id, substr(r.authority_slug, 1, 513) AS authority_slug,
                     substr(r.title, 1, 513) AS title,
-                    substr(r.status, 1, 129) AS status, r.fyi_request_id,
+                    CASE WHEN length(r.status) > 128 THEN 'unrecognized'
+                         ELSE r.status END AS status, r.fyi_request_id,
                     substr(a.name, 1, 513) AS authority_name,
                     substr(r.updated_at, 1, 513) AS updated_at
              FROM tracked_requests r LEFT JOIN authorities a ON a.slug = r.authority_slug
