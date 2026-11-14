@@ -1,0 +1,4 @@
+# CPython 3.15 candidate from closed, unmerged google/atheris#115.
+# Qualification is mandatory in python-security-fuzzing.yml; a build is insufficient.
+# Track the supported release at https://github.com/google/atheris/issues/114.
+atheris @ git+https://github.com/google/atheris.git@d82f7720122e2a07618e337e364426327e506f3f

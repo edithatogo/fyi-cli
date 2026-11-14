@@ -71,6 +71,7 @@ jobs:
             src/fyi_system/internet_archive_replay.py \
             fuzzing \
             tests/test_atheris_targets.py \
+            tests/test_python_security_dependencies.py \
             tests/test_python_security_fuzzing_workflow.py
           uv run ruff format --check \
             src/fyi_system/acquisition_receipts.py \
@@ -78,6 +79,7 @@ jobs:
             src/fyi_system/internet_archive_replay.py \
             fuzzing \
             tests/test_atheris_targets.py \
+            tests/test_python_security_dependencies.py \
             tests/test_python_security_fuzzing_workflow.py
           uv run basedpyright \
             src/fyi_system/acquisition_receipts.py \
@@ -88,7 +90,7 @@ jobs:
         run: |
           uv export --frozen --extra dev --no-emit-project --output-file requirements-audit.txt
           uv run pip-audit --requirement requirements-audit.txt
-          printf 'atheris==3.1.0\n' > requirements-fuzz-audit.txt
+          cp fuzzing/requirements.txt requirements-fuzz-audit.txt
           uv run pip-audit --requirement requirements-fuzz-audit.txt
 
   atheris:
@@ -112,7 +114,21 @@ jobs:
         run: |
           uv sync --python 3.15.1 --extra dev --frozen
           uv run --no-sync --python 3.15.1 python scripts/verify_python315_runtime.py
-          uv pip install --python .venv/bin/python atheris==3.1.0
+          uv pip install --python .venv/bin/python --requirement fuzzing/requirements.txt
+      - name: Qualify Atheris on the selected interpreter
+        run: |
+          mkdir -p artifacts/logs
+          set -o pipefail
+          atheris_test_dir="$(.venv/bin/python -c 'import atheris; from pathlib import Path; print(Path(atheris.__file__).parent)')"
+          .venv/bin/python "$atheris_test_dir/version_dependent_test.py" \
+            2>&1 | tee -a artifacts/logs/qualification.log
+          .venv/bin/python "$atheris_test_dir/instrument_bytecode_test.py" \
+            2>&1 | tee -a artifacts/logs/qualification.log
+          .venv/bin/python "$atheris_test_dir/fuzz_test.py" \
+            IntegrationTests.testBytesComparison \
+            IntegrationTests.testStringComparison \
+            IntegrationTests.testUtf8Comparison \
+            2>&1 | tee -a artifacts/logs/qualification.log
       - name: Select bounded duration
         id: bounds
         env:
