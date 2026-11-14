@@ -88,3 +88,23 @@ Python 3.15.1 qualification of **every** active Python CI runtime is
 a separate shared-workflow change owned by the sole integration
 coordinator; adding a qualified Python security-policy step does not
 qualify the old 3.12 jobs.
+
+### Evidence: 13 retired nonmatching entries
+
+On master `9050a6649ebbcf48e6e2919e5bc19bbed4b4f8c0`,
+[Security Audit run 43578036426](https://github.com/edithatogo/fyi-cli/actions/runs/43578036426)
+(job 132396499550) emitted `advisory-not-detected` for 14 RustSec
+identifiers. Thirteen **not** in the five explicit `cargo audit` ignores
+were removed in follow-up [PR #455](https://github.com/edithatogo/fyi-cli/pull/455):
+`RUSTSEC-2022-0093`, `RUSTSEC-2024-0344`, `RUSTSEC-2024-0363`,
+`RUSTSEC-2024-0384`, `RUSTSEC-2024-0388`, `RUSTSEC-2025-0009`,
+`RUSTSEC-2025-0010`, `RUSTSEC-2025-0134`, `RUSTSEC-2026-0098`,
+`RUSTSEC-2026-0099`, `RUSTSEC-2026-0104`, `RUSTSEC-2026-0174`,
+and `RUSTSEC-2026-0190`. The fourteenth, `RUSTSEC-2026-0387`,
+remains subject to an explicit audit ignore and has **not** been retired.
+
+This only removes stale suppressions from the recorded dependency
+graph; it does **not** establish security fixes for remaining
+vulnerabilities. The now-seven remaining exceptions require
+independent assessment and removal. Future advisory database changes
+remain fail-closed through the required CI job.
