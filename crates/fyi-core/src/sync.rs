@@ -318,6 +318,11 @@ impl SyncClient {
         let mut request = request
             .build()
             .context("failed to build outbound request")?;
+        if request.url().origin() != self.base_url.origin() {
+            return Err(anyhow!(
+                "outbound request violates configured source origin policy"
+            ));
+        }
         let cache_key = request.url().to_string();
         let cacheable_get =
             request.method() == reqwest::Method::GET && !is_bulk_export_url(request.url());
@@ -3378,3 +3383,7 @@ mod tests {
         assert!(server.received_requests().await.unwrap().is_empty());
     }
 }
+
+#[cfg(test)]
+#[path = "sync_source_origin_regression.rs"]
+mod source_origin_regression;

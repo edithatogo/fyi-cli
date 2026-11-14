@@ -26,7 +26,10 @@ async fn cross_origin_never_receives_bot_header() {
         .unwrap()
         .with_bot_token(Some(TOKEN.to_string()));
     let result = guarded_get(&client, &format!("{}/feed", other.uri())).await;
-    assert!(result.is_err(), "cross-origin request must be rejected before HTTP");
+    assert!(
+        result.is_err(),
+        "cross-origin request must be rejected before HTTP"
+    );
     assert!(other.received_requests().await.unwrap().is_empty());
     assert!(approved.received_requests().await.unwrap().is_empty());
 }
