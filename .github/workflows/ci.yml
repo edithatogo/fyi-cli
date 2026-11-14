@@ -358,6 +358,17 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
+      - name: Isolate Rustup state
+        # Avoid partially installed toolchains in the hosted runner's default home.
+        shell: bash
+        run: printf 'RUSTUP_HOME=%s/fyi-harness-rustup\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+
+      - name: Install Rust harness toolchain
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+        with:
+          toolchain: "1.99.1"
+          components: rustfmt,clippy
+
       - name: Install Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:

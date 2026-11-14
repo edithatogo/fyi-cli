@@ -33,6 +33,7 @@
 - [x] Verify expensive lanes and bounded PR checks; repair virtualenv mutation execution and benchmark collection, retain full authoritative tests. Weekly/manual mutation and full profiling remain; all eight benchmarks run in the bounded PR smoke and the manual harness performance layer.
 - [x] Retain CI evidence (artifacts, logs and source/run provenance), including failure paths. Mutation, profiling, Python Tests, Security Audit and Code Coverage upload for 14 days; executable failing-pipeline tests preserve gate exit codes.
 - [x] Remove the four unintended live reads in the original quality track's monitor smoke tests. The real RSS parser uses checked-in fixture bytes behind a network guard; all original test bodies and DST/reconciliation classes remain AST-identical.
+- [x] Initialize an isolated, explicit Rust toolchain for the layered harness. Hosted run 43555109525 exposed a partially installed toolchain before any Rust test executed; two regression contracts now enforce isolated storage and setup matching `rust-toolchain.toml`, using the existing pinned action.
 
 ## Phase 6: Verification and closure
 
@@ -63,7 +64,7 @@ The standalone harness-inventory step is redundant: `verify_test_harness.py --ru
 always validates the inventory before executing its layers. Remove only that
 duplicate validation; keep every test layer and mandatory gate.
 
-Local verification after combining both slices: 158 workflow/harness regression
+Local verification after combining both slices: 160 workflow/harness regression
 tests, 88 existing monitor/DST/API/receipt/archive contract tests and the actual
 eight-benchmark PR workload passed. Same-version actionlint/ShellCheck passed all
 24 workflows. Independent review of the final evidence and monitor fixture

@@ -182,6 +182,15 @@ Branch: `fix/quality-frontier-evidence`.
    local empty-RSS fixture; the original four test bodies and full DST and
    reconciliation classes remain AST-identical. Populated-feed behavior remains
    covered by the existing unchanged DST tests.
+7. After integrating the separately merged TUI baseline, the layered harness
+   failed before running its first Rust test: rustup tried to recover a partially
+   installed toolchain and rejected a conflicting `cargo-clippy` binary
+   ([run 43555109525, job 132326089011](https://github.com/edithatogo/fyi-cli/actions/runs/43555109525/job/132326089011)).
+   The origin of that partial installation is not established. The harness now
+   uses a job-local Rustup home under `RUNNER_TEMP` and explicitly installs the
+   repository's 1.99.1 toolchain and required components with the existing pinned
+   Rust action. The unchanged harness command must pass on the new final head;
+   the infrastructure failure is not waived or counted as success.
 
 No new dependency, mutation operator, application behavior, coverage exclusion,
 security exception or branch-protection change is introduced. Python mutation
@@ -195,7 +204,8 @@ of these gates.
   reproduced zero-test collection/exit 5; final green: 10 passed.
 - Core-CI evidence red baseline: 10 failed / 3 passed; green: 13 passed.
 - Monitor safe red: four network-guard failures; green: all 12 monitor tests pass.
-- Combined workflow/harness contracts: **158 passed**.
+- Harness setup regression baseline: **2 failed / 5 passed**; green: **7 passed**.
+- Combined workflow/harness contracts: **160 passed**.
 - Existing monitor/DST/importer/API/receipt/MCP/archive contracts: **88 passed**.
 - Actual PR benchmark workload: **8 passed**, with JSON and JUnit outputs;
   independently reproduced in 1.52 seconds.
