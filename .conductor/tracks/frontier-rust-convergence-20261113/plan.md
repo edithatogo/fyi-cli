@@ -186,9 +186,10 @@ existing audit, fuzz targets, bounds and quality gates.
   RED: both new regressions fail on repository-local CPython 3.15.1 with
   locked `pip-api` 0.0.34 / `pip-audit` 2.10.1 because `sre_constants` is
   absent (2 failed in 0.81 seconds; zero external Python network attempts).
-- [~] Qualify a CPython 3.15.1 Atheris source candidate, including actual
-  instrumentation and bounded fuzz execution. Closed, unmerged upstream PR
-  google/atheris#115 is investigation input, not accepted compatibility evidence.
+- [x] Qualify the CPython 3.15.1 Atheris source candidate for the existing
+  Ubuntu jobs, including instrumentation and bounded fuzz execution
+  (`ca22fef`; hosted evidence below). Closed, unmerged upstream PR
+  google/atheris#115 itself is not compatibility evidence.
 - [ ] Record exact-head hosted checks/review and obtain the coordinator's
   sequential merge window. Retain any unqualified dependency as an explicit
   blocker; do not downgrade Python, suppress failures or close this track.
@@ -245,3 +246,49 @@ in draft PR #461. Its hosted jobs remained queued while the local executor
 was unavailable, so no executed RED result is claimed for the new static
 workflow contracts. The four failed Atheris installations in #454 remain
 the observed failure baseline. Final-head hosted execution is mandatory.
+
+### Hosted qualification and formatter repair — 15 November 2026
+
+At `ca22fef`, CI run `43651729488` passed all 1,571 Python tests with two
+unrelated skips. Both audit dependency regressions and all seven security
+workflow contracts executed. All 12 protected checks passed; there were
+28 successful checks overall, one failed ordinary quality job and one
+queued optional offline AI job.
+
+Security/fuzz run `43651729523` executed on verified repository-local
+CPython 3.15.1. Each of the four Atheris jobs passed seven opcode tests,
+24 instrumentation tests, and three bytes/string/Unicode crash-discovery
+tests before the bounded repository target. The upstream instrumentation
+suite has one version-inapplicable skip because
+`RESUME_OPARG_DEPTH1_MASK` is not set on this interpreter; no skip was added.
+
+| Target | Job | Executions | Elapsed fuzz time |
+| --- | --- | ---: | ---: |
+| receipt | `132621475311` | 3,556,540 | 31 seconds |
+| CDX | `132621475429` | 1,806,665 | 31 seconds |
+| Wayback | `132621475392` | 1,348,425 | 31 seconds |
+| redaction | `132621475131` | 827,965 | 31 seconds |
+
+Quality job `132621475485` passed Ruff lint, then failed formatting of the
+new audit regression file before reaching the complete dependency audit.
+The same formatter failure was reproduced locally. Commit `e86b6cd`
+applies Ruff's one-line string-literal normalization; it changes no test
+input or assertion. Local Ruff lint and formatting pass for all nine
+workflow-selected Python files. The two audit regressions and seven
+workflow contracts pass together: nine passed in 0.81 seconds on verified
+repository-local CPython 3.15.1, with zero external Python network attempts.
+
+The published formatter tree `bc1cd51dd25c601fadd0b6fdd8e59a3eed80f531`
+matches executed local checkpoint `308be74` exactly. GitHub publication
+preserves the local commits and uncommitted work in earlier worktrees.
+
+The complete dependency audit, final-head checks/review and coordinator's
+merge window remain pending. These are bounded Linux execution results,
+not upstream release approval or broader platform/migration qualification.
+
+PR #461 was merged as `9c2f791ea3162dc781b0009574045c72fb49bd3c`
+at its original `ca22fef` head before the formatter repair could reach its
+branch. The focused formatting follow-up uses that actual merge as its
+base; its source tree matches the tested local correction. The complete
+audit and the follow-up's final checks/review remain acceptance conditions
+for the sole integration coordinator.
