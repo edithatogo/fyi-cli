@@ -9,6 +9,8 @@ on:
       - "conformance/acquisition/**"
       - "Cargo.toml"
       - "Cargo.lock"
+      - ".gitattributes"
+      - "tests/test_receipt_fixture_checkout.py"
       - "rust-toolchain.toml"
       - ".github/workflows/receipt-portability.yml"
       - "tests/test_receipt_portability_workflow.py"
@@ -20,6 +22,8 @@ on:
       - "conformance/acquisition/**"
       - "Cargo.toml"
       - "Cargo.lock"
+      - ".gitattributes"
+      - "tests/test_receipt_fixture_checkout.py"
       - "rust-toolchain.toml"
       - ".github/workflows/receipt-portability.yml"
       - "tests/test_receipt_portability_workflow.py"
@@ -61,6 +65,7 @@ jobs:
           mkdir -p artifacts/receipt-portability
           {
             git rev-parse HEAD
+            git ls-files --eol conformance/acquisition
             printf 'runner_os=%s\nrunner_arch=%s\n' "$RUNNER_OS" "$RUNNER_ARCH"
             rustc --version --verbose
             cargo --version

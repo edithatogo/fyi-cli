@@ -232,7 +232,10 @@ fn dangling_and_existing_file_symlinks_are_rejected_without_modification() {
     write_receipt_atomic(&target, &receipt("same")).unwrap();
     let before = fs::read(&target).unwrap();
     assert!(write_receipt_atomic(&link, &receipt("same")).is_err());
-    assert!(fs::symlink_metadata(&link).unwrap().file_type().is_symlink());
+    assert!(fs::symlink_metadata(&link)
+        .unwrap()
+        .file_type()
+        .is_symlink());
     assert_eq!(fs::read(&target).unwrap(), before);
     assert_no_temporary_files(&root.0);
 }

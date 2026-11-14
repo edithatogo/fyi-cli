@@ -35,8 +35,19 @@ runtime acquisition; only synthetic local files and Python-origin fixtures are u
 - [~] Test abrupt process exit *after* successful publication, idempotent restart,
   simulated orphan temporary files, existing-directory/parent-file conflicts,
   dangling/existing symlinks on Windows and POSIX, and POSIX private permissions.
+- [x] Initial head `3320550`, portability run `43544209550`: Linux and macOS passed.
+  Windows job `132291514359` reproduced a golden-byte failure: checkout changed
+  canonical LF into CRLF. Its receipt self-digest still verified, but the exact
+  wire-byte assertion correctly failed. The existing expected bytes are unchanged.
+- [x] Add scoped `.gitattributes` protection for acquisition evidence (`-text`)
+  and three actual Git check-in/checkout tests under `core.autocrlf=true` for LF,
+  CRLF and binary fixtures. Local red: three fail without the policy. Green:
+  all nine checkout/workflow tests passed. A separate reproduction changed `[]\n`
+  into `[]\r\n` without the policy. Do not normalize golden data in the tests.
+- [x] Correct the single rustfmt assertion-layout failure identified by initial
+  MSRV job `132291513631`; no assertion or verification threshold is weakened.
 - [ ] Inspect final-head platform logs and existing full CI, MSRV, formatting,
-  coverage/security and Conductor checks; repair defects rather than waive failures.
+  coverage/security and Conductor checks before merging.
 - [ ] Record verified run IDs and the merged commit; reconcile the issue checkpoint.
 
 ## Explicit evidence limits

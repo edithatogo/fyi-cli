@@ -65,6 +65,7 @@ def test_source_changes_and_workflow_changes_trigger_the_gate() -> None:
     for path in (
         "crates/fyi-core/**", "crates/fyi-cli/**", "conformance/acquisition/**",
         "Cargo.lock", "rust-toolchain.toml", ".github/workflows/receipt-portability.yml",
+        ".gitattributes", "tests/test_receipt_fixture_checkout.py",
     ):
         assert f'"{path}"' in text
     assert "workflow_dispatch:" in text
