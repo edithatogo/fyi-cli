@@ -15,6 +15,7 @@ pub mod process_events;
 pub mod provenance;
 pub mod provider_contract;
 pub mod providers;
+pub mod receipt_wire;
 pub mod search;
 pub mod security;
 pub mod shared_pacing;

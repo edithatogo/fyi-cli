@@ -857,15 +857,12 @@ fn main() {
             result_file,
             raw_file,
         } => {
-            let result = std::fs::read(path)
+            let result = std::fs::File::open(path)
                 .map_err(|error| format!("reading receipt failed: {error}"))
-                .and_then(|bytes| {
-                    serde_json::from_slice::<serde_json::Value>(&bytes)
-                        .map_err(|error| format!("invalid receipt JSON: {error}"))
+                .and_then(|file| {
+                    fyi_core::receipt_wire::read_receipt(file).map_err(|error| format!("{error:#}"))
                 })
                 .and_then(|receipt| {
-                    fyi_core::acquisition_receipts::verify_receipt(&receipt)
-                        .map_err(|error| error.to_string())?;
                     if let Some(saved_result) = result_file {
                         let bytes = std::fs::read(saved_result).map_err(|error| {
                             format!("reading result projection failed: {error}")
