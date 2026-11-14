@@ -70,9 +70,10 @@ async fn registration_preserves_content_and_links_one_atomic_creation_event() {
     assert_eq!(stored.fyi_url, None);
     assert_eq!(stored.last_seen_at, None);
     assert_eq!(stored.last_event_title, None);
-    assert!(stored.created_at.as_deref().is_some_and(|time| {
-        chrono::DateTime::parse_from_rfc3339(time).is_ok()
-    }));
+    assert!(stored
+        .created_at
+        .as_deref()
+        .is_some_and(|time| { chrono::DateTime::parse_from_rfc3339(time).is_ok() }));
     assert_eq!(stored.created_at, stored.updated_at);
     assert_eq!(
         serde_json::to_value(&stored)
@@ -109,7 +110,10 @@ async fn summaries_are_ordered_minimal_and_keep_i64_identifiers() {
     let mut second = request();
     second.title = "Second request".to_owned();
     second.fyi_request_id = Some(4294967296);
-    assert_eq!(db.register_local_request(&second).await.unwrap(), 2147483648);
+    assert_eq!(
+        db.register_local_request(&second).await.unwrap(),
+        2147483648
+    );
     let summaries = db.list_local_requests().await.unwrap();
     assert_eq!(summaries.len(), 2);
     assert_eq!(summaries[0].id, 1);
@@ -403,8 +407,12 @@ async fn timeline_falls_back_to_legacy_row_without_inventing_stored_events() {
 async fn native_timeline_uses_stable_event_order_without_duplicate_row_fallbacks() {
     let db = database().await;
     let id = db.register_local_request(&request()).await.unwrap();
-    db.set_local_request_status(id, "first review").await.unwrap();
-    db.set_local_request_status(id, "second review").await.unwrap();
+    db.set_local_request_status(id, "first review")
+        .await
+        .unwrap();
+    db.set_local_request_status(id, "second review")
+        .await
+        .unwrap();
     sqlx::query("UPDATE local_request_events SET occurred_at = '2026-01-02T03:04:05Z'")
         .execute(db.pool())
         .await
@@ -622,10 +630,11 @@ async fn legacy_creation_remains_visible_after_the_first_native_status_change() 
     let timeline = db.local_request_timeline(7).await.unwrap();
     assert_eq!(timeline.len(), 2);
     assert!(timeline.iter().any(|item| {
-        item.title == "Tracked request created"
-            && item.ts.as_deref() == Some("2026-01-02 03:04:05")
+        item.title == "Tracked request created" && item.ts.as_deref() == Some("2026-01-02 03:04:05")
     }));
-    assert!(timeline.iter().any(|item| item.detail == "Status: reviewed"));
+    assert!(timeline
+        .iter()
+        .any(|item| item.detail == "Status: reviewed"));
     assert_eq!(counts(&db).await, (1, 1));
 }
 

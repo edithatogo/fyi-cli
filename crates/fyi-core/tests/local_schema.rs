@@ -11,29 +11,46 @@ async fn database() -> DbPool {
 async fn repeated_initialization_recognizes_native_tracking_and_preserves_records() {
     let db = database().await;
     sqlx::query("INSERT INTO authorities (slug, name) VALUES ('alpha', 'Alpha')")
-        .execute(db.pool()).await.unwrap();
+        .execute(db.pool())
+        .await
+        .unwrap();
     sqlx::query("INSERT INTO tracked_requests (authority_slug, title, body) VALUES ('alpha', 'Title', 'Body')")
         .execute(db.pool()).await.unwrap();
     db.initialize_rust_schema().await.unwrap();
     db.validate_local_schema().await.unwrap();
     let title: String = sqlx::query_scalar("SELECT title FROM tracked_requests WHERE id = 1")
-        .fetch_one(db.pool()).await.unwrap();
+        .fetch_one(db.pool())
+        .await
+        .unwrap();
     assert_eq!(title, "Title");
 }
 
 #[tokio::test]
 async fn previous_native_schema_upgrades_only_through_explicit_initialization() {
     let db = database().await;
-    sqlx::query("DROP TABLE local_request_events").execute(db.pool()).await.unwrap();
-    sqlx::query("DROP TABLE tracked_requests").execute(db.pool()).await.unwrap();
+    sqlx::query("DROP TABLE local_request_events")
+        .execute(db.pool())
+        .await
+        .unwrap();
+    sqlx::query("DROP TABLE tracked_requests")
+        .execute(db.pool())
+        .await
+        .unwrap();
     sqlx::query("DELETE FROM _sqlx_migrations WHERE version = 20261114001000")
-        .execute(db.pool()).await.unwrap();
+        .execute(db.pool())
+        .await
+        .unwrap();
     sqlx::query("INSERT INTO authorities (slug, name) VALUES ('alpha', 'Preserved')")
-        .execute(db.pool()).await.unwrap();
+        .execute(db.pool())
+        .await
+        .unwrap();
     assert!(db.validate_local_schema().await.is_err());
     db.initialize_rust_schema().await.unwrap();
     db.validate_local_schema().await.unwrap();
-    assert_eq!(db.list_local_authorities().await.unwrap()[0].name, "Preserved");
+    assert_eq!(
+        db.list_local_authorities().await.unwrap()[0].name,
+        "Preserved"
+    );
 }
 
 #[tokio::test]
@@ -61,10 +78,15 @@ async fn genuine_ledger_does_not_authorize_malformed_local_request_tables() {
 async fn unexpected_tracking_table_is_not_blessed_by_an_older_valid_ledger() {
     let db = database().await;
     sqlx::query("DELETE FROM _sqlx_migrations WHERE version = 20261114001000")
-        .execute(db.pool()).await.unwrap();
+        .execute(db.pool())
+        .await
+        .unwrap();
     assert!(db.initialize_rust_schema().await.is_err());
-    let applied: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM _sqlx_migrations WHERE version = 20261114001000")
-        .fetch_one(db.pool()).await.unwrap();
+    let applied: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM _sqlx_migrations WHERE version = 20261114001000")
+            .fetch_one(db.pool())
+            .await
+            .unwrap();
     assert_eq!(applied, 0);
 }
 
@@ -78,11 +100,19 @@ async fn corrupt_or_future_ledgers_are_not_repaired_by_initialization() {
     ] {
         let db = database().await;
         sqlx::query(corruption).execute(db.pool()).await.unwrap();
-        let before: Vec<(i64, bool, Vec<u8>)> = sqlx::query_as("SELECT version, success, checksum FROM _sqlx_migrations ORDER BY version")
-            .fetch_all(db.pool()).await.unwrap();
+        let before: Vec<(i64, bool, Vec<u8>)> = sqlx::query_as(
+            "SELECT version, success, checksum FROM _sqlx_migrations ORDER BY version",
+        )
+        .fetch_all(db.pool())
+        .await
+        .unwrap();
         assert!(db.initialize_rust_schema().await.is_err());
-        let after: Vec<(i64, bool, Vec<u8>)> = sqlx::query_as("SELECT version, success, checksum FROM _sqlx_migrations ORDER BY version")
-            .fetch_all(db.pool()).await.unwrap();
+        let after: Vec<(i64, bool, Vec<u8>)> = sqlx::query_as(
+            "SELECT version, success, checksum FROM _sqlx_migrations ORDER BY version",
+        )
+        .fetch_all(db.pool())
+        .await
+        .unwrap();
         assert_eq!(before, after);
     }
 }

@@ -24,8 +24,8 @@ fn fixture_request(case: &Value) -> NewLocalRequest {
         status: "draft".to_owned(),
         fyi_request_id: None,
     };
-    let options = arguments[4..].chunks_exact(2);
-    assert!(options.remainder().is_empty());
+    let (options, remainder) = arguments[4..].as_chunks::<2>();
+    assert!(remainder.is_empty());
     for option in options {
         match option[0] {
             "--tags" => request.tags = option[1].to_owned(),
@@ -78,7 +78,10 @@ async fn python_registration_fixtures_match_native_persisted_fields() {
 #[tokio::test]
 async fn explicitly_documented_legacy_invalid_inputs_are_rejected_by_native_registration() {
     let corpus: Value = serde_json::from_str(PYTHON_FIXTURES).unwrap();
-    for case in corpus["legacy_registration_differences"].as_array().unwrap() {
+    for case in corpus["legacy_registration_differences"]
+        .as_array()
+        .unwrap()
+    {
         let fixture = case["id"].as_str().unwrap();
         assert!(!case["rust_behavior"].as_str().unwrap().is_empty());
         let db = database().await;
