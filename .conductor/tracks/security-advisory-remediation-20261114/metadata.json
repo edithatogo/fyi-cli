@@ -1,0 +1,13 @@
+{
+  "track_id": "security-advisory-remediation-20261114",
+  "type": "security-remediation",
+  "status": "in_progress",
+  "created_at": "2026-11-14T00:00:00Z",
+  "updated_at": "2026-11-14T00:00:00Z",
+  "github_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
+  "sole_integration_coordinator": "FYI-CLI — Issue fixes and PR merges",
+  "grandfathered_exceptions": 20,
+  "baseline_audit_ignores": 5,
+  "acceptance_verified": false,
+  "archive_cutover_allowed": false
+}

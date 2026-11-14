@@ -25,6 +25,8 @@ This directory contains the canonical Conductor project context and management f
 - [Tracks Directory](./tracks/) - Individual track specifications and plans
 
 ### Active Tracks
+
+- **security-advisory-remediation-20261114** — Retire all RustSec suppressions through verified dependency upgrades; stop new/expired exceptions with required CI and an optional pre-commit hook (issue #325; in progress).
 - **rust-mcp-tui-implementation** — TUI presentation verified separately; request-management/CLI integration and runtime acceptance remain open (PR #435)
 - **frontier-rust-convergence-20261113** — Frontier capability contract, Rust convergence, 3.15/1.99 compatibility gates, CI/harness and Conductor self-repair (planning; not yet implemented)
 - **test-acceleration-20261113** — Bounded local test-acceleration profiles (slow marker, xdist, testmon, bounded gremlins trial, VCR/Freezegun/pytest-picked decisions) for issue #322 (completed via PR; CI full suite authoritative)
