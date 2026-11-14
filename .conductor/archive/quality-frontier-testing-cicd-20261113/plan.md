@@ -16,13 +16,13 @@
 ## Phase 3: Mutation testing (MT)
 
 - [x] Add mutation testing infrastructure (cargo-mutants for Rust, mutation_test.py for Python). [checkpoint: dd476fd]
-- [x] Add mutation score thresholds (70% minimum). [checkpoint: dd476fd]
+- [x] Preserve implemented mutation gates: Python >=70%; Rust retains strict cargo-mutants failure on surviving/timed-out mutants. [initial checkpoint: dd476fd]
 - [x] Integrate MT into CI as an expensive/scheduled lane (weekly + workflow_dispatch). [checkpoint: dd476fd]
 
 ## Phase 4: Contract testing
 
 - [x] Add contract tests for API boundaries (Python/Rust cross-runtime parity). [Existing: test_acquisition_receipts.py, test_importers.py, test_api_contract.py, crates/fyi-core/tests/acquisition_receipts.rs with golden fixture conformance/acquisition/receipt-v1-python.json]
-- [x] Add contract test thresholds. (Thresholds enforced via mutation_test.py --threshold 70 and CI workflow)
+- [x] Enforce contract-test acceptance: every selected contract assertion must pass; the mutation threshold is a separate gate.
 
 ## Phase 5: CI hardening
 
@@ -37,9 +37,9 @@
 
 ## Phase 6: Verification and closure
 
-- [ ] Independently verify the final commits with targeted local tests and all required hosted checks. The historical 55 Python / 13 Rust test counts do not establish current acceptance.
-- [ ] Record implementation PRs, exact final heads, CI run IDs, merge commits, risks and exclusions in acceptance evidence.
-- [ ] Reconcile metadata, plan and registry against merged PR #431, then archive through the established `.conductor/archive/` procedure.
+- [x] Independently verify the final commits with targeted local tests and all required hosted checks. The historical 55 Python / 13 Rust test counts do not establish current acceptance.
+- [x] Record implementation PRs, exact final heads, CI run IDs, merge commits, risks and exclusions in acceptance evidence.
+- [x] Reconcile metadata, plan and registry against merged PR #431, then archive through the established `.conductor/archive/` procedure.
 - [x] Verify issue #280 is already closed (2026-11-13); preserve its state and reconcile its existing #320/#321 evidence with this track's #414 implementation and the current review.
 
 ## Independent close-out review — 2026-11-14
@@ -74,3 +74,9 @@ scheduled full-suite Scalene execution are not inferred from these results.
 ## Task Order
 
 Work sequentially: Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 → Phase 6.
+
+## Verified close-out — 2026-11-14
+
+PR #433 merged as `797e76cf120988372f4df1f2efb9c9e164c69050`; PR #437 merged as `78e62066cc823659593034cc9f23f69ab9a5f6d9` after all required and relevant gates passed on `51e49d4b51d40dfbe4dcce3bca428e917719f202`. Final-head artifact digests and content were inspected, and both implementation branches were pruned. See `acceptance-evidence.md` and `ci-verification.json` for gate identities, run/artifact identifiers and source/run provenance.
+
+The established archive transfer moves this directory and only its registry/index entries. The closing PR conversation records its own exact-head checks, merge and pruning. Source-adapter work remains separately owned; expensive full campaigns and optional diagnostics are not claimed as mandatory passes.

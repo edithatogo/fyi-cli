@@ -27,7 +27,6 @@ This directory contains the canonical Conductor project context and management f
 ### Active Tracks
 - **rust-mcp-tui-implementation** — TUI presentation verified separately; request-management/CLI integration and runtime acceptance remain open (PR #435)
 - **frontier-rust-convergence-20261113** — Frontier capability contract, Rust convergence, 3.15/1.99 compatibility gates, CI/harness and Conductor self-repair (planning; not yet implemented)
-- **quality-frontier-testing-cicd-20261113** — Quality frontier: testing and CI/CD gaps (DST, MT, contract; pinned actions, dependency review, workflow lint) for issue #280 (completed via PR #414)
 - **test-acceleration-20261113** — Bounded local test-acceleration profiles (slow marker, xdist, testmon, bounded gremlins trial, VCR/Freezegun/pytest-picked decisions) for issue #322 (completed via PR; CI full suite authoritative)
 - **solo-maintainer-security-20261113** — Quality frontier: security and solo-maintainer context (additive ruleset, AGENTS.md, one-command validation + drift receipt, Renovate preset inheritance, Codecov OIDC verification) for issue #281 (completed via PR #415)
 - **source-adapter-boundary-20260812** - Exclusive receipt-producing network boundary for Alaveteli, Archive, Wayback and approved indexes
@@ -37,6 +36,7 @@ This directory contains the canonical Conductor project context and management f
 - **jurisdiction-capture-completion-20260721** - Bounded jurisdiction capture increments; live runs remain operator-authorised
 
 ### Completed Tracks
+- **quality-frontier-testing-cicd-20261113** — Independently verified and archived for issue #280 (PRs #414, #433 and #437); [acceptance evidence](./archive/quality-frontier-testing-cicd-20261113/acceptance-evidence.md).
 - **python-security-quality-fuzzing-20260813** - Hypothesis gate, bounded Atheris fuzzing, and zero-vulnerability Python security baseline (PR #390)
 - **remote-mcp-observability-security-20260711** - Default-deny policy, observability, and operator controls
 - **remote-mcp-read-surface-20260711** - Guarded read-only remote SyncClient tools

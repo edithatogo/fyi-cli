@@ -1,7 +1,7 @@
 # Independent quality-frontier acceptance evidence
 
 Review date: 2026-11-14. Track: `quality-frontier-testing-cicd-20261113`.
-Status: **in progress; final-head hosted verification and archive pending**.
+Status: **implementation acceptance verified; archived through the closing PR**.
 
 ## Baseline and scope
 
@@ -74,8 +74,8 @@ Downloaded binary SHA-256 checksums:
 - ShellCheck: `8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198`
 
 Independent read-only review found no must-fix defect and separately ran 101
-focused regressions. Hosted verification is still required; this is not a claim
-that release or publication jobs were executed.
+focused regressions. Hosted verification is recorded below; release and publication jobs were not
+executed as part of this review.
 
 ### Hosted verification and merge
 
@@ -140,13 +140,11 @@ security lane are reported separately. The latter requires an
 branch required-context list does not include it. Its security implementation
 and permissions are preserved. No branch protection is modified.
 
-## Remaining before close-out
+## Close-out decision
 
-1. Run final-head hosted gates, record PR/run/merge identifiers and prune merged
-   branches.
-2. Confirm hosted artifact retention, reconcile all acceptance items and archive
-   against the merged registry. Historical applicability documents are now
-   reconciled with the implemented gates and source-track exclusions.
+Both implementation slices are merged with exact-final-head gate evidence.
+Hosted artifacts and pruning are independently verified below. The closing PR
+records the archive transfer's own final checks, merge and branch pruning.
 
 ## Extended-lane and retained-evidence slice
 
@@ -227,3 +225,81 @@ retention are unchanged. CodeQL's security-analysis output and the shared privac
 scanner remain independent security evidence. A whole-run termination can prevent
 an `always()` upload, so retained job logs and ordinary failure-path artifacts
 are not described as crash-proof storage.
+
+## Final acceptance and archival decision — 2026-11-14
+
+All nine acceptance criteria for this existing CI-infrastructure track are met.
+No additional track, dependency, application behavior, source-adapter claim,
+coverage/mutation reduction, security exception or branch-protection change is
+introduced. The original issue #280 remains closed; #282 remains outside scope.
+
+| Criterion | Implementation and acceptance evidence | Decision |
+| --- | --- | --- |
+| Applicability and exclusions | Reconciled DST/MT/contract applicability documents; source-adapter and live-service boundaries remain explicit. | Met |
+| Deterministic replay and bounds | Existing feed DST suite and fixture-based importer/archive/receipt suites; local RSS smoke fixture prevents unintended live reads. | Met |
+| Mutation infrastructure and gates | Weekly/manual execution; Python 70%; strict Rust cargo-mutants exits; environment and failure-pipeline regression tests. | Met |
+| API and cross-runtime contracts | Existing API/importer/receipt/archive/MCP contracts preserved; source-adapter parity completion is not claimed. | Met |
+| Immutable actions | Every direct remote action/reusable workflow is commit-pinned; the hardening regression covers all workflow files. | Met |
+| Dependency review | PR vulnerability review remains fail-closed at its existing high-severity threshold. | Met |
+| Workflow lint | Local/no-filter actionlint fails on findings; exact final-head Workflow Lint gate passed. | Met |
+| Bounded PR and expensive lanes | Full authoritative tests retained; bounded benchmark PR smoke; weekly/manual mutation and full profiling; retained ordinary-failure evidence. | Met |
+| Permissions, concurrency and updates | Explicit permissions and concurrency; scoped write/OIDC privileges; existing Renovate/update infrastructure and mandatory security gates preserved. | Met |
+
+### PR #437 exact-head verification
+
+[PR #437](https://github.com/edithatogo/fyi-cli/pull/437) passed all 12 required
+contexts and 14 additional quality/security
+gates on `51e49d4b51d40dfbe4dcce3bca428e917719f202`. Its verified base was `d98c09ed98f0ee311713c24cef6abb28d98e8d3c`;
+it merged as `78e62066cc823659593034cc9f23f69ab9a5f6d9`. Both remote and local implementation
+branch pruning were verified. The complete identities, snapshots and artifact
+inspections are retained in `ci-verification.json`.
+
+| Workflow | Successful final-head run |
+| --- | --- |
+| Actionlint | [43557732042](https://github.com/edithatogo/fyi-cli/actions/runs/43557732042) |
+| Dependency Review | [43557732064](https://github.com/edithatogo/fyi-cli/actions/runs/43557732064) |
+| Profiling | [43557731993](https://github.com/edithatogo/fyi-cli/actions/runs/43557731993) |
+| Test profile isolation | [43557732484](https://github.com/edithatogo/fyi-cli/actions/runs/43557732484) |
+| Privacy and secrets | [43557732108](https://github.com/edithatogo/fyi-cli/actions/runs/43557732108) |
+| Python Security and Fuzzing | [43557732039](https://github.com/edithatogo/fyi-cli/actions/runs/43557732039) |
+| CodeQL | [43557731996](https://github.com/edithatogo/fyi-cli/actions/runs/43557731996) |
+| Frontier Conductor and MSRV contracts | [43557732017](https://github.com/edithatogo/fyi-cli/actions/runs/43557732017) |
+| CI | [43557732005](https://github.com/edithatogo/fyi-cli/actions/runs/43557732005) |
+
+Inspected final-head evidence reports **1308 Python tests
+passed** and **2 explicit opt-in live-smoke skips**;
+skips are not counted as passing tests. All **8 benchmark
+cases** passed. Rust line coverage is **92.58%**, above
+the unchanged **90%** gate. Cargo audit/deny output and successful mandatory
+security checks are retained; existing exceptions are unchanged.
+
+Each artifact digest was verified and its embedded source/run provenance matched
+the final head. The synthetic PR checkout SHA is recorded separately from the
+source head. These are inspected artifacts, not merely successful upload steps.
+
+| Evidence | Artifact | Verified digest | Expiry |
+| --- | --- | --- | --- |
+| Python test reports | [14099590309](https://github.com/edithatogo/fyi-cli/actions/runs/43557732005/artifacts/14099590309) | `sha256:a6bc7c3e12b95e062e80e84837d26824b4f5f9e1b3e78d233d527ba92dc37f74` | 2026-11-28T04:45:23Z |
+| Rust coverage | [14099386223](https://github.com/edithatogo/fyi-cli/actions/runs/43557732005/artifacts/14099386223) | `sha256:7c8fe596a608d33262cb1cdca5b3f7487d87d688b019c8603aaf2b6edd7b22d2` | 2026-11-28T04:46:37Z |
+| Security audit | [14099356004](https://github.com/edithatogo/fyi-cli/actions/runs/43557732005/artifacts/14099356004) | `sha256:e0edf8c9c34bc6eca39367d55a9709a377d08ad6a1044e08666f42581dc055aa` | 2026-11-28T04:49:30Z |
+| Benchmark smoke | [14098574411](https://github.com/edithatogo/fyi-cli/actions/runs/43557731993/artifacts/14098574411) | `sha256:18cb4b2088e070cada0d516c71db5f94be36186e4ad04266f595221dfa644cb3` | 2026-11-28T04:41:52Z |
+
+### Archive and remaining boundaries
+
+The existing track is moved from `.conductor/tracks/quality-frontier-testing-cicd-20261113/`
+to `.conductor/archive/quality-frontier-testing-cicd-20261113/`, and only its registry/index
+entries are moved to completed status. PR #431's merged execution-order and
+source-track records, subsequent unrelated baseline work, and all source-adapter
+implementation remain untouched by this archive change.
+
+The closing archive PR conversation is the authoritative record of that PR's
+own final head, required checks, merge commit and branch pruning. Its future
+merge hash cannot be embedded in the commit it identifies. Until that PR merges,
+the archive transfer is proposed; the implementation acceptance above is verified.
+
+No implementation blocker remains for this track. Full mutation campaigns and
+full scheduled Scalene execution remain scheduled/manual; no full-campaign score
+is inferred. Optional Python 3.15 diagnostics and the separately hosted AI
+security lane remain distinct from mandatory success. Runner loss can prevent
+final artifact upload, and the 14-day artifact retention is not permanent storage.
+The committed digest/provenance/inspection summary remains after artifact expiry.
