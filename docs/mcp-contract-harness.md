@@ -180,8 +180,20 @@ remote outcome is uncertain. Completed results remain retrievable without a
 fresh dispatch allowance, subject to current capability and operator controls.
 The ledger and raw payloads are excluded from diagnostic formatting.
 
-Restarting loses the ledger. This is not durable, cross-process idempotency, and
-an uncertain remote outcome requires reconciliation before another key is used.
+Production write-enabled startup now additionally requires the private absolute
+`FYI_MCP_REMOTE_WRITE_STATE_DIR`. A bounded SQLite journal commits an opaque
+instance/operation/key reservation and audit event before dispatch. Reservations
+survive restart and are never automatically evicted. Matching in-process cached
+results remain retrievable; after restart, even a recorded success requires
+operator reconciliation because request/result content is not persisted.
+Concurrent journal connections cannot reserve the same scope twice. Storage,
+integrity, format and capacity errors fail closed. All processes serving the
+same configuration must use the same protected state directory.
+
+This is durable local replay denial, not an upstream exactly-once guarantee.
+An uncertain remote outcome requires reconciliation before another key is used.
+The synchronous gate methods remain the in-memory state machine; production
+dispatch uses its durable wrappers. See [journal operations and recovery](remote-mcp-security.md#durable-write-state-and-recovery).
 Serialized-state limits are not a measured heap/RSS ceiling. Attachment paths
 reject traversal and observed symlinks before canonicalization; source APIs
 still reopen paths, so this does not prove content immutability from preparation
