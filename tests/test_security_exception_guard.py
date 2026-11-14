@@ -143,3 +143,11 @@ def test_duplicate_exception_metadata_keys_are_rejected(tmp_path: Path) -> None:
     result = run_guard(root, date(2026, 11, 14))
     assert result.returncode != 0
     assert "duplicate" in (result.stdout + result.stderr).lower()
+
+
+def test_pre_push_runs_real_cargo_advisory_scan() -> None:
+    root = Path(__file__).resolve().parents[1]
+    hook = (root / ".pre-commit-config.yaml").read_text(encoding="utf-8")
+    assert "cargo-deny-advisories" in hook
+    assert "cargo deny check advisories" in hook
+    assert "pre-push" in hook
