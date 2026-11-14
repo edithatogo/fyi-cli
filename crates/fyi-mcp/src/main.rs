@@ -25,6 +25,8 @@ use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::net::TcpListener;
 
 mod arguments;
+#[cfg(test)]
+mod observability_tests;
 pub mod policy;
 #[cfg(test)]
 mod schema_contract_tests;
