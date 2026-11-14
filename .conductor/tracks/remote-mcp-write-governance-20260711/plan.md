@@ -11,7 +11,7 @@
 
 - [ ] Task: Write failing WireMock tests for prepare/commit request creation and correspondence
 - [x] Task: Implement governed request creation and correspondence tools via SyncClient
-- [x] Task: Add idempotency, safe errors, and durable redacted audit events
+- [~] Task: Add idempotency, safe errors, and durable redacted audit events — process-local confirmation/replay works; restart durability and actual audit emission are being implemented under #169
 - [ ] Task: Conductor review verification 'Request and correspondence writes'
 
 ## Phase 3: Attachments and state updates
@@ -29,3 +29,25 @@
 - [ ] Task: Run full CI, coverage, security, compatibility, performance, and mutation gates
 - [ ] Task: Record GitHub issue #171 evidence and update metadata/registry
 - [ ] Task: Conductor review verification 'Track closeout'
+
+## Remainder reconciliation — 2026-11-14
+
+Baseline `70fef29` includes the existing confirmation and operation-budget gates.
+The historical checked audit/durability item was not supported: the production
+gate uses only an in-memory map, and its reusable audit serializer is not a
+durable production write log. The parent and this track remain incomplete.
+
+- [~] Add tests first for required persistent write state, restart replay denial,
+  concurrent admission, failure/cancellation reservations and audit privacy.
+- [ ] Implement a bounded MCP-owned SQLite journal. Persist a reservation before
+  any upstream dispatch; retain uncertain outcomes, fail on storage corruption,
+  and store only opaque scope tags and fixed audit fields, never request content,
+  raw idempotency/confirmation tokens or credential values.
+- [ ] Integrate production startup and prepare/commit/reject/replay/outcome events;
+  preserve the existing payload-bound monotonic confirmation gate.
+- [ ] Run focused and workspace verification, targeted mutations and final-head
+  hosted gates; hand off a focused PR to the sole integration coordinator.
+
+Source transfer and platform acceptance remain with their owners. This increment
+does not establish atomic upstream compare-and-set or immutable attachment bytes.
+No source/database-core/application-CLI/i18n/shared-workflow change is included.
