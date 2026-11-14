@@ -12,8 +12,8 @@ plugin repository. The operator must export `packaging/asdf` to a dedicated
 repository, preserve executable modes, record its URL and maintainer, and run
 mise and asdf install checks on the supported native platforms before submission.
 
-Do not recommend the cargo backend for `fyi-cli`: the crates.io name belongs to
-an unrelated project. A generic GitHub/ubi recipe also bypasses this plugin's
+Do not recommend the cargo backend for `fyi-cli`: the crates.io name is occupied
+and its ownership/release binding to this project is unverified. A generic GitHub/ubi recipe also bypasses this plugin's
 reviewed release approvals and is not the prepared submission path.
 
 See mise's [asdf plugin compatibility documentation](https://mise.jdx.dev/asdf-legacy-plugins.html)
