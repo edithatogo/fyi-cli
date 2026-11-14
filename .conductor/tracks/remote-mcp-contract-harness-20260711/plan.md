@@ -9,10 +9,10 @@
 
 ## Phase 2: Layered test harness
 
-- [~] Task: Add unit, integration, end-to-end stdio, smoke/system, regression, and sanity suites
+- [~] Task: Add unit, integration, end-to-end stdio, smoke/system, regression, and sanity suites — startup-degraded mode and restart recovery now have executable SDK evidence; successful source read/commit integration remains open
 - [~] Task: Add property tests for bounds, normalization, state expectations, and redaction
 - [x] Task: Add edge and security tests for SSRF, capabilities, guardrails, and secrets
-- [~] Task: Conductor review verification 'Layered test harness' — local/SDK sensors passed; source fault and full mode integration remain open
+- [~] Task: Conductor review verification 'Layered test harness' — local/SDK modes, startup-degraded denial, restart recovery and privacy passed; source fault and full successful remote integration remain open
 
 ## Phase 3: Mutation and performance
 

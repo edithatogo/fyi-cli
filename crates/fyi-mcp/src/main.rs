@@ -1420,10 +1420,11 @@ fn all_tool_catalogue() -> &'static Value {
 
 fn registered_tool_catalogue(policy: &RemoteMcpPolicy) -> Value {
     let status = policy.status();
-    let write_enabled = status
-        .instances
-        .iter()
-        .any(|instance| instance.write_enabled);
+    let write_enabled = !status.degraded
+        && status
+            .instances
+            .iter()
+            .any(|instance| instance.write_enabled);
     let mut catalogue = all_tool_catalogue().clone();
     catalogue["tools"]
         .as_array_mut()
@@ -3692,8 +3693,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .init();
 
     let remote_policy = RemoteMcpPolicy::from_env()?;
+    let policy_status = remote_policy.status();
     tracing::info!(
-        remote_enabled = remote_policy.status().remote_enabled,
+        remote_enabled = policy_status.remote_enabled,
+        degraded = policy_status.degraded,
         "remote MCP policy loaded; capabilities remain disabled unless explicitly configured"
     );
 
