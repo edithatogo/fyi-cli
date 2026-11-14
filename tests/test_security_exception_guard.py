@@ -129,3 +129,17 @@ def test_advisory_alias_and_equals_style_cannot_bypass_policy(tmp_path: Path) ->
     result = run_guard(root, date(2026, 11, 14))
     assert result.returncode != 0
     assert "GHSA-aaaa-bbbb-cccc" in result.stdout + result.stderr
+
+
+def test_duplicate_exception_metadata_keys_are_rejected(tmp_path: Path) -> None:
+    root = fixture(tmp_path, denied=[LEGACY], cli=[LEGACY], expires="2026-12-14")
+    policy = root / "security/advisory-exceptions.json"
+    contents = policy.read_text(encoding="utf-8")
+    contents = contents.replace(
+        '"allow_new_exceptions": false,',
+        '"allow_new_exceptions": false, "allow_new_exceptions": false,',
+    )
+    policy.write_text(contents, encoding="utf-8")
+    result = run_guard(root, date(2026, 11, 14))
+    assert result.returncode != 0
+    assert "duplicate" in (result.stdout + result.stderr).lower()
