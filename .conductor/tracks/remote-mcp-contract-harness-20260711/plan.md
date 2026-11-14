@@ -102,8 +102,9 @@ external DNS/request, system trust modification or committed private key.
 - [x] Record local test-first/mutation evidence: 37 upstream tests, three caught
   mutations, guarded combined Python run 1,552 passed/two skipped and zero
   external Python DNS/socket attempts.
+- [x] Publish focused PR #459 with #458 as an explicit integration dependency.
 - [~] Record final-head CI/review evidence and request the sole coordinator's
-  sequential final verification/merge window; #458 is a required dependency.
+  sequential final verification/merge window.
 
 This does not replace #457's durable journal or alter source, archive, runtime
 or workflow ownership. A source fixture is synthetic compatibility evidence,

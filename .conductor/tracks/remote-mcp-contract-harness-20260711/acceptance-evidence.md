@@ -438,8 +438,8 @@ sandbox claim. The 37 actual-upstream cases, including both measured production
 stalls, ran rather than skipped. The two skips are existing opt-in discovery
 smoke tests. The rejected unguarded run remains excluded.
 
-Required workflows filter pull requests to `master`/`main`. The focused harness
-PR therefore targets `master` with #458 as an explicit ancestry dependency and
+Required workflows filter pull requests to `master`/`main`. Focused harness
+PR [#459](https://github.com/edithatogo/fyi-cli/pull/459) therefore targets `master` with #458 as an explicit ancestry dependency and
 an isolated compare link for its own eight-file delta. No workflow changes or
 checks are bypassed. The sole coordinator must integrate #458 first, reconcile
 the dependent candidate once and verify the resulting final head before merge.
