@@ -1,0 +1,3 @@
+# Acquisition fixtures are byte evidence, not platform-normalized text.
+# Preserve original LF/CRLF and binary bytes on both check-in and checkout.
+/conformance/acquisition/** -text
