@@ -3,7 +3,7 @@ use chrono::NaiveDate;
 use fyi_core::deadlines::statutory::{
     calculate_explicit_deadline, CalculatedDeadline, DeadlineAdjustment, DeadlineExtension,
     DeadlineRuleError, HolidayCalendar, LegalClockRule, ReceiptConvention, StatutoryDuration,
-    StatutoryUnit,
+    StatutoryUnit, ValidationStatus,
 };
 use std::collections::BTreeSet;
 
@@ -48,7 +48,7 @@ fn working_day_clock_skips_explicit_regional_exclusion_and_weekend() {
     assert_eq!(result.unadjusted_due_date, day(2026, 7, 8));
     assert_eq!(result.due_date, day(2026, 7, 8));
     assert_eq!(result.calendar_revision, "synthetic-2026-v1");
-    assert_eq!(result.validation_status, "unvalidated");
+    assert_eq!(result.validation_status, ValidationStatus::Unvalidated);
 }
 
 #[test]
