@@ -1,8 +1,8 @@
 # asdf-compatible CLI packaging
 
 The local plugin installs the `fyi-cli` binary from reviewed GitHub Release
-archives. It requires Bash, Python 3.11 or newer, and curl. The [asdf plugin
-contract](https://asdf-vm.com/plugins/create.html) supplies `ASDF_INSTALL_TYPE`,
+archives. It requires Bash, Python 3.11 or newer, and curl 8.4.0 or newer. The
+[asdf plugin contract](https://asdf-vm.com/plugins/create.html) supplies `ASDF_INSTALL_TYPE`,
 `ASDF_INSTALL_VERSION`, and `ASDF_INSTALL_PATH` to `bin/install`.
 
 **Status: blocked pending a qualified release and dedicated plugin repository.**
@@ -46,9 +46,18 @@ produce an empty list; malformed approvals fail closed.
 
 ## Install and verification behavior
 
-The installer downloads one exact HTTPS URL with time and size limits, verifies
-its digest, and accepts exactly one regular root `fyi-cli` archive member. It
-rejects links, traversal paths, duplicate entries, and unexpected content.
+The installer checks curl's version before downloading one exact HTTPS URL with
+time limits and a 128 MiB compressed-size limit. The curl minimum is required
+because [older versions do not enforce `--max-filesize` during transfers of
+unknown length](https://curl.se/docs/manpage.html#--max-filesize).
+
+After checking the approved digest, the installer fully decompresses the gzip
+stream to a temporary disk file, using at most 1 MiB per read and a total limit
+of 256 MiB plus 512 KiB. This includes data after a tar end marker and verifies
+the gzip trailer. It accepts one ordinary, non-sparse regular root `fyi-cli`
+member of at most 256 MiB, followed by zero padding and two tar end blocks.
+Extended metadata headers, links, traversal paths, duplicate entries,
+concatenated tar archives, nonzero padding and trailing content are rejected.
 Archive paths are never extracted directly. It checks the verified executable's
 `--version` in a temporary HOME/XDG environment with a timeout, then atomically
 replaces `bin/fyi-cli`. A download, hash, archive, or version failure preserves

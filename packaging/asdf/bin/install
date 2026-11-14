@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import zlib
 from pathlib import Path
 
 if sys.version_info < (3, 11):
@@ -26,21 +27,22 @@ PLATFORMS = {
 }
 MAX_ARCHIVE_BYTES = 128 * 1024 * 1024
 MAX_BINARY_BYTES = 256 * 1024 * 1024
+MAX_TAR_BYTES = MAX_BINARY_BYTES + 512 * 1024
+COPY_BYTES = 1024 * 1024
 
 
-class LimitedTarStream:
-    """Bound inflated tar headers as well as the executable member."""
-
-    def __init__(self, stream):
-        self.stream = stream
-        self.remaining = MAX_BINARY_BYTES + 512 * 1024
-
-    def read(self, size):
-        if size < 0 or size > self.remaining:
-            raise ValueError("decompressed archive exceeds the size limit")
-        data = self.stream.read(size)
-        self.remaining -= len(data)
-        return data
+def require_curl():
+    curl = shutil.which("curl")
+    if curl is None:
+        raise ValueError("curl 8.4.0 or newer is required")
+    result = subprocess.run(
+        [curl, "--disable", "--version"], check=True, capture_output=True,
+        text=True, timeout=10,
+    )
+    match = re.match(r"curl ([0-9]+)\.([0-9]+)\.([0-9]+)(?:\s|$)", result.stdout)
+    if match is None or tuple(map(int, match.groups())) < (8, 4, 0):
+        raise ValueError("curl 8.4.0 or newer is required for bounded downloads")
+    return curl
 
 
 def load_checksums(directory, version):
@@ -81,26 +83,43 @@ def list_versions(directory):
 
 
 def extract_cli(archive, candidate):
-    # Never extract archive-controlled paths. Accept exactly one root regular file.
-    count = 0
-    with gzip.open(archive, "rb") as compressed, tarfile.open(
-        fileobj=LimitedTarStream(compressed), mode="r|"
-    ) as bundle:
-        for member in bundle:
-            count += 1
-            if count != 1 or member.name != "fyi-cli" or not member.isfile():
-                raise ValueError("archive must contain only the root regular file fyi-cli")
-            if member.size <= 0 or member.size > MAX_BINARY_BYTES:
-                raise ValueError("CLI archive member has an invalid size")
-            source = bundle.extractfile(member)
-            if source is None:
-                raise ValueError("CLI archive member is unreadable")
-            with source, candidate.open("xb") as destination:
-                shutil.copyfileobj(source, destination, length=1024 * 1024)
-            if candidate.stat().st_size != member.size:
-                raise ValueError("CLI archive member is truncated")
-    if count != 1:
-        raise ValueError("archive contains no CLI executable")
+    # Read through gzip EOF before parsing, including concatenated members and CRCs.
+    # The spool is a temporary disk file; archive-controlled paths are never used.
+    with tempfile.TemporaryFile(dir=candidate.parent) as unpacked:
+        size = 0
+        with gzip.open(archive, "rb") as compressed:
+            while block := compressed.read(min(COPY_BYTES, MAX_TAR_BYTES - size + 1)):
+                size += len(block)
+                if size > MAX_TAR_BYTES:
+                    raise ValueError("decompressed archive exceeds the size limit")
+                unpacked.write(block)
+        unpacked.seek(0)
+        # A short root filename needs no extended headers. Parse exactly one
+        # ordinary header, avoiding hidden PAX/GNU metadata or sparse members.
+        member = tarfile.TarInfo.frombuf(unpacked.read(512), "utf-8", "strict")
+        if member.name != "fyi-cli" or member.type not in {tarfile.REGTYPE, tarfile.AREGTYPE}:
+            raise ValueError("archive must contain only the root regular file fyi-cli")
+        if member.size <= 0 or member.size > MAX_BINARY_BYTES:
+            raise ValueError("CLI archive member has an invalid size")
+        data_end = 512 + member.size
+        padded_end = ((data_end + 511) // 512) * 512
+        if size % 512 or size < padded_end + 1024:
+            raise ValueError("archive has missing or invalid tar end markers")
+        # Every byte after the executable must be zero padding, including the
+        # two end blocks. This rejects additional members and concatenated tars.
+        unpacked.seek(data_end)
+        while block := unpacked.read(COPY_BYTES):
+            if any(block):
+                raise ValueError("archive contains unexpected padding or trailing content")
+        unpacked.seek(512)
+        remaining = member.size
+        with candidate.open("xb") as destination:
+            while remaining:
+                block = unpacked.read(min(COPY_BYTES, remaining))
+                if not block:
+                    raise ValueError("CLI archive member is truncated")
+                destination.write(block)
+                remaining -= len(block)
     candidate.chmod(0o755)
 
 
@@ -137,9 +156,7 @@ def install(directory, system, machine):
     destination = binaries / "fyi-cli"
     if prefix.is_symlink() or binaries.is_symlink() or destination.is_symlink():
         raise ValueError("installation paths must not be symlinks")
-    curl = shutil.which("curl")
-    if curl is None:
-        raise ValueError("curl is required")
+    curl = require_curl()
     url = "https://github.com/edithatogo/fyi-cli/releases/download/v" + version + "/" + asset
     with tempfile.TemporaryDirectory(prefix="asdf-fyi-cli-") as temporary_name:
         temporary = Path(temporary_name)
@@ -179,7 +196,7 @@ try:
         raise ValueError("unsupported installer argument")
     else:
         install(directory, sys.argv[3], sys.argv[4])
-except (OSError, ValueError, tarfile.TarError, subprocess.SubprocessError) as error:
+except (OSError, EOFError, ValueError, zlib.error, tarfile.TarError, subprocess.SubprocessError) as error:
     print("asdf-fyi-cli: " + str(error), file=sys.stderr)
     sys.exit(1)
 PY

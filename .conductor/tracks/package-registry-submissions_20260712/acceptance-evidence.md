@@ -6,7 +6,9 @@ Review date: 14 November 2026. Existing issue
 [#194](https://github.com/edithatogo/fyi-cli/issues/194) remains open for external
 release/publication/verification requirements. The work uses the existing track;
 no duplicate track or release authority was created. Initial inspected source:
-`a816dcd425a7b6277761a18faeae1685202eefde` (PR #431).
+`a816dcd425a7b6277761a18faeae1685202eefde` (PR #431), reconciled against
+`797e76cf120988372f4df1f2efb9c9e164c69050` (quality PR #433). Installer and integrity
+changes are reviewed in [PR #439](https://github.com/edithatogo/fyi-cli/pull/439).
 
 Application functionality, acquisition, MCP application code, localization, TUI
 and shared workflows are outside this workstream. The later metadata slice only
@@ -31,9 +33,11 @@ signature, SBOM, reproducibility or native-install verification.
 | Verification | Result |
 | --- | --- |
 | asdf regressions on old implementation | 20 failed, 2 passed |
-| final focused asdf installer tests | 28 passed |
+| Independent-review regressions before fixes | 10 failed, 29 passed |
+| final focused asdf installer tests | 39 passed |
 | integrity regressions on old implementation | 41 failed, 5 passed |
 | final focused release-manifest tests | 49 passed |
+| Combined focused tests | 88 passed |
 | Script syntax, scoped Ruff lint/format, scoped diff whitespace | Passed |
 | Actual plugin `list-all` | Successful empty list; no unqualified version exposed |
 | Native macOS/Windows install and authenticated provenance | Not run; explicitly blocked |
@@ -47,6 +51,10 @@ python -m pytest -q tests/test_asdf_packaging.py tests/test_release_manifest.py
 The installer tests use synthetic local archives and mocked download commands.
 They demonstrate installer behavior, not native macOS package acceptance. The
 integrity tests validate bytes and evidence structure, not origin authenticity.
+Independent review additionally required curl 8.4.0 or newer for a bounded
+download and complete bounded gzip decompression before parsing a single ordinary
+tar member. Concatenated archives, hidden tails, extended headers and invalid
+gzip trailers fail without replacing an existing installation.
 
 ## Remaining gates
 

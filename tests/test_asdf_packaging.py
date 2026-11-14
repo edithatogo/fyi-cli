@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gzip
 import hashlib
 import io
 import os
@@ -47,6 +48,9 @@ import os
 import pathlib
 import shutil
 import sys
+if '--version' in sys.argv:
+    print(os.environ.get('TEST_CURL_VERSION', 'curl 8.4.0 (fixture) libcurl/8.4.0'))
+    sys.exit(0)
 pathlib.Path(os.environ['TEST_DOWNLOAD_LOG']).write_text('\n'.join(sys.argv[1:]))
 if os.environ.get('TEST_DOWNLOAD_FAIL') == '1':
     sys.exit(22)
@@ -176,6 +180,92 @@ def test_checksum_mismatch_preserves_existing_install(plugin, environment, archi
     assert result.returncode != 0
     assert "checksum" in result.stderr.lower()
     assert binary.read_text() == "previous installation"
+
+
+@pytest.mark.parametrize(
+    "reported_version",
+    ["curl 7.88.1 (fixture)", "curl 8.3.0 (fixture)", "unrecognized curl version"],
+)
+def test_old_or_unknown_curl_rejects_before_download(
+    plugin,
+    environment,
+    archive,
+    reported_version,
+):
+    approve(plugin, archive())
+    environment["TEST_CURL_VERSION"] = reported_version
+    result = run_script(plugin, environment)
+    assert result.returncode != 0
+    assert "curl 8.4.0" in result.stderr
+    assert not Path(environment["TEST_DOWNLOAD_LOG"]).exists()
+
+
+def test_curl_version_comparison_is_numeric(plugin, environment, archive):
+    approve(plugin, archive())
+    environment["TEST_CURL_VERSION"] = "curl 8.10.1 (fixture) libcurl/8.10.1"
+    result = run_script(plugin, environment)
+    assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.parametrize(
+    "defect",
+    [
+        "concatenated-tar",
+        "concatenated-gzip",
+        "nonzero-member-padding",
+        "nonzero-trailer",
+        "missing-end-markers",
+        "truncated-gzip",
+    ],
+)
+def test_full_archive_validation_preserves_existing_install(
+    plugin,
+    environment,
+    archive,
+    defect,
+):
+    path = archive()
+    compressed = path.read_bytes()
+    unpacked = gzip.decompress(compressed)
+    with tarfile.open(fileobj=io.BytesIO(unpacked)) as bundle:
+        member = bundle.next()
+        data_end = member.offset_data + member.size
+    if defect == "concatenated-tar":
+        damaged = gzip.compress(unpacked + unpacked)
+    elif defect == "concatenated-gzip":
+        damaged = compressed + compressed
+    elif defect == "nonzero-member-padding":
+        damaged = gzip.compress(unpacked[:data_end] + b"X" + unpacked[data_end + 1 :])
+    elif defect == "nonzero-trailer":
+        damaged = gzip.compress(unpacked + b"unexpected")
+    elif defect == "missing-end-markers":
+        damaged = gzip.compress(unpacked[:1024])
+    else:
+        damaged = compressed[:-8]
+    path.write_bytes(damaged)
+    approve(plugin, path)
+    binary = Path(environment["ASDF_INSTALL_PATH"]) / "bin/fyi-cli"
+    binary.parent.mkdir(parents=True)
+    binary.write_text("previous installation")
+    result = run_script(plugin, environment)
+    assert result.returncode != 0
+    assert binary.read_text() == "previous installation"
+
+
+def test_inflated_limit_covers_padding_after_tar_end(plugin, environment, archive):
+    # Scale the cap only in the isolated plugin copy; keep this regression small.
+    installer = plugin / "bin/install"
+    content = installer.read_text()
+    original = "MAX_BINARY_BYTES = 256 * 1024 * 1024"
+    assert content.count(original) == 1
+    installer.write_text(content.replace(original, "MAX_BINARY_BYTES = 1024"))
+    path = archive()
+    path.write_bytes(gzip.compress(gzip.decompress(path.read_bytes()) + bytes(512 * 1024)))
+    approve(plugin, path)
+    result = run_script(plugin, environment)
+    assert result.returncode != 0
+    assert "decompressed archive exceeds" in result.stderr
+    assert not (Path(environment["ASDF_INSTALL_PATH"]) / "bin/fyi-cli").exists()
 
 
 @pytest.mark.parametrize(
