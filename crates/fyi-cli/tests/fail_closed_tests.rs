@@ -115,8 +115,6 @@ fn unimplemented_commands_fail_without_side_effects() {
         .expect("create sentinel file");
 
     let cases: &[(&str, &[&str])] = &[
-        ("import-authorities", &["protected.txt"]),
-        ("list-authorities", &[]),
         ("register-request", &["authority", "title", "body"]),
         ("list-requests", &[]),
         ("set-status", &["1", "draft"]),

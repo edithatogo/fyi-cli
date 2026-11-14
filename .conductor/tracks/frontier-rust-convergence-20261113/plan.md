@@ -131,3 +131,20 @@ Track stays **in_progress**. No new manual approval layer is introduced.
 - [~] Raw HTTP entity-body hash and normalized JSON result hash can now be verified separately. The underlying request client reuses the existing resource-aware middleware instead of introducing a second HTTP transport.
 - [ ] Keep the other Python-only commands and stub handlers in the migration inventory; no unverified Python code deletion, Python >=3.15 minimum enforcement, fyi-archive cutover or unbounded network commands.
 - [ ] Verify this PR's final-head hosted tests, coverage, Clippy, Rustfmt, security audit, Conductor consistency and Rust 1.99.1 MSRV before merge.
+
+## Retained local management — 14 November 2026
+
+- [~] Implement local authority import/listing, followed by request lifecycle and
+  versioned interchange/explicit legacy migration. Reuse the existing SQLx pool
+  and distinguish local tracking from remote synchronization.
+- Contract and per-command evidence: [local-request-management.md](local-request-management.md).
+- PR #434 red checkpoint `c9f7db3c4a64eae1e36d6ca851e58b3418ba71f9`: workspace
+  tests run `43552118106`, job `132316713810`, confirmed two real CLI contracts
+  failed on the unimplemented authority handler. Native implementation and
+  final-head verification are pending. Registry and source/quality/localisation
+  workstream files remain unchanged.
+
+- [x] Native local authority core/CLI implementation passed the locked Rust
+  1.99.1 all-feature MSRV workflow at `33b043d` (run `43553220643`, job
+  `132320153668`). Final-head required Actions and merge remain pending; the
+  local command inventory records the intentional Python compatibility limits.
