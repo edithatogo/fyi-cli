@@ -48,8 +48,11 @@ Confirmation and MCP operation-budget slice: deterministic expiry/scope/replay, 
   policy and Rust wire harness; retain separate source/platform acceptance.
   PR #452, RED checkpoint `d17d5df`, implementation `80d5f13`;
   480 generated configurations, 133 MCP tests and
-  663 workspace tests passed; three targeted mutations caught. Integration
-  requires the sole coordinator's exact-final-head verification/merge window.
+  663 workspace tests passed; three targeted mutations caught at the original
+  implementation checkpoint. After the user's explicit merge instruction, final
+  combined head `5f2a3a3` passed all 12 protected contexts, MSRV and 676 workspace
+  tests (one ignored), then merged as `e953438`. The feature branch was deleted;
+  broader acceptance remains open.
 
 Keep this track open and do not archive. The MCP implementation and executable
 contract sensors are delivered in small PR slices; original source fixture/fault,

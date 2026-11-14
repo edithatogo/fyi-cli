@@ -5,7 +5,8 @@
 The historical completed status is unsupported by the original acceptance criteria.
 The baseline has six smoke tests and hardcoded greetings/terms, but no Fluent
 resources, typed templates, holiday calendars or reviewed translations. Work resumes
-within this track; shared registries remain untouched during parallel work.
+within this track. Shared status entries are reconciled after the bounded merge
+receipts below; the original acceptance criteria are retained.
 
 - [x] Bounded increment 1: versioned message bundles, explicit locale selection,
   deterministic fallback and strict interpolation contracts.
@@ -24,9 +25,9 @@ of the remaining terminology, calendar or legal acceptance.
 - [x] Bounded increment 3: explicit jurisdiction terminology profiles, localized
   glossary lookup, source references and private catalog validation (PR #450).
   Uses the existing Fluent/locale implementation; deadline and source owners'
-  components remain unchanged. Implementation checkpoint `9f34fda` passed 12
-  terminology contracts and 670 instrumented workspace tests; final-head checks
-  and coordinated integration remain required.
+  components remain unchanged. Final head `87178aa` passed all 12 protected
+  contexts, 13 terminology contracts and 672 workspace tests (one ignored).
+  Squash-merged as `70fef29`; the merged and verified trees are identical.
 
 ## Phase 1: Fluent-rs Integration
 
@@ -185,4 +186,8 @@ combined localization line coverage. Human review remains unchecked.
 - **2026-11-14**: Reconciled merged #436/#447 and reopened incomplete children
   #64–#67 under #39. PR #450 implements the bounded terminology/glossary contracts.
   Human verification, calendars/statutory accuracy and broader acceptance remain
-  unchecked. Shared-registry reconciliation stays with the integration coordinator.
+  unchecked.
+- **2026-11-14**: The user explicitly authorized integration after the earlier
+  merge-window request. PR #450 merged as `70fef29` after final-head protected
+  checks; its branch was automatically deleted. #64 is complete. #39 and #65–#67
+  remain open, and shared status entries now reflect incomplete acceptance.
