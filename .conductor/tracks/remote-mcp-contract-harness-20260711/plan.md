@@ -46,7 +46,8 @@ Confirmation and MCP operation-budget slice: deterministic expiry/scope/replay, 
   environment mappings; verify generated identifier aliases and actual subprocess
   startup/privacy rejection before database creation. Reuse the existing MCP
   policy and Rust wire harness; retain separate source/platform acceptance.
-  RED checkpoint `d17d5df`; 480 generated configurations, 133 MCP tests and
+  PR #452, RED checkpoint `d17d5df`, implementation `80d5f13`;
+  480 generated configurations, 133 MCP tests and
   663 workspace tests passed; three targeted mutations caught. Integration
   requires the sole coordinator's exact-final-head verification/merge window.
 

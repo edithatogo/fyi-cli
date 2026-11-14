@@ -315,6 +315,13 @@ Python-runtime change belongs to this increment.
   passed. Required hosted checks, including the unchanged coverage/security
   gates, remain mandatory on the final integration head.
 
+PR [#452](https://github.com/edithatogo/fyi-cli/pull/452) publishes the RED
+checkpoint `d17d5dfaefe17947c62f963b2c90a2995a9c1daf` and implementation
+`80d5f134e259078963a8e7904662b63611fb7f8e`. The published implementation tree
+`054e8f9d188c9fb34326b73fabbb3c28cfa07c1f` matches the locally verified tree.
+This record does not pre-approve hosted checks or a later integration head;
+the PR retains their exact-head evidence and the coordinator's merge decision.
+
 The sole integration coordinator retains final master reconciliation, merge and
 branch pruning. This bounded normalization contract does not complete the broader
 source URL/path/pagination/state properties, raw-transfer/fault, platform,
