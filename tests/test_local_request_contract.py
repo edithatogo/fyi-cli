@@ -6,6 +6,7 @@ import json
 import os
 import subprocess
 import sys
+import sysconfig
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -35,6 +36,18 @@ def _database(tmp_path: Path) -> Path:
 def _invoke(arguments: list[str], database: Path) -> None:
     parsed = build_parser().parse_args([*arguments, "--db", str(database)])
     assert parsed.func(parsed) is None
+
+
+def _python_runtime() -> str:
+    """Launch this Python environment, even when a profiler replaces sys.executable."""
+    if sys.prefix != sys.base_prefix:
+        # Keep the virtualenv launcher path: resolving its symlink loses installed extras.
+        name = "python.exe" if os.name == "nt" else "python"
+        executable = Path(sysconfig.get_path("scripts")) / name
+    else:
+        executable = Path(getattr(sys, "_base_executable", sys.executable))
+    assert executable.is_file()
+    return str(executable)
 
 
 @pytest.mark.parametrize("case", CONTRACT["valid_cases"], ids=lambda case: case["id"])
@@ -143,7 +156,7 @@ def test_python_lifecycle_exit_codes_are_observed_in_real_processes(
     database = _database(tmp_path)
     assert case["rust_behavior"]
     result = subprocess.run(  # noqa: S603 - fixed interpreter and checked-in offline command fixtures
-        [sys.executable, "-m", "fyi_system.cli", *case["arguments"], "--db", str(database)],
+        [_python_runtime(), "-m", "fyi_system.cli", *case["arguments"], "--db", str(database)],
         cwd=tmp_path,
         env={**os.environ, "PYTHONPATH": str(ROOT / "src")},
         capture_output=True,

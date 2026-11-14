@@ -1,39 +1,21 @@
-# mise integration drafts for fyi-cli
+# mise integration status
 
-This directory documents how to install **fyi-cli** with [mise](https://mise.jdx.dev/).
+**Blocked pending a qualified release and dedicated plugin repository.** The
+[asdf-compatible plugin](../asdf/README.md) is the prepared integration path.
+Its local checksum approvals, supported platforms, and safe installation
+behavior apply unchanged. No versions are approved yet.
 
-## Quick options
+`backend.toml` is maintainer inventory, not a mise tool definition that can be
+installed directly. The main project repository does not expose the plugin's
+`bin/install` and `bin/list-all` at its root, so it must not be advertised as the
+plugin repository. The operator must export `packaging/asdf` to a dedicated
+repository, preserve executable modes, record its URL and maintainer, and run
+mise and asdf install checks on the supported native platforms before submission.
 
-### 1. asdf-compatible plugin (in-repo drafts)
+Do not recommend the cargo backend for `fyi-cli`: the crates.io name belongs to
+an unrelated project. A generic GitHub/ubi recipe also bypasses this plugin's
+reviewed release approvals and is not the prepared submission path.
 
-```bash
-# Register the in-tree asdf plugin scripts
-mise plugins install fyi-cli "$PWD/packaging/asdf"
-mise install fyi-cli@0.1.2
-mise use -g fyi-cli@0.1.2
-```
-
-### 2. cargo backend
-
-```bash
-mise use cargo:fyi-cli@0.1.2
-# or from git:
-# mise use cargo:fyi-cli@git+https://github.com/edithatogo/fyi-cli
-```
-
-### 3. ubi / GitHub release (when assets exist)
-
-```toml
-# mise.toml
-[tools]
-"ubi:edithatogo/fyi-cli" = "0.1.2"
-```
-
-See `backend.toml` for structured metadata used by maintainers.
-
-## Metadata
-
-- Homepage: https://github.com/edithatogo/fyi-cli
-- Version: 0.1.2
-- License: MIT
-- Publisher: edithatogo
+See mise's [asdf plugin compatibility documentation](https://mise.jdx.dev/asdf-legacy-plugins.html)
+for the current installation hook contract. This packet makes no claim of mise
+registry inclusion, public plugin availability, or successful native installation.
