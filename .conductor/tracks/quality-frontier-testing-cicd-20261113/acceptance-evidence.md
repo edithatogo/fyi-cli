@@ -164,6 +164,9 @@ Branch: `fix/quality-frontier-evidence`.
    invocation did not collect any `benchmark_*` method. PRs now run all eight
    existing benchmark functions with explicit short bounds; full Scalene and
    ordinary benchmark measurement are weekly/manual.
+   The manual harness performance layer had the same zero-collection defect;
+   its command now uses the same explicit selector, with an actual collection
+   regression (zero tests/exit 5 before the fix; eight collected afterward).
 4. Profiling uploads were success-only. The new always-run upload includes
    metadata, setup/runtime logs, benchmark JSON and JUnit XML, including partial
    evidence on failure.
@@ -188,10 +191,11 @@ of these gates.
 
 ### Verification
 
-- Extended-workflow red baseline: 8 failed / 1 passed; green: 9 passed.
+- Extended-workflow red baseline: 8 failed / 1 passed; manual-harness follow-up
+  reproduced zero-test collection/exit 5; final green: 10 passed.
 - Core-CI evidence red baseline: 10 failed / 3 passed; green: 13 passed.
 - Monitor safe red: four network-guard failures; green: all 12 monitor tests pass.
-- Combined workflow/harness contracts: **157 passed**.
+- Combined workflow/harness contracts: **158 passed**.
 - Existing monitor/DST/importer/API/receipt/MCP/archive contracts: **88 passed**.
 - Actual PR benchmark workload: **8 passed**, with JSON and JUnit outputs;
   independently reproduced in 1.52 seconds.

@@ -12,6 +12,7 @@ import pytest
 import yaml
 
 import mutation_test
+from scripts.verify_test_harness import LAYERS
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -121,6 +122,23 @@ def test_profile_selection_collects_all_eight_existing_benchmarks() -> None:
             "-o",
             "python_functions=benchmark_*",
         ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=30,
+    )
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    assert "8 tests collected" in completed.stdout
+
+
+def test_manual_performance_layer_collects_the_existing_benchmarks() -> None:
+    layer = next(layer for layer in LAYERS if layer.name == "performance")
+    assert layer.expensive
+    assert not layer.network
+    assert layer.command[0] == "pytest"
+    completed = subprocess.run(  # noqa: S603 - execute the checked-in pytest layer, without a shell
+        [sys.executable, "-m", "pytest", *layer.command[1:], "--collect-only", "-q"],
         cwd=ROOT,
         capture_output=True,
         text=True,
