@@ -1,7 +1,7 @@
 {
   "track_id": "package-registry-submissions_20260712",
   "type": "feature",
-  "status": "in-progress",
+  "status": "blocked",
   "created_at": "2026-07-12T00:00:00Z",
   "updated_at": "2026-11-14T00:00:00Z",
   "description": "Complete reproducible package, container, and developer distribution submissions.",
@@ -9,7 +9,10 @@
   "child_issues": [
     202
   ],
-  "local_work_status": "in-progress",
+  "local_work_status": "complete",
   "publication_status": "blocked-external",
-  "acceptance_evidence": "acceptance-evidence.md"
+  "acceptance_evidence": "acceptance-evidence.md",
+  "operator_runbook": "../../../packaging/SUBMISSION_RUNBOOK.md",
+  "external_submission_performed": false,
+  "completion_scope": "Locally implementable packaging contracts and review packets; native qualification and external publication remain open."
 }
