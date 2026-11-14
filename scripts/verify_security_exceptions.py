@@ -69,6 +69,29 @@ def evaluate(root: Path, today: date) -> list[str]:
             elif item not in GRANDFATHERED:
                 errors.append(f"{scope}: new suppression forbidden: {item}")
 
+    # cargo-audit loads .cargo/audit.toml implicitly. Never allow that
+    # second configuration surface to hide a vulnerability, even if the
+    # advisory is grandfathered for cargo-deny / explicit CI flags.
+    audit_config = root / ".cargo" / "audit.toml"
+    if audit_config.exists():
+        try:
+            with audit_config.open("rb") as handle:
+                parsed_audit = tomllib.load(handle)
+            audit_advisories = parsed_audit.get("advisories", {})
+            if not isinstance(audit_advisories, dict):
+                raise ValueError("advisories must be a table")
+            config_ignores = audit_advisories.get("ignore", [])
+            if not isinstance(config_ignores, list) or any(
+                not isinstance(item, str) for item in config_ignores
+            ):
+                raise ValueError("advisories.ignore must be a string list")
+            for ignored_id in config_ignores:
+                errors.append(
+                    f".cargo/audit.toml: implicit suppression forbidden: {ignored_id}"
+                )
+        except (OSError, ValueError, UnicodeError, TypeError) as exc:
+            errors.append(f".cargo/audit.toml: invalid audit configuration: {exc}")
+
     check_ids(denied, "deny.toml")
     check_ids(set(exceptions), "policy")
     if len(denied) != len(set(denied)):
