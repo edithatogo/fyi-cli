@@ -93,7 +93,7 @@ jobs:
         run: |
           set -o pipefail
           cargo test --locked --package fyi-cli \
-            --test receipt_numeric_tests --test receipt_wire_tests \
+            --test receipt_numeric_tests --test receipt_wire_tests --test startup_tests \
             2>&1 | tee artifacts/receipt-portability/cli-tests.log
       - name: Retain portability evidence
         if: always()

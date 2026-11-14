@@ -30,7 +30,7 @@ def test_receipt_contracts_and_consumer_are_executed() -> None:
     for target in (
         "acquisition_receipts", "acquisition_receipt_numeric_conformance",
         "acquisition_receipt_midpoint_conformance", "receipt_wire",
-        "receipt_persistence_portability", "receipt_numeric_tests", "receipt_wire_tests",
+        "receipt_persistence_portability", "receipt_numeric_tests", "receipt_wire_tests", "startup_tests",
     ):
         assert re.search(rf"--test {target}(?:\s|$)", text), target
     assert "continue-on-error" not in text
