@@ -700,7 +700,10 @@ fn public_wacz_does_not_serialise_synthetic_sensitive_headers() {
         ("ETag".into(), b"\"synthetic-tag\"".to_vec()),
         ("Set-Cookie".into(), b"session=fabricated-a".to_vec()),
         ("sEt-CoOkIe".into(), b"session=fabricated-b".to_vec()),
-        ("WWW-Authenticate".into(), b"Bearer realm=\"fabricated\"".to_vec()),
+        (
+            "WWW-Authenticate".into(),
+            b"Bearer realm=\"fabricated\"".to_vec(),
+        ),
         ("X-Session-Token".into(), b"fabricated-private".to_vec()),
     ];
     let warc_path = directory.path().join("capture.warc.gz");
@@ -717,7 +720,13 @@ fn public_wacz_does_not_serialise_synthetic_sensitive_headers() {
         id: None,
     };
     let package_path = directory.path().join("public.wacz");
-    write_wacz(&package_path, &warc_path, std::slice::from_ref(&record), &[page]).unwrap();
+    write_wacz(
+        &package_path,
+        &warc_path,
+        std::slice::from_ref(&record),
+        &[page],
+    )
+    .unwrap();
     verify_wacz(&package_path).unwrap();
 
     let mut package = ZipArchive::new(File::open(package_path).unwrap()).unwrap();
