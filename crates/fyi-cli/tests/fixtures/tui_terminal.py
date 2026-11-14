@@ -4,6 +4,7 @@ import errno
 import fcntl
 import os
 import pty
+import re
 import select
 import signal
 import struct
@@ -14,10 +15,58 @@ import termios
 import time
 from pathlib import Path
 
+FORBIDDEN = ("PRIVATE-BODY", "PRIVATE-TAGS", "PRIVATE-MISSING", "PRIVATE-URL")
+
 
 def require(condition, message):
     if not condition:
         raise AssertionError(message)
+
+
+def screen_text(transcript):
+    """Decode the emitted CSI subset for these single-column synthetic fixtures.
+
+    Ratatui writes diffs, including cursor jumps over unchanged characters. Raw
+    byte substring checks cannot establish the resulting on-screen sentences.
+    This is deliberately not a general terminal or screen-reader emulator.
+    """
+    cells = {}
+    row = column = 0
+    text = bytes(transcript).decode("utf-8", errors="replace")
+    tokens = re.finditer(r"\x1b\[([0-9;?]*)([A-Za-z])|([^\x1b])", text)
+    for token in tokens:
+        parameters, operation, character = token.groups()
+        if operation:
+            values = [int(value or "0") for value in parameters.lstrip("?").split(";")]
+            first = values[0]
+            if operation in {"H", "f"}:
+                row = max(first, 1) - 1
+                column = max(values[1] if len(values) > 1 else 1, 1) - 1
+            elif operation == "J" and first in {2, 3}:
+                cells.clear()
+            elif operation == "K":
+                cells = {
+                    position: value
+                    for position, value in cells.items()
+                    if position[0] != row
+                    or (first == 0 and position[1] < column)
+                    or (first == 1 and position[1] > column)
+                }
+            # SGR, cursor visibility and alternate-screen controls have no text.
+        elif character == "\r":
+            column = 0
+        elif character == "\n":
+            row += 1
+        elif character.isprintable():
+            cells[row, column] = character
+            column += 1
+    if not cells:
+        return ""
+    width = max(column for _, column in cells) + 1
+    height = max(row for row, _ in cells) + 1
+    return "\n".join(
+        "".join(cells.get((row, column), " ") for column in range(width)) for row in range(height)
+    )
 
 
 class Session:
@@ -50,13 +99,17 @@ class Session:
             except OSError as error:
                 if error.errno != errno.EIO:
                     raise
+            displayed = screen_text(self.transcript)
+            for forbidden in FORBIDDEN:
+                require(forbidden not in displayed, "sensitive fixture field reached the screen")
 
     def until(self, text, offset=0):
         deadline = time.monotonic() + 10
-        while text not in self.transcript[offset:]:
+        expected = text.decode("utf-8")
+        while len(self.transcript) <= offset or expected not in screen_text(self.transcript):
             self.read()
             if time.monotonic() > deadline or self.process.poll() is not None:
-                message = f"terminal did not display {text!r}: {bytes(self.transcript)!r}"
+                message = f"terminal did not display {text!r}:\n{screen_text(self.transcript)}"
                 raise AssertionError(message)
 
     def send(self, keys):
@@ -80,8 +133,8 @@ class Session:
         show = content.rfind(b"\x1b[?25h")
         require(0 <= clear < leave, "alternate screen was not cleared before leaving")
         require(show >= 0, "cursor was not restored")
-        for forbidden in [b"PRIVATE-BODY", b"PRIVATE-TAGS", b"PRIVATE-MISSING", b"PRIVATE-URL"]:
-            require(forbidden not in content, "sensitive fixture field reached terminal output")
+        for forbidden in FORBIDDEN:
+            require(forbidden.encode() not in content, "sensitive fixture field reached output")
 
     def close(self):
         if self.process.poll() is None:
@@ -128,6 +181,14 @@ def main(binary):
             session.until(b"Requests, counts and timelines are hidden.")
             require(b"MapleRecords" not in session.transcript, "private title was exposed")
             require(b"MapleCouncil" not in session.transcript, "private authority was exposed")
+            require(
+                "MapleRecords" not in screen_text(session.transcript),
+                "private title displayed",
+            )
+            require(
+                "MapleCouncil" not in screen_text(session.transcript),
+                "private authority displayed",
+            )
             offset = session.send(b"\tp")
             session.until(b"MapleRecords", offset)
             session.until(b"MapleCouncil", offset)
@@ -135,11 +196,15 @@ def main(binary):
             session.until(b"Details", offset)
             offset = session.send(b"\x1b")
             # Wait for the escape key's disambiguation before entering Timeline.
-            session.until(b"Requests", offset)
+            session.until(b"Requests 1-1 / 1", offset)
             offset = session.send(b"\r")
             session.until(b"Timeline unavailable.", offset)
             offset = session.send(b"p")
             session.until(b"Requests, counts and timelines are hidden.", offset)
+            require(
+                "MapleRecords" not in screen_text(session.transcript),
+                "hiding retained a title",
+            )
             offset = len(session.transcript)
             session.resize(30, 8)
             session.until(b"Resize terminal", offset)
