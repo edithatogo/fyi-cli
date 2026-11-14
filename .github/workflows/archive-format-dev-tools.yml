@@ -1,0 +1,84 @@
+name: Archive format native verification tools
+
+on:
+  push:
+    branches: [dev/archive-format-dependency-export-20261114]
+    paths: [.github/workflows/archive-format-dev-tools.yml]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: 234d90511b7e15866669994d49115358a8860a83
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+        with:
+          toolchain: 1.99.1
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          name: archive-format-source-dependencies
+          path: exported
+          run-id: 43568491210
+          github-token: ${{ github.token }}
+      - name: Restore only the verified candidate dependency files
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd exported; grep -E '  inputs/(candidate-Cargo.lock|candidate-Cargo.toml)$' checksums.txt | sha256sum -c -)
+          cp exported/inputs/candidate-Cargo.lock Cargo.lock
+          cp exported/inputs/candidate-Cargo.toml crates/fyi-core/Cargo.toml
+      - name: Install checksum-verified native tools
+        uses: taiki-e/install-action@3f7c3597aa4e6da3f315e128de702ce61e7b2877
+        with:
+          tool: cargo-llvm-cov,cargo-audit,cargo-deny,cargo-mutants
+          checksum: true
+      - name: Record exact tool and dependency provenance
+        shell: bash
+        run: |
+          mkdir -p tools/evidence tools/bin
+          {
+            rustc --version --verbose
+            cargo --version
+            cargo llvm-cov --version
+            cargo audit --version
+            cargo deny --version
+            cargo mutants --version
+            sha256sum Cargo.lock crates/fyi-core/Cargo.toml
+            printf 'baseline=234d90511b7e15866669994d49115358a8860a83\nworkflow_source=%s\nrun_id=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID"
+          } > tools/evidence/provenance.txt
+          for executable in cargo-llvm-cov cargo-audit cargo-deny cargo-mutants; do
+            cp "$(command -v "$executable")" tools/bin/
+          done
+      - name: Audit candidate lock with unchanged repository exceptions
+        shell: bash
+        run: |
+          set -o pipefail
+          cargo audit --ignore RUSTSEC-2026-0387 --ignore RUSTSEC-2026-0459 --ignore RUSTSEC-2026-0370 --ignore RUSTSEC-2026-0371 --ignore RUSTSEC-2026-0372 2>&1 | tee tools/evidence/audit.log
+      - name: Check existing licence and dependency policy without weakening it
+        shell: bash
+        run: |
+          set -o pipefail
+          cargo deny check 2>&1 | tee tools/evidence/deny.log
+      - name: Export the public advisory snapshot for offline rechecking
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if test -d "$HOME/.cargo/advisory-db"; then
+            tar -czf tools/advisory-db.tar.gz -C "$HOME/.cargo" advisory-db
+          fi
+          (cd tools; find bin evidence -type f -print0 | sort -z | xargs -0 sha256sum; test ! -f advisory-db.tar.gz || sha256sum advisory-db.tar.gz) > tools/SHA256SUMS
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always()
+        with:
+          name: archive-native-qualification-tools
+          path: tools/
+          if-no-files-found: error
+          retention-days: 2
