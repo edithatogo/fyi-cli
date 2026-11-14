@@ -139,10 +139,20 @@ jobs:
           test -n "$(find release-assets -type f -print -quit)"
           ls -l release-assets/
 
+      - name: Select pinned Python 3.15.1
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.15.1"
+
+      - name: Verify repository-local Python environment
+        run: |
+          python -m venv .venv
+          .venv/bin/python scripts/verify_python315_runtime.py
+
       - name: Create integrity manifest
         run: |
           set -euo pipefail
-          python3 scripts/create_release_manifest.py release-assets \
+          .venv/bin/python scripts/create_release_manifest.py release-assets \
             --version "${GITHUB_REF_NAME#v}" \
             --commit "${GITHUB_SHA}"
           test -s release-assets/release-manifest.json

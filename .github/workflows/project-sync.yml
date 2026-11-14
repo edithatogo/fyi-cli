@@ -32,8 +32,18 @@ jobs:
             exit 1
           fi
 
+      - name: Select pinned Python 3.15.1
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.15.1"
+
+      - name: Verify repository-local Python environment
+        run: |
+          python -m venv .venv
+          .venv/bin/python scripts/verify_python315_runtime.py
+
       - name: Sync fyi-cli roadmap into RIOPA
         env:
           GH_TOKEN: ${{ secrets.PROJECT_SYNC_TOKEN }}
         run: |
-          python scripts/sync_github_projects.py
+          .venv/bin/python scripts/sync_github_projects.py
