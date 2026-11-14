@@ -1,7 +1,7 @@
 {
   "track_id": "i18n-localization-framework",
   "type": "feature",
-  "status": "completed",
+  "status": "in_progress",
   "created_at": "2026-07-08T22:07:37+10:00",
   "description": "fluent-rs i18n, locale-aware templates, terminology map, working-day/deadline engine + holiday calendars.",
   "dependencies": [
@@ -9,10 +9,22 @@
   ],
   "priority": "high",
   "github_issue": 39,
-  "github_pr": 126,
+  "github_pr": 436,
   "implementation_workflow": {
     "tracked_by": "github-issues-prs",
-    "branch": "60217257-implement-foi-tracks"
+    "branch": "feat/i18n-versioned-bundles-20261114"
   },
-  "updated_at": "2026-11-13T05:48:23Z"
+  "updated_at": "2026-11-14T03:37:10.977151+00:00",
+  "reconciliation": "Historical completion was not supported by the original acceptance criteria. Standalone localization and typed template foundation in progress; shared registry deferred to its owner.",
+  "archive_allowed": false,
+  "verification": {
+    "phase_1": "Implemented; local 389 workspace tests, formatting, strict Clippy, 99.375% i18n coverage and 92.5052% workspace coverage passed. Final-head hosted checks required before merge.",
+    "evidence": "acceptance-evidence.md",
+    "remaining": "Phase 2, terminology, holiday/statutory rules, external overrides, additional locales, human translation/legal review"
+  },
+  "historical_github_pr": 126,
+  "github_prs": [
+    126,
+    436
+  ]
 }
