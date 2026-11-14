@@ -44,8 +44,16 @@ a **verified Python 3.15.1** environment, then:
 python3.15 --version
 python3.15 -m pip install pre-commit
 python3.15 -m pre_commit install
+python3.15 -m pre_commit install --hook-type pre-push
 python3.15 -m pre_commit run security-exception-guard --all-files
+cargo install cargo-deny --locked
+python3.15 -m pre_commit run cargo-deny-advisories --hook-stage pre-push --all-files
 ```
+
+The fast pre-commit check enforces exception policy; the optional pre-push
+`cargo deny check advisories` scans the actual Rust dependency graph against
+its current advisory database (subject to existing, expiring `deny.toml`
+exceptions). It does **not** independently prove the suppressed risks fixed.
 
 Installing a configuration file into the repository does **not**
 automatically enable the hook in an existing clone; check
