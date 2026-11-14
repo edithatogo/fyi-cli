@@ -26,7 +26,7 @@ GRANDFATHERED = frozenset({
     "RUSTSEC-2026-0371", "RUSTSEC-2026-0372",
 })
 ADVISORY = re.compile(r"^RUSTSEC-\d{4}-\d{4}$")
-CLI_IGNORE = re.compile(r"--ignore\s+(RUSTSEC-\d{4}-\d{4})\b")
+CLI_IGNORE = re.compile(r"--ignore(?:=|\s+)([^\s\\]+)")
 
 
 def evaluate(root: Path, today: date) -> list[str]:
