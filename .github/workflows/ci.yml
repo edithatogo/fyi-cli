@@ -15,12 +15,12 @@ env:
 
 permissions:
   contents: read
-  actions: read
 
 jobs:
   python-tests:
     name: Python Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       # CI has no OS keyring; use an ephemeral test-only backend.
       PYTHON_KEYRING_BACKEND: keyrings.alt.file.PlaintextKeyring
@@ -45,6 +45,7 @@ jobs:
   property-tests:
     name: Property Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     env:
       PYTHON_KEYRING_BACKEND: keyrings.alt.file.PlaintextKeyring
     steps:
@@ -71,6 +72,7 @@ jobs:
   fmt:
     name: Rustfmt
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout sources
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
@@ -86,6 +88,7 @@ jobs:
   clippy:
     name: Clippy Lints
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout sources
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
@@ -114,6 +117,7 @@ jobs:
   test:
     name: Workspace Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout sources
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
@@ -140,6 +144,7 @@ jobs:
   package-smoke:
     name: Package Smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout sources
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
@@ -156,6 +161,7 @@ jobs:
   audit:
     name: Security Audit
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout sources
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
@@ -181,6 +187,7 @@ jobs:
   coverage:
     name: Code Coverage
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       contents: read
       id-token: write
@@ -234,6 +241,7 @@ jobs:
   harness-contract:
     name: Layered Harness Contract
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout sources
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
@@ -246,9 +254,6 @@ jobs:
       - name: Install test harness dependencies
         run: python -m pip install --upgrade uv && uv sync --extra dev --locked
 
-      - name: Validate all test layers
-        run: uv run python scripts/verify_test_harness.py
-
       - name: Run offline harness layers
         run: uv run python scripts/verify_test_harness.py --run
 
@@ -257,6 +262,7 @@ jobs:
   packaging-assets:
     name: Packaging Assets
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout sources
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803

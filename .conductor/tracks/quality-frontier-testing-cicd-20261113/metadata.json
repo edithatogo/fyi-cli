@@ -1,9 +1,10 @@
 {
   "track_id": "quality-frontier-testing-cicd-20261113",
   "type": "quality-frontier",
-  "status": "completed",
+  "status": "in_progress",
   "created_at": "2026-11-13T00:00:00Z",
-  "updated_at": "2026-11-13T00:00:00Z",
+  "updated_at": "2026-11-14T00:00:00Z",
+  "reverification": "CI acceptance audit reopened Phase 5; prior completed metadata was not independent closure evidence. Source-adapter work and PR #431 remain separately owned.",
   "github_issue": "https://github.com/edithatogo/fyi-cli/issues/280",
   "parent_issue": "https://github.com/edithatogo/fyi-cli/issues/282",
   "warranted_gaps": ["DST", "MT", "Contract"],
