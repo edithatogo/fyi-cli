@@ -1,0 +1,792 @@
+{
+  "schema_version": 2,
+  "protocol_version": "2025-06-18",
+  "cases": [
+    {
+      "name": "remote_health_success",
+      "kind": "tool_success",
+      "verification": "synthetic_output",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": "remote_health_success",
+        "method": "tools/call",
+        "params": {
+          "name": "remote_health",
+          "arguments": {
+            "instance_id": "synthetic"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": "remote_health_success",
+        "result": {
+          "structuredContent": {
+            "instance_id": "synthetic",
+            "network_reachable": true,
+            "api_reachable": true
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"api_reachable\": true,\n  \"instance_id\": \"synthetic\",\n  \"network_reachable\": true\n}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "remote_version_success",
+      "kind": "tool_success",
+      "verification": "synthetic_output",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": "remote_version_success",
+        "method": "tools/call",
+        "params": {
+          "name": "remote_version",
+          "arguments": {
+            "instance_id": "synthetic"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": "remote_version_success",
+        "result": {
+          "structuredContent": {
+            "instance_id": "synthetic",
+            "version": "synthetic-1"
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"instance_id\": \"synthetic\",\n  \"version\": \"synthetic-1\"\n}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "remote_search_requests_success",
+      "kind": "tool_success",
+      "verification": "synthetic_output",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": "remote_search_requests_success",
+        "method": "tools/call",
+        "params": {
+          "name": "remote_search_requests",
+          "arguments": {
+            "instance_id": "synthetic",
+            "query": "synthetic",
+            "limit": 1
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": "remote_search_requests_success",
+        "result": {
+          "structuredContent": {
+            "instance_id": "synthetic",
+            "query": "synthetic",
+            "requests": [
+              {
+                "id": 41,
+                "title": "Synthetic public request",
+                "body": "Synthetic fixture body.",
+                "url": "https://foi-repository.example/request/41",
+                "status": "successful"
+              }
+            ]
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"instance_id\": \"synthetic\",\n  \"query\": \"synthetic\",\n  \"requests\": [\n    {\n      \"body\": \"Synthetic fixture body.\",\n      \"id\": 41,\n      \"status\": \"successful\",\n      \"title\": \"Synthetic public request\",\n      \"url\": \"https://foi-repository.example/request/41\"\n    }\n  ]\n}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "remote_get_request_success",
+      "kind": "tool_success",
+      "verification": "synthetic_output",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": "remote_get_request_success",
+        "method": "tools/call",
+        "params": {
+          "name": "remote_get_request",
+          "arguments": {
+            "instance_id": "synthetic",
+            "request_id": 41
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": "remote_get_request_success",
+        "result": {
+          "structuredContent": {
+            "instance_id": "synthetic",
+            "request": {
+              "id": 41,
+              "title": "Synthetic public request",
+              "body": "Synthetic fixture body.",
+              "url": "https://foi-repository.example/request/41",
+              "status": "successful"
+            }
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"instance_id\": \"synthetic\",\n  \"request\": {\n    \"body\": \"Synthetic fixture body.\",\n    \"id\": 41,\n    \"status\": \"successful\",\n    \"title\": \"Synthetic public request\",\n    \"url\": \"https://foi-repository.example/request/41\"\n  }\n}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "remote_list_authorities_success",
+      "kind": "tool_success",
+      "verification": "synthetic_output",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": "remote_list_authorities_success",
+        "method": "tools/call",
+        "params": {
+          "name": "remote_list_authorities",
+          "arguments": {
+            "instance_id": "synthetic",
+            "filter": "synthetic",
+            "limit": 1
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": "remote_list_authorities_success",
+        "result": {
+          "structuredContent": {
+            "instance_id": "synthetic",
+            "authorities": [
+              {
+                "id": "fixture-authority-1",
+                "slug": "synthetic-authority",
+                "name": "Synthetic authority",
+                "url": "https://foi-repository.example/body/synthetic-authority"
+              }
+            ]
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"authorities\": [\n    {\n      \"id\": \"fixture-authority-1\",\n      \"name\": \"Synthetic authority\",\n      \"slug\": \"synthetic-authority\",\n      \"url\": \"https://foi-repository.example/body/synthetic-authority\"\n    }\n  ],\n  \"instance_id\": \"synthetic\"\n}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "remote_create_request_prepared",
+      "kind": "tool_success",
+      "verification": "synthetic_output",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": "remote_create_request_prepared",
+        "method": "tools/call",
+        "params": {
+          "name": "remote_create_request",
+          "arguments": {
+            "instance_id": "synthetic",
+            "phase": "prepare",
+            "idempotency_key": "fixture-create",
+            "title": "Synthetic request",
+            "body": "Synthetic fixture body.",
+            "external_user_name": "Synthetic requester",
+            "external_url": "https://client.example/requests/fixture-create"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": "remote_create_request_prepared",
+        "result": {
+          "structuredContent": {
+            "status": "prepared",
+            "confirmation_token": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "idempotency_key": "fixture-create",
+            "expires_in_seconds": 300,
+            "requires_commit": true
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"confirmation_token\": \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\n  \"expires_in_seconds\": 300,\n  \"idempotency_key\": \"fixture-create\",\n  \"requires_commit\": true,\n  \"status\": \"prepared\"\n}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "remote_create_request_replayed",
+      "kind": "tool_success",
+      "verification": "synthetic_output",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": "remote_create_request_replayed",
+        "method": "tools/call",
+        "params": {
+          "name": "remote_create_request",
+          "arguments": {
+            "instance_id": "synthetic",
+            "phase": "prepare",
+            "idempotency_key": "fixture-create",
+            "title": "Synthetic request",
+            "body": "Synthetic fixture body.",
+            "external_user_name": "Synthetic requester",
+            "external_url": "https://client.example/requests/fixture-create"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": "remote_create_request_replayed",
+        "result": {
+          "structuredContent": {
+            "status": "already_committed",
+            "idempotency_key": "fixture-create",
+            "result": {
+              "instance_id": "synthetic",
+              "request": {
+                "id": 42,
+                "url": "https://foi-repository.example/request/42"
+              }
+            }
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"idempotency_key\": \"fixture-create\",\n  \"result\": {\n    \"instance_id\": \"synthetic\",\n    \"request\": {\n      \"id\": 42,\n      \"url\": \"https://foi-repository.example/request/42\"\n    }\n  },\n  \"status\": \"already_committed\"\n}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "remote_create_request_committed",
+      "kind": "tool_success",
+      "verification": "synthetic_output",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": "remote_create_request_committed",
+        "method": "tools/call",
+        "params": {
+          "name": "remote_create_request",
+          "arguments": {
+            "instance_id": "synthetic",
+            "phase": "commit",
+            "confirmation_token": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "idempotency_key": "fixture-create"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": "remote_create_request_committed",
+        "result": {
+          "structuredContent": {
+            "instance_id": "synthetic",
+            "request": {
+              "id": 42,
+              "url": "https://foi-repository.example/request/42"
+            }
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"instance_id\": \"synthetic\",\n  \"request\": {\n    \"id\": 42,\n    \"url\": \"https://foi-repository.example/request/42\"\n  }\n}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "remote_add_correspondence_prepared",
+      "kind": "tool_success",
+      "verification": "synthetic_output",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": "remote_add_correspondence_prepared",
+        "method": "tools/call",
+        "params": {
+          "name": "remote_add_correspondence",
+          "arguments": {
+            "instance_id": "synthetic",
+            "phase": "prepare",
+            "idempotency_key": "fixture-correspondence",
+            "request_id": 41,
+            "direction": "request",
+            "body": "Synthetic correspondence.",
+            "sent_at": "2026-01-02T03:04:05Z"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": "remote_add_correspondence_prepared",
+        "result": {
+          "structuredContent": {
+            "status": "prepared",
+            "confirmation_token": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "idempotency_key": "fixture-correspondence",
+            "expires_in_seconds": 300,
+            "requires_commit": true
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"confirmation_token\": \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\n  \"expires_in_seconds\": 300,\n  \"idempotency_key\": \"fixture-correspondence\",\n  \"requires_commit\": true,\n  \"status\": \"prepared\"\n}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "remote_add_correspondence_replayed",
+      "kind": "tool_success",
+      "verification": "synthetic_output",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": "remote_add_correspondence_replayed",
+        "method": "tools/call",
+        "params": {
+          "name": "remote_add_correspondence",
+          "arguments": {
+            "instance_id": "synthetic",
+            "phase": "prepare",
+            "idempotency_key": "fixture-correspondence",
+            "request_id": 41,
+            "direction": "request",
+            "body": "Synthetic correspondence.",
+            "sent_at": "2026-01-02T03:04:05Z"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": "remote_add_correspondence_replayed",
+        "result": {
+          "structuredContent": {
+            "status": "already_committed",
+            "idempotency_key": "fixture-correspondence",
+            "result": {
+              "instance_id": "synthetic",
+              "correspondence": {
+                "success": true
+              }
+            }
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"idempotency_key\": \"fixture-correspondence\",\n  \"result\": {\n    \"correspondence\": {\n      \"success\": true\n    },\n    \"instance_id\": \"synthetic\"\n  },\n  \"status\": \"already_committed\"\n}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "remote_add_correspondence_committed",
+      "kind": "tool_success",
+      "verification": "synthetic_output",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": "remote_add_correspondence_committed",
+        "method": "tools/call",
+        "params": {
+          "name": "remote_add_correspondence",
+          "arguments": {
+            "instance_id": "synthetic",
+            "phase": "commit",
+            "confirmation_token": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "idempotency_key": "fixture-correspondence"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": "remote_add_correspondence_committed",
+        "result": {
+          "structuredContent": {
+            "instance_id": "synthetic",
+            "correspondence": {
+              "success": true
+            }
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"correspondence\": {\n    \"success\": true\n  },\n  \"instance_id\": \"synthetic\"\n}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "remote_update_state_prepared",
+      "kind": "tool_success",
+      "verification": "synthetic_output",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": "remote_update_state_prepared",
+        "method": "tools/call",
+        "params": {
+          "name": "remote_update_state",
+          "arguments": {
+            "instance_id": "synthetic",
+            "phase": "prepare",
+            "idempotency_key": "fixture-state",
+            "request_id": 41,
+            "expected_current_state": "waiting_response",
+            "state": "successful"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": "remote_update_state_prepared",
+        "result": {
+          "structuredContent": {
+            "status": "prepared",
+            "confirmation_token": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "idempotency_key": "fixture-state",
+            "expires_in_seconds": 300,
+            "requires_commit": true
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"confirmation_token\": \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\n  \"expires_in_seconds\": 300,\n  \"idempotency_key\": \"fixture-state\",\n  \"requires_commit\": true,\n  \"status\": \"prepared\"\n}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "remote_update_state_replayed",
+      "kind": "tool_success",
+      "verification": "synthetic_output",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": "remote_update_state_replayed",
+        "method": "tools/call",
+        "params": {
+          "name": "remote_update_state",
+          "arguments": {
+            "instance_id": "synthetic",
+            "phase": "prepare",
+            "idempotency_key": "fixture-state",
+            "request_id": 41,
+            "expected_current_state": "waiting_response",
+            "state": "successful"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": "remote_update_state_replayed",
+        "result": {
+          "structuredContent": {
+            "status": "already_committed",
+            "idempotency_key": "fixture-state",
+            "result": {
+              "instance_id": "synthetic",
+              "state": {
+                "updated": true
+              }
+            }
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"idempotency_key\": \"fixture-state\",\n  \"result\": {\n    \"instance_id\": \"synthetic\",\n    \"state\": {\n      \"updated\": true\n    }\n  },\n  \"status\": \"already_committed\"\n}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "remote_update_state_committed",
+      "kind": "tool_success",
+      "verification": "synthetic_output",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": "remote_update_state_committed",
+        "method": "tools/call",
+        "params": {
+          "name": "remote_update_state",
+          "arguments": {
+            "instance_id": "synthetic",
+            "phase": "commit",
+            "confirmation_token": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "idempotency_key": "fixture-state"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": "remote_update_state_committed",
+        "result": {
+          "structuredContent": {
+            "instance_id": "synthetic",
+            "state": {
+              "updated": true
+            }
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"instance_id\": \"synthetic\",\n  \"state\": {\n    \"updated\": true\n  }\n}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "remote_read_denied",
+      "kind": "tool_error",
+      "verification": "handler",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": "remote_read_denied",
+        "method": "tools/call",
+        "params": {
+          "name": "remote_health",
+          "arguments": {
+            "instance_id": "synthetic"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": "remote_read_denied",
+        "result": {
+          "isError": true,
+          "content": [
+            {
+              "type": "text",
+              "text": "remote read capability is disabled for instance"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "remote_write_denied",
+      "kind": "tool_error",
+      "verification": "handler",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": "remote_write_denied",
+        "method": "tools/call",
+        "params": {
+          "name": "remote_create_request",
+          "arguments": {
+            "instance_id": "synthetic",
+            "phase": "prepare",
+            "idempotency_key": "fixture-create",
+            "title": "Synthetic request",
+            "body": "Synthetic fixture body.",
+            "external_user_name": "Synthetic requester",
+            "external_url": "https://client.example/requests/fixture-create"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": "remote_write_denied",
+        "result": {
+          "isError": true,
+          "content": [
+            {
+              "type": "text",
+              "text": "remote write capability is disabled for instance"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "remote_confirmation_rejected",
+      "kind": "tool_error",
+      "verification": "handler",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": "remote_confirmation_rejected",
+        "method": "tools/call",
+        "params": {
+          "name": "remote_create_request",
+          "arguments": {
+            "instance_id": "synthetic",
+            "phase": "commit",
+            "confirmation_token": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "idempotency_key": "fixture-create"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": "remote_confirmation_rejected",
+        "result": {
+          "isError": true,
+          "content": [
+            {
+              "type": "text",
+              "text": "confirmation_token is missing, expired, or already used"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "remote_operation_failed",
+      "kind": "tool_error",
+      "verification": "synthetic_output",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": "remote_operation_failed",
+        "method": "tools/call",
+        "params": {
+          "name": "remote_version",
+          "arguments": {
+            "instance_id": "synthetic"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": "remote_operation_failed",
+        "result": {
+          "isError": true,
+          "content": [
+            {
+              "type": "text",
+              "text": "remote operation failed; see operator audit telemetry"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "malformed_json",
+      "kind": "protocol_error",
+      "verification": "handler",
+      "request_text": "{",
+      "response": {
+        "jsonrpc": "2.0",
+        "id": null,
+        "error": {
+          "code": -32700,
+          "message": "Parse error"
+        }
+      }
+    },
+    {
+      "name": "invalid_envelope",
+      "kind": "protocol_error",
+      "verification": "handler",
+      "request": {
+        "jsonrpc": "1.0",
+        "id": "invalid_envelope",
+        "method": "ping"
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": null,
+        "error": {
+          "code": -32600,
+          "message": "Invalid Request"
+        }
+      }
+    },
+    {
+      "name": "invalid_tool_parameters",
+      "kind": "protocol_error",
+      "verification": "handler",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": "invalid_tool_parameters",
+        "method": "tools/call",
+        "params": {
+          "name": "remote_get_request",
+          "arguments": {
+            "instance_id": "synthetic",
+            "request_id": 0
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": "invalid_tool_parameters",
+        "error": {
+          "code": -32602,
+          "message": "Tool arguments do not match the advertised schema"
+        }
+      }
+    },
+    {
+      "name": "invalid_commit_parameters",
+      "kind": "protocol_error",
+      "verification": "handler",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": "invalid_commit_parameters",
+        "method": "tools/call",
+        "params": {
+          "name": "remote_create_request",
+          "arguments": {
+            "instance_id": "synthetic",
+            "phase": "commit",
+            "confirmation_token": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "idempotency_key": "fixture-create",
+            "body": "Synthetic changed body."
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": "invalid_commit_parameters",
+        "error": {
+          "code": -32602,
+          "message": "Tool arguments do not match the advertised schema"
+        }
+      }
+    },
+    {
+      "name": "unknown_tool",
+      "kind": "protocol_error",
+      "verification": "handler",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": "unknown_tool",
+        "method": "tools/call",
+        "params": {
+          "name": "synthetic_unknown_tool",
+          "arguments": {}
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": "unknown_tool",
+        "error": {
+          "code": -32602,
+          "message": "Unknown tool"
+        }
+      }
+    }
+  ]
+}

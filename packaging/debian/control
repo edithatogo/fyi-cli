@@ -1,8 +1,7 @@
 Source: fyi-cli
 Section: utils
 Priority: optional
-Maintainer: edithatogo <https://github.com/edithatogo>
-Uploaders: edithatogo <https://github.com/edithatogo>
+Maintainer: edithatogo <15080672+edithatogo@users.noreply.github.com>
 Build-Depends:
  debhelper-compat (= 13),
  cargo,
@@ -17,7 +16,7 @@ Vcs-Browser: https://github.com/edithatogo/fyi-cli
 Rules-Requires-Root: no
 
 Package: fyi-cli
-Architecture: any
+Architecture: amd64 arm64
 Depends: ${shlibs:Depends}, ${misc:Depends}, ca-certificates
 Recommends: tor
 Description: Privacy-focused multi-jurisdiction FOI/OIA CLI for Alaveteli
@@ -28,7 +27,7 @@ Description: Privacy-focused multi-jurisdiction FOI/OIA CLI for Alaveteli
  This package provides the fyi-cli binary.
 
 Package: fyi-mcp
-Architecture: any
+Architecture: amd64 arm64
 Depends: ${shlibs:Depends}, ${misc:Depends}, ca-certificates
 Recommends: fyi-cli
 Description: MCP server for FYI/Alaveteli request management

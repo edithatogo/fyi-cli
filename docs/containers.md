@@ -7,13 +7,19 @@ How to build, publish, and pull the **fyi-mcp** container image.
 | Dockerfile | [`Dockerfile`](../Dockerfile) (repository root) |
 | Publish workflow | [`.github/workflows/container-publish.yml`](../.github/workflows/container-publish.yml) |
 | Intended image | **`ghcr.io/edithatogo/fyi-mcp`** |
-| Platforms | `linux/amd64`, `linux/arm64` |
+| Configured build targets (not verified public pulls) | `linux/amd64`, `linux/arm64` |
 | Entrypoint | `/usr/local/bin/fyi-mcp` (defaults to stdio; set `FYI_MCP_TRANSPORT=http` for stateless HTTP JSON-RPC) |
 | Issue | [#116](https://github.com/edithatogo/fyi-cli/issues/116) |
 
-**Status discipline:** the Dockerfile and GHCR workflow are **assets-ready**. Do not treat GHCR as
-**live** in [`registry-distribution-matrix.md`](./registry-distribution-matrix.md) until a public
-`docker pull` succeeds for a published tag.
+**Distribution status (14 November 2026): blocked.** The Dockerfile and publication
+workflow exist; no current GHCR channel is submission-ready or verified live.
+Credential-free public pulls on both configured architectures, immutable
+digest/source binding, SBOM, authenticated provenance and isolated native
+help/install evidence remain unverified. An image build or a successful metadata
+inspection alone does not establish those controls. The
+[submission runbook](../packaging/SUBMISSION_RUNBOOK.md) and
+[distribution ledger](../packaging/registry-submissions.json) record the exact
+operator steps and blockers. No publication workflow was dispatched in this audit.
 
 Use the manual [Container Verification workflow](../.github/workflows/container-verification.yml)
 to inspect a published tag. It requires both `linux/amd64` and `linux/arm64`; it does not change the
@@ -109,7 +115,9 @@ ghcr.io/edithatogo/fyi-mcp
 
 ## Pull examples (multi-arch)
 
-Once a workflow run has pushed images (not claimed live until verified):
+The following are conditional operator examples after a release has been
+published and qualified. No image tag or digest below is asserted available.
+Use the immutable digest recorded in the release evidence for installations.
 
 ### Latest
 
@@ -120,9 +128,8 @@ docker pull ghcr.io/edithatogo/fyi-mcp:latest
 ### Explicit release tag
 
 ```bash
-# examples — use a tag that actually exists on GHCR after publish
-docker pull ghcr.io/edithatogo/fyi-mcp:fyi-mcp-v0.1.2
-docker pull ghcr.io/edithatogo/fyi-mcp:v0.1.2
+# Set this only to a tag whose publication and release binding were verified.
+docker pull "ghcr.io/edithatogo/fyi-mcp:${QUALIFIED_GHCR_TAG}"
 ```
 
 ### Digest pin (supply-chain friendly)

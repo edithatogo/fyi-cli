@@ -67,6 +67,18 @@ def test_managed_workflows_serialize_runs_and_bound_jobs(path: Path) -> None:
         assert 0 < job["timeout-minutes"] <= 120
 
 
+@pytest.mark.parametrize("path", WORKFLOW_PATHS, ids=lambda path: path.name)
+def test_every_workflow_has_explicit_permissions_and_concurrency(path: Path) -> None:
+    definition = workflow(path)
+    assert isinstance(definition.get("permissions"), dict), path.name
+    concurrency = definition.get("concurrency", {})
+    assert concurrency.get("group"), path.name
+    assert concurrency.get("cancel-in-progress") in (
+        False,
+        "${{ github.event_name == 'pull_request' }}",
+    ), path.name
+
+
 @pytest.mark.parametrize("path", MANAGED_PATHS, ids=lambda path: path.name)
 def test_write_permissions_belong_only_to_jobs_that_need_them(path: Path) -> None:
     definition = workflow(path)

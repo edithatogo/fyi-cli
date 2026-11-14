@@ -121,7 +121,7 @@ async fn test_e2e_cli_and_api_flow() {
     assert_eq!(retrieved_updated.id, 10042);
     assert_eq!(retrieved_updated.status, Some("sent".to_string()));
 
-    // 5. The not-yet-implemented CLI handler must not claim to register a request.
+    // 5. Unknown local authorities must fail without touching remote records.
     let mut cmd2 = Command::new(env!("CARGO_BIN_EXE_fyi-cli"));
     cmd2.args([
         "--db",
@@ -138,9 +138,10 @@ async fn test_e2e_cli_and_api_flow() {
     let output2 = cmd2
         .output()
         .expect("Failed to execute register-request subcommand");
-    assert!(!output2.status.success());
-    assert!(String::from_utf8_lossy(&output2.stderr).contains("not yet implemented"));
+    assert_eq!(output2.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&output2.stderr).contains("local authority not found"));
     assert!(output2.stdout.is_empty());
+    assert!(pool.list_local_requests().await.unwrap().is_empty());
     assert_eq!(pool.list_requests(100).await.unwrap().len(), 2);
 
     // Clean up temporary database file
