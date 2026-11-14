@@ -106,10 +106,10 @@ Python command does not have equivalent output-format handling.
 
 ### Slice 2: local request lifecycle
 
-- [ ] Implement registration and request listing.
-- [ ] Implement atomic status/history changes with stable no-op behaviour.
-- [ ] Implement local timeline and full local request detail.
-- [ ] Prove privacy, missing-record, ID-width, transaction and no-submission
+- [x] Implement registration and request listing.
+- [x] Implement atomic status/history changes with stable no-op behaviour.
+- [x] Implement local timeline and full local request detail.
+- [x] Prove privacy, missing-record, ID-width, transaction and no-submission
   contracts.
 
 `register-request AUTHORITY_SLUG TITLE BODY` retains `--tags`, `--status`,
@@ -219,14 +219,14 @@ Rust safety extension. Tests do not access the network.
 
 ## Verification and compatibility ledger
 
-All entries below are pending until linked evidence establishes otherwise. The
-parent track remains in progress; this document does not close it or authorize
-Python retirement.
+Completed delivery and pending acceptance are distinguished below. The parent
+track remains in progress; this document does not close it or authorize Python
+retirement.
 
 | Slice | Failing contract commit/run | Implementation commit | Final-head checks | PR / merge / branch pruning |
 |---|---|---|---|---|
-| Authorities | Pending | Pending | Pending | Pending |
-| Request lifecycle | Pending | Pending | Pending | Pending |
+| Authorities | `c9f7db3`; run `43552118106`, 2 expected failures | `33b043d`; MSRV `43553220643` | `34feb0a`: all 12 protected contexts and 32 applicable checks passed | #434 merged as `7cf2fd2`; remote/local branch pruned |
+| Request lifecycle | `ddb1b3e`; run `43553385063`, 11 expected failures | `cd160e8`; CI `43558451180`, MSRV `43558451176` | Green implementation checkpoint; final reconciled-head acceptance pending | #440; authority prerequisite merged, lifecycle merge pending |
 | Export/import and migration | Pending | Pending | Pending | Pending |
 
 Required local commands are targeted Rust tests, `cargo fmt --all -- --check`,
@@ -310,6 +310,54 @@ Master subsequently advanced through independently verified MCP PR #438 to
 `19f3cf376101500036951f9a3d3733da49f0df8b`. This branch incorporates that
 merge without editing its implementation. Final-head mandatory verification
 will run again on the reconciled authority head before merge.
+
+### Verified authority delivery
+
+PR [#434](https://github.com/edithatogo/fyi-cli/pull/434) squash-merged on
+2026-11-14 as `7cf2fd2a062ecba450637c45a31b8919fa2b86f5` from accepted head
+`34feb0af831e4e67d0a0b67cb8660e8b55cadaa5`. All twelve protected contexts
+passed with their expected GitHub app IDs, and all 32 applicable checks passed.
+Final-head runs include CI
+[43560612069](https://github.com/edithatogo/fyi-cli/actions/runs/43560612069),
+CodeQL [43560612021](https://github.com/edithatogo/fyi-cli/actions/runs/43560612021),
+and MSRV/Conductor
+[43560612100](https://github.com/edithatogo/fyi-cli/actions/runs/43560612100).
+The optional offline AI lane is not reported as a pass.
+
+GitHub's closed/merged state and fetched master were verified. The squash tree
+exactly matched the accepted head. The remote feature ref was deleted and the
+local authority branch was pruned after that verification. The lifecycle branch
+incorporates the actual authority merge; independently merged MCP/quality and
+packaging implementation remains unchanged.
+
+### Verified lifecycle acceptance checkpoint
+
+Head `cd160e8e7d20c37b0e8a23e4eafc71388075faa8` passed all 12 live protected
+contexts in CI
+[43558451180](https://github.com/edithatogo/fyi-cli/actions/runs/43558451180)
+and CodeQL
+[43558451223](https://github.com/edithatogo/fyi-cli/actions/runs/43558451223).
+Rust 1.99.1 MSRV/Conductor
+[43558451176](https://github.com/edithatogo/fyi-cli/actions/runs/43558451176)
+passed formatting, all-target/all-feature Clippy with warnings denied and
+all-feature workspace tests. Privacy, dependency review, profiling, Python
+security/fuzzing, workflow lint and existing portability checks also passed.
+The optional self-hosted offline AI lane has no designated runner and remains
+queued; it is not claimed as a pass.
+
+This verifies the five lifecycle commands and the prerequisite authorities,
+including 21 lifecycle repository tests, two shared-fixture tests, five schema
+tests and twelve actual lifecycle CLI tests. New CLI fixtures use an atomic
+sequence in their temporary directory names after a real parallel coverage run
+exposed a timestamp-only name collision. The Python subprocess fixture now
+selects its environment's interpreter when run under Scalene; normal and
+profiled fixture cases pass without relaxing stderr or exit assertions.
+
+The actual authority merge is now incorporated. Lifecycle delivery still
+requires green checks on its exact reconciled final head. Legacy source
+projection and transfer/migration are delivered in
+the separate third slice. Python detail's derived report schemas remain outside
+the implemented local-record contract.
 
 ### Request lifecycle implementation checkpoint
 

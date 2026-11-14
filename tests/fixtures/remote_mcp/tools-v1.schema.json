@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:fyi:mcp:tools:1",
+  "title": "FYI MCP complete tool catalogue snapshot v1",
+  "type": "object",
+  "required": ["schema_version", "tools"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "tools": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/tool"}
+    }
+  },
+  "$defs": {
+    "objectSchema": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {"const": "object"}
+      }
+    },
+    "tool": {
+      "type": "object",
+      "required": ["name", "description", "inputSchema", "outputSchema", "annotations"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string", "pattern": "^[a-zA-Z0-9_-]{1,128}$"},
+        "title": {"type": "string", "minLength": 1},
+        "description": {"type": "string", "minLength": 1},
+        "inputSchema": {"$ref": "#/$defs/objectSchema"},
+        "outputSchema": {"$ref": "#/$defs/objectSchema"},
+        "annotations": {
+          "type": "object",
+          "required": ["readOnlyHint", "destructiveHint", "idempotentHint", "openWorldHint"],
+          "additionalProperties": false,
+          "properties": {
+            "readOnlyHint": {"type": "boolean"},
+            "destructiveHint": {"type": "boolean"},
+            "idempotentHint": {"type": "boolean"},
+            "openWorldHint": {"type": "boolean"}
+          }
+        }
+      }
+    }
+  }
+}

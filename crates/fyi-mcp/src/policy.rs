@@ -111,6 +111,7 @@ struct ControlState {
     consecutive_failures: u32,
     circuit_open_until: Option<Instant>,
     usage: BTreeMap<String, (u32, u64)>,
+    in_flight: BTreeSet<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -119,6 +120,78 @@ pub struct RemoteMcpPolicy {
     state: Arc<Mutex<ControlState>>,
     circuit_failure_threshold: u32,
     circuit_cooldown: Duration,
+}
+
+/// One admitted remote operation. Dropping it never refunds the request attempt.
+///
+/// A permit reserves one active dispatch for its instance until it is consumed
+/// by `finish` or dropped on an error, timeout or cancellation. The caller must
+/// bound the complete remote future with `duration_budget`; `finish` also
+/// rejects a late result so a delayed timeout cannot publish an overrun.
+#[derive(Debug)]
+#[must_use = "hold the permit during the remote operation and finish it before returning data"]
+pub struct RemoteRequestPermit {
+    state: Arc<Mutex<ControlState>>,
+    instance: RemoteInstancePolicy,
+    capability: RemoteCapability,
+    started_at: Instant,
+    duration_budget: Duration,
+}
+
+impl RemoteRequestPermit {
+    /// Maximum wall-clock duration of the entire admitted remote operation.
+    pub fn duration_budget(&self) -> Duration {
+        self.duration_budget
+    }
+
+    /// Account for the serialized returned payload before publishing it.
+    ///
+    /// Bytes remain counted even when an overrun, overflow or policy change
+    /// rejects the result. This is an MCP result budget, not a raw HTTP body or
+    /// allocator limit; the source transport retains those separate bounds.
+    pub fn finish(self, bytes: u64) -> Result<(), PolicyError> {
+        self.finish_with_clock(bytes, Instant::now)
+    }
+
+    #[cfg(test)]
+    fn finish_at(self, bytes: u64, now: Instant) -> Result<(), PolicyError> {
+        self.finish_with_clock(bytes, || now)
+    }
+
+    fn finish_with_clock(
+        self,
+        bytes: u64,
+        clock: impl FnOnce() -> Instant,
+    ) -> Result<(), PolicyError> {
+        let instance = &self.instance;
+        let mut state = self.state.lock().map_err(|_| policy_unavailable())?;
+        let now = clock();
+        let usage = state.usage.entry(instance.instance_id.clone()).or_default();
+        let next_bytes = usage.1.checked_add(bytes);
+        usage.1 = next_bytes.unwrap_or(u64::MAX);
+        if next_bytes.is_none() || usage.1 > instance.budget.max_bytes {
+            return Err(PolicyError::BudgetExceeded(
+                "remote response byte budget exhausted".into(),
+            ));
+        }
+        let elapsed = now.checked_duration_since(self.started_at);
+        if elapsed.is_none_or(|elapsed| elapsed >= self.duration_budget) {
+            return Err(PolicyError::BudgetExceeded(
+                "remote operation duration budget exhausted".into(),
+            ));
+        }
+        authorize_controls(instance, self.capability, &state, now)
+    }
+}
+
+impl Drop for RemoteRequestPermit {
+    fn drop(&mut self) {
+        // A poisoned state already rejects every new permit. Drop must not
+        // panic while another failure or cancellation is unwinding.
+        if let Ok(mut state) = self.state.lock() {
+            state.in_flight.remove(&self.instance.instance_id);
+        }
+    }
 }
 
 impl RemoteMcpPolicy {
@@ -145,6 +218,7 @@ impl RemoteMcpPolicy {
                 consecutive_failures: 0,
                 circuit_open_until: None,
                 usage: BTreeMap::new(),
+                in_flight: BTreeSet::new(),
             })),
             circuit_failure_threshold: 3,
             circuit_cooldown: Duration::from_secs(30),
@@ -198,65 +272,127 @@ impl RemoteMcpPolicy {
         let instance = self.instances.get(instance_id).ok_or_else(|| {
             PolicyError::Disabled("remote instance is not in the explicit allowlist".into())
         })?;
-        let state = self.state.lock().expect("policy mutex poisoned");
-        if state.kill_switch {
+        let state = self.state.lock().map_err(|_| policy_unavailable())?;
+        authorize_controls(instance, capability, &state, Instant::now())?;
+        authorize_budget(instance, &state)
+    }
+
+    /// Authorize retrieval of an already completed result without granting I/O.
+    ///
+    /// Replay consumes no dispatch allowance, but must still obey the configured
+    /// capability, kill switch, degraded mode and circuit breaker.
+    pub fn authorize_cached_result(
+        &self,
+        instance_id: &str,
+        capability: RemoteCapability,
+    ) -> Result<(), PolicyError> {
+        let instance = self.instances.get(instance_id).ok_or_else(|| {
+            PolicyError::Disabled("remote instance is not in the explicit allowlist".into())
+        })?;
+        let state = self.state.lock().map_err(|_| policy_unavailable())?;
+        authorize_controls(instance, capability, &state, Instant::now())
+    }
+
+    /// Atomically authorize and reserve one remote dispatch before any I/O.
+    ///
+    /// Only one operation can be active per configured instance. Each admitted
+    /// attempt consumes its request allowance, including attempts that later
+    /// fail or time out. Rejected callers do not dispatch and are not counted.
+    pub fn begin_request(
+        &self,
+        instance_id: &str,
+        capability: RemoteCapability,
+    ) -> Result<RemoteRequestPermit, PolicyError> {
+        self.begin_request_with_clock(instance_id, capability, None, Instant::now)
+    }
+
+    /// Reserve a dispatch only while its confirmation deadline remains valid.
+    ///
+    /// The clock is sampled after acquiring the policy lock, so a confirmation
+    /// that expires during contention consumes neither a slot nor an attempt.
+    pub fn begin_request_before(
+        &self,
+        instance_id: &str,
+        capability: RemoteCapability,
+        deadline: Instant,
+    ) -> Result<RemoteRequestPermit, PolicyError> {
+        self.begin_request_with_clock(instance_id, capability, Some(deadline), Instant::now)
+    }
+
+    #[cfg(test)]
+    fn begin_request_at(
+        &self,
+        instance_id: &str,
+        capability: RemoteCapability,
+        now: Instant,
+    ) -> Result<RemoteRequestPermit, PolicyError> {
+        self.begin_request_with_clock(instance_id, capability, None, || now)
+    }
+
+    fn begin_request_with_clock(
+        &self,
+        instance_id: &str,
+        capability: RemoteCapability,
+        deadline: Option<Instant>,
+        clock: impl FnOnce() -> Instant,
+    ) -> Result<RemoteRequestPermit, PolicyError> {
+        let instance = self.instances.get(instance_id).ok_or_else(|| {
+            PolicyError::Disabled("remote instance is not in the explicit allowlist".into())
+        })?;
+        let mut state = self.state.lock().map_err(|_| policy_unavailable())?;
+        let now = clock();
+        if deadline.is_some_and(|deadline| now >= deadline) {
             return Err(PolicyError::Disabled(
-                "remote MCP kill switch is active".into(),
+                "remote operation deadline has expired".into(),
             ));
         }
-        if state.degraded && capability == RemoteCapability::Write {
-            return Err(PolicyError::Disabled(
-                "remote MCP is in degraded read-only mode".into(),
-            ));
-        }
-        if state
-            .circuit_open_until
-            .is_some_and(|until| until > Instant::now())
-        {
-            return Err(PolicyError::Disabled(
-                "remote MCP circuit breaker is open".into(),
-            ));
-        }
-        let enabled = match capability {
-            RemoteCapability::Read => instance.read_enabled,
-            RemoteCapability::Write => instance.write_enabled,
-        };
-        if !enabled {
-            return Err(PolicyError::Disabled(format!(
-                "remote {} capability is disabled for instance",
-                capability.as_str()
-            )));
-        }
-        let (requests, bytes) = state.usage.get(instance_id).copied().unwrap_or_default();
-        if requests >= instance.budget.max_requests || bytes >= instance.budget.max_bytes {
+        authorize_controls(instance, capability, &state, now)?;
+        authorize_budget(instance, &state)?;
+        if state.in_flight.contains(instance_id) {
             return Err(PolicyError::BudgetExceeded(
-                "remote instance budget exhausted".into(),
+                "remote instance concurrency budget exhausted".into(),
             ));
         }
-        Ok(())
+        let usage = state.usage.entry(instance_id.to_string()).or_default();
+        // authorize_budget checked the u32 bound before the same-lock update.
+        usage.0 += 1;
+        state.in_flight.insert(instance_id.to_string());
+        Ok(RemoteRequestPermit {
+            state: Arc::clone(&self.state),
+            instance: instance.clone(),
+            capability,
+            started_at: now,
+            duration_budget: Duration::from_secs(instance.budget.max_duration_seconds),
+        })
     }
 
     pub fn instance(&self, instance_id: &str) -> Option<RemoteInstancePolicy> {
         self.instances.get(instance_id).cloned()
     }
 
+    /// Legacy post-dispatch accounting. New callers should use `begin_request`.
+    ///
+    /// Count observed requests and bytes even when they exceed a limit, so
+    /// oversized responses cannot leave a fresh allowance behind.
     pub fn record_request(&self, instance_id: &str, bytes: u64) -> Result<(), PolicyError> {
         let instance = self.instances.get(instance_id).ok_or_else(|| {
             PolicyError::Disabled("remote instance is not in the explicit allowlist".into())
         })?;
-        let mut state = self.state.lock().expect("policy mutex poisoned");
+        let mut state = self.state.lock().map_err(|_| policy_unavailable())?;
         let usage = state.usage.entry(instance_id.to_string()).or_default();
-        let next_bytes = usage
-            .1
-            .checked_add(bytes)
-            .ok_or_else(|| PolicyError::BudgetExceeded("remote byte budget overflow".into()))?;
-        if usage.0 >= instance.budget.max_requests || next_bytes > instance.budget.max_bytes {
+        let next_requests = usage.0.checked_add(1);
+        let next_bytes = usage.1.checked_add(bytes);
+        usage.0 = next_requests.unwrap_or(u32::MAX);
+        usage.1 = next_bytes.unwrap_or(u64::MAX);
+        if next_requests.is_none()
+            || next_bytes.is_none()
+            || usage.0 > instance.budget.max_requests
+            || usage.1 > instance.budget.max_bytes
+        {
             return Err(PolicyError::BudgetExceeded(
                 "remote instance budget exhausted".into(),
             ));
         }
-        usage.0 += 1;
-        usage.1 = next_bytes;
         Ok(())
     }
 
@@ -272,10 +408,17 @@ impl RemoteMcpPolicy {
     }
 
     pub fn record_failure(&self) {
+        self.record_failure_at(Instant::now());
+    }
+
+    fn record_failure_at(&self, now: Instant) {
         let mut state = self.state.lock().expect("policy mutex poisoned");
-        state.consecutive_failures += 1;
+        state.consecutive_failures = state.consecutive_failures.saturating_add(1);
         if state.consecutive_failures >= self.circuit_failure_threshold {
-            state.circuit_open_until = Some(Instant::now() + self.circuit_cooldown);
+            state.circuit_open_until = now.checked_add(self.circuit_cooldown);
+            if state.circuit_open_until.is_none() {
+                state.kill_switch = true;
+            }
         }
     }
 
@@ -335,6 +478,58 @@ impl RemoteMcpPolicy {
             error_class: error_class.map(safe_token),
         }
     }
+}
+
+fn policy_unavailable() -> PolicyError {
+    PolicyError::Disabled("remote policy state is unavailable".into())
+}
+
+fn authorize_controls(
+    instance: &RemoteInstancePolicy,
+    capability: RemoteCapability,
+    state: &ControlState,
+    now: Instant,
+) -> Result<(), PolicyError> {
+    if state.kill_switch {
+        return Err(PolicyError::Disabled(
+            "remote MCP kill switch is active".into(),
+        ));
+    }
+    if state.degraded && capability == RemoteCapability::Write {
+        return Err(PolicyError::Disabled(
+            "remote MCP is in degraded read-only mode".into(),
+        ));
+    }
+    if state.circuit_open_until.is_some_and(|until| until > now) {
+        return Err(PolicyError::Disabled(
+            "remote MCP circuit breaker is open".into(),
+        ));
+    }
+    let enabled = match capability {
+        RemoteCapability::Read => instance.read_enabled,
+        RemoteCapability::Write => instance.write_enabled,
+    };
+    if !enabled {
+        return Err(PolicyError::Disabled(format!(
+            "remote {} capability is disabled for instance",
+            capability.as_str()
+        )));
+    }
+    Ok(())
+}
+
+fn authorize_budget(
+    instance: &RemoteInstancePolicy,
+    state: &ControlState,
+) -> Result<(), PolicyError> {
+    let instance_id = &instance.instance_id;
+    let (requests, bytes) = state.usage.get(instance_id).copied().unwrap_or_default();
+    if requests >= instance.budget.max_requests || bytes >= instance.budget.max_bytes {
+        return Err(PolicyError::BudgetExceeded(
+            "remote instance budget exhausted".into(),
+        ));
+    }
+    Ok(())
 }
 
 fn csv_env(name: &str) -> Result<BTreeSet<String>, PolicyError> {
@@ -463,5 +658,352 @@ mod tests {
         let mut bad = instance(true, false);
         bad.base_url = "https://user:pass@example.com".into();
         assert!(RemoteMcpPolicy::new(vec![bad]).is_err());
+    }
+
+    fn bounded_policy(max_requests: u32, max_bytes: u64) -> RemoteMcpPolicy {
+        let mut configured = instance(true, true);
+        configured.budget.max_requests = max_requests;
+        configured.budget.max_bytes = max_bytes;
+        RemoteMcpPolicy::new(vec![configured]).unwrap()
+    }
+
+    #[test]
+    fn reservation_counts_attempt_before_dispatch_and_drop_releases_slot() {
+        let policy = bounded_policy(3, 10);
+        let permit = policy.begin_request("nz", RemoteCapability::Read).unwrap();
+        assert_eq!(permit.duration_budget(), Duration::from_secs(1));
+        assert_eq!(policy.status().instances[0].requests_used, 1);
+        assert!(policy.begin_request("nz", RemoteCapability::Read).is_err());
+        assert_eq!(policy.status().instances[0].requests_used, 1);
+        drop(permit);
+        let second = policy.begin_request("nz", RemoteCapability::Read).unwrap();
+        second.finish(1).unwrap();
+        assert_eq!(policy.status().instances[0].requests_used, 2);
+        assert_eq!(policy.status().instances[0].bytes_used, 1);
+    }
+
+    #[test]
+    fn concurrent_reservations_admit_exactly_one_dispatch_per_instance() {
+        let policy = bounded_policy(20, 100);
+        let barrier = std::sync::Barrier::new(8);
+        let admitted = std::thread::scope(|scope| {
+            let workers = (0..8)
+                .map(|_| {
+                    scope.spawn(|| {
+                        barrier.wait();
+                        let result = policy.begin_request("nz", RemoteCapability::Read);
+                        let admitted = result.is_ok();
+                        barrier.wait();
+                        drop(result);
+                        admitted
+                    })
+                })
+                .collect::<Vec<_>>();
+            workers
+                .into_iter()
+                .map(|worker| usize::from(worker.join().unwrap()))
+                .sum::<usize>()
+        });
+        assert_eq!(admitted, 1);
+        assert_eq!(policy.status().instances[0].requests_used, 1);
+        assert!(policy.begin_request("nz", RemoteCapability::Read).is_ok());
+    }
+
+    #[test]
+    fn concurrency_is_independent_between_instances() {
+        let first = instance(true, true);
+        let mut second = first.clone();
+        second.instance_id = "au".into();
+        let policy = RemoteMcpPolicy::new(vec![first, second]).unwrap();
+        let nz = policy.begin_request("nz", RemoteCapability::Read).unwrap();
+        let au = policy.begin_request("au", RemoteCapability::Read).unwrap();
+        nz.finish(2).unwrap();
+        au.finish(3).unwrap();
+        let status = policy.status();
+        assert_eq!(status.instances[0].bytes_used, 3);
+        assert_eq!(status.instances[1].bytes_used, 2);
+    }
+
+    #[test]
+    fn dropped_and_failed_attempts_do_not_regain_request_allowance() {
+        let policy = bounded_policy(2, 10);
+        drop(policy.begin_request("nz", RemoteCapability::Read).unwrap());
+        drop(policy.begin_request("nz", RemoteCapability::Read).unwrap());
+        assert!(matches!(
+            policy.begin_request("nz", RemoteCapability::Read),
+            Err(PolicyError::BudgetExceeded(_))
+        ));
+        assert_eq!(policy.status().instances[0].requests_used, 2);
+    }
+
+    #[test]
+    fn oversized_response_is_counted_and_exhausts_future_allowance() {
+        let policy = bounded_policy(3, 10);
+        let permit = policy.begin_request("nz", RemoteCapability::Read).unwrap();
+        assert!(matches!(
+            permit.finish(11),
+            Err(PolicyError::BudgetExceeded(_))
+        ));
+        assert_eq!(policy.status().instances[0].requests_used, 1);
+        assert_eq!(policy.status().instances[0].bytes_used, 11);
+        assert!(policy.begin_request("nz", RemoteCapability::Read).is_err());
+    }
+
+    #[test]
+    fn exact_budget_response_succeeds_but_prevents_further_requests() {
+        let policy = bounded_policy(3, 10);
+        policy
+            .begin_request("nz", RemoteCapability::Read)
+            .unwrap()
+            .finish(10)
+            .unwrap();
+        assert!(policy.begin_request("nz", RemoteCapability::Read).is_err());
+        assert_eq!(policy.status().instances[0].bytes_used, 10);
+    }
+
+    #[test]
+    fn byte_overflow_saturates_and_cannot_reopen_budget() {
+        let policy = bounded_policy(3, u64::MAX);
+        policy
+            .begin_request("nz", RemoteCapability::Read)
+            .unwrap()
+            .finish(u64::MAX - 1)
+            .unwrap();
+        let permit = policy.begin_request("nz", RemoteCapability::Read).unwrap();
+        assert!(permit.finish(2).is_err());
+        assert_eq!(policy.status().instances[0].requests_used, 2);
+        assert_eq!(policy.status().instances[0].bytes_used, u64::MAX);
+        assert!(policy.begin_request("nz", RemoteCapability::Read).is_err());
+    }
+
+    #[test]
+    fn final_request_succeeds_without_counter_overflow() {
+        let policy = bounded_policy(u32::MAX, 10);
+        policy
+            .state
+            .lock()
+            .unwrap()
+            .usage
+            .insert("nz".into(), (u32::MAX - 1, 0));
+        policy
+            .begin_request("nz", RemoteCapability::Read)
+            .unwrap()
+            .finish(1)
+            .unwrap();
+        assert_eq!(policy.status().instances[0].requests_used, u32::MAX);
+        assert!(policy.begin_request("nz", RemoteCapability::Read).is_err());
+    }
+
+    #[test]
+    fn duration_deadline_is_enforced_without_sleeping() {
+        let policy = bounded_policy(3, 10);
+        let start = Instant::now();
+        let permit = policy
+            .begin_request_at("nz", RemoteCapability::Read, start)
+            .unwrap();
+        assert!(permit.finish_at(1, start + Duration::from_secs(1)).is_err());
+        assert_eq!(policy.status().instances[0].requests_used, 1);
+        assert_eq!(policy.status().instances[0].bytes_used, 1);
+        let next = policy
+            .begin_request_at("nz", RemoteCapability::Read, start)
+            .unwrap();
+        next.finish_at(1, start + Duration::from_millis(999))
+            .unwrap();
+    }
+
+    #[test]
+    fn backwards_clock_sample_fails_closed_and_releases_slot() {
+        let policy = bounded_policy(3, 10);
+        let start = Instant::now();
+        let permit = policy
+            .begin_request_at("nz", RemoteCapability::Read, start + Duration::from_secs(1))
+            .unwrap();
+        assert!(permit.finish_at(1, start).is_err());
+        assert!(policy.begin_request("nz", RemoteCapability::Read).is_ok());
+    }
+
+    #[test]
+    fn reservations_obey_policy_controls_and_recheck_before_returning() {
+        let policy = bounded_policy(5, 10);
+        assert!(policy
+            .begin_request("unknown", RemoteCapability::Read)
+            .is_err());
+        policy.set_kill_switch(true);
+        assert!(policy.begin_request("nz", RemoteCapability::Read).is_err());
+        policy.set_kill_switch(false);
+        policy.set_degraded(true);
+        assert!(policy.begin_request("nz", RemoteCapability::Write).is_err());
+        policy
+            .begin_request("nz", RemoteCapability::Read)
+            .unwrap()
+            .finish(1)
+            .unwrap();
+        policy.set_degraded(false);
+        let write = policy.begin_request("nz", RemoteCapability::Write).unwrap();
+        policy.set_degraded(true);
+        assert!(write.finish(1).is_err());
+        let read = policy.begin_request("nz", RemoteCapability::Read).unwrap();
+        policy.set_kill_switch(true);
+        assert!(read.finish(1).is_err());
+        assert_eq!(policy.status().instances[0].requests_used, 3);
+        assert_eq!(policy.status().instances[0].bytes_used, 3);
+    }
+
+    #[test]
+    fn reservation_does_not_enable_an_unconfigured_capability() {
+        let policy = RemoteMcpPolicy::new(vec![instance(true, false)]).unwrap();
+        assert!(policy.begin_request("nz", RemoteCapability::Write).is_err());
+        assert_eq!(policy.status().instances[0].requests_used, 0);
+    }
+
+    #[test]
+    fn circuit_cooldown_and_recovery_are_deterministic() {
+        let policy = bounded_policy(5, 10);
+        let start = Instant::now();
+        for _ in 0..3 {
+            policy.record_failure_at(start);
+        }
+        assert!(policy
+            .begin_request_at(
+                "nz",
+                RemoteCapability::Read,
+                start + Duration::from_secs(29)
+            )
+            .is_err());
+        let recovered = policy
+            .begin_request_at(
+                "nz",
+                RemoteCapability::Read,
+                start + Duration::from_secs(30),
+            )
+            .unwrap();
+        recovered
+            .finish_at(1, start + Duration::from_secs(30))
+            .unwrap();
+        policy.record_success();
+        policy.record_failure_at(start + Duration::from_secs(30));
+        assert!(policy
+            .begin_request_at(
+                "nz",
+                RemoteCapability::Read,
+                start + Duration::from_secs(30)
+            )
+            .is_ok());
+    }
+
+    #[test]
+    fn legacy_accounting_cannot_drop_an_oversized_response() {
+        let policy = bounded_policy(3, 10);
+        assert!(policy.record_request("nz", 11).is_err());
+        assert_eq!(policy.status().instances[0].requests_used, 1);
+        assert_eq!(policy.status().instances[0].bytes_used, 11);
+        assert!(policy.authorize("nz", RemoteCapability::Read).is_err());
+    }
+
+    #[test]
+    fn cached_results_remain_available_after_the_final_dispatch_allowance() {
+        let policy = bounded_policy(1, 10);
+        policy
+            .begin_request("nz", RemoteCapability::Write)
+            .unwrap()
+            .finish(10)
+            .unwrap();
+        assert!(policy
+            .authorize_cached_result("nz", RemoteCapability::Write)
+            .is_ok());
+        assert!(policy.begin_request("nz", RemoteCapability::Write).is_err());
+        assert!(policy.authorize("nz", RemoteCapability::Write).is_err());
+        let status = policy.status();
+        assert_eq!(status.instances[0].requests_used, 1);
+        assert_eq!(status.instances[0].bytes_used, 10);
+    }
+
+    #[test]
+    fn cached_results_still_obey_capabilities_and_all_operator_controls() {
+        let read_only = RemoteMcpPolicy::new(vec![instance(true, false)]).unwrap();
+        assert!(read_only
+            .authorize_cached_result("nz", RemoteCapability::Write)
+            .is_err());
+        let policy = bounded_policy(1, 10);
+        assert!(policy
+            .authorize_cached_result("unknown", RemoteCapability::Read)
+            .is_err());
+        policy.set_degraded(true);
+        assert!(policy
+            .authorize_cached_result("nz", RemoteCapability::Write)
+            .is_err());
+        assert!(policy
+            .authorize_cached_result("nz", RemoteCapability::Read)
+            .is_ok());
+        policy.set_degraded(false);
+        policy.set_kill_switch(true);
+        assert!(policy
+            .authorize_cached_result("nz", RemoteCapability::Write)
+            .is_err());
+        policy.set_kill_switch(false);
+        for _ in 0..3 {
+            policy.record_failure();
+        }
+        assert!(policy
+            .authorize_cached_result("nz", RemoteCapability::Write)
+            .is_err());
+        assert_eq!(policy.status().instances[0].requests_used, 0);
+    }
+
+    #[test]
+    fn expired_confirmation_deadline_does_not_reserve_or_consume_allowance() {
+        let policy = bounded_policy(1, 10);
+        let deadline = Instant::now();
+        assert!(policy
+            .begin_request_before("nz", RemoteCapability::Write, deadline)
+            .is_err());
+        assert_eq!(policy.status().instances[0].requests_used, 0);
+        assert!(policy
+            .begin_request_before(
+                "nz",
+                RemoteCapability::Write,
+                deadline + Duration::from_secs(30),
+            )
+            .is_ok());
+    }
+
+    #[test]
+    fn admission_checks_current_time_while_holding_the_policy_lock() {
+        let policy = bounded_policy(2, 10);
+        let deadline = Instant::now();
+        let clock = || {
+            assert!(matches!(
+                policy.state.try_lock(),
+                Err(std::sync::TryLockError::WouldBlock)
+            ));
+            deadline
+        };
+        assert!(policy
+            .begin_request_with_clock("nz", RemoteCapability::Write, Some(deadline), clock)
+            .is_err());
+        assert_eq!(policy.status().instances[0].requests_used, 0);
+        let permit = policy
+            .begin_request_with_clock("nz", RemoteCapability::Write, None, clock)
+            .unwrap();
+        permit.finish_at(1, deadline).unwrap();
+    }
+
+    #[test]
+    fn completion_samples_current_time_only_after_acquiring_policy_lock() {
+        let policy = bounded_policy(2, 10);
+        let start = Instant::now();
+        let permit = policy
+            .begin_request_at("nz", RemoteCapability::Read, start)
+            .unwrap();
+        let result = permit.finish_with_clock(1, || {
+            assert!(matches!(
+                policy.state.try_lock(),
+                Err(std::sync::TryLockError::WouldBlock)
+            ));
+            start + Duration::from_secs(1)
+        });
+        assert!(result.is_err());
+        assert_eq!(policy.status().instances[0].bytes_used, 1);
+        assert!(policy.begin_request("nz", RemoteCapability::Read).is_ok());
     }
 }

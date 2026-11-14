@@ -3,12 +3,27 @@
   "type": "quality",
   "status": "in_progress",
   "created_at": "2026-07-11T08:34:24Z",
-  "updated_at": "2026-11-14T14:40:00Z",
+  "updated_at": "2026-11-14T05:05:14Z",
   "description": "Compatibility contracts and aggressive harness engineering for remote MCP tools",
   "github_parent_issue": 169,
   "github_issue": 173,
   "dependencies": [
     "remote-mcp-observability-security-20260711",
     "remote-mcp-read-surface-20260711"
+  ],
+  "implementation_prs": [
+    438,
+    441,
+    443
+  ],
+  "acceptance_evidence": "acceptance-evidence.md",
+  "closure_status": "not_archived_acceptance_evidence_incomplete",
+  "remaining_blockers": [
+    "Shared versioned source JSON/RSS/Atom and malformed feed fixtures; full MCP-to-source success matrix",
+    "Deterministic source socket/transfer/cache fault tests and exact retry/multi-chunk bounds",
+    "Supported Windows/macOS client runs and complete Rust/MSRV matrix",
+    "Broader state/pagination/URL/path properties and SSRF/source guardrail/error mutation coverage",
+    "Externally exercised degraded stdio controls; durable replay and attachment immutability remain unverified guarantees",
+    "Profile-withdrawal and contract-migration behavior; unknown-version tests do not prove deprecation handling"
   ]
 }
