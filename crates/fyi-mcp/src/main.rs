@@ -2974,11 +2974,7 @@ async fn remote_commit_write(
     let instance = policy
         .instance(instance_id)
         .ok_or_else(|| "remote instance is not configured".to_string())?;
-    let token_env = format!(
-        "FYI_MCP_REMOTE_BOT_TOKEN_{}",
-        instance_id.to_ascii_uppercase().replace('-', "_")
-    );
-    let bot_token = std::env::var(token_env).ok();
+    let bot_token = std::env::var(instance.bot_token_env_name()).ok();
     let client = SyncClient::new(&instance.base_url)
         .map_err(|_| "remote client could not be initialized".to_string())?
         .with_bot_token(bot_token);

@@ -56,6 +56,17 @@ pub struct RemoteInstancePolicy {
     pub budget: RemoteBudget,
 }
 
+impl RemoteInstancePolicy {
+    /// Protected server-side credential name; never reads or exposes its value.
+    /// Policy construction rejects aliases of this legacy operator-facing name.
+    pub fn bot_token_env_name(&self) -> String {
+        format!(
+            "FYI_MCP_REMOTE_BOT_TOKEN_{}",
+            self.instance_id.to_ascii_uppercase().replace('-', "_")
+        )
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RemotePolicyStatus {
     pub schema_version: u8,
@@ -203,11 +214,18 @@ impl RemoteMcpPolicy {
             ));
         }
         let mut map = BTreeMap::new();
+        let mut credential_names = BTreeSet::new();
         for instance in instances {
             validate_instance(&instance)?;
+            let credential_name = instance.bot_token_env_name();
             if map.insert(instance.instance_id.clone(), instance).is_some() {
                 return Err(PolicyError::InvalidConfiguration(
                     "duplicate remote instance id".into(),
+                ));
+            }
+            if !credential_names.insert(credential_name) {
+                return Err(PolicyError::InvalidConfiguration(
+                    "remote instance ids must use distinct credential environment variables".into(),
                 ));
             }
         }
@@ -783,6 +801,19 @@ mod tests {
                 .map(|instance| instance.instance_id)
                 .collect();
             assert_eq!(ids, BTreeSet::from([first.into(), second.into()]));
+        }
+    }
+
+    #[test]
+    fn credential_environment_names_preserve_existing_operator_keys() {
+        for (id, expected) in [
+            ("nz", "FYI_MCP_REMOTE_BOT_TOKEN_NZ"),
+            ("nz-fyi", "FYI_MCP_REMOTE_BOT_TOKEN_NZ_FYI"),
+            ("MiXeD_id-7", "FYI_MCP_REMOTE_BOT_TOKEN_MIXED_ID_7"),
+        ] {
+            let mut configured = instance(true, true);
+            configured.instance_id = id.into();
+            assert_eq!(configured.bot_token_env_name(), expected);
         }
     }
 

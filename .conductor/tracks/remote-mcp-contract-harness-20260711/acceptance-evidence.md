@@ -253,3 +253,69 @@ exclusive merge window.
 Final PR heads, Actions links and merge commits are recorded in the PRs and
 the delivery report. Source acquisition, SQLite core, localization, CLI
 dispatch, TUI, packaging and shared workflows remain with their assigned owners.
+
+## Epic #169 resumption: credential configuration contracts
+
+### Reconciled delivery baseline
+
+Live master `9050a6649ebbcf48e6e2919e5bc19bbed4b4f8c0` includes PR #449's
+degraded stdio startup and restart recovery. Its final head
+`19ff55e9b6579e7396cb5a5e6832d20bb64b2b0d` was independently rechecked: all
+12 protected contexts succeeded with their required app identities, including
+[CI 43577452760](https://github.com/edithatogo/fyi-cli/actions/runs/43577452760)
+and [CodeQL 43577452908](https://github.com/edithatogo/fyi-cli/actions/runs/43577452908).
+The optional offline AI job remained queued and is not counted as passed. The
+already-merged startup/recovery path is retained, not reimplemented. Its Linux
+subprocess evidence does not establish a successful upstream write, hot mode
+switching or durable restart replay. The epic and this track stay open.
+
+### Test-first change
+
+Published checkpoint `d17d5dfaefe17947c62f963b2c90a2995a9c1daf` contains the
+failing tests before production changes. Against unchanged master `9050a66`,
+the policy admitted distinct IDs that resolve to one credential environment
+variable, and the real MCP executable accepted that configuration. Both rejection
+tests failed on those exact outcomes; the distinct-ID compatibility test passed.
+All identifiers, endpoints and credential markers are synthetic, with no source
+network I/O.
+
+Policy construction now requires unique protected credential names across the
+entire allowlist, including entries whose write capability is off. It retains
+the legacy ASCII-uppercase and hyphen-to-underscore operator naming convention.
+Write dispatch uses the same name derivation; exact instance IDs and independent
+capabilities are preserved. Invalid mappings fail before SQLite creation or
+protocol output, without reflecting private values. No source transport,
+database core, application CLI, localization, shared manifest/workflow or
+Python-runtime change belongs to this increment.
+
+### Executed verification
+
+- `cargo test --locked -p fyi-mcp`: **133 passed**, comprising 127 unit/boundary
+  and six executable wire tests. The new contracts exercise 480 generated alias
+  configurations, both configuration orders and all write-capability pairs,
+  distinct-ID compatibility and legacy key examples. Two ambiguous subprocess
+  configurations fail within five seconds with no database/protocol side effect
+  and no private ID, endpoint, database path or credential in stderr.
+- `cargo fmt --all -- --check` passed.
+- `cargo clippy --workspace --all-targets --all-features --locked -- -D warnings`
+  passed on the production candidate.
+- `cargo test --workspace --all-features --locked`: **663 passed, zero failed,
+  one ignored**, including doctests. Two earlier compilation attempts exhausted
+  local disk before any tests ran. The successful run used
+  `CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0` after removing only reproducible
+  build artifacts; assertions, features, tests and repository CI configuration
+  were unchanged. Saved earlier coverage reports were retained.
+- Three targeted, temporary mutations were each rejected by executed test
+  assertions: disabling collision rejection, removing ASCII case folding, and
+  removing separator normalization. No mutation was accepted or counted on a
+  compile failure. This is a three-operator sensor check, not a broad mutation
+  score. The production policy file was restored byte for byte with SHA-256
+  `b0e4475b5e772c7532be1581be970c73864aa6e3d44cdf7bc57a2ef034a5f2a1`.
+- Existing Conductor and remote-MCP fixture verifiers and diff whitespace checks
+  passed. Required hosted checks, including the unchanged coverage/security
+  gates, remain mandatory on the final integration head.
+
+The sole integration coordinator retains final master reconciliation, merge and
+branch pruning. This bounded normalization contract does not complete the broader
+source URL/path/pagination/state properties, raw-transfer/fault, platform,
+durable-audit/replay, attachment immutability or server compare-and-set acceptance.

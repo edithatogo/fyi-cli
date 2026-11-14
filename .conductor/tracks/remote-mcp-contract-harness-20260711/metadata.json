@@ -3,7 +3,7 @@
   "type": "quality",
   "status": "in_progress",
   "created_at": "2026-07-11T08:34:24Z",
-  "updated_at": "2026-11-14T06:36:13Z",
+  "updated_at": "2026-11-14T12:22:05Z",
   "description": "Compatibility contracts and aggressive harness engineering for remote MCP tools",
   "github_parent_issue": 169,
   "github_issue": 173,
@@ -14,8 +14,16 @@
   "implementation_prs": [
     438,
     441,
-    443
+    443,
+    449
   ],
+  "active_increment": {
+    "issue": 169,
+    "branch": "fix/mcp-credential-namespace-169-20261114",
+    "test_first_commit": "d17d5dfaefe17947c62f963b2c90a2995a9c1daf",
+    "status": "implemented_local_verification",
+    "merge_window": "awaiting_integration_coordinator"
+  },
   "acceptance_evidence": "acceptance-evidence.md",
   "closure_status": "not_archived_acceptance_evidence_incomplete",
   "remaining_blockers": [

@@ -17,6 +17,21 @@ Read and write capabilities are independent; enabling read never enables
 write. Remote budgets are bounded per instance for request count, response
 bytes, and wall-clock duration.
 
+Each instance ID selects its protected bot-token environment variable by ASCII
+uppercasing the ID and replacing `-` with `_`. For example, `north-foi` uses
+`FYI_MCP_REMOTE_BOT_TOKEN_NORTH_FOI`. These existing names are preserved, but
+they must be unique across the complete allowlist: `north-foi` and `north_foi`,
+or `NZ` and `nz`, cannot coexist. The check also applies to read-only or disabled
+entries so a later capability change cannot introduce an ambiguous mapping.
+Credential lookup and startup validation use the same name derivation.
+
+An ambiguous configuration fails before database creation or protocol output;
+its diagnostic does not echo IDs, endpoints, paths or token values. To migrate
+such a configuration, choose distinct instance IDs, update the corresponding
+allowlist/read/write settings and protected credential names, then restart.
+MCP callers must use those exact configured IDs; ID matching is still case
+sensitive. No token value is accepted as an MCP argument.
+
 The MCP request counter measures admitted tool operations, including failures;
 raw HTTP retries within an operation belong to the source transport's separate
 limits. One operation may be active per instance. The response budget measures
