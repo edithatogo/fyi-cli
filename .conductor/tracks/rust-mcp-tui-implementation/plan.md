@@ -12,7 +12,14 @@
 
 
 ## Phase 2.3: Terminal UI Dashboard (`ratatui`)
-- [x] Task: Write unit/mock rendering tests for Ratatui UI components
-- [x] Task: Implement dashboard layouts, custom terminal widgets, and async input handler
-- [x] Task: Conductor - User Manual Verification 'Phase 2.3: TUI Dashboard' (Protocol in workflow.md)
+- [~] Task: Reconcile rendering and keyboard contracts using deterministic offline fixtures.
+- [~] Task: Complete the bounded read-only Ratatui presentation with typed input snapshots, honest metrics, timelines, privacy and resize behavior.
+- [ ] Task: Integrate a read-only local-data adapter and terminal launch after the request-management branch has merged; `main.rs` is owned by that workstream meanwhile.
+- [ ] Task: Verify terminal startup/cleanup, asynchronous input and original performance budgets with runtime evidence.
+- [ ] Task: Record actual user/manual terminal verification; the historical completion checkbox had no supporting evidence.
+
+2026-11-14 audit: `tui` currently returns `unsupported_command`. The existing
+`AppState::new()` contains sample records and counts; tables do not scroll with
+selection and keyboard handling consumes key releases. The initial regression
+checkpoint is tests only. The combined CLI/MCP/TUI track is not being closed.
 

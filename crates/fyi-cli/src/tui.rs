@@ -8,6 +8,10 @@ use ratatui::{
 };
 use std::collections::BTreeSet;
 
+#[cfg(test)]
+#[path = "tui/presentation_tests.rs"]
+mod presentation_tests;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TextInput {
     value: String,
