@@ -1,0 +1,17 @@
+REVIEW PACKET — NOT SUBMITTED
+
+Upstream: https://github.com/edithatogo/fyi-cli
+Public release: https://github.com/edithatogo/fyi-cli/releases/tag/v1.2.0
+Component version: 0.1.2 (as declared by Cargo.toml at that tag)
+Source commit: 86fcbd8914037735b6f27e5a329d5f3013033efd
+Archive: fyi-cli-windows-amd64.exe.zip
+SHA256: 8b4c38ead64c8efb80dfc53ff4a4c875be41169b6469fefaef96cf56211875f5
+Expected root executable: fyi-cli.exe
+
+The digest is independently observed in GitHub's Release assets API. This audit
+has not downloaded or executed the binary. Before submission, the release
+operator must reconcile tag/component versions, verify downloaded bytes,
+signed-release provenance and SBOM, then record a Windows Sandbox clean install,
+fyi-cli.exe --help and uninstall. See packaging/SUBMISSION_RUNBOOK.md.
+
+No MCPB archive or MCP server is installed by this CLI package.

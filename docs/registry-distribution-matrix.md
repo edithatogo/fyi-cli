@@ -3,13 +3,15 @@
 Implementation-oriented submission matrix for **fyi-cli** / **fyi-mcp** distribution.
 Update this file when a submission lands or when release assets change.
 
-Crates.io names reviewed: **2026-11-13**; other registry statuses retain their dated evidence below.
+Package/container evidence reviewed: **2026-11-14**; MCP/AI catalog rows retain their dated evidence below.
 
 Home-page listing (README): see **Where fyi-cli / fyi-mcp is listed** in [`README.md`](../README.md).  
 Release automation (tags, GHCR, external catalogs, version sync): [`release-multi-registry.md`](./release-multi-registry.md).
 Release compatibility and integrity contract: [`packaging/release-compatibility.json`](../packaging/release-compatibility.json).
 Packaging asset CI check: `python scripts/verify_packaging_assets.py`.
 Machine-readable submission ledger: [`packaging/registry-submissions.json`](../packaging/registry-submissions.json), validated by `python scripts/validate_registry_submission_ledger.py`.
+Package operator steps: [`packaging/SUBMISSION_RUNBOOK.md`](../packaging/SUBMISSION_RUNBOOK.md).
+Observed release/assets: [`packaging/release-evidence.json`](../packaging/release-evidence.json).
 
 ## Legend
 
@@ -39,40 +41,52 @@ Machine-readable submission ledger: [`packaging/registry-submissions.json`](../p
 
 ## Package managers
 
+**No current Rust package-manager packet is submission-ready, submitted or verified
+live.** The binary review packets bind actual historical `v1.2.0` CLI assets to
+their source's Cargo version `0.1.2`; API-observed hashes are not downloaded-byte
+or native-install verification. Release/version reconciliation, integrity and
+platform evidence remain required. `v0.1.2` tag/release lookups returned 404.
+
+For packages, **blocked** means recorded prerequisites remain; **assets-ready**
+requires a qualified immutable release and completed native evidence;
+**submitted** requires an actual submission URL; **live** additionally requires
+public listing and verified clean installation. No status follows merely from
+having a manifest. The legacy PyPI listing is separate from Rust distribution.
+
 | Target | Status | Repo artifacts | Issue |
 |--------|--------|----------------|-------|
-| Crates.io | **blocked** | `fyi-cli` and `fyi-core` resolve to a different project; select and verify new names before publishing | — |
+| Crates.io | **blocked** | `fyi-cli` and `fyi-core` are occupied and have no matching 0.1.2 index release; verify project ownership or select new names before publishing | — |
 | PyPI (legacy `fyi-cli`) | **live** / frozen for migration | Public release 1.0.0; the Git-pinned archive consumer is separate | — |
-| Homebrew | **assets-ready** | `packaging/homebrew/fyi-cli.rb` (placeholders for SHA/URLs — update per release) | — |
-| Chocolatey | **assets-ready** | `packaging/chocolatey/fyi-cli.nuspec` | — |
-| Scoop | **assets-ready** | `packaging/scoop/fyi-cli.json` | #106 |
-| WinGet | **assets-ready** (draft) | `packaging/winget/edithatogo.fyi-cli.yaml` — prefer cargo-dist `.zip`/`.exe` before community PR | #107 |
-| AUR | **assets-ready** (draft) | `packaging/aur/PKGBUILD` — set `sha256sums` from release source tarball before AUR submit | #108 |
-| nixpkgs | **assets-ready** (draft) | `packaging/nix/default.nix` — fill `src.hash` / `cargoHash` after first `nix-build` | #109 |
-| Snap | **assets-ready** (draft) | `packaging/snap/snapcraft.yaml` — builds `fyi-cli` + `fyi-mcp` from tagged source | #110 |
-| Flatpak | **assets-ready** (draft) | `packaging/flatpak/io.github.edithatogo.fyi-cli.yml` (+ AppStream metainfo) | #111 |
-| asdf / mise | **assets-ready** (draft) | `packaging/asdf/bin/{install,list-all}`, `packaging/mise/backend.toml` | #112 |
-| cargo-binstall | **blocked** | Resolve the crate-name collision and verify matching release assets before public installation | #113 |
-| Debian / PPA | **assets-ready** (draft) | `packaging/debian/{control,rules,changelog,copyright}` skeleton | #114 |
-| Fedora / COPR | **assets-ready** (draft) | `packaging/fedora/fyi-cli.spec` | #115 |
+| Homebrew maintainer tap | **blocked** | `packaging/homebrew/fyi-cli.rb` has actual archive URLs/hashes; native audit/install/test and an owned tap remain. This binary formula is not eligible for Homebrew/core | — |
+| Chocolatey | **blocked** | `packaging/chocolatey/` binds the x64 CLI ZIP; byte/native package verification and moderation remain | — |
+| Scoop | **blocked** | `packaging/scoop/fyi-cli.json` binds the x64 CLI ZIP and `fyi-cli.exe`; clean validation/install and bucket review remain | #106 |
+| WinGet | **blocked** | `packaging/winget/edithatogo.fyi-cli.yaml` uses a ZIP with nested portable `fyi-cli.exe`; native validation/install and community review remain | #107 |
+| AUR | **blocked** | `packaging/aur/PKGBUILD` pins source; source/vendor hashes, clean chroot build and `.SRCINFO` remain | #108 |
+| nixpkgs | **blocked** | `packaging/nix/default.nix` requires source NAR/vendor hashes, a pinned builder, native Linux tests and a maintainer | #109 |
+| Snap | **blocked** | `packaging/snap/snapcraft.yaml` requires hashed vendoring, a separately qualified offline compiler per architecture, confined native builds and publisher/name verification | #110 |
+| Flatpak / Flathub | **not-applicable** to Flathub; private Flatpak **blocked** | Current Flathub policy excludes this console product. `packaging/flatpak/` is a private template requiring hashes, runtime qualification and sandbox smoke | #111 |
+| asdf / mise | **blocked** | `packaging/asdf/` has no approved install version or published plugin repository; `packaging/mise/backend.toml` is an inventory, not a registered backend | #112 |
+| cargo-binstall | **blocked** | Default strategies are disabled. Resolve crate identity and qualify exact binary mappings before enabling a distribution path | #113 |
+| Debian / PPA | **blocked** | `packaging/debian/` requires dependency/licence closure, native offline build, Lintian/autopkgtest and signing/sponsorship | #114 |
+| Fedora / COPR | **blocked** | `packaging/fedora/fyi-cli.spec` requires source/vendor hashes, SRPM/mock builds and an owned COPR project; Fedora archive review is separate | #115 |
 
 ## Containers
 
 | Target | Status | Notes | Issue |
 |--------|--------|-------|-------|
-| Dockerfile (local / CI build) | **assets-ready** | Root `Dockerfile` builds release `fyi-mcp`; operator docs in [`docs/containers.md`](./containers.md) | #116 |
-| GHCR multi-arch publish | **assets-ready** | Workflow [`.github/workflows/container-publish.yml`](../.github/workflows/container-publish.yml) builds `linux/amd64`+`linux/arm64` → `ghcr.io/edithatogo/fyi-mcp` on `fyi-mcp-v*` / `v*` tags (or `workflow_dispatch`). **Not live** until a public pull is verified | #116 |
-| Docker Hub / Quay | **planned** | Optional mirrors after GHCR is proven | #116 |
+| Dockerfile (local / CI build) | **blocked** for distribution | Root Dockerfile is available for local builds; reproducible source/image binding, integrity and clean installation still require evidence | #116 |
+| GHCR multi-arch publish | **blocked** | Existing workflow targets `linux/amd64`+`linux/arm64` → `ghcr.io/edithatogo/fyi-mcp`; public pulls, immutable digests, SBOM, provenance and isolated native smoke remain unverified | #116 |
+| Docker Hub / Quay | **not-applicable / deferred** | First qualify GHCR; require a documented consumer need, owner and digest-preserving replication before adding a mirror | #116 |
 
 MCP catalog submission checklist (all catalogs + Awesome PR): [`packaging/mcp-catalogs/SUBMISSION_CHECKLIST.md`](../packaging/mcp-catalogs/SUBMISSION_CHECKLIST.md).
 
 ## Implementation notes
 
-1. Prefer **one release train** (GitHub Releases + cargo-dist) as the source of truth for hashes.
-2. MCPB assets (`fyi-mcp-*-win32.mcpb`) are valid for MCP installs; WinGet/Scoop UX is better with plain CLI zip/exe — track as a release packaging improvement if needed.
+1. Qualify **one signed, versioned release** as the source for package bytes, hashes, SBOM and provenance. Current historical GitHub release metadata is observed, not qualified.
+2. Scoop/WinGet use the observed Windows CLI ZIP. Separate historical MCPB packages must not substitute for a CLI executable or a standalone MCP archive.
 3. Do not mark external catalog rows **live** without a public URL or API proof in this file.
 4. Catalog submission packages live under `packaging/mcp-catalogs/{pulsemcp,mcp-so,docker-mcp,mcp-get,opentools}/`.
-5. Conductor track: `.conductor/tracks/registry-distribution-expansion/` (epic #45).
+5. Package Conductor track: [`.conductor/tracks/package-registry-submissions_20260712/`](../.conductor/tracks/package-registry-submissions_20260712/) (epic [#194](https://github.com/edithatogo/fyi-cli/issues/194)). The prior expansion track is historical context.
 
 ## Verification commands (operator)
 
