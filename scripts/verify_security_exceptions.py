@@ -29,6 +29,16 @@ ADVISORY = re.compile(r"^RUSTSEC-\d{4}-\d{4}$")
 CLI_IGNORE = re.compile(r"--ignore(?:=|\s+)([^\s\\]+)")
 
 
+def unique_members(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    """Reject duplicate JSON keys, including nested metadata and exception IDs."""
+    parsed: dict[str, object] = {}
+    for key, value in pairs:
+        if key in parsed:
+            raise ValueError(f"duplicate JSON key: {key}")
+        parsed[key] = value
+    return parsed
+
+
 def evaluate(root: Path, today: date) -> list[str]:
     """Validate exception policy and all workflow cargo-audit ignore flags."""
     errors: list[str] = []
@@ -39,7 +49,8 @@ def evaluate(root: Path, today: date) -> list[str]:
         if not isinstance(denied, list) or any(not isinstance(x, str) for x in denied):
             raise ValueError("advisories.ignore must be a list of identifiers")
         policy = json.loads(
-            (root / "security/advisory-exceptions.json").read_text(encoding="utf-8")
+            (root / "security/advisory-exceptions.json").read_text(encoding="utf-8"),
+            object_pairs_hook=unique_members
         )
         if not isinstance(policy, dict):
             raise ValueError("security exception policy must be a JSON object")
@@ -62,8 +73,6 @@ def evaluate(root: Path, today: date) -> list[str]:
     check_ids(set(exceptions), "policy")
     if len(denied) != len(set(denied)):
         errors.append("deny.toml: duplicate ignored advisory")
-    if len(exceptions) != len(set(exceptions)):
-        errors.append("policy: duplicate advisory ID")
     for advisory in denied:
         if advisory not in exceptions:
             errors.append(f"deny.toml: undocumented suppression: {advisory}")
