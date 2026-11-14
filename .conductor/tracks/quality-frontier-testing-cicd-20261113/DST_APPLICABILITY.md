@@ -1,57 +1,42 @@
-# DST Applicability Analysis
+# Deterministic simulation testing applicability
 
-Deterministic Simulation Testing (DST) applicability for fyi-cli network commands.
-Generated during Conductor track `quality-frontier-testing-cicd-20261113` (issue #280).
+Reconciled on 2026-11-14. The original analysis predated PR #414 and contained
+historical gaps that were not an accurate account of the present implementation.
 
-## Code Paths That Benefit from DST
+## Existing deterministic evidence
 
-These code paths make outbound HTTP requests and should have deterministic,
-replayable simulation tests with bounded runtime and thresholds:
+| Surface | Evidence | Enforced behavior |
+| --- | --- | --- |
+| Feed ingestion | `tests/test_monitor.py::TestIngestFeedDST` | Four tests: repeatable results from the same simulated entries, 50-entry execution below one second, empty feed and unavailable-feed fallback |
+| Authority import/discovery | `tests/test_importers.py` | Local CSV/rows, idempotent database effects and `httpx.MockTransport` for URL-based acquisition, with request/response assertions |
+| Acquisition receipts | `tests/test_acquisition_receipts.py` and acquisition conformance fixtures | Replayable metadata/digest and tampering assertions; source track owns further schema and runtime parity |
+| Archive capture | `tests/test_archive_capture.py` | Mocked capture, WARC/WACZ and payload-preservation assertions |
+| CDX and replay | `tests/test_internet_archive_cdx.py`, `tests/test_internet_archive_replay.py` | Existing bounded fixture-based source suites; unchanged by this CI track |
 
-| Code Path | Module | CLI Command | Existing DST Tests | Status |
-|-----------|--------|-------------|-------------------|--------|
-| Fetch request page | `src/fyi_system/fetch.py` | `fetch-request-page` | Yes (`test_acquisition_receipts.py`) | Covered |
-| Discover bodies | `src/fyi_system/discovery.py` | `discover-bodies` | Yes (`test_discovery.py`) | Covered |
-| Discover feed/search | `src/fyi_system/discovery.py` | `discover` | Yes (`test_discovery.py`) | Covered |
-| Backfill IDs (numeric probing) | `src/fyi_system/discovery.py` | `discover --backfill-ids` | Yes (`test_discovery.py`) | Covered |
-| Internet Archive CDX | `src/fyi_system/internet_archive_cdx.py` | `internet-archive-cdx` | Yes (`test_internet_archive_cdx.py`) | Covered |
-| Internet Archive replay | `src/fyi_system/internet_archive_replay.py` | `internet-archive-replay` | Yes (`test_internet_archive_replay.py`) | Covered |
-| Historical index | `src/fyi_system/historical_index.py` | `historical-index` | Yes (`test_historical_index.py`) | Covered |
-| Ingest feed (RSS) | `src/fyi_system/monitor.py` | `ingest-feed` | Partial | **Gap** - needs DST |
-| Archive capture | `src/fyi_system/archive_capture.py` | `capture` | Partial (`test_archive_capture.py`) | **Gap** - needs bounded runtime |
-| Import authorities (CSV/URL) | `src/fyi_system/importers.py` | `import-authorities` | Partial | **Gap** - needs DST |
+The four existing feed DST tests were independently executed during close-out.
+Representative importer, API, receipt, remote-MCP and archive contracts also ran:
+80 selected tests passed before the CI implementation was published. See
+`acceptance-evidence.md` for commands and later hosted evidence.
 
-## Code Paths Excluded from DST
+The four older monitor smoke tests initially attempted live HTTP. Safe red tests
+blocked those attempts before connection. They now use a checked-in empty RSS
+fixture through the real parser under a class-local network guard; their original
+assertions and all DST/reconciliation classes are unchanged. All 12 monitor tests
+pass, and the final representative contract batch passes 88 tests.
 
-These code paths perform local-only operations (no network I/O) and do not
-benefit from deterministic simulation testing:
+## CI applicability
 
-| Code Path | Module | Reason for Exclusion |
-|-----------|--------|---------------------|
-| Database operations | `src/fyi_system/db.py` | Local SQLite; use integration tests instead |
-| Security/encryption | `src/fyi_system/security.py` | Local crypto; use unit/property tests |
-| Agent runtime | `src/fyi_system/agent_runtime.py` | Local logic; use unit tests |
-| Process events | `src/fyi_system/process_events.py` | Local event processing; use unit tests |
-| Archive health | `src/fyi_system/archive_health.py` | Local file system reads; use integration tests |
-| Dashboard | `src/fyi_system/dashboard.py` | Local rendering; use unit tests |
-| Provenance | `src/fyi_system/provenance.rs` | Local hash chain; use Rust unit tests |
-| Sync client | `crates/fyi-core/src/sync.rs` | Local orchestration; use Rust unit tests |
+Deterministic suites remain in the full Python Tests gate. The dedicated
+property/Hypothesis, Rust workspace, source-boundary and contract lanes are
+preserved. Removing redundant full-suite Scalene execution from each PR does not
+remove ordinary tests: full profiling remains scheduled/manual, and PR profiling
+runs all eight existing benchmarks with explicit per-benchmark limits.
 
-## DST Test Standards
+External HTTP service behavior is not a deterministic test fixture. Full hosted
+source acquisition, source cutover, crash durability and downstream archive
+parity are owned by the active source-adapter track and are not claimed here.
 
-All DST tests must:
-1. Use `httpx.MockTransport` or equivalent for HTTP simulation
-2. Use fixture files for replayable responses (not inline data)
-3. Have bounded runtime (no wall-clock dependencies)
-4. Be deterministic (same input → same output every run)
-5. Include threshold assertions (status codes, byte counts, digest values)
-
-## Gaps Identified
-
-1. **ingest-feed** (`monitor.py`): No deterministic simulation test for RSS feed ingestion with bounded runtime.
-2. **archive_capture** (`archive_capture.py`): Has mock tests but no bounded runtime threshold enforcement.
-3. **import-authorities** (`importers.py`): No DST test for URL-based authority import.
-
-## Recommendation
-
-Prioritize DST test additions in order: ingest-feed → archive-capture bounded runtime → import-authorities.
+Local SQLite, cryptography, rendering and local process-event transformations
+continue to use their existing unit, property or integration suites; they do not
+require a new network simulation harness. No new simulation framework or runtime
+dependency is introduced by this close-out.
