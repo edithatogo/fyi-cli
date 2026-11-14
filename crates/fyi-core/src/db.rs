@@ -1,3 +1,5 @@
+pub mod local;
+
 use crate::api::{AlaveteliCorrespondence, AlaveteliRequest, CorrespondenceDirection};
 use chrono::Utc;
 use serde::Serialize;

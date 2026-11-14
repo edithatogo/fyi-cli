@@ -18,6 +18,8 @@ use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::runtime::Runtime;
 
+mod local;
+
 #[allow(dead_code)]
 mod tui;
 
@@ -601,8 +603,9 @@ fn main() {
             }
             println!("Initialized SQLite database at {}", db);
         }
-        Commands::ImportAuthorities { .. } => unsupported_command("import-authorities"),
-        Commands::ListAuthorities { .. } => unsupported_command("list-authorities"),
+        Commands::ImportAuthorities { .. } | Commands::ListAuthorities { .. } => {
+            local::run(&args.command, args.output_format);
+        }
         Commands::RegisterRequest { .. } => unsupported_command("register-request"),
         Commands::ListRequests { .. } => unsupported_command("list-requests"),
         Commands::SetStatus { .. } => unsupported_command("set-status"),
