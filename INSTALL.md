@@ -6,16 +6,16 @@ Install **fyi-cli** (FOI/OIA CLI) and **fyi-mcp** (Model Context Protocol server
 |--|--|
 | **Version (this doc)** | `0.1.2` |
 | **Homepage** | https://github.com/edithatogo/fyi-cli |
-| **Last updated** | 2026-11-13 |
+| **Last updated** | 2026-11-14 |
 | **Primary stack** | Rust workspace (`fyi-cli`, `fyi-mcp`, `fyi-core`) |
 | **Legacy** | Python package (`fyi-cli` / `fyi_system`) — frozen for existing consumers during migration |
 
-**Status discipline:** many package-manager and catalog channels are **draft / assets-ready** only (manifests live under [`packaging/`](packaging/)). Do **not** treat them as published until the matrix says **live**.
+**Distribution status:** Rust package-manager and container channels are **blocked** pending release qualification and native evidence. Reviewable metadata under [`packaging/`](packaging/) is not a published package. MCP/AI catalog statuses are maintained separately in the distribution matrix.
 
 | Doc | Purpose |
 |-----|---------|
-| [docs/registry-distribution-matrix.md](docs/registry-distribution-matrix.md) | Live vs draft matrix (MCP, package managers, containers) |
-| [docs/installation-package-managers.md](docs/installation-package-managers.md) | Per-manager draft notes, local build commands, caveats |
+| [docs/registry-distribution-matrix.md](docs/registry-distribution-matrix.md) | Dated channel evidence and blockers (MCP, package managers, containers) |
+| [docs/installation-package-managers.md](docs/installation-package-managers.md) | Per-manager packet scope and outstanding validation |
 | [packaging/mcp-catalogs/SUBMISSION_CHECKLIST.md](packaging/mcp-catalogs/SUBMISSION_CHECKLIST.md) | MCP catalog submission checklist |
 | [docs/containers.md](docs/containers.md) | GHCR / Docker image for `fyi-mcp` |
 
@@ -26,11 +26,11 @@ Install **fyi-cli** (FOI/OIA CLI) and **fyi-mcp** (Model Context Protocol server
 | Goal | Method | Status |
 |------|--------|--------|
 | Fastest from source | `cargo install --path crates/fyi-cli` | Works from a clone |
-| Crates.io / cargo-binstall | Blocked | `fyi-cli` and `fyi-core` are names of a different project on crates.io |
-| Prebuilt CLI / MCPB | [GitHub Releases](https://github.com/edithatogo/fyi-cli/releases) | Releases live; asset names evolve with cargo-dist |
+| Crates.io / cargo-binstall | Blocked | `fyi-cli` and `fyi-core` are occupied; ownership and a matching release must be verified |
+| Historical CLI / separate MCPB assets | [GitHub Releases](https://github.com/edithatogo/fyi-cli/releases) | Public assets observed; native installation and integrity qualification remain |
 | MCP in AI clients | Official MCP Registry / Glama / Smithery | **live** (see below) |
 | Legacy Python CLI | `pip install fyi-cli` | **live** (legacy) |
-| Container MCP | `ghcr.io/edithatogo/fyi-mcp` | **assets-ready** (not claimed live until pull verified) |
+| Container MCP | `ghcr.io/edithatogo/fyi-mcp` | **Blocked:** public multi-arch pulls, provenance and clean smoke unverified |
 
 ```bash
 # Clone + install CLI from this workspace
@@ -105,7 +105,8 @@ cargo build --workspace --release --locked
 ### Crates.io name collision
 
 Do not install this project with `cargo install fyi-cli` or `cargo binstall fyi-cli`:
-the published `fyi-cli` and `fyi-core` crates belong to a different project.
+the existing `fyi-cli` and `fyi-core` index entries do not establish this project's
+ownership or a matching 0.1.2 release. Resolve the package identity first.
 Use the local clone above until this project's release identity is resolved and
 verified. See the [distribution matrix](docs/registry-distribution-matrix.md).
 
@@ -126,48 +127,50 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 [cargo-binstall](https://github.com/cargo-bins/cargo-binstall) downloads release binaries instead of compiling.
 
-**Status:** blocked by the crates.io name collision. The in-repository metadata
-is not evidence that the current crate names resolve to this project.
+**Status:** blocked by the crates.io name collision and unqualified asset mapping.
+All default Binstall strategies are disabled in the repository metadata. An explicit
+operator strategy override can bypass that upstream default, so resolve crate
+identity and qualify the release before enabling or attempting an install.
+The policy metadata is not evidence that the current crate names resolve to this
+project. See the [submission runbook](packaging/SUBMISSION_RUNBOOK.md).
 
 ---
 
-## 3. GitHub Releases (prebuilt binaries / MCPB)
+## 3. GitHub Releases (historical CLI archives / separate MCPB)
 
-**Status:** Releases are **live** at https://github.com/edithatogo/fyi-cli/releases  
+The observed public CLI release is
+[**v1.2.0**](https://github.com/edithatogo/fyi-cli/releases/tag/v1.2.0),
+published **10 July 2026**. Its source commit,
+`86fcbd8914037735b6f27e5a329d5f3013033efd`, declares Rust package version
+**0.1.2**. The release tag and component version are different identifiers;
+`v0.1.2` tag/release lookups returned 404 on 14 November 2026.
+These archives are historical and do not represent current `master`.
 
-Download assets for your platform from the release matching **v0.1.2** / **fyi-mcp-v0.1.2** (or newer). Asset naming follows cargo-dist and packaging drafts; names can include target triples or short platform labels. Prefer the release notes for the exact file list.
+| Platform | Observed CLI archive |
+| --- | --- |
+| Linux x86_64 | [fyi-cli-linux-amd64.tar.gz](https://github.com/edithatogo/fyi-cli/releases/download/v1.2.0/fyi-cli-linux-amd64.tar.gz) |
+| macOS x86_64 | [fyi-cli-macos-amd64.tar.gz](https://github.com/edithatogo/fyi-cli/releases/download/v1.2.0/fyi-cli-macos-amd64.tar.gz) |
+| macOS arm64 | [fyi-cli-macos-arm64.tar.gz](https://github.com/edithatogo/fyi-cli/releases/download/v1.2.0/fyi-cli-macos-arm64.tar.gz) |
+| Windows x64 | [fyi-cli-windows-amd64.exe.zip](https://github.com/edithatogo/fyi-cli/releases/download/v1.2.0/fyi-cli-windows-amd64.exe.zip) |
 
-Typical patterns (examples — check the release page for what actually shipped):
+Each archive has a `.sha256` sidecar. The eight observed release assets contain
+no Linux arm64 CLI archive, standalone MCP server archive, shell/PowerShell
+installer, `SHA256SUMS`, `release-manifest.json` or SBOM.
 
-| Kind | Examples |
-|------|----------|
-| CLI archives | `fyi-cli-<version>-<target>.tar.gz` / `.zip` |
-| Installers | shell / PowerShell installers from cargo-dist |
-| Windows MCP package | `fyi-mcp-0.1.2-win32.mcpb` (MCPB for MCP clients) |
+The repository's binary package metadata uses these actual URLs and GitHub
+API-observed SHA-256 values. This audit has **not independently verified
+downloaded bytes, native installation, a signed release or artifact provenance**.
+The [release evidence record](packaging/release-evidence.json) and
+[submission runbook](packaging/SUBMISSION_RUNBOOK.md) separate those outstanding
+checks from the fact that the release page is public. Qualify the archive,
+binary version and platform before installing or submitting it through a package
+manager; a matching API hash does not establish authenticated provenance.
 
-### Manual install sketch
-
-**Linux / macOS:**
-
-```bash
-# After downloading and extracting the archive that contains fyi-cli:
-chmod +x fyi-cli
-sudo mv fyi-cli /usr/local/bin/   # or any directory on PATH
-fyi-cli --help
-```
-
-**Windows (PowerShell):**
-
-```powershell
-# After extracting fyi-cli.exe to a permanent folder, e.g. $env:LOCALAPPDATA\fyi-cli
-$dest = Join-Path $env:LOCALAPPDATA "fyi-cli"
-New-Item -ItemType Directory -Force -Path $dest | Out-Null
-# Copy-Item .\fyi-cli.exe $dest\
-# Add $dest to user PATH if needed, then:
-fyi-cli --help
-```
-
-cargo-dist may also publish one-liner installers on the release; use those when present and trusted.
+Historical Windows MCPB packages, including `fyi-mcp-0.1.2-win32.mcpb`, belong
+to the separate
+[`fyi-mcp-v0.1.2` release](https://github.com/edithatogo/fyi-cli/releases/tag/fyi-mcp-v0.1.2).
+They are MCP client bundles, not CLI archives or standalone executable assets.
+The current Scoop, WinGet and Chocolatey metadata references the CLI ZIP above.
 
 ---
 
@@ -196,25 +199,30 @@ Optional: Conda packaging notes remain in [CONDA_PUBLISHING.md](CONDA_PUBLISHING
 
 ---
 
-## 5. Package managers (mostly draft / assets-ready)
+## 5. Package managers (blocked pending release qualification)
 
-**None of the following should be assumed published** unless the [distribution matrix](docs/registry-distribution-matrix.md) marks them **live**. Drafts are under [`packaging/`](packaging/). Platform-specific commands and caveats: **[docs/installation-package-managers.md](docs/installation-package-managers.md)**.
+**No current Rust package-manager packet is submission-ready, submitted or
+verified live.** Reviewable metadata and blocked source templates live under
+[`packaging/`](packaging/). The
+[package-manager guide](docs/installation-package-managers.md) explains their
+scope; the [submission runbook](packaging/SUBMISSION_RUNBOOK.md) gives exact
+operator validation, submission and rollback steps.
 
-| Manager | Draft location | Intended command (when published) | Status |
-|---------|----------------|-----------------------------------|--------|
-| **Scoop** (Windows) | [`packaging/scoop/fyi-cli.json`](packaging/scoop/fyi-cli.json) | `scoop install fyi-cli` (after bucket submit) | **assets-ready** (currently MCPB-oriented) |
-| **WinGet** (Windows) | [`packaging/winget/edithatogo.fyi-cli.yaml`](packaging/winget/edithatogo.fyi-cli.yaml) | `winget install edithatogo.fyi-cli` | **draft** — prefer plain `.zip`/`.exe` before community PR |
-| **Homebrew** (macOS/Linux) | [`packaging/homebrew/fyi-cli.rb`](packaging/homebrew/fyi-cli.rb) | `brew install fyi-cli` (tap/formula PR pending) | **assets-ready** (SHA placeholders) |
-| **Chocolatey** (Windows) | [`packaging/chocolatey/`](packaging/chocolatey/) | `choco install fyi-cli` | **assets-ready** (draft URLs/checksums) |
-| **AUR** (Arch) | [`packaging/aur/PKGBUILD`](packaging/aur/PKGBUILD) | `yay -S fyi-cli` / `makepkg -si` | **draft** |
-| **nix** | [`packaging/nix/default.nix`](packaging/nix/default.nix) | local `nix-build` / future nixpkgs | **draft** |
-| **Snap** | [`packaging/snap/snapcraft.yaml`](packaging/snap/snapcraft.yaml) | `snap install fyi-cli` | **draft** |
-| **Flatpak** | [`packaging/flatpak/`](packaging/flatpak/) | `flatpak install …` | **draft** |
-| **Debian / PPA** | [`packaging/debian/`](packaging/debian/) | `apt install fyi-cli` | **draft** skeleton |
-| **Fedora / COPR** | [`packaging/fedora/fyi-cli.spec`](packaging/fedora/fyi-cli.spec) | `dnf install fyi-cli` | **draft** |
-| **asdf** | [`packaging/asdf/`](packaging/asdf/) | `asdf install fyi-cli 0.1.2` (local plugin) | **draft** |
-| **mise** | [`packaging/mise/`](packaging/mise/) | `mise install fyi-cli@0.1.2` (local plugin) | **draft** |
-| **cargo-binstall** | [`packaging/cargo-binstall/`](packaging/cargo-binstall/) | Not available for this project under the current crate names | **blocked** |
+| Manager | Reviewable files | Current status |
+| --- | --- | --- |
+| Scoop | [Manifest](packaging/scoop/fyi-cli.json) | **Blocked:** actual x64 CLI ZIP/hash; byte verification, clean install and bucket review remain. |
+| WinGet | [Manifest](packaging/winget/edithatogo.fyi-cli.yaml) | **Blocked:** ZIP with nested portable `fyi-cli.exe`; native validation/install and community review remain. |
+| Homebrew maintainer tap | [Formula](packaging/homebrew/fyi-cli.rb) | **Blocked:** concrete archive URLs/hashes; native audit/install/test and an owned tap remain. This is not a Homebrew/core formula. |
+| Chocolatey | [Package directory](packaging/chocolatey/) | **Blocked:** concrete CLI ZIP metadata; native pack/install/uninstall and moderation remain. |
+| AUR | [PKGBUILD](packaging/aur/PKGBUILD) | **Blocked:** source/vendor hashes, clean chroot build and `.SRCINFO` remain. |
+| nixpkgs | [Expression](packaging/nix/default.nix) | **Blocked:** NAR/vendor hashes, pinned builder, native Linux tests and maintainer remain. |
+| Snap | [Manifest](packaging/snap/snapcraft.yaml) | **Blocked:** hashed vendor input, native confinement tests and publisher/name verification remain. |
+| Flathub | [Private Flatpak notes](packaging/flatpak/README.md) | **Not applicable:** current inclusion policy excludes this console product. |
+| Private Flatpak | [Template](packaging/flatpak/) | **Blocked:** source/vendor hashes, qualified runtime and sandbox smoke remain. |
+| Debian / PPA | [Source-package files](packaging/debian/) | **Blocked:** dependency/licence review, native validation and signing/sponsorship remain. |
+| Fedora / COPR | [Spec](packaging/fedora/fyi-cli.spec) | **Blocked:** source/vendor hashes, SRPM/mock validation and operator project remain. |
+| asdf / mise | [asdf](packaging/asdf/) / [mise](packaging/mise/) | **Blocked:** approval inventory and standalone plugin repository remain. No Cargo fallback or occupied-crate backend is offered. |
+| cargo-binstall | [Policy metadata](packaging/cargo-binstall/) | **Blocked:** default strategies disabled until crate identity and release assets are qualified. |
 
 ---
 
@@ -267,7 +275,7 @@ Do not claim those catalogs are listed publicly until the matrix row is **live**
 
 ## 7. Containers (GHCR)
 
-**Status:** Dockerfile + publish workflow are **assets-ready**. Image name intended: **`ghcr.io/edithatogo/fyi-mcp`**. Do not treat GHCR as live until a public `docker pull` for a published tag is verified.
+**Status:** **blocked**. The intended image is **`ghcr.io/edithatogo/fyi-mcp`**. The Dockerfile and publication workflow exist, but public amd64/arm64 pulls, immutable digest/source binding, SBOM, provenance and isolated clean-install smoke remain unverified. See the [submission runbook](packaging/SUBMISSION_RUNBOOK.md).
 
 Full operator guide: **[docs/containers.md](docs/containers.md)**.
 
@@ -276,9 +284,8 @@ Full operator guide: **[docs/containers.md](docs/containers.md)**.
 docker build -t fyi-mcp:local -f Dockerfile .
 docker run --rm -i fyi-mcp:local
 
-# After a successful GHCR publish (when verified live):
-# docker pull ghcr.io/edithatogo/fyi-mcp:latest
-# docker pull ghcr.io/edithatogo/fyi-mcp:v0.1.2
+# After the operator qualifies an actual published immutable image:
+# docker pull ghcr.io/edithatogo/fyi-mcp@sha256:<verified-digest>
 ```
 
 ---
@@ -335,7 +342,7 @@ Package managers: use `scoop uninstall`, `winget uninstall`, `brew uninstall`, e
 | Symptom | What to try |
 |---------|-------------|
 | `cargo install` fails on OpenSSL/linker | Install system build deps (`build-essential` + `libssl-dev` on Debian/Ubuntu; Xcode CLT on macOS; MSVC Build Tools on Windows) |
-| `cargo binstall` finds no package | Release asset names may not match metadata yet — use `cargo install` or Releases |
+| `cargo binstall` is unavailable | Default strategies are disabled; crate names are occupied and identity is unverified. Use the local workspace install while identity and release assets are qualified |
 | Wrong binary (`fyi` vs `fyi-cli`) | Python package may expose `fyi`; Rust binary is `fyi-cli` |
 | MCP client can’t start server | Confirm `fyi-mcp` is on PATH; for Docker see [docs/containers.md](docs/containers.md) |
 | Permission errors on pip | Prefer `pip install --user` or `pipx` / a venv — avoid `sudo pip` |

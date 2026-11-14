@@ -1,53 +1,99 @@
 name: Profiling
 
 on:
-  push:
-    branches: [ master ]
-    paths:
-      - 'src/**'
-      - 'tests/**'
   pull_request:
     branches: [ master ]
+  schedule:
+    - cron: "15 3 * * 0"
   workflow_dispatch:
 
 permissions:
   contents: read
-  actions: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  PYTHONHASHSEED: "0"
+  PYTHON_KEYRING_BACKEND: keyrings.alt.file.PlaintextKeyring
+  SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
 jobs:
   profile:
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 30
+
     steps:
     - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      with:
+        persist-credentials: false
+
+    - name: Record execution provenance
+      run: |
+        mkdir -p artifacts/profiling
+        {
+          printf 'source_sha=%s\nworkflow_sha=%s\nrun_id=%s\nrun_attempt=%s\nevent=%s\n' "$SOURCE_SHA" "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$GITHUB_EVENT_NAME"
+          git rev-parse HEAD
+          date -u +'%Y-%m-%dT%H:%M:%SZ'
+          uname -a
+        } > artifacts/profiling/environment.txt
 
     - name: Set up Python
       uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
       with:
         python-version: '3.12'
-        cache: 'pip'
+
+    - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install -e ".[dev]"
+        set -o pipefail
+        uv sync --extra dev --frozen 2>&1 | tee artifacts/profiling/install.log
+        {
+          uv --version
+          uv run python --version
+          uv run python -m pytest --version
+          uv run scalene --version
+        } >> artifacts/profiling/environment.txt
+
+    # The full Python Tests gate already runs the suite on every PR.
+    # Exercise the existing benchmarks explicitly: their names use benchmark_*.
+    - name: Run bounded benchmark smoke
+      if: github.event_name == 'pull_request'
+      run: |
+        set -o pipefail
+        uv run pytest -q tests/test_benchmarks.py -o 'python_functions=benchmark_*' \
+          --benchmark-only --benchmark-min-rounds=1 --benchmark-max-time=0.05 \
+          --benchmark-warmup=off --benchmark-json=artifacts/profiling/benchmark.json \
+          --junitxml=artifacts/profiling/benchmark.xml \
+          2>&1 | tee artifacts/profiling/benchmark.log
 
     - name: Run Scalene profiler
+      if: github.event_name != 'pull_request'
       run: |
-        scalene run -o profile.json --cpu-only "$(command -v pytest)" tests/
-
-    - name: Upload profiling results
-      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
-      with:
-        name: scalene-profile
-        path: profile.json
+        set -o pipefail
+        uv run scalene run -o artifacts/profiling/profile.json --cpu-only .venv/bin/pytest tests/ \
+          2>&1 | tee artifacts/profiling/scalene.log
 
     - name: Run performance tests
+      if: github.event_name != 'pull_request'
       run: |
-        pytest tests/ --benchmark-only --benchmark-json=benchmark.json
+        set -o pipefail
+        uv run pytest -q tests/test_benchmarks.py -o 'python_functions=benchmark_*' \
+          --benchmark-only --benchmark-json=artifacts/profiling/benchmark.json \
+          --junitxml=artifacts/profiling/benchmark.xml \
+          2>&1 | tee artifacts/profiling/benchmark.log
 
-    - name: Upload benchmark results
+    - name: Retain profiling evidence
+      if: always()
       uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
       with:
-        name: benchmark-results
-        path: benchmark.json
+        name: profiling-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+        path: artifacts/profiling/
+        if-no-files-found: error
+        retention-days: 14

@@ -75,9 +75,10 @@ python scripts/verify_remote_mcp_contract.py
 ```
 
 The SDK suite builds the current executable once when Cargo is available.
-`FYI_MCP_TEST_BINARY` selects an explicitly built executable. Only a missing
-toolchain and missing binary can skip interoperability tests; a build or client
-failure fails the suite. All scenarios use synthetic data and local transports.
+`FYI_MCP_TEST_BINARY` selects an explicitly built executable. Outside GitHub
+Actions, a missing toolchain and missing binary can skip interoperability tests.
+GitHub Actions fails on those missing prerequisites, and a build or client
+failure always fails the suite. All scenarios use synthetic data and local transports.
 
 See [MCP contract evidence](../../docs/mcp-contract-harness.md) for supported
 client profiles, deterministic tests, and limits on release-readiness claims.

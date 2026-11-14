@@ -1,197 +1,110 @@
-# Multi-registry release automation
+# Multi-registry release operation
 
-Operator guide for shipping **fyi-cli** / **fyi-mcp** across GitHub Releases, GHCR, crates.io, and external package/MCP catalogs.
+Reviewed **14 November 2026**. The existing release automation remains the
+release authority. This packaging workstream does not publish releases, create
+registry submissions, alter credentials, or change shared workflows.
 
-Canonical status matrix: [`registry-distribution-matrix.md`](./registry-distribution-matrix.md)  
-MCP catalog checklist: [`packaging/mcp-catalogs/SUBMISSION_CHECKLIST.md`](../packaging/mcp-catalogs/SUBMISSION_CHECKLIST.md)  
-Container details: [`containers.md`](./containers.md)
+Canonical distribution state:
+[`registry-distribution-matrix.md`](registry-distribution-matrix.md).
+Review packets, exact operator actions and rollback procedures:
+[`packaging/SUBMISSION_RUNBOOK.md`](../packaging/SUBMISSION_RUNBOOK.md).
 
-Last reviewed: **2026-07-09**
+## Current release reconciliation
 
-Release Please is configured to group workspace components into one release
-pull request. The CI `packaging-assets` job also rejects any pull request that
-changes a Rust package version without changing every pinned distribution asset.
-This prevents a component-only release from producing inconsistent tags,
-checksums, MCP manifests, or package-manager metadata.
+| Surface | Observed value | Consequence |
+| --- | --- | --- |
+| Latest public GitHub Release | `v1.2.0`, 10 July 2026 | Contains four CLI archives and four SHA-256 sidecars |
+| CLI Cargo metadata at that release | `0.1.2` | Release tag and binary component version must not be conflated |
+| Rust workspace on the reviewed branch | `fyi-core`, `fyi-cli`, `fyi-mcp` all `0.1.2` | Current master contains unreleased work beyond the historical source |
+| Expected `v0.1.2` tag/release | HTTP 404 on 14 November | Do not construct download URLs by assuming that tag exists |
+| Root Release Please manifest / Python project | `1.1.0` / `1.2.1` | Existing root/component version differences need operator reconciliation |
+| crates.io | Current names `fyi-cli` and `fyi-core` occupied; no matching 0.1.2 index release | Name/ownership decision and coordinated metadata change required before publication |
+| Integrity qualification | No attached aggregate manifest/checksum inventory/SBOM; signed release and attestations unverified | Current packets remain blocked |
 
----
+Exact API observations, payload sizes and hashes are recorded in
+[`release-evidence.json`](../packaging/release-evidence.json). They identify
+historical artifacts; they are not clean-install or authenticated provenance
+results. No release tag, package version or Release Please authority is changed
+by the reconciliation.
 
-## Principles
+## Existing workflow responsibilities
 
-1. **One release train** — GitHub tag + GitHub Release assets are the source of truth for version and binary hashes.
-2. **Version synchronization** — crates, `server.json`, packaging drafts, and catalog assets should all mention the same semver (currently **0.1.2**).
-3. **Graceful failure** — a single registry failure must not block the rest of the train (independent jobs / `continue-on-error` / manual external steps).
-4. **Honest matrix status** — do not mark a row **live** without a public URL or API proof in the distribution matrix.
+| Workflow | Implemented responsibility | Remaining operator prerequisite |
+| --- | --- | --- |
+| `release-please.yml` | Groups root/Rust release PR components | Resolve historical version mapping and coordinate all distribution metadata |
+| `release.yml` | `v*` tag builds Linux amd64, macOS amd64/arm64 and Windows amd64 CLI archives; creates integrity inventory and requests provenance attestation | Signed/version-qualified release, SBOM generation and validation, actual attestation verification, crate-name resolution; standalone MCP assets are not built by this matrix |
+| `container-publish.yml` | Intended amd64/arm64 GHCR publication on tags or manual dispatch | Verify public pulls, immutable image/index digests, SBOM, provenance and isolated native help |
+| `ci.yml` → `Packaging Assets` | Existing scripts validate version scope, review metadata, registry ledger and smoke contracts | Passing repository checks does not publish or qualify external installs |
+| Distribution freshness workflows | Bounded read-only evidence monitoring | HTTP availability alone cannot promote a channel to live |
 
----
+The release workflow's current best-effort crates.io commands are **not** a
+resolution of the occupied names and must not be dispatched until the release
+operator reconciles them. Workflow changes, including adding a release SBOM and
+qualified standalone MCP assets, belong to the release/quality owner and must
+be based on that workstream's latest merged commit. No such workflow edits are
+included here.
 
-## Automated: tag-driven GitHub Release
+## Preflight
 
-Workflow: [`.github/workflows/release.yml`](../.github/workflows/release.yml)
-
-| Trigger | Tags matching `v*` (e.g. `v0.1.2`) |
-|---------|-------------------------------------|
-| Builds | Matrix: Linux amd64, macOS amd64/arm64, Windows amd64 (`fail-fast: false`) |
-| Assets | `fyi-cli-linux-amd64.tar.gz`, `fyi-cli-macos-*.tar.gz`, `fyi-cli-windows-amd64.exe.zip` (+ `.sha256`) |
-| Crates.io | Separate job publishes `fyi-core` → `fyi-mcp` → `fyi-cli` with **`continue-on-error: true`** so a crates.io outage does not block the GitHub Release |
-| GitHub Release | Aggregates build artifacts via `softprops/action-gh-release` |
-
-### Operator steps
-
-```bash
-# Ensure workspace crate versions match the intended tag
-# crates/fyi-{core,cli,mcp}/Cargo.toml → version = "X.Y.Z"
-
-git tag -a v0.1.2 -m "v0.1.2"
-git push origin v0.1.2
-# Watch Actions → Release; confirm assets on the GitHub Releases page
-```
-
-Related: release-please may open version PRs ([`release-please.yml`](../.github/workflows/release-please.yml)); tag push still drives the binary release job above.
-
----
-
-## Automated: GHCR multi-arch image
-
-Workflow: [`.github/workflows/container-publish.yml`](../.github/workflows/container-publish.yml)
-
-| Trigger | Tags `v*` or `fyi-mcp-v*`, or `workflow_dispatch` |
-|---------|---------------------------------------------------|
-| Image | `ghcr.io/<owner>/fyi-mcp` (public intent: `ghcr.io/edithatogo/fyi-mcp`) |
-| Platforms | `linux/amd64`, `linux/arm64` |
-| Auth | `GITHUB_TOKEN` → packages:write |
+The ordinary preflight checks repository consistency and remains credential-free:
 
 ```bash
-docker pull ghcr.io/edithatogo/fyi-mcp:v0.1.2
-# or :latest after a tag publish
-```
-
-Do **not** mark GHCR **live** in the matrix until a public pull succeeds.
-
-### Optional Docker Hub mirror
-
-Not enabled by default. See comments in `container-publish.yml`: if repository secrets `DOCKERHUB_USERNAME` / `DOCKERHUB_TOKEN` (and optional variable `ENABLE_DOCKERHUB_MIRROR=true`) are configured, an optional job can push the same multi-arch image to Docker Hub. Prefer proving GHCR first; Hub/Quay remain **planned** in the matrix until configured.
-
----
-
-## Manual / external: package managers & MCP catalogs
-
-These paths are **assets-ready** drafts under `packaging/`. CI does not submit them for you.
-
-### Preflight (every release)
-
-```bash
-# Packaging asset presence + version alignment (no cargo required)
 python scripts/verify_packaging_assets.py
-
-# Cross-platform synchronized release preflight (no credentials or network)
 python scripts/release_preflight.py --json
+python scripts/validate_registry_submission_ledger.py
+python scripts/validate_install_smoke_matrix.py
+```
 
-# Release PR scope (requires a base ref in a pull request)
+A passing ordinary report is compatible with `submission_ready: false`. The
+operator must separately require submission readiness:
+
+```bash
+python scripts/verify_packaging_assets.py --require-submission-ready --target homebrew
+python scripts/release_preflight.py --require-submission-ready --json
+```
+
+These commands currently fail with explicit release, identity and native-install
+blockers. Do not create a tag just because repository metadata checks pass.
+For a version-changing PR, the existing scope check still applies:
+
+```bash
 python scripts/verify_release_scope.py --base origin/master --head HEAD
-
-# Optional machine-readable report
-python scripts/verify_packaging_assets.py --json
 ```
 
-Also:
+## Qualifying the next release
 
-1. Bump version in crates + packaging files that pin `X.Y.Z`.
-2. Refresh SHA-256 / installer URLs from the new GitHub Release (Homebrew, Scoop, WinGet, AUR `sha256sums`, `server.json` mcpb hash, etc.).
-3. Follow [`packaging/mcp-catalogs/SUBMISSION_CHECKLIST.md`](../packaging/mcp-catalogs/SUBMISSION_CHECKLIST.md).
-4. Update [`registry-distribution-matrix.md`](./registry-distribution-matrix.md) only after public proof.
+The existing release operator must:
 
-Hosted Connector submissions have an additional prerequisite: the current
-`fyi-mcp` binary defaults to stdio, but it also has an opt-in stateless HTTP
-JSON-RPC mode via `FYI_MCP_TRANSPORT=http`. Review the
-[hosted MCP deployment contract](../deploy/remote-mcp/README.md) and verify an
-HTTPS deployment with bearer-token auth and `/healthz` before claiming that a
-remote Connector is available.
+1. Decide the coordinated root/component version mapping and crate identities,
+   without replacing historical release bytes or retagging old commits.
+2. Build the exact source commit with locked dependency closure, record native
+   platform/toolchain identity and produce the necessary CLI/MCP/container assets.
+3. Generate SBOMs from those actual builds, record payload hashes, sign the release
+   and verify authenticated provenance for the same source commit and subjects.
+   Follow [`RELEASE_INTEGRITY.md`](../packaging/RELEASE_INTEGRITY.md).
+4. Independently download/hash the resulting artifacts, inspect their executable
+   paths and run help/version/install/uninstall smoke in clean native environments.
+5. Regenerate package metadata from that evidence, resolve every packet blocker,
+   run native schema/lint/build checks and the strict submission gate, then perform
+   each explicitly authorized external publication using the maintainer account.
+6. Record actual submission URLs, review outcomes and public install evidence in
+   the existing ledger. Do not mark a package live solely because a workflow ran.
 
-### Catalog & PM checklist (link map)
+No current packet is ready for immediate external submission. The Homebrew tap,
+Chocolatey, Scoop and WinGet review files have concrete observed CLI URLs/hashes;
+source packages deliberately retain explicit unresolved checksum inputs behind
+blocked status. asdf/mise has no approved installable version. Flathub is not an
+eligible route for the current console application.
 
-| Target | Repo assets | Operator action |
-|--------|-------------|-----------------|
-| PulseMCP | `packaging/mcp-catalogs/pulsemcp/` | Submit form / wait for registry ingest |
-| mcp.so | `packaging/mcp-catalogs/mcp-so/` | Site Submit / GitHub issue |
-| Docker MCP Catalog | `packaging/mcp-catalogs/docker-mcp/` + root `Dockerfile` | PR to [docker/mcp-registry](https://github.com/docker/mcp-registry) after GHCR pull works |
-| mcp-get | `packaging/mcp-catalogs/mcp-get/` | Prefer Official Registry; keep assets for successors |
-| OpenTools | `packaging/mcp-catalogs/opentools/` | Directory submit |
-| Awesome-MCP-Servers | checklist + community PR | Track merge; do not claim live early |
-| Homebrew / Chocolatey / Scoop / WinGet | `packaging/{homebrew,chocolatey,scoop,winget}/` | Update hashes; open tap/community PR |
-| AUR / Nix / Snap / Flatpak | `packaging/{aur,nix,snap,flatpak}/` | Fill checksums; submit when ready |
-| asdf / mise | `packaging/asdf/`, `packaging/mise/` | Publish plugin when asset names stable |
-| cargo-binstall | `packaging/cargo-binstall/metadata.toml` + crate `[package.metadata.binstall]` | Relies on GitHub Release asset naming |
-| Debian / Fedora | `packaging/debian/`, `packaging/fedora/` | PPA/COPR when maintainers ready |
-| Conda | `conda/` + [`CONDA_PUBLISHING.md`](../CONDA_PUBLISHING.md) | Separate conda-publish workflow when used |
+## Hosted connector boundary
 
----
+Hosted connector submissions additionally require the
+[hosted MCP deployment contract](../deploy/remote-mcp/README.md). The MCP server
+has opt-in HTTP mode via `FYI_MCP_TRANSPORT=http`; verify the HTTPS deployment,
+`FYI_MCP_HTTP_BEARER_TOKEN`, authorization boundaries and `/healthz` before
+claiming a hosted endpoint. This is separate from OS package distribution and
+remains under the MCP workstream.
 
-## Version synchronization expectations
-
-| Surface | Where version lives |
-|---------|---------------------|
-| Crates (source of truth for semver) | `crates/fyi-cli/Cargo.toml`, `fyi-mcp`, `fyi-core` |
-| Official MCP Registry package | root `server.json` |
-| MCPB manifest | `packaging/mcpb/fyi-mcp/manifest.json` |
-| Linux drafts | AUR `pkgver`, Snap `version`, Flatpak tag, Fedora `Version`, Debian changelog |
-| Windows drafts | Scoop `version`, WinGet `PackageVersion`, Chocolatey nuspec |
-| macOS draft | Homebrew `version` |
-| Catalog blurbs | `packaging/mcp-catalogs/**` |
-
-**Rule of thumb:** after a version bump, `python scripts/verify_packaging_assets.py` should pass with `--expected-version` matching the crate (or omit the flag to auto-discover from `crates/fyi-cli`).
-
-Placeholder SHAs (`SKIP`, empty, or dummy hex) are expected in drafts until the release assets exist — version *strings* should still match.
-
----
-
-## Graceful failure pattern
-
-Distribution is intentionally **loosely coupled**:
-
-| Layer | Failure isolation |
-|-------|-------------------|
-| Binary matrix (`release.yml` build) | `strategy.fail-fast: false` — one OS target does not cancel others |
-| crates.io publish | `continue-on-error: true` per package; GitHub Release still proceeds |
-| GHCR publish | Separate workflow; tag can still produce binaries if containers fail (and vice versa) |
-| Conda / external catalogs | Manual or separate workflows; never gate the GitHub Release job |
-| Matrix honesty | One blocked catalog does not delay marking another **live** |
-
-**Operator pattern when one registry fails:**
-
-1. Leave the failed target as **assets-ready** or **blocked-external** in the matrix.
-2. File/track the issue (matrix Issue column).
-3. Continue remaining submissions independently.
-4. Re-run only the failed path (workflow_dispatch, re-publish, or re-submit PR).
-
-Do **not** re-tag the whole release for a single external catalog hiccup unless the release assets themselves are wrong.
-
----
-
-## CI guardrail
-
-Workflow job **`packaging-assets`** in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs:
-
-```bash
-python scripts/verify_packaging_assets.py
-```
-
-on Ubuntu with system Python only (no Rust toolchain). Locally:
-
-```bash
-python scripts/verify_packaging_assets.py
-```
-
-See also [TOOLING.md](../TOOLING.md) (Packaging assets section).
-
----
-
-## Related workflows
-
-| Workflow | Role |
-|----------|------|
-| `release.yml` | Tag → binaries + GitHub Release + best-effort crates.io |
-| `container-publish.yml` | Tag / dispatch → multi-arch GHCR `fyi-mcp` |
-| `conda-publish.yml` | Optional conda path |
-| `release-please.yml` | Automated version PR assist |
-| `ci.yml` → `packaging-assets` | Presence + version string checks for packaging tree |
+MCP catalog submission records are preserved in
+[`packaging/mcp-catalogs/SUBMISSION_CHECKLIST.md`](../packaging/mcp-catalogs/SUBMISSION_CHECKLIST.md).
+They do not establish GHCR image installation or native CLI package availability.

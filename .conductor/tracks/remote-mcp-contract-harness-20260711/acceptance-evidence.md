@@ -92,6 +92,9 @@ commands passed. All 13 SDK tests passed with both the installed 1.29.0 client
 and the lock-pinned 1.30.0 client; the latter also passed all 20 generated
 examples. The SDK test initially caught a stale catalogue after a new
 scope bound; recapture from the executable repaired that demonstrated drift.
+The existing Python Tests job collects the SDK suite; missing Cargo and a
+missing binary now fail on GitHub Actions rather than silently skipping it.
+The separate Layered Harness Contract job only validates the fixtures.
 
 An empty-database persistent HTTP assessment (ten warmups, 100 measured calls)
 recorded p50 3.612 ms, p95 4.154 ms, maximum 6.007 ms, final/peak RSS 20,291,584
@@ -156,7 +159,7 @@ cargo test -p fyi-core --lib -- --exact \
 | Latency/memory/request/byte/concurrency | Recorded local SDK latency/RSS budgets; admitted-attempt, payload-byte, duration and concurrency tests; existing source small-body/count tests | Raw multi-chunk cancellation/peak memory, exact retry wire counts and propagation of MCP allowances into source budgets remain separate evidence gaps |
 | Compatibility/release matrix | Linux Rust 1.99.1 and official SDK 1.29.0/1.30.0 stdio/HTTP; existing stable/MSRV jobs; explicit matrix | Windows/macOS runtime/client combinations have not been executed here; locked SDK results depend on final-head CI |
 | Deterministic faults | MCP pending-future timeout, clock skew, expiry, circuit cooldown/recovery; source malformed JSON and pacing-wait tests | Stalled HTTP headers/body, mid-body disconnect, malformed transfer chunks and corrupt validator/filesystem cache injection |
-| Version/deprecation handling | Unknown contract versions and schema assertions fail closed; HTTP unknown version rejected; initialization fallback and legacy batch behavior verified | Later MCP revisions are outside the advertised supported profiles |
+| Version/deprecation handling | Unknown contract versions and schema assertions fail closed; HTTP unknown version rejected; initialization fallback and legacy batch behavior verified; neither supported profile is currently designated deprecated and historical v1 is regression-only | Profile-withdrawal/contract-migration behavior has not been exercised; later MCP revisions are outside the advertised supported profiles |
 | Complete issue/epic evidence and closeout | Scoped PRs link #173/#169; this evidence corrects the historical implemented label | Keep the track open until the remaining original acceptance rows are resolved and final-head checks are recorded |
 
 ## Closure decision and ownership
@@ -165,6 +168,8 @@ cargo test -p fyi-core --lib -- --exact \
 fixture and platform evidence is not a claim that those paths are defective.
 Source acquisition/transport and shared CI/platform owners must supply their
 missing acceptance evidence; this workstream must not change their components.
+Issue #173 and epic #169 were reopened with the original acceptance criteria
+retained and the missing evidence identified. Other child tracks were not changed.
 
 Additional product limits remain explicit: confirmation state is process-local,
 attachment bytes are reopened by the source API after path checks, and remote

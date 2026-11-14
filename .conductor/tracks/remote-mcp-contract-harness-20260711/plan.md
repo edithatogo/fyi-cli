@@ -26,7 +26,7 @@
 - [x] Task: Add operator usability scenarios and actionable error-message checks
 - [x] Task: Automate release-readiness evidence and fixture drift detection — existing required suites; incomplete release rows explicitly gated
 - [~] Task: Run all layered and expensive gates at documented execution points
-- [~] Task: Record GitHub issue #173 evidence and update metadata/registry — final PR links/checks to be reconciled after merge
+- [x] Task: Record GitHub issue #173 evidence and update metadata/registry — #173 and epic #169 reopened with exact incomplete criteria; final heads/checks/merges recorded on the PRs and delivery report
 - [ ] Task: Conductor review verification 'Track closeout'
 
 ## Reconciliation — 2026-11-14

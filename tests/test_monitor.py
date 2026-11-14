@@ -1,5 +1,10 @@
 """Tests for monitor module - feed ingestion and snapshot monitoring."""
+import socket
+from pathlib import Path
 from types import SimpleNamespace
+
+import feedparser
+import pytest
 
 from fyi_system.db import connect
 from fyi_system.monitor import ingest_feed, reconcile_events
@@ -8,17 +13,40 @@ from fyi_system.monitor import ingest_feed, reconcile_events
 class TestIngestFeed:
     """Test feed ingestion functionality."""
 
+    @pytest.fixture(autouse=True)
+    def offline_feed(self, monkeypatch):
+        """Use the real RSS parser with fixture bytes and forbid live connections."""
+        def forbid_network(*_args, **_kwargs):
+            raise AssertionError("Monitor tests must parse the local RSS fixture")
+
+        monkeypatch.setattr(socket, "create_connection", forbid_network)
+        feed_bytes = (
+            Path(__file__).parent / "fixtures" / "monitor" / "feed.xml"
+        ).read_bytes()
+        parse = feedparser.parse
+
+        def parse_fixture(url):
+            assert url == "https://www.fyi.org.nz/request/12345/feed"
+            parsed = parse(feed_bytes)
+            assert not parsed.bozo
+            # These legacy smoke tests cover empty-feed/database-path behavior;
+            # populated-feed ingestion is covered by TestIngestFeedDST below.
+            assert parsed.entries == []
+            return parsed
+
+        monkeypatch.setattr(feedparser, "parse", parse_fixture)
+
     def test_ingest_feed_returns_int(self, tmp_path):
         """Test that ingest_feed returns an integer count."""
         db_path = tmp_path / "test.db"
         # Initialize DB first
         from fyi_system.db import init_db
         init_db(str(db_path))
-        # Use a real RSS feed for testing
+        # The class fixture supplies local RSS bytes to the real feed parser.
         feed_url = "https://www.fyi.org.nz/request/12345/feed"
         result = ingest_feed(feed_url, str(db_path))
         assert isinstance(result, int)
-        assert result >= 0  # Could be 0 if feed is empty or unavailable
+        assert result >= 0
 
     def test_ingest_feed_creates_database(self, tmp_path):
         """Test that ingest_feed creates the database file."""

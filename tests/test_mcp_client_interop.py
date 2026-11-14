@@ -3,7 +3,8 @@
 The SDK is supplied by the project's existing fastmcp dependency. Set
 FYI_MCP_TEST_BINARY to test a specific built executable. Otherwise build once
 with Cargo, or reuse the workspace debug binary only when Cargo is unavailable.
-Only the absence of both Cargo and a binary can skip these tests.
+Outside GitHub Actions, absence of both Cargo and a binary can skip these tests.
+GitHub Actions treats that missing prerequisite as a failure.
 
 Run the bounded local performance assessment with::
 
@@ -98,14 +99,14 @@ def mcp_binary() -> Path:
         return binary
 
     binary_name = "fyi-mcp.exe" if os.name == "nt" else "fyi-mcp"
-    target_dir = Path(os.environ.get("CARGO_TARGET_DIR", ROOT / "target"))
-    if not target_dir.is_absolute():
-        target_dir = ROOT / target_dir
+    target_dir = ROOT / os.environ.get("CARGO_TARGET_DIR", "target")
     binary = target_dir / "debug" / binary_name
     cargo = _cargo_executable()
     if cargo is None:
         if binary.is_file():
             return binary.resolve()
+        if os.environ.get("GITHUB_ACTIONS") == "true":
+            pytest.fail("MCP SDK interoperability requires Cargo or FYI_MCP_TEST_BINARY in CI")
         pytest.skip("MCP SDK interoperability requires Cargo or FYI_MCP_TEST_BINARY")
     build = subprocess.run(  # noqa: S603 - fixed Cargo arguments, no shell or caller input.
         [cargo, "build", "-p", "fyi-mcp", "--locked", "--message-format=json"],

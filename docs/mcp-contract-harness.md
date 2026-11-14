@@ -59,8 +59,11 @@ call occurs.
 
 When Cargo is available the SDK fixture builds current source once. An explicit
 `FYI_MCP_TEST_BINARY` selects the intended executable; a failed build or session
-cannot silently skip. The test can skip only when both Cargo and a binary are
-absent. Existing Python/workspace CI invokes these tests without new workflows.
+cannot silently skip. Outside GitHub Actions the test can skip only when both
+Cargo and a binary are absent; GitHub Actions fails on that missing prerequisite.
+The existing unfiltered Python Tests job invokes the SDK suite without a new
+workflow. The Layered Harness Contract job validates fixtures separately and
+does not itself establish client interoperability.
 
 ## Versioned schema and exchange fixtures
 
@@ -96,6 +99,12 @@ new incompatible contracts require a new fixture version with explicit migration
 evidence while retaining historical versions. Unsupported HTTP versions fail
 before dispatch; initialization offers a supported revision for the client to
 accept or reject.
+
+Neither supported MCP profile is currently designated deprecated. Historical
+fixture v1 remains regression-only evidence, not an advertised wire profile.
+No profile-withdrawal or contract-migration scenario has been executed; that
+part of the original deprecation acceptance criterion remains open. Unknown
+version rejection and negotiation fallback do not establish migration behavior.
 
 Input validation implements only the embedded schema vocabulary and fails
 closed on unknown assertions, including unused branches. Its bounded recursion,
