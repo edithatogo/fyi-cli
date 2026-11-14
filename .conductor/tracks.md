@@ -401,3 +401,9 @@ Reconciled closures: [#280](https://github.com/edithatogo/fyi-cli/issues/280) (t
   *GitHub: [#234](https://github.com/edithatogo/fyi-cli/issues/234); programme parent [foi-o #81](https://github.com/edithatogo/foi-o/issues/81).*
   *Child issue: [#283](https://github.com/edithatogo/fyi-cli/issues/283) seven remaining Australian capability records (completed 2026-11-13).*
   *Current increment: France bounded capability audited (`fr_capability_audited_live_source_blocked`).*
+
+## Dependency-ordered execution sequence (2026-11-14)
+
+Execution roadmap: [docs/implementation-execution-order-20261114.md](../docs/implementation-execution-order-20261114.md).
+
+Next existing track: `source-adapter-boundary-20260812`, after resolving PR #430; retain #309/#310/#312 and related source adapter issues as canonical owners. Rust functional request management, archive shadow cutover, CLI/MCP parity, Python retirement, CI/release hardening, providers, and registries follow in dependency order. All quality/security gates apply continuously. Planning only; no completed status is implied.
