@@ -86,6 +86,7 @@ jobs:
             --test acquisition_receipts \
             --test acquisition_receipt_numeric_conformance \
             --test acquisition_receipt_midpoint_conformance \
+            --test receipt_integer_schema \
             --test receipt_wire \
             --test receipt_persistence_portability \
             2>&1 | tee artifacts/receipt-portability/core-tests.log

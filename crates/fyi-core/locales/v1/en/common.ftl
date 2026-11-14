@@ -1,0 +1,24 @@
+# Rendering fixture; translation and legal review remain outstanding.
+salutation = Dear { $authority }
+request_term = request
+closing = Yours sincerely
+working_days = working days
+working_day = working day
+deadline = Statutory deadline
+informal_salutation = Hello { $authority }
+informal_closing = Kind regards
+request_title = { $title }
+follow_up_title = Follow-up: { $title }
+internal_review_title = Internal review: { $title }
+appeal_title = Appeal: { $title }
+legal_citation = { $law_name } ({ $citation })
+request_body = Under { $legal_citation } I am making this { $request_term }.
+follow_up_body = Please provide an update on my request { $request_reference } made under { $legal_citation }.
+internal_review_body = I request an internal review of my request { $request_reference } made under { $legal_citation }.
+appeal_body = I ask { $review_authority } to consider my appeal concerning request { $request_reference } with reference to { $legal_citation }.
+date_line = Date: { $date }
+reference_line = Reference: { $request_reference }
+review_contact = Review contact: { $review_authority }
+legacy_request_body = Under { $law_name } I am requesting information for this { $request_term }.
+legacy_instance_body = Under { $legal_citation } I am making this { $request_term }.
+legacy_review = If this request is refused, I may seek review by { $review_authority }.
