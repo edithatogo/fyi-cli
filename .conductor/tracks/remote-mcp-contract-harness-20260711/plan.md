@@ -61,3 +61,19 @@ broader property/mutation and platform criteria remain partially evidenced.
 commands and the distinction between executed handlers and synthetic examples.
 No source transport, database core, localization, CLI dispatch, shared workflow
 or packaging changes are authorized by this reconciliation.
+
+## Offline fixture repair required by #169 — 2026-11-14
+
+Automatic review stopped full Python verification when legacy scheduler tests
+attempted a live feed. The current owner PR file lists contain no scheduler test
+overlap. This repair is limited to test fixtures and this existing track; no
+source implementation, shared test configuration, runtime lock or workflow edit.
+
+- [~] Add an isolated subprocess regression that denies DNS/socket I/O before
+  imports and fails on attempts even when legacy tests swallow exceptions.
+  RED: 36 legacy tests reported passes while the probe blocked 28 attempts.
+- [ ] Replace network feed retrieval in the three legacy scheduler test modules
+  with synthetic successful/unavailable feed fixtures; retain real local cycle
+  and database/report execution.
+- [ ] Verify the negative-control probe, real cycle outputs and scoped tests;
+  hand off a separate focused PR before resuming broader hosted verification.
