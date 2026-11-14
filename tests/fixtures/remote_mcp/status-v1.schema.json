@@ -1,0 +1,242 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:fyi:mcp:remote-status:1",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "policy": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "remote_enabled": {
+          "type": "boolean"
+        },
+        "kill_switch": {
+          "type": "boolean"
+        },
+        "degraded": {
+          "type": "boolean"
+        },
+        "circuit_open": {
+          "type": "boolean"
+        },
+        "instances": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "properties": {
+              "instance_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "read_enabled": {
+                "type": "boolean"
+              },
+              "write_enabled": {
+                "type": "boolean"
+              },
+              "budget": {
+                "type": "object",
+                "properties": {
+                  "max_requests": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 4294967295
+                  },
+                  "max_bytes": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 18446744073709551615
+                  },
+                  "max_duration_seconds": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 18446744073709551615
+                  }
+                },
+                "required": [
+                  "max_requests",
+                  "max_bytes",
+                  "max_duration_seconds"
+                ],
+                "additionalProperties": false
+              },
+              "requests_used": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 18446744073709551615
+              },
+              "bytes_used": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 18446744073709551615
+              }
+            },
+            "required": [
+              "instance_id",
+              "read_enabled",
+              "write_enabled",
+              "budget",
+              "requests_used",
+              "bytes_used"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "schema_version",
+        "remote_enabled",
+        "kill_switch",
+        "degraded",
+        "circuit_open",
+        "instances"
+      ],
+      "additionalProperties": false
+    },
+    "metrics": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "scope": {
+          "const": "process"
+        },
+        "measurement": {
+          "const": "mcp_admitted_operations"
+        },
+        "duration_bucket_upper_bounds_ms": {
+          "const": [
+            10,
+            100,
+            1000,
+            10000,
+            60000,
+            120000
+          ]
+        },
+        "operations": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "properties": {
+              "operation": {
+                "enum": [
+                  "remote_health",
+                  "remote_version",
+                  "remote_search_requests",
+                  "remote_get_request",
+                  "remote_list_authorities",
+                  "remote_create_request",
+                  "remote_add_correspondence",
+                  "remote_update_state"
+                ]
+              },
+              "started": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 18446744073709551615
+              },
+              "in_flight": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 18446744073709551615
+              },
+              "outcomes": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 18446744073709551615
+                  },
+                  "failed": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 18446744073709551615
+                  },
+                  "timed_out": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 18446744073709551615
+                  },
+                  "result_rejected": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 18446744073709551615
+                  },
+                  "cancelled": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 18446744073709551615
+                  }
+                },
+                "required": [
+                  "success",
+                  "failed",
+                  "timed_out",
+                  "result_rejected",
+                  "cancelled"
+                ],
+                "additionalProperties": false
+              },
+              "serialized_result_bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 18446744073709551615
+              },
+              "duration_sum_ms": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 18446744073709551615
+              },
+              "duration_bucket_counts": {
+                "type": "array",
+                "minItems": 7,
+                "maxItems": 7,
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 18446744073709551615
+                }
+              }
+            },
+            "required": [
+              "operation",
+              "started",
+              "in_flight",
+              "outcomes",
+              "serialized_result_bytes",
+              "duration_sum_ms",
+              "duration_bucket_counts"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "schema_version",
+        "scope",
+        "measurement",
+        "duration_bucket_upper_bounds_ms",
+        "operations"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schema_version",
+    "policy",
+    "metrics"
+  ],
+  "additionalProperties": false
+}

@@ -38,10 +38,11 @@ This directory contains the canonical Conductor project context and management f
 - **foi-platform-landscape_20260712** - Source-backed map of non-Alaveteli FOI platforms, with Phase 3 drift monitoring still open
 - **jurisdiction-capture-completion-20260721** - Bounded jurisdiction capture increments; live runs remain operator-authorised
 
+- **remote-mcp-observability-security-20260711** - Bounded MCP dispatch telemetry; source correlation, raw metrics and platform acceptance remain open (#172, #460)
+
 ### Completed Tracks
 - **quality-frontier-testing-cicd-20261113** — Independently verified and archived for issue #280 (PRs #414, #433 and #437); [acceptance evidence](./archive/quality-frontier-testing-cicd-20261113/acceptance-evidence.md).
 - **python-security-quality-fuzzing-20260813** - Hypothesis gate, bounded Atheris fuzzing, and zero-vulnerability Python security baseline (PR #390)
-- **remote-mcp-observability-security-20260711** - Default-deny policy, observability, and operator controls
 - **remote-mcp-read-surface-20260711** - Guarded read-only remote SyncClient tools
 - **resource-aware-autonomous-agent** - Header-aware adaptive pacing, load memory, plan reflection, identity hygiene, filesystem cache, and local traces for sustainable Alaveteli access
 - **research-grade-quality** - >95% test coverage, >90% mutation score, and load/performance testing baseline

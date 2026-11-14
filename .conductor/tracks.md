@@ -236,7 +236,7 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Priority: high*
   *Results: Stable JSONL body records with normalized tags, malformed-input recovery, named shared limiter, and provenance-preserving JSON mode.*
 
-- [x] **Track: remote-mcp-observability-security** (IMPLEMENTED 2026-07-11, PR #175)
+- [~] **Track: remote-mcp-observability-security** (IN PROGRESS; bounded MCP dispatch increment #460, source/platform acceptance open)
   *GitHub parent: [#169](https://github.com/edithatogo/fyi-cli/issues/169)*
   *GitHub issue: [#172](https://github.com/edithatogo/fyi-cli/issues/172)*
   *Link: [./tracks/remote-mcp-observability-security-20260711/](./tracks/remote-mcp-observability-security-20260711/)*
