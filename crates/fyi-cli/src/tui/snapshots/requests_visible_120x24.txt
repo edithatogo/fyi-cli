@@ -1,0 +1,25 @@
+120x24
+|┌ FYI | read-only | data visible ──────────────────────────────────────────────────────────────────────────────────────┐|
+|│ Summary │ [Requests] │ Timeline │ Drafts                                                                             │|
+|└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘|
+|┌ Requests 1-4 / 4 ──────────────────────────────────────────────────────┐┌Request details─────────────────────────────┐|
+|│   ID       Status             Authority          Title                 ││ID: 7101                                    │|
+|│>! 7101     Awaiting response  Synthetic Private  PRIVATE SYNTHETIC TITL││Title: PRIVATE SYNTHETIC TITLE              │|
+|│   7102     Draft              Synthetic Planning Draft courtyard plans ││Authority: Synthetic Private Authority      │|
+|│   7103     Successful         Synthetic Planning Bridge records        ││Status: Awaiting response                   │|
+|│ ? 7104     Unknown            Unavailable        Forest records        ││Updated: 2026-01-15T09:42:17Z               │|
+|│                                                                        ││Attention: Yes                              │|
+|│                                                                        ││                                            │|
+|│                                                                        ││Enter: supplied timeline                    │|
+|│                                                                        ││!: needs attention; ?: unknown              │|
+|│                                                                        ││                                            │|
+|│                                                                        ││                                            │|
+|│                                                                        ││                                            │|
+|│                                                                        ││                                            │|
+|│                                                                        ││                                            │|
+|│                                                                        ││                                            │|
+|│                                                                        ││                                            │|
+|└────────────────────────────────────────────────────────────────────────┘└────────────────────────────────────────────┘|
+|┌ Controls ────────────────────────────────────────────────────────────────────────────────────────────────────────────┐|
+|│Tab view | arrows/Home/End/PgUp/PgDn | / filter | p privacy | ? help | q quit                                         │|
+|└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘|

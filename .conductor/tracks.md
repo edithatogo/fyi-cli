@@ -6,6 +6,12 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## Active frontier convergence tracks
 
+- [~] **Track: rust-mcp-tui-implementation** (TUI acceptance reconciled 2026-11-14)
+  *Link: [./tracks/rust-mcp-tui-implementation/](./tracks/rust-mcp-tui-implementation/)*
+  *Scope: existing combined CLI/MCP/TUI track; no replacement track.*
+  *TUI: bounded read-only Ratatui presentation implemented and locally verified in [PR #435](https://github.com/edithatogo/fyi-cli/pull/435); see [TUI evidence](./tracks/rust-mcp-tui-implementation/tui-acceptance-evidence.md).*
+  *Open: request-management adapter, CLI launch, terminal lifecycle/input and runtime budgets. Historical CLI/MCP acceptance remains with its owners; combined closure is not claimed.*
+
 - [~] **Track: frontier-rust-convergence-20261113**
   *Link: [./tracks/frontier-rust-convergence-20261113/](./tracks/frontier-rust-convergence-20261113/)*
   *Status: specification and plan committed; implementation not yet verified.*
@@ -81,12 +87,6 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Link: [./tracks/rust-core-migration/](./tracks/rust-core-migration/)*
   *Description: Rust Rewrite Phase 1 - Core API contracts, secure database, encryption, and Tor networking layer.*
   *Results: Handshake API contracts, SQLite async connection pool and migrations, AES-256-GCM plus keyring and zeroize, SOCKS5 Tor proxy.*
-  *Status: TARGET ACHIEVED*
-
-- [x] **Track: rust-mcp-tui-implementation** (COMPLETED 2026-06-15)
-  *Link: [./tracks/rust-mcp-tui-implementation/](./tracks/rust-mcp-tui-implementation/)*
-  *Description: Rust Rewrite Phase 2 - Command-line interface, native MCP server implementation, and Ratatui terminal UI dashboard.*
-  *Results: clap parser, JSON-RPC 2.0 stdin/stdout MCP server daemon, Ratatui multi-tab dashboard.*
   *Status: TARGET ACHIEVED*
 
 - [x] **Track: rust-quality-hardening** (COMPLETED 2026-06-15)
