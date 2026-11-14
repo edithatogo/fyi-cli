@@ -1,5 +1,16 @@
 # Implementation Plan
 
+## 2026-11-14 local reconciliation
+
+- [~] Reconcile the public release, component versions, registry identity and native package targets.
+- [~] Repair install metadata, reproducible source templates and checksum-enforced installers.
+    - [x] Replace guessed asdf downloads with committed checksum approvals, exact platforms, bounded safe archive inspection, version checks and atomic installs.
+    - [x] Harden deterministic release manifests and add read-only exact-byte verification; signature/SBOM/native install evidence remains separate.
+- [~] Extend the existing Packaging Assets gate with exact manifest, release-evidence,
+  submission-readiness and clean-install contract checks; do not change shared workflows.
+- [ ] Record verified local evidence, registry-specific submission/rollback packets and exact
+  operator blockers; leave publication and native clean-install verification open.
+
 ## Phase 1: Release-source hardening
 
 - [~] Task: Make GitHub Releases the reproducible source for all package submissions.
