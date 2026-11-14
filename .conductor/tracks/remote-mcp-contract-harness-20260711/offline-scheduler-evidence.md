@@ -68,7 +68,8 @@ regression sensor for the three identified modules.
 
 ## Integration and rollback
 
-The sole integration coordinator owns the final base/head reconciliation,
+Focused PR [#458](https://github.com/edithatogo/fyi-cli/pull/458) contains this
+repair. The sole integration coordinator owns the final base/head reconciliation,
 required checks/review, merge and pruning. This repair precedes the actual
 upstream MCP harness increment so its verification does not repeat the rejected
 unguarded scheduler behavior. It changes neither a gate nor an exclusion.

@@ -78,5 +78,5 @@ source implementation, shared test configuration, runtime lock or workflow edit.
 - [x] Verify the negative-control probe, real cycle outputs and scoped tests:
   39 passed; guarded full Python run 1,515 passed/two skipped, zero external
   Python DNS/socket attempts. See `offline-scheduler-evidence.md` for limits.
-- [~] Hand off a separate focused PR before resuming broader hosted verification;
-  final-head checks/review and merge remain with the sole integration coordinator.
+- [x] Publish focused PR #458 before resuming broader hosted verification.
+- [~] Final-head checks/review and merge remain with the sole integration coordinator.
