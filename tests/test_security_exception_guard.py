@@ -186,3 +186,32 @@ def test_retired_ids_cannot_be_added_back_to_grandfathered_list() -> None:
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     assert RETIRED_NONMATCHING.isdisjoint(module.GRANDFATHERED)
+def test_cargo_audit_toml_cannot_hide_new_rustsec_id(tmp_path: Path) -> None:
+    root = fixture(tmp_path, denied=[LEGACY], cli=[LEGACY], expires="2026-12-14")
+    (root / ".cargo").mkdir()
+    (root / ".cargo/audit.toml").write_text(
+        '[advisories]\\nignore = ["RUSTSEC-2026-9999"]\\n'
+    )
+    result = run_guard(root, date(2026, 11, 14))
+    assert result.returncode != 0
+    assert "RUSTSEC-2026-9999" in result.stdout + result.stderr
+
+
+def test_cargo_audit_toml_must_not_shadow_existing_exception_policy(tmp_path: Path) -> None:
+    root = fixture(tmp_path, denied=[LEGACY], cli=[LEGACY], expires="2026-12-14")
+    (root / ".cargo").mkdir()
+    (root / ".cargo/audit.toml").write_text(
+        '[advisories]\\nignore = ["RUSTSEC-2026-0459"]\\n'
+    )
+    result = run_guard(root, date(2026, 11, 14))
+    assert result.returncode != 0
+    assert "RUSTSEC-2026-0459" in result.stdout + result.stderr
+
+
+def test_checked_in_audit_toml_does_not_suppress_independently() -> None:
+    root = Path(__file__).resolve().parents[1]
+    with (root / ".cargo/audit.toml").open("rb") as stream:
+        import tomllib
+
+        audit = tomllib.load(stream)
+    assert not audit.get("advisories", {}).get("ignore", [])
