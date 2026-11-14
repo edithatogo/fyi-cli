@@ -11,20 +11,24 @@ command, provider permissions, schema version, existing evidence, or archive-cut
 Implementation owner: this existing source-adapter track; parent #309.
 The application remains Rust-first. Python additions are independent test oracles only.
 
-## Implementation plan
+## Completed implementation checkpoint — PR #426
 
 - [x] Reproduce current numeric byte/hash mismatches with a frozen CPython 3.13.5
   corpus: 29 explicit boundary cases and 31 seeded finite bit patterns (seed 310).
   Red checkpoint: `924684d`; hosted Workspace Tests job `132248038355`, run `43530904310`.
 - [x] Independently validate all 60 oracle cases, exact round trips and the signed
   receipt in Python: 62 tests passed locally on Python 3.13.5.
-- [~] Use the existing Serde serializer with a narrow finite-float formatter;
+- [x] Use the existing Serde serializer with a narrow finite-float formatter;
   retain string escaping and integer serialization. Enable exact float parsing
   using serde_json's existing float_roundtrip feature rather than a new parser.
-- [~] Add a deterministic regression for the minimized property-test failure,
+- [x] Add a deterministic regression for the minimized property-test failure,
   a nonfinite formatter guard and an offline CLI receipt-verification test.
-- [ ] Run final-head workspace tests, property tests, strict formatting/lint,
-  Python tests, schema fixtures and all hosted merge gates before merging.
+- [x] Verify implementation head `2d3d5a3abde3c10354f76a0cd994ade3532341fa`:
+  CI `43531896393`, Conductor/MSRV `43531896389`, CodeQL `43531896344`,
+  profiling `43531896502` and all other completed PR workflows succeeded.
+  The advisory self-hosted offline-security workflow remained queued, not passed.
+- [x] Squash merge PR #426 as `c842088eaddeea660d45e2b64769493692659606`;
+  confirm its source branch was deleted. No branch-protection requirement was bypassed.
 
 ## Root cause and red evidence
 
@@ -34,7 +38,7 @@ valid Python receipt consequently failed its self-digest check. Default float
 parsing changed bits `43abc16d674ec801` to the adjacent value. Property testing
 independently minimized another failing input to bits `12099760289525035016`.
 The preceding existing CLI/core suites passed. Rustfmt separately identified a
-line-wrap issue in the new test constant; that formatting is corrected, not waived.
+line-wrap issue in the new test constant; that formatting was corrected, not waived.
 
 ## Compatibility and review boundaries
 
@@ -54,6 +58,6 @@ Full JSON Schema equivalence, arbitrary-precision integers, duplicate-key wire
 parsing, all-command receipt coverage and downstream shadow parity remain separate
 #310 requirements. Do not close #310 or claim end-to-end archival parity here.
 
-Local environment: Python 3.13.5 is available; Rust is not installed and GitHub
-cannot be resolved by the local container. Rust red/green and full workspace
-verification use hosted PR checks, not a claimed local build.
+Local environment: Python 3.13.5 was available; Rust was not installed and GitHub
+could not be resolved by the local container. Rust red/green and full workspace
+verification used hosted PR checks, not a claimed local build.

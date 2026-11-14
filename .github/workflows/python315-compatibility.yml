@@ -45,7 +45,7 @@ jobs:
           exit 0
       - name: Retain compatibility evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: python315-compatibility
           path: |
@@ -104,7 +104,7 @@ jobs:
           exit 0
       - name: Upload migration evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: python315-security-compatibility
           path: |
