@@ -432,7 +432,8 @@ fn response_header(resource: &HttpResource<'_>) -> Result<Vec<u8>> {
     .into_bytes();
     for (name, value) in resource.headers {
         let normalized = name.to_ascii_lowercase();
-        if !excluded.contains(&normalized) && PUBLIC_RESPONSE_HEADERS.contains(&normalized.as_str()) {
+        if !excluded.contains(&normalized) && PUBLIC_RESPONSE_HEADERS.contains(&normalized.as_str())
+        {
             bytes.extend_from_slice(name.as_bytes());
             bytes.extend_from_slice(b": ");
             bytes.extend_from_slice(value);
