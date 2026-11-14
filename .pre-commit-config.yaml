@@ -12,3 +12,10 @@ repos:
         pass_filenames: false
         always_run: true
         stages: [pre-commit]
+      - id: cargo-deny-advisories
+        name: Review full locked Rust dependency advisory graph
+        entry: cargo deny check advisories
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
