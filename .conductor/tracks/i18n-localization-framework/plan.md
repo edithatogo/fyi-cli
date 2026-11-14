@@ -1,5 +1,20 @@
 # Plan: i18n-localization-framework
 
+## Reconciliation — 2026-11-14
+
+The historical completed status is unsupported by the original acceptance criteria.
+The baseline has six smoke tests and hardcoded greetings/terms, but no Fluent
+resources, typed templates, holiday calendars or reviewed translations. Work resumes
+within this track; shared registries remain untouched during parallel work.
+
+- [~] Bounded increment 1: versioned message bundles, explicit locale selection,
+  deterministic fallback and strict interpolation contracts.
+- [ ] Bounded increment 2: typed request/letter templates, golden fixtures and
+  delegation to the existing deadline module.
+
+The historical checklist below is reconciled only against inspectable evidence.
+Human language/legal review is distinct from automated rendering verification.
+
 ## Phase 1: Fluent-rs Integration
 
 ### 1.1 Core Integration
