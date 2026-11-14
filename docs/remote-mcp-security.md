@@ -1,6 +1,6 @@
 # Remote MCP security and operations
 
-Remote Alaveteli capabilities are local-only and disabled by default. The MCP
+Remote Alaveteli capabilities are disabled by default; local tools remain available. The MCP
 server accepts an explicit, credential-free HTTPS allowlist through
 `FYI_MCP_REMOTE_INSTANCES`:
 
@@ -34,10 +34,14 @@ in the local SQLite database.
 
 ## Privacy and retention
 
-Remote audit events contain schema version, bounded correlation/operation
-tokens, instance ID, outcome, and a coarse error class only. They must never
-contain credentials, authorization headers, URLs with query strings, request
-bodies, attachments, PII, or upstream response content. Retain events only as
+Read-operation completion logs contain server-generated correlation IDs, an
+operation name, configured instance ID and coarse outcome. The reusable policy
+audit-event structure additionally supports a schema version and error class;
+its token normalization is not a substitute for excluding private values.
+Neither logs nor audit structures may receive credentials, authorization
+headers, URLs with query strings, request bodies, attachments, PII, or upstream
+response content. Comprehensive emitted write-audit coverage is not established
+by the policy serializer's unit tests. Retain events only as
 long as required by the operator's incident-response policy and delete them
 when that period expires.
 
