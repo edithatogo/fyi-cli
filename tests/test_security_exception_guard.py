@@ -7,7 +7,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
-from datetime import date, timedelta
+from datetime import date
 from pathlib import Path
 
 GUARD = Path(__file__).resolve().parents[1] / "scripts" / "verify_security_exceptions.py"
@@ -106,3 +106,14 @@ def test_audit_ignore_must_be_in_deny_baseline(tmp_path: Path) -> None:
     result = run_guard(root, date(2026, 11, 14))
     assert result.returncode != 0
     assert LEGACY in result.stdout + result.stderr
+
+def test_protected_ci_and_precommit_both_run_guard() -> None:
+    root = Path(__file__).resolve().parents[1]
+    ci = (root / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+    assert "Security Audit" in ci
+    assert "scripts/verify_security_exceptions.py --require-python 3.15.1" in ci
+    assert 'python-version: "3.15.1"' in ci
+
+    hook = (root / ".pre-commit-config.yaml").read_text(encoding="utf-8")
+    assert "security-exception-guard" in hook
+    assert "scripts/verify_security_exceptions.py --require-python 3.15.1" in hook
