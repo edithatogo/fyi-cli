@@ -3,10 +3,13 @@
   "type": "feature",
   "status": "in-progress",
   "created_at": "2026-07-12T00:00:00Z",
-  "updated_at": "2026-11-13T05:46:02Z",
+  "updated_at": "2026-11-14T00:00:00Z",
   "description": "Complete reproducible package, container, and developer distribution submissions.",
   "github_issue": 194,
   "child_issues": [
     202
-  ]
+  ],
+  "local_work_status": "in-progress",
+  "publication_status": "blocked-external",
+  "acceptance_evidence": "acceptance-evidence.md"
 }
