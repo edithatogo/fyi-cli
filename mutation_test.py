@@ -78,14 +78,14 @@ def run_tests() -> bool:
     """Run test suite. Returns True if tests pass."""
     result = subprocess.run(
         [
-            "python",
+            sys.executable,
             "-m",
             "pytest",
             "tests/",
             *EXCLUDED_TESTS,
             "-x",
             "-q",
-            "--tb=no",
+            "--tb=short",
             "-k",
             EXCLUDED_KEYWORDS,
         ],
@@ -93,6 +93,13 @@ def run_tests() -> bool:
         text=True,
         timeout=300,
     )
+    if result.returncode != 0:
+        # Keep the failing baseline or mutant's diagnostics in the CI evidence.
+        # The return-code classification and mutation threshold are unchanged.
+        if result.stdout:
+            print(result.stdout, end="", flush=True)
+        if result.stderr:
+            print(result.stderr, end="", file=sys.stderr, flush=True)
     return result.returncode == 0
 
 

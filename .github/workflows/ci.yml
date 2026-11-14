@@ -28,6 +28,20 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
+      - name: Record execution provenance
+        shell: bash
+        env:
+          SOURCE_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          mkdir -p artifacts/python-tests
+          checked_sha="$(git rev-parse HEAD)"
+          {
+            printf 'event_sha=%s\nsource_head_sha=%s\ncheckout_sha=%s\nrun_id=%s\nrun_attempt=%s\nevent=%s\n' "$GITHUB_SHA" "$SOURCE_HEAD_SHA" "$checked_sha" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$GITHUB_EVENT_NAME"
+            printf 'run_url=%s/%s/actions/runs/%s\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
+            date -u +'%Y-%m-%dT%H:%M:%SZ'
+            uname -a
+          } > artifacts/python-tests/environment.txt
+
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
@@ -37,10 +51,30 @@ jobs:
         uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
 
       - name: Install Python dependencies
-        run: uv sync --extra dev --frozen
+        shell: bash
+        run: |
+          set -o pipefail
+          uv --version >> artifacts/python-tests/environment.txt
+          uv sync --extra dev --frozen 2>&1 | tee artifacts/python-tests/install.log
+          {
+            uv run python --version
+            uv run pytest --version
+          } >> artifacts/python-tests/environment.txt
 
       - name: Run Python test suite
-        run: uv run pytest -q
+        shell: bash
+        run: |
+          set -o pipefail
+          uv run pytest -q --junitxml=artifacts/python-tests/junit.xml 2>&1 | tee artifacts/python-tests/pytest.log
+
+      - name: Retain Python test evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: python-tests-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/python-tests/
+          if-no-files-found: error
+          retention-days: 14
 
   property-tests:
     name: Property Tests
@@ -166,23 +200,63 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
+      - name: Record execution provenance
+        shell: bash
+        env:
+          SOURCE_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          mkdir -p artifacts/security-audit
+          checked_sha="$(git rev-parse HEAD)"
+          {
+            printf 'event_sha=%s\nsource_head_sha=%s\ncheckout_sha=%s\nrun_id=%s\nrun_attempt=%s\nevent=%s\n' "$GITHUB_SHA" "$SOURCE_HEAD_SHA" "$checked_sha" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$GITHUB_EVENT_NAME"
+            printf 'run_url=%s/%s/actions/runs/%s\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
+            date -u +'%Y-%m-%dT%H:%M:%SZ'
+            uname -a
+          } > artifacts/security-audit/environment.txt
+
       - name: Install cargo-audit
-        run: cargo install cargo-audit --locked
+        shell: bash
+        run: |
+          set -o pipefail
+          {
+            rustc --version --verbose
+            cargo --version
+          } >> artifacts/security-audit/environment.txt
+          cargo install cargo-audit --locked 2>&1 | tee artifacts/security-audit/install-audit.log
+          cargo audit --version >> artifacts/security-audit/environment.txt
 
       - name: Install cargo-deny
-        run: cargo install cargo-deny --locked
+        shell: bash
+        run: |
+          set -o pipefail
+          cargo install cargo-deny --locked 2>&1 | tee artifacts/security-audit/install-deny.log
+          cargo deny --version >> artifacts/security-audit/environment.txt
 
       - name: Run security audit
+        shell: bash
         run: |
+          set -o pipefail
           cargo audit \
             --ignore RUSTSEC-2026-0387 \
             --ignore RUSTSEC-2026-0459 \
             --ignore RUSTSEC-2026-0370 \
             --ignore RUSTSEC-2026-0371 \
-            --ignore RUSTSEC-2026-0372
+            --ignore RUSTSEC-2026-0372 2>&1 | tee artifacts/security-audit/audit.log
 
       - name: Run cargo-deny
-        run: cargo deny check
+        shell: bash
+        run: |
+          set -o pipefail
+          cargo deny check 2>&1 | tee artifacts/security-audit/deny.log
+
+      - name: Retain security audit evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: security-audit-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/security-audit/
+          if-no-files-found: error
+          retention-days: 14
 
   coverage:
     name: Code Coverage
@@ -195,6 +269,20 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
+      - name: Record execution provenance
+        shell: bash
+        env:
+          SOURCE_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          mkdir -p artifacts/coverage
+          checked_sha="$(git rev-parse HEAD)"
+          {
+            printf 'event_sha=%s\nsource_head_sha=%s\ncheckout_sha=%s\nrun_id=%s\nrun_attempt=%s\nevent=%s\n' "$GITHUB_SHA" "$SOURCE_HEAD_SHA" "$checked_sha" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$GITHUB_EVENT_NAME"
+            printf 'run_url=%s/%s/actions/runs/%s\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
+            date -u +'%Y-%m-%dT%H:%M:%SZ'
+            uname -a
+          } > artifacts/coverage/environment.txt
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
         with:
@@ -202,6 +290,15 @@ jobs:
 
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@3f7c3597aa4e6da3f315e128de702ce61e7b2877
+
+      - name: Record coverage tool versions
+        shell: bash
+        run: |
+          {
+            rustc --version --verbose
+            cargo --version
+            cargo llvm-cov --version
+          } >> artifacts/coverage/environment.txt
 
       - name: Cargo cache
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
@@ -219,15 +316,19 @@ jobs:
         run: rm -rf target/llvm-cov-target
 
       - name: Run tests with coverage
+        shell: bash
         # Produce LCOV for Codecov and enforce the project target. An 83%
         # report must fail CI; 90% is a gate, not an informational goal.
         # The process-event exporter has dedicated contract/benchmark tests;
         # downstream archive consumers provide its integration coverage.
         run: |
+          set -o pipefail
           cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info \
-            --ignore-filename-regex '(^|/)(main|tui)\.rs$|/tor\.rs$|/jurisdiction\.rs$|/process_events\.rs$'
+            --ignore-filename-regex '(^|/)(main|tui)\.rs$|/tor\.rs$|/jurisdiction\.rs$|/process_events\.rs$' \
+            2>&1 | tee artifacts/coverage/tests.log
           cargo llvm-cov report --summary-only --fail-under-lines 90 \
-            --ignore-filename-regex '(^|/)(main|tui)\.rs$|/tor\.rs$|/jurisdiction\.rs$|/process_events\.rs$'
+            --ignore-filename-regex '(^|/)(main|tui)\.rs$|/tor\.rs$|/jurisdiction\.rs$|/process_events\.rs$' \
+            2>&1 | tee artifacts/coverage/summary.log
           test -f lcov.info
 
       - name: Upload coverage reports to Codecov
@@ -237,6 +338,17 @@ jobs:
           fail_ci_if_error: true
           use_oidc: true
           verbose: true
+
+      - name: Retain coverage evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: coverage-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/coverage/
+            lcov.info
+          if-no-files-found: error
+          retention-days: 14
 
   harness-contract:
     name: Layered Harness Contract
