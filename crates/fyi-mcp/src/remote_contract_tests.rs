@@ -19,6 +19,40 @@ fn policy(read: bool, write: bool, bytes: u64) -> RemoteMcpPolicy {
 }
 
 #[tokio::test]
+async fn invalid_read_arguments_never_spend_allowance_or_open_the_circuit() {
+    let policy = policy(true, true, 1024);
+    for _ in 0..3 {
+        for (operation, arguments) in [
+            ("remote_search_requests", json!({"query":"   "})),
+            ("remote_search_requests", json!({"query":"x".repeat(201)})),
+            ("remote_get_request", json!({"request_id":0})),
+            (
+                "remote_get_request",
+                json!({"request_id":"synthetic-private"}),
+            ),
+            ("remote_list_authorities", json!({"filter":"x".repeat(101)})),
+        ] {
+            assert!(remote_read(
+                &policy,
+                "synthetic",
+                operation,
+                &arguments,
+                "synthetic-correlation"
+            )
+            .await
+            .is_err());
+        }
+    }
+    let status = policy.status();
+    assert_eq!(status.instances[0].requests_used, 0);
+    assert_eq!(status.instances[0].bytes_used, 0);
+    assert!(!status.circuit_open);
+    assert!(policy
+        .authorize("synthetic", RemoteCapability::Write)
+        .is_ok());
+}
+
+#[tokio::test]
 async fn successful_remote_result_is_counted_before_publication() {
     let policy = policy(true, false, 64);
     policy.record_failure();

@@ -250,7 +250,7 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Dependencies: remote-mcp-observability-security*
   *Priority: high*
 
-- [~] **Track: remote-mcp-contract-harness** (IN PROGRESS 2026-11-14; protocol PR #438, confirmation/budget PR #441; original acceptance incomplete)
+- [~] **Track: remote-mcp-contract-harness** (IN PROGRESS 2026-11-14; protocol PR #438, confirmation/budget PR #441, schema/SDK PR #443; original acceptance incomplete)
   *GitHub parent: [#169](https://github.com/edithatogo/fyi-cli/issues/169)*
   *GitHub issue: [#173](https://github.com/edithatogo/fyi-cli/issues/173)*
   *Link: [./tracks/remote-mcp-contract-harness-20260711/](./tracks/remote-mcp-contract-harness-20260711/)*

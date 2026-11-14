@@ -551,6 +551,15 @@ def test_official_sdk_synthetic_write_preparation(mcp_binary: Path, tmp_path: Pa
             )
             tools = {tool.name: tool for tool in discovered.tools}
             assert tools.keys() >= REMOTE_WRITE_TOOLS
+            # Semantic input rejection must not trip the upstream circuit or
+            # consume remote attempts before these valid preparations.
+            for _ in range(3):
+                invalid_read = await session.call_tool(
+                    "remote_search_requests",
+                    {"instance_id": "synthetic", "query": "   "},
+                )
+                assert invalid_read.isError
+                assert invalid_read.content[0].text == "query must be between 1 and 200 characters"
             for name in REMOTE_WRITE_TOOLS:
                 assert tools[name].annotations is not None
                 assert tools[name].annotations.readOnlyHint is False

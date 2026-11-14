@@ -52,7 +52,10 @@ python -m pytest -q tests/test_remote_mcp_contract.py tests/test_mcp_client_inte
 Streamable HTTP transports. It exercises initialization, ping, discovery,
 successful local operations, output validation, private failures and governed
 write preparation/rejection. It checks the default SDK negotiation and explicit
-March/June revisions. No successful remote commit or live authority call occurs.
+March/June revisions. Default negotiation uses SDK defaults; explicit revision
+cases select the SDK's advertised version constant while retaining its session
+and transport implementation. No successful remote commit or live authority
+call occurs.
 
 When Cargo is available the SDK fixture builds current source once. An explicit
 `FYI_MCP_TEST_BINARY` selects the intended executable; a failed build or session
@@ -99,7 +102,9 @@ closed on unknown assertions, including unused branches. Its bounded recursion,
 node count and shared branch budget run before side effects. Integer handling
 preserves exact parsed integer bounds, accepts lossless integral JSON numbers,
 and never coerces strings or booleans. `format` remains an annotation; date
-parsing is a separate handler check. Deadline day counts and capability scope
+parsing is a separate handler check. Remote read semantic checks occur before
+request admission and do not count as upstream circuit failures. Deadline day
+counts and capability scope
 lists have explicit computation bounds. A 20-example Hypothesis test sends
 generated invalid arguments through the real SDK and verifies unchanged local
 state and subsequent ping responsiveness.
@@ -150,26 +155,27 @@ sequential `check_status` calls over one persistent HTTP session. Timing include
 client serialization, loopback transport, database work and SDK output validation.
 Linux memory is the server process's `/proc/PID/status` RSS and lifetime high
 water mark; the Python client is excluded. Each run emits its raw samples,
-executable hash and runtime metadata into pytest's temporary directory.
+executable hash and runtime metadata into pytest's temporary directory, subject
+to the existing retention policy. A machine-readable summary is also printed.
 
 ```bash
 python -m pytest -q -s tests/test_mcp_client_interop.py -m performance
 ```
 
 Observed on 2026-11-14, Linux x86_64, Rust 1.99.1 debug build, Python 3.12.14,
-official MCP SDK 1.29.0, empty ephemeral SQLite:
+official MCP SDK 1.30.0, empty ephemeral SQLite:
 
 | Metric | Observed | Enforced fixture budget |
 | --- | ---: | ---: |
-| Median latency | 3.597 ms | Recorded |
-| p95 latency, nearest rank | 4.232 ms | 250 ms |
-| Maximum latency | 8.680 ms | Recorded |
-| RSS after warmup | 20,492,288 bytes | Recorded |
-| RSS / lifetime peak after measurements | 20,893,696 bytes | 128 MiB peak |
-| RSS growth after warmup | 401,408 bytes | 16 MiB |
+| Median latency | 3.612 ms | Recorded |
+| p95 latency, nearest rank | 4.154 ms | 250 ms |
+| Maximum latency | 6.007 ms | Recorded |
+| RSS after warmup | 20,254,720 bytes | Recorded |
+| RSS / lifetime peak after measurements | 20,291,584 bytes | 128 MiB peak |
+| RSS growth after warmup | 36,864 bytes | 16 MiB |
 
 Measured executable SHA-256:
-`9b21593cdb8a4aa022e55af117b6f601d6d355c46d09480ea5ba7f494979dad8`.
+`73fcc8bb5bc72b88b1cba74241ee716cce01e9a37fac4090dcee4b370468d30a`.
 These conservative regression budgets are for this local fixture. They do not
 establish remote latency, populated-database performance, allocator ceilings,
 release-build results or production-load capacity. Non-Linux runs still assess
@@ -238,11 +244,11 @@ and do not substitute for the missing source-transfer assertions.
 
 | Combination or requirement | Evidence | Status |
 | --- | --- | --- |
-| Linux x86_64, Rust 1.99.1, MCP SDK 1.29.0, Python 3.12.14 | Executable framing plus SDK stdio/HTTP, default/2025-06-18/2025-03-26 profiles | Passed locally |
+| Linux x86_64, Rust 1.99.1, MCP SDK 1.29.0 and 1.30.0, Python 3.12.14 | Executable framing plus SDK stdio/HTTP, default/2025-06-18/2025-03-26 profiles | Passed locally |
 | Remote-disabled, read-enabled and write-gated stdio registration | Real SDK sessions; all three write preparations/rejections use v2 fixtures | Passed offline |
 | Degraded mode, kill switch, cooldown and skew | Deterministic injected policy/gate/future tests | Passed internally; external degraded-stdio path not exercised |
 | Workspace stable/MSRV on Linux | Existing CI and Frontier Conductor/MSRV jobs | Record checks for each PR's final head |
-| Dependency-lock MCP SDK version | Existing Python CI resolves `uv.lock` | Final-head CI evidence required; local 1.29.0 is identified separately |
+| Dependency-lock MCP SDK version | Existing Python CI resolves `uv.lock` | SDK 1.30.0 passed locally; full locked-environment final-head CI is recorded separately |
 | Windows and macOS runtime/SDK pairs | Tests are portable; no new platform workflow introduced | Not executed in this workstream |
 | Supported source JSON/RSS/Atom variants | Existing source tests reused | Shared versioned feed fixtures and full MCP-to-source success matrix incomplete |
 | Source transfer/cache faults | Existing source unit tests plus MCP future timeout/circuit tests | Disconnect, malformed transfer and corrupt cache integration not established |

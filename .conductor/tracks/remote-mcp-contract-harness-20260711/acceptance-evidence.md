@@ -43,19 +43,24 @@ permits enforce per-instance concurrency, count attempts before I/O, account
 rejected response bytes, enforce duration and release on cancellation. Synthetic
 future tests cover success, private upstream failure, timeout, oversized output,
 policy changes, invalid confirmation and changed commit payload. No live write
-is part of this verification. Rust 1.99.1 verification passed 97 MCP tests
-(92 unit/boundary and five executable), Clippy with warnings denied, formatting,
+is part of this verification. Rust 1.99.1 verification passed 98 MCP tests
+(93 unit/boundary and five executable), Clippy with warnings denied, formatting,
 and the Conductor contract check.
+
+Review additionally identified invalid read parameters consuming remote allowance
+and opening the shared upstream circuit before I/O. Query, ID and filter
+validation now precedes admission; repeated invalid calls preserve zero usage
+and a closed circuit.
 
 Attachment tests reject traversal and observed in-root file/directory symlinks.
 Process restart durability, attachment byte immutability and source raw-byte/
 retry/fault contracts remain separate unverified dependencies.
 
-## Slice 3: executable schemas, current exchanges and official clients
+## Slice 3: executable schemas, current exchanges and official clients (PR #443)
 
 The catalogue now exposes all 23 complete tool definitions. Remote writes have
-mutating annotations and separate prepare/commit input branches. Successful
-outputs are checked against actual source model shapes; `sync_status`'s
+mutating annotations and separate prepare/commit input branches. Output
+schemas reflect the source model shapes; `sync_status`'s
 previously unsatisfiable output schema is repaired. Argument validation occurs
 before dispatch and rejects unsupported schema assertions, unknown fields,
 wrong types and excessive bounds without reflecting rejected values.
@@ -66,6 +71,13 @@ SDK `tools/list` comparison fail on drift. Twenty-three v2 cases include eight
 executed handler negatives and clearly labelled synthetic success/error outputs.
 No synthetic remote success example is represented as a live source call.
 
+Review also identified semantic read errors consuming allowance and tripping
+the upstream circuit before I/O. Read query/ID/filter checks now precede
+admission; repeated invalid inputs preserve zero request/byte usage and a
+closed circuit. The SDK verifies valid preparation remains available after
+three whitespace-only searches. The admission fix is included in PR #441; PR #443 verifies it through
+the real SDK and completes the phase-specific schema review finding.
+
 The official Python MCP SDK exercises stdio and Streamable HTTP using default,
 2025-06-18 and 2025-03-26 initialization. It checks local results, output schemas,
 private errors, capability denial, read-only registration, all three governed
@@ -73,17 +85,19 @@ write preparations, mismatched confirmations and unchanged state after invalid
 calls. Twenty deterministic Hypothesis examples send malformed arguments through
 that real client. Inputs never contact a live authority.
 
-Local verification on Rust 1.99.1 passed 126 MCP tests (121 unit/boundary and
+Local verification on Rust 1.99.1 passed 127 MCP tests (122 unit/boundary and
 five executable), 129 verifier tests and 13 SDK integration tests. Clippy with
 warnings denied, Rust formatting, Ruff and the existing Conductor/verifier
-commands passed. The SDK test initially caught a stale catalogue after a new
+commands passed. All 13 SDK tests passed with both the installed 1.29.0 client
+and the lock-pinned 1.30.0 client; the latter also passed all 20 generated
+examples. The SDK test initially caught a stale catalogue after a new
 scope bound; recapture from the executable repaired that demonstrated drift.
 
 An empty-database persistent HTTP assessment (ten warmups, 100 measured calls)
-recorded p50 3.597 ms, p95 4.232 ms, maximum 8.680 ms, final/peak RSS 20,893,696
-bytes and post-warmup growth 401,408 bytes. Enforced local fixture limits are
+recorded p50 3.612 ms, p95 4.154 ms, maximum 6.007 ms, final/peak RSS 20,291,584
+bytes and post-warmup growth 36,864 bytes. Enforced local fixture limits are
 250 ms p95, 128 MiB peak RSS and 16 MiB growth. The measured debug executable,
-SDK 1.29.0/Python 3.12.14/Linux environment and reproduction are documented in
+SDK 1.30.0/Python 3.12.14/Linux environment and reproduction are documented in
 `docs/mcp-contract-harness.md`. These are not remote or production-load claims.
 
 ## Mutation evidence
@@ -140,7 +154,7 @@ cargo test -p fyi-core --lib -- --exact \
 | Disabled/read/degraded/write stdio modes | Actual disabled/read-enabled/write-gated sessions; policy-level degraded/kill tests | Degraded mode is not exposed through a tested subprocess control path; no external degraded-stdio run |
 | Property/mutation boundaries | Generated invalid SDK arguments; exact integer/depth/schema bounds; deterministic scope/clock/replay; 39 caught selected mutants; reused state/SSRF tests | Broader generated pagination/state/URL/path properties and SSRF/source-guardrail/error-classification mutations |
 | Latency/memory/request/byte/concurrency | Recorded local SDK latency/RSS budgets; admitted-attempt, payload-byte, duration and concurrency tests; existing source small-body/count tests | Raw multi-chunk cancellation/peak memory, exact retry wire counts and propagation of MCP allowances into source budgets remain separate evidence gaps |
-| Compatibility/release matrix | Linux Rust 1.99.1 and official SDK stdio/HTTP; existing stable/MSRV jobs; explicit matrix | Windows/macOS runtime/client combinations have not been executed here; locked SDK results depend on final-head CI |
+| Compatibility/release matrix | Linux Rust 1.99.1 and official SDK 1.29.0/1.30.0 stdio/HTTP; existing stable/MSRV jobs; explicit matrix | Windows/macOS runtime/client combinations have not been executed here; locked SDK results depend on final-head CI |
 | Deterministic faults | MCP pending-future timeout, clock skew, expiry, circuit cooldown/recovery; source malformed JSON and pacing-wait tests | Stalled HTTP headers/body, mid-body disconnect, malformed transfer chunks and corrupt validator/filesystem cache injection |
 | Version/deprecation handling | Unknown contract versions and schema assertions fail closed; HTTP unknown version rejected; initialization fallback and legacy batch behavior verified | Later MCP revisions are outside the advertised supported profiles |
 | Complete issue/epic evidence and closeout | Scoped PRs link #173/#169; this evidence corrects the historical implemented label | Keep the track open until the remaining original acceptance rows are resolved and final-head checks are recorded |
@@ -161,9 +175,9 @@ Comprehensive production write-audit emission is likewise not established by
 the reusable audit serializer tests. Existing local update/import semantics
 are documented accurately, without changing the local-management workstream.
 
-Required hosted checks are reviewed on each final head before merge. A base
-advance invalidated PR #441's earlier checks; its branch was updated to
-`f00947860cd15c1ad3fd9f9031f64f683cc098db` with current master and must pass
-again. Final PR heads, Actions links and merge commits are recorded in the PRs
-and the delivery report. Source acquisition, SQLite core, localization, CLI
+Required hosted checks are reviewed on each final head before merge. Parallel
+TUI and packaging merges advanced master, requiring refreshed heads and new
+required checks for PR #441. The final review fix is included in that branch.
+Final PR heads, Actions links and merge commits are recorded in the PRs and
+the delivery report. Source acquisition, SQLite core, localization, CLI
 dispatch, TUI, packaging and shared workflows remain with their assigned owners.

@@ -2780,6 +2780,30 @@ async fn remote_read(
     arguments: &Value,
     correlation_id: &str,
 ) -> Result<Value, String> {
+    // Caller validation must precede admission. Bad input must not spend a
+    // network allowance or count as an upstream failure in the shared circuit.
+    let query = arguments
+        .get("query")
+        .and_then(Value::as_str)
+        .unwrap_or("")
+        .trim();
+    let request_id = arguments.get("request_id").and_then(Value::as_i64);
+    let filter = arguments
+        .get("filter")
+        .and_then(Value::as_str)
+        .unwrap_or("");
+    match operation {
+        "remote_search_requests" if query.is_empty() || query.chars().count() > 200 => {
+            return Err("query must be between 1 and 200 characters".into());
+        }
+        "remote_get_request" if request_id.is_none_or(|id| id < 1) => {
+            return Err("request_id must be a positive integer".into());
+        }
+        "remote_list_authorities" if filter.chars().count() > 100 => {
+            return Err("filter exceeds 100 characters".into());
+        }
+        _ => {}
+    }
     let permit = policy
         .begin_request(instance_id, policy::RemoteCapability::Read)
         .map_err(|error| error.to_string())?;
@@ -2802,14 +2826,6 @@ async fn remote_read(
                 .map(|version| json!({"instance_id": instance_id, "version": version}))
                 .map_err(|_| "remote operation failed".to_string()),
             "remote_search_requests" => {
-                let query = arguments
-                    .get("query")
-                    .and_then(Value::as_str)
-                    .unwrap_or("")
-                    .trim();
-                if query.is_empty() || query.chars().count() > 200 {
-                    return Err("query must be between 1 and 200 characters".into());
-                }
                 let limit = arguments
                     .get("limit")
                     .and_then(Value::as_u64)
@@ -2821,28 +2837,12 @@ async fn remote_read(
                 .map(|requests| json!({"instance_id": instance_id, "query": query, "requests": requests.into_iter().take(limit).collect::<Vec<_>>() }))
                 .map_err(|_| "remote operation failed".to_string())
             }
-            "remote_get_request" => {
-                let request_id = arguments
-                    .get("request_id")
-                    .and_then(Value::as_i64)
-                    .ok_or_else(|| "request_id must be a positive integer".to_string())?;
-                if request_id < 1 {
-                    return Err("request_id must be a positive integer".into());
-                }
-                client
-                    .fetch_request(request_id)
-                    .await
-                    .map(|request| json!({"instance_id": instance_id, "request": request}))
-                    .map_err(|_| "remote operation failed".to_string())
-            }
+            "remote_get_request" => client
+                .fetch_request(request_id.expect("request ID validated before admission"))
+                .await
+                .map(|request| json!({"instance_id": instance_id, "request": request}))
+                .map_err(|_| "remote operation failed".to_string()),
             "remote_list_authorities" => {
-                let filter = arguments
-                    .get("filter")
-                    .and_then(Value::as_str)
-                    .unwrap_or("");
-                if filter.chars().count() > 100 {
-                    return Err("filter exceeds 100 characters".into());
-                }
                 let limit = arguments
                     .get("limit")
                     .and_then(Value::as_u64)
