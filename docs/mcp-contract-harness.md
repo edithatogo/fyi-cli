@@ -53,6 +53,40 @@ They are not measured process RSS or latency baselines. Mutation execution,
 cross-platform/MSRV evidence, remote fault injection and upstream byte limits
 must remain visible in track evidence until verified.
 
+## Remote admission and confirmation contract
+
+Each configured instance admits at most one active MCP remote operation. The
+request allowance counts admitted operations, including failures and timeouts;
+it does not count each internal HTTP retry or request inside an operation.
+The duration budget covers the complete admitted future. Returned payload bytes
+are counted before publication, including rejected oversized results. Failure,
+timeout and cancellation release concurrency without refunding the attempt.
+These are MCP boundary limits; raw download/retry/allocator limits require
+separate source-adapter evidence.
+
+Confirmation tokens are opaque OS-generated random capabilities. Unused tokens
+expire after 300 seconds using a monotonic clock. They bind an instance,
+operation, idempotency key and immutable preparation. Commit arguments contain
+only `instance_id`, `phase`, `confirmation_token` and `idempotency_key`; changing
+the payload requires a new preparation. Invalid, expired and scope-mismatched
+tokens consume no operation allowance. Concurrency/budget rejection leaves a
+valid pending confirmation intact.
+
+The process-local replay ledger retains at most 128 entries. Each preparation
+and cached result is limited to 64 KiB of serialized JSON. Unused expired
+confirmations can be reclaimed; attempted writes are retained even when their
+remote outcome is uncertain. Completed results remain retrievable without a
+fresh dispatch allowance, subject to current capability and operator controls.
+The ledger and raw payloads are excluded from diagnostic formatting.
+
+Restarting loses the ledger. This is not durable, cross-process idempotency, and
+an uncertain remote outcome requires reconciliation before another key is used.
+Serialized-state limits are not a measured heap/RSS ceiling. Attachment paths
+reject traversal and observed symlinks before canonicalization; source APIs
+still reopen paths, so this does not prove content immutability from preparation
+through submission or eliminate filesystem races. Those remain explicit
+closure dependencies.
+
 ## Normative references
 
 - [MCP 2025-06-18 lifecycle](https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle)

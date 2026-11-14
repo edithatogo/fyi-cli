@@ -23,6 +23,39 @@ Run `cargo test -p fyi-mcp --locked` for the unit and executable sensors.
 The PR records final local and hosted-head evidence; no unobserved check is
 marked complete here.
 
+PR #438 implements the wire slice at head
+`71ec8aa093b9f05265d737e70c46964eb38b1bbd`; 44 local tests passed with
+Rust 1.99.1, and Clippy, formatting and the existing verifiers passed. All required final-head checks passed before squash merge
+`19f3cf376101500036951f9a3d3733da49f0df8b`. The optional self-hosted
+AI security run was queued and is not claimed as passing.
+
+## Slice 2: confirmation and operation budgets
+
+The original confirmation gate failed four regressions for token opacity,
+duplicate preparation, changed payloads and bounded capacity. The original
+policy failed oversized-response accounting. Additional review regressions
+showed invalid confirmations consuming the final operation allowance and
+completed replay failing after budget exhaustion.
+
+The repaired gate uses OS-generated opaque tokens, monotonic expiry, immutable
+scope/payload binding, atomic admission and bounded retained state. Policy
+permits enforce per-instance concurrency, count attempts before I/O, account
+rejected response bytes, enforce duration and release on cancellation. Synthetic
+future tests cover success, private upstream failure, timeout, oversized output,
+policy changes, invalid confirmation and changed commit payload. No live write
+is part of this verification. Rust 1.99.1 verification passed 98 MCP tests
+(93 unit/boundary and five executable), Clippy with warnings denied, formatting,
+and the Conductor contract check.
+
+Review additionally identified invalid read parameters consuming remote allowance
+and opening the shared upstream circuit before I/O. Query, ID and filter
+validation now precedes admission; repeated invalid calls preserve zero usage
+and a closed circuit.
+
+Attachment tests reject traversal and observed in-root file/directory symlinks.
+Process restart durability, attachment byte immutability and source raw-byte/
+retry/fault contracts remain separate unverified dependencies.
+
 ## Remaining closure evidence
 
 - Versioned executable tool/schema/annotation and result/error fixtures.

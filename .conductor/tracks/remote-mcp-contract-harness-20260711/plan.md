@@ -11,13 +11,13 @@
 
 - [~] Task: Add unit, integration, end-to-end stdio, smoke/system, regression, and sanity suites
 - [ ] Task: Add property tests for bounds, normalization, state expectations, and redaction
-- [ ] Task: Add edge and security tests for SSRF, capabilities, guardrails, and secrets
+- [~] Task: Add edge and security tests for SSRF, capabilities, guardrails, and secrets
 - [ ] Task: Conductor review verification 'Layered test harness'
 
 ## Phase 3: Mutation and performance
 
 - [ ] Task: Add mutation targets for policy, confirmation/replay, SSRF, guardrails, and errors
-- [ ] Task: Define and test latency, memory, request, byte, and concurrency budgets
+- [~] Task: Define and test latency, memory, request, byte, and concurrency budgets
 - [ ] Task: Add deterministic compatibility matrix for Rust/MSRV, operating systems, and MCP clients
 - [ ] Task: Conductor review verification 'Mutation and performance'
 
@@ -37,3 +37,5 @@ The registry previously described this track as implemented, but its plan and me
 - Official Python MCP SDK 1.29.0 baseline: four interoperability/security scenarios failed.
 - This slice targets the existing 2025-06-18 and 2025-03-26 profiles; it does not claim later MCP revisions.
 - Remaining evidence is tracked in `acceptance-evidence.md`; unchecked acceptance gates remain open.
+
+Confirmation and MCP operation-budget slice: deterministic expiry/scope/replay, concurrency, byte/duration, privacy and invalid-confirmation regressions pass; source raw-byte/retry and cross-restart/attachment guarantees remain open (see acceptance evidence).
