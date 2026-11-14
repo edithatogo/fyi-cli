@@ -28,6 +28,7 @@ import json
 import math
 import os
 import platform
+import re
 import shutil
 import socket
 import statistics
@@ -505,11 +506,26 @@ def test_official_sdk_invalid_parameter_property(
 
 
 @pytest.mark.security
-def test_official_sdk_read_only_registration(mcp_binary: Path, tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "degraded",
+    [None, "true", "false"],
+    ids=["default", "degraded", "recovered"],
+)
+def test_official_sdk_read_only_registration(
+    mcp_binary: Path,
+    tmp_path: Path,
+    degraded: str | None,
+) -> None:
     """Read enablement advertises reads while every synthetic write stays denied."""
 
     async def scenario() -> None:
-        async with _sdk_session(mcp_binary, tmp_path, "stdio", remote_read=True) as session:
+        async with _sdk_session(
+            mcp_binary,
+            tmp_path,
+            "stdio",
+            remote_read=True,
+            remote_degraded=degraded,
+        ) as session:
             await session.initialize()
             names = {tool.name for tool in (await session.list_tools()).tools}
             assert {name for name in names if name.startswith("remote_")} == {
@@ -716,6 +732,12 @@ def test_official_sdk_degraded_stdio_restart_recovery(
                 )
                 assert denied.isError
                 assert denied.structuredContent is None
+                expected_denial = (
+                    "remote MCP is in degraded read-only mode"
+                    if mode == "degraded"
+                    else "confirmation_token is invalid"
+                )
+                assert denied.content[0].text == expected_denial
                 assert PRIVATE_MARKER not in denied.model_dump_json()
                 health = await session.call_tool("check_status", {})
                 assert health.structuredContent is not None
@@ -727,7 +749,8 @@ def test_official_sdk_degraded_stdio_restart_recovery(
 
             diagnostics = (directory / "stdio-server.stderr").read_text(encoding="utf-8")
             if setting is not None:
-                assert f"degraded={str(mode == 'degraded').lower()}" in diagnostics
+                plain_diagnostics = re.sub(r"\x1b\[[0-9;]*m", "", diagnostics)
+                assert f"degraded={str(mode == 'degraded').lower()}" in plain_diagnostics
             assert PRIVATE_MARKER not in diagnostics
             assert all(token not in diagnostics for token in tokens.values())
 

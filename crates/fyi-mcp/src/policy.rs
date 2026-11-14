@@ -6,6 +6,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
+use std::ffi::OsStr;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -231,6 +232,14 @@ impl RemoteMcpPolicy {
     /// a valid, secure local-only configuration.  Any malformed value fails
     /// startup rather than being partially accepted.
     pub fn from_env() -> Result<Self, PolicyError> {
+        let degraded =
+            degraded_startup_value(std::env::var_os("FYI_MCP_REMOTE_DEGRADED").as_deref())?;
+        let policy = Self::instances_from_env()?;
+        policy.set_degraded(degraded);
+        Ok(policy)
+    }
+
+    fn instances_from_env() -> Result<Self, PolicyError> {
         let raw = std::env::var("FYI_MCP_REMOTE_INSTANCES").unwrap_or_default();
         if raw.trim().is_empty() {
             return Self::new(Vec::new());
@@ -532,6 +541,18 @@ fn authorize_budget(
     Ok(())
 }
 
+/// An invalid operator control must never silently restore write capability.
+fn degraded_startup_value(value: Option<&OsStr>) -> Result<bool, PolicyError> {
+    match value {
+        None => Ok(false),
+        Some(value) if value == "true" || value == "1" => Ok(true),
+        Some(value) if value == "false" || value == "0" => Ok(false),
+        _ => Err(PolicyError::InvalidConfiguration(
+            "FYI_MCP_REMOTE_DEGRADED must be true, false, 1, or 0".into(),
+        )),
+    }
+}
+
 fn csv_env(name: &str) -> Result<BTreeSet<String>, PolicyError> {
     let raw = std::env::var(name).unwrap_or_default();
     Ok(raw
@@ -584,6 +605,41 @@ fn safe_token(value: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn degraded_startup_control_rejects_ambiguous_or_private_values() {
+        assert_eq!(degraded_startup_value(None), Ok(false));
+        for (value, enabled) in [("true", true), ("1", true), ("false", false), ("0", false)] {
+            assert_eq!(degraded_startup_value(Some(OsStr::new(value))), Ok(enabled));
+        }
+        for value in [
+            "",
+            "TRUE",
+            "yes",
+            "2",
+            " false",
+            "false\nsynthetic-private-value",
+        ] {
+            assert_eq!(
+                degraded_startup_value(Some(OsStr::new(value))),
+                Err(PolicyError::InvalidConfiguration(
+                    "FYI_MCP_REMOTE_DEGRADED must be true, false, 1, or 0".into()
+                ))
+            );
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn non_unicode_degraded_control_is_not_treated_as_unset() {
+        use std::os::unix::ffi::OsStrExt;
+        assert_eq!(
+            degraded_startup_value(Some(OsStr::from_bytes(b"synthetic-private-\xff"))),
+            Err(PolicyError::InvalidConfiguration(
+                "FYI_MCP_REMOTE_DEGRADED must be true, false, 1, or 0".into()
+            ))
+        );
+    }
 
     fn instance(read: bool, write: bool) -> RemoteInstancePolicy {
         RemoteInstancePolicy {

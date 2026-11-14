@@ -119,6 +119,54 @@ bytes and post-warmup growth 36,864 bytes. Enforced local fixture limits are
 SDK 1.30.0/Python 3.12.14/Linux environment and reproduction are documented in
 `docs/mcp-contract-harness.md`. These are not remote or production-load claims.
 
+## Independent increment: degraded stdio startup and restart recovery
+
+Reconciled against master `39591dcf91bb50ed847b0d36bdc3bd670a7e60a7` on
+2026-11-14. The MCP files and owned evidence had not changed since PR #443;
+no open MCP PR supplied this path. `set_degraded` existed only as an internal
+policy control. This increment adds the operator startup setting
+`FYI_MCP_REMOTE_DEGRADED` and reuses the existing SDK launcher and v2 preparation
+fixtures. No source transport, application CLI, shared workflow or manifest is
+changed.
+
+Tests first reproduced seven failures against the unchanged executable: two
+degraded-mode scenarios still discovered write tools, and five malformed-setting
+scenarios exited successfully instead of rejecting the configuration. The base
+debug executable SHA-256 was
+`997c85e8a734685ff9460d702d74f3c0186e5115a6300d648e5ff9dbe9821827`.
+The failing test checkpoint is
+[`09fa80e6cf04`](https://github.com/edithatogo/fyi-cli/commit/09fa80e6cf04ec0c70374840fe4d199f8e908fbb).
+
+The repaired path accepts only `true`/`1` or `false`/`0` (unset means normal).
+Degraded startup hides remote writes and denies all three write preparations
+even when called directly; it preserves configured read definitions and local
+health/list/ping. The SDK executes normal → degraded → recovered subprocess
+launches for both spellings, verifies fresh confirmation tokens after restart,
+and confirms invalid commits remain private policy/confirmation errors. Existing
+read-only scenarios now also prove that clearing degraded mode does not grant
+write capability. Five invalid settings fail before database creation, with
+empty stdout and no rejected values or private paths in stderr. Rust tests
+additionally reject ambiguous and non-Unicode controls without global env races.
+
+Local Linux verification with Rust 1.99.1 and MCP SDK 1.30.0: 129 MCP Rust tests
+(124 unit/boundary and five executable wire tests), 22 SDK scenarios and 129
+fixture/verifier cases passed. Clippy with warnings denied, Rust formatting and
+Ruff passed. SDK requests are bounded to five seconds and sessions to thirty;
+invalid-startup subprocesses have a five-second timeout. Use:
+
+```bash
+cargo test -p fyi-mcp --locked
+python -m pytest -q tests/test_mcp_client_interop.py -k 'degraded or read_only'
+python -m pytest -q tests/test_mcp_client_interop.py tests/test_remote_mcp_contract.py
+```
+
+Recovery here requires a new subprocess. It does not establish live in-process
+operator toggling, durable replay, successful source reads/commits, new source
+fault coverage or a non-Linux platform run. No deprecated profile is invented.
+The focused PR is handed to the sole integration coordinator for an exclusive
+final verification/merge window; this workstream does not refresh or merge it
+concurrently. The broader track remains in progress and unarchived.
+
 ## Mutation evidence
 
 At PR #441 implementation head `2b4edb2eb060c31a24f9ebe65cc30bcde18ddc8e`,
@@ -170,7 +218,7 @@ cargo test -p fyi-core --lib -- --exact \
 | --- | --- | --- |
 | Versioned JSON/RSS/Atom/error fixtures | MCP historical v1, current v2 and complete tool snapshot; existing source JSON/feed tests | Source fixtures lack a shared version manifest; RSS/Atom samples remain inline, without versioned malformed-feed cases |
 | Every remote schema, annotation, result and error | All eight remote tools represented; actual catalogue, handler negatives and SDK write preparations verified | Full successful MCP-to-source read/commit exchanges across source variants are not established by synthetic output examples |
-| Disabled/read/degraded/write stdio modes | Actual disabled/read-enabled/write-gated sessions; policy-level degraded/kill tests | Degraded mode is not exposed through a tested subprocess control path; no external degraded-stdio run |
+| Disabled/read/degraded/write stdio modes | Actual disabled/read-enabled/write-gated sessions plus strict startup-degraded mode, direct denial, restart recovery and privacy through the SDK | Startup-degraded criterion evidenced on Linux; recovery is restart-based, with no live in-process toggle or durable replay claimed |
 | Property/mutation boundaries | Generated invalid SDK arguments; exact integer/depth/schema bounds; deterministic scope/clock/replay; 39 caught selected mutants; reused state/SSRF tests | Broader generated pagination/state/URL/path properties and SSRF/source-guardrail/error-classification mutations |
 | Latency/memory/request/byte/concurrency | Recorded local SDK latency/RSS budgets; admitted-attempt, payload-byte, duration and concurrency tests; existing source small-body/count tests | Raw multi-chunk cancellation/peak memory, exact retry wire counts and propagation of MCP allowances into source budgets remain separate evidence gaps |
 | Compatibility/release matrix | Linux Rust 1.99.1 and official SDK 1.29.0/1.30.0 stdio/HTTP; existing stable/MSRV jobs; explicit matrix | Windows/macOS runtime/client combinations have not been executed here; locked SDK results depend on final-head CI |
@@ -198,8 +246,10 @@ are documented accurately, without changing the local-management workstream.
 
 Required hosted checks are reviewed on each final head before merge. Parallel
 TUI, packaging and quality-infrastructure merges advanced master, requiring
-refreshed heads and new required checks for PR #441. That slice is now merged;
-the schema/client slice retains its separate final-head gate.
+refreshed heads and new required checks for PR #441. That slice and the
+schema/client PR #443 are merged. The independent degraded-startup increment
+has its own final-head gate and requires the sole integration coordinator's
+exclusive merge window.
 Final PR heads, Actions links and merge commits are recorded in the PRs and
 the delivery report. Source acquisition, SQLite core, localization, CLI
 dispatch, TUI, packaging and shared workflows remain with their assigned owners.

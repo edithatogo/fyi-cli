@@ -65,6 +65,37 @@ The existing unfiltered Python Tests job invokes the SDK suite without a new
 workflow. The Layered Harness Contract job validates fixtures separately and
 does not itself establish client interoperability.
 
+### Degraded stdio startup and recovery
+
+`FYI_MCP_REMOTE_DEGRADED=true` or `1` activates the existing degraded policy at
+subprocess startup. `false`, `0`, or an absent setting selects normal mode;
+other values stop startup with a private configuration error. Recovery requires
+a new subprocess and preserves the separate configured capability restrictions.
+
+The existing SDK harness now exercises normal → degraded → recovered launches
+for both boolean spellings. It verifies all three write preparations are denied
+in degraded mode despite direct calls to hidden tools, remote read definitions
+remain available, local health/list/ping still work, and new preparations recover
+with fresh tokens. Invalid commits remain denied throughout. The read-only
+scenarios also verify that clearing degraded mode cannot enable writes.
+Five invalid-setting subprocess cases fail before creating a database, without
+protocol output, rejected values or private paths in diagnostics. Time bounds
+remain five seconds per SDK request, thirty seconds per SDK session, and five
+seconds per invalid-startup subprocess. These scenarios perform no source-network
+reads or submissions; valid preparations stay local and direct invalid commits
+receive the specific policy or confirmation denial before dispatch.
+
+```bash
+python -m pytest -q tests/test_mcp_client_interop.py -k 'degraded or read_only'
+```
+
+At base `39591dcf91bb50ed847b0d36bdc3bd670a7e60a7`, the seven new regression
+cases failed against the unchanged executable. With the startup control wired,
+the full MCP SDK/fixture suite passes 151 cases: 22 SDK scenarios and 129 verifier
+cases. The Rust MCP suite passes 124 unit/boundary tests and five executable
+wire tests. Linux SDK 1.30.0 evidence does not establish other platform runs or
+hot switching within a running subprocess.
+
 ## Versioned schema and exchange fixtures
 
 | Artifact | Contract and evidence |
@@ -255,7 +286,8 @@ and do not substitute for the missing source-transfer assertions.
 | --- | --- | --- |
 | Linux x86_64, Rust 1.99.1, MCP SDK 1.29.0 and 1.30.0, Python 3.12.14 | Executable framing plus SDK stdio/HTTP, default/2025-06-18/2025-03-26 profiles | Passed locally |
 | Remote-disabled, read-enabled and write-gated stdio registration | Real SDK sessions; all three write preparations/rejections use v2 fixtures | Passed offline |
-| Degraded mode, kill switch, cooldown and skew | Deterministic injected policy/gate/future tests | Passed internally; external degraded-stdio path not exercised |
+| Degraded stdio startup and recovery | Real SDK launches with strict startup control, write denial, restart recovery and private errors | Passed on Linux; recovery requires a new subprocess and fresh confirmations |
+| Kill switch, cooldown and skew | Deterministic injected policy/gate/future tests | Passed internally; no external live-control channel claimed |
 | Workspace stable/MSRV on Linux | Existing CI and Frontier Conductor/MSRV jobs | Record checks for each PR's final head |
 | Dependency-lock MCP SDK version | Existing Python CI resolves `uv.lock` | SDK 1.30.0 passed locally; full locked-environment final-head CI is recorded separately |
 | Windows and macOS runtime/SDK pairs | Tests are portable; no new platform workflow introduced | Not executed in this workstream |

@@ -26,7 +26,29 @@ download or heap allocation bound.
 ## Operator controls
 
 The policy boundary exposes a kill switch, degraded read-only mode, and a
-three-failure circuit breaker with deterministic recovery. Operators should
+three-failure circuit breaker with deterministic recovery.
+
+Set `FYI_MCP_REMOTE_DEGRADED=true` (or `1`) when starting the MCP subprocess
+to suppress remote writes while keeping configured remote reads and local tools
+available. Degraded discovery omits the three remote write tools; direct calls
+still pass through the policy and confirmation gates. The setting grants no
+additional read or write capabilities.
+
+The accepted values are exactly `true`, `1`, `false`, and `0`. An absent setting
+defaults to normal mode. Empty, misspelled, whitespace-padded or non-Unicode
+values fail startup before database creation or protocol output. The error names
+the setting and accepted values without repeating its contents; startup telemetry
+records only the resulting boolean alongside the existing remote-enabled flag.
+
+Recovery is **restart-based**: stop the subprocess, set the value to `false` or
+`0` (or remove it), and launch a new process. Environment changes do not alter
+an already-running process, and there is no caller-accessible mode-toggle tool.
+The configured per-instance capabilities still apply after recovery. Prepare a
+fresh confirmation after restarting; the existing replay ledger is process-local.
+The SDK acceptance tests exercise this startup/restart path, not a live in-process
+operator-control channel or a successful upstream write.
+
+Operators should
 disable the process or clear `FYI_MCP_REMOTE_INSTANCES` before rotating
 credentials or investigating an upstream incident. Restarting the local MCP
 process resets transient circuit and budget state; durable request data stays
