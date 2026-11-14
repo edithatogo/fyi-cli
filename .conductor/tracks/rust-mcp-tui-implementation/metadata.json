@@ -1,8 +1,19 @@
 {
   "track_id": "rust-mcp-tui-implementation",
   "type": "feature",
-  "status": "completed",
+  "status": "in_progress",
   "created_at": "2026-06-14T23:50:00Z",
-  "updated_at": "2026-06-14T23:50:00Z",
-  "description": "Rust Rewrite Phase 2 - Command-line interface, native MCP server implementation, and Ratatui terminal UI dashboard."
+  "updated_at": "2026-11-14T03:48:19Z",
+  "description": "Rust Rewrite Phase 2 - Command-line interface, native MCP server implementation, and Ratatui terminal UI dashboard.",
+  "issue_number": 10,
+  "pull_request": 435,
+  "tui_presentation": {
+    "status": "implemented_and_locally_verified",
+    "contract": "docs/tui-presentation-contract.md",
+    "evidence": "tui-acceptance-evidence.md",
+    "focused_tests": 39,
+    "render_fixtures": 14,
+    "cli_dispatch": "blocked_by_request_management_integration",
+    "combined_track_closed": false
+  }
 }

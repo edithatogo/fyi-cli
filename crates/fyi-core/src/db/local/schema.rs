@@ -22,22 +22,24 @@ pub(crate) async fn validate_ledger(
     connection: &mut SqliteConnection,
     require_current: bool,
 ) -> Result<i64, LocalError> {
-    let applied: Vec<(i64, bool, Vec<u8>)> = sqlx::query_as(
-        "SELECT version, success, checksum FROM _sqlx_migrations ORDER BY version",
-    )
-    .fetch_all(connection)
-    .await
-    .map_err(|_| LocalError::Schema)?;
+    let applied: Vec<(i64, bool, Vec<u8>)> =
+        sqlx::query_as("SELECT version, success, checksum FROM _sqlx_migrations ORDER BY version")
+            .fetch_all(connection)
+            .await
+            .map_err(|_| LocalError::Schema)?;
     let migrations = sqlx::migrate!("./migrations");
     let known_count = migrations.iter().count();
     if applied.is_empty()
         || applied.len() > known_count
         || (require_current && applied.len() != known_count)
-        || applied.iter().zip(migrations.iter()).any(|(applied, known)| {
-            applied.0 != known.version
-                || !applied.1
-                || applied.2.as_slice() != known.checksum.as_ref()
-        })
+        || applied
+            .iter()
+            .zip(migrations.iter())
+            .any(|(applied, known)| {
+                applied.0 != known.version
+                    || !applied.1
+                    || applied.2.as_slice() != known.checksum.as_ref()
+            })
     {
         return Err(LocalError::Schema);
     }
@@ -52,10 +54,12 @@ pub(crate) async fn validate_columns(
     columns: &[Column<'_>],
     required: bool,
 ) -> Result<(), LocalError> {
-    let rows = sqlx::query("SELECT name, type, \"notnull\", pk, dflt_value FROM pragma_table_info(?) ORDER BY cid")
-        .bind(table)
-        .fetch_all(connection)
-        .await?;
+    let rows = sqlx::query(
+        "SELECT name, type, \"notnull\", pk, dflt_value FROM pragma_table_info(?) ORDER BY cid",
+    )
+    .bind(table)
+    .fetch_all(connection)
+    .await?;
     if rows.is_empty() && !required {
         return Ok(());
     }
@@ -70,7 +74,9 @@ pub(crate) async fn validate_columns(
             _ => false,
         };
         if row.try_get::<String, _>("name")? != name
-            || !row.try_get::<String, _>("type")?.eq_ignore_ascii_case(data_type)
+            || !row
+                .try_get::<String, _>("type")?
+                .eq_ignore_ascii_case(data_type)
             || row.try_get::<i64, _>("notnull")? != not_null
             || row.try_get::<i64, _>("pk")? != primary_key
             || !default_matches
@@ -125,10 +131,11 @@ pub(crate) async fn validate_autoincrement(
     connection: &mut SqliteConnection,
     table: &str,
 ) -> Result<(), LocalError> {
-    let sql: String = sqlx::query_scalar("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?")
-        .bind(table)
-        .fetch_one(connection)
-        .await?;
+    let sql: String =
+        sqlx::query_scalar("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?")
+            .bind(table)
+            .fetch_one(connection)
+            .await?;
     if !sql.to_ascii_uppercase().contains("AUTOINCREMENT") {
         return Err(LocalError::Schema);
     }
@@ -193,9 +200,7 @@ pub(crate) async fn validate_request_events(
     validate_autoincrement(connection, "local_request_events").await
 }
 
-pub(crate) async fn validate_current(
-    connection: &mut SqliteConnection,
-) -> Result<(), LocalError> {
+pub(crate) async fn validate_current(connection: &mut SqliteConnection) -> Result<(), LocalError> {
     validate_ledger(connection, true).await?;
     validate_authorities(connection, true).await?;
     validate_tracked_requests(connection).await?;

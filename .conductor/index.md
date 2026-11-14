@@ -25,6 +25,7 @@ This directory contains the canonical Conductor project context and management f
 - [Tracks Directory](./tracks/) - Individual track specifications and plans
 
 ### Active Tracks
+- **rust-mcp-tui-implementation** — TUI presentation verified separately; request-management/CLI integration and runtime acceptance remain open (PR #435)
 - **frontier-rust-convergence-20261113** — Frontier capability contract, Rust convergence, 3.15/1.99 compatibility gates, CI/harness and Conductor self-repair (planning; not yet implemented)
 - **quality-frontier-testing-cicd-20261113** — Quality frontier: testing and CI/CD gaps (DST, MT, contract; pinned actions, dependency review, workflow lint) for issue #280 (completed via PR #414)
 - **test-acceleration-20261113** — Bounded local test-acceleration profiles (slow marker, xdist, testmon, bounded gremlins trial, VCR/Freezegun/pytest-picked decisions) for issue #322 (completed via PR; CI full suite authoritative)
@@ -46,7 +47,6 @@ This directory contains the canonical Conductor project context and management f
 - **integrate-fyi-cli-history** - Migration from 14 versioned archives
 - **webapp-coverage-95** - Test coverage expansion for the web interface
 - **rust-core-migration** - Rust rewrite Phase 1 (Contracts, DB, Cryptography, Tor)
-- **rust-mcp-tui-implementation** - Rust rewrite Phase 2 (CLI, MCP daemon, Ratatui TUI)
 - **rust-quality-hardening** - Rust rewrite Phase 3 (Property tests, E2E tests, dhat profiling)
 - **rust-cicd-publishing** - Rust rewrite Phase 4 (CI/CD workflows, cargo-dist cross-compilation)
 - **fyi-phase-1** through **fyi-phase-14** - Original project implementation phases

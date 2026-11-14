@@ -110,7 +110,10 @@ fn execute(command: &Commands, format: OutputFormat) -> Result<(), Box<dyn std::
                         request.authority_slug,
                         request.title,
                         request.status.as_deref().unwrap_or("None"),
-                        request.fyi_request_id.map(|id| id.to_string()).unwrap_or_default()
+                        request
+                            .fyi_request_id
+                            .map(|id| id.to_string())
+                            .unwrap_or_default()
                     );
                 }
             }
@@ -127,7 +130,10 @@ fn execute(command: &Commands, format: OutputFormat) -> Result<(), Box<dyn std::
                 result
             })?;
             if format == OutputFormat::Json {
-                println!("{}", serde_json::json!({"id": request_id, "status": status, "changed": changed}));
+                println!(
+                    "{}",
+                    serde_json::json!({"id": request_id, "status": status, "changed": changed})
+                );
             } else {
                 println!("Updated request {request_id} to {status}");
             }

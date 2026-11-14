@@ -39,7 +39,9 @@ impl NewLocalRequest {
             return Err(LocalError::InvalidInput("request tags exceed 16 KiB"));
         }
         if self.fyi_request_id.is_some_and(|id| id <= 0) {
-            return Err(LocalError::InvalidInput("external request ID must be positive"));
+            return Err(LocalError::InvalidInput(
+                "external request ID must be positive",
+            ));
         }
         validate_status(&self.status)
     }
@@ -129,7 +131,9 @@ pub(crate) fn validate_status(status: &str) -> Result<(), LocalError> {
 
 fn validate_request_id(id: i64) -> Result<(), LocalError> {
     if id <= 0 {
-        return Err(LocalError::InvalidInput("local request ID must be positive"));
+        return Err(LocalError::InvalidInput(
+            "local request ID must be positive",
+        ));
     }
     Ok(())
 }
@@ -232,10 +236,11 @@ async fn insert_request_in_connection(
     connection: &mut SqliteConnection,
     request: &NewLocalRequest,
 ) -> Result<i64, LocalError> {
-    let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM authorities WHERE slug = ?)")
-        .bind(&request.authority_slug)
-        .fetch_one(&mut *connection)
-        .await?;
+    let exists: bool =
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM authorities WHERE slug = ?)")
+            .bind(&request.authority_slug)
+            .fetch_one(&mut *connection)
+            .await?;
     if !exists {
         return Err(LocalError::InvalidInput("local authority not found"));
     }
@@ -349,7 +354,11 @@ pub(crate) async fn timeline_in_connection(
     // An imported legacy row has no invented native creation event. Preserve its
     // known creation timestamp even after a later native status change is recorded.
     if !history.iter().any(|event| event.kind == "created") {
-        if let Some(timestamp) = request.created_at.as_ref().filter(|value| !value.is_empty()) {
+        if let Some(timestamp) = request
+            .created_at
+            .as_ref()
+            .filter(|value| !value.is_empty())
+        {
             items.push(TimelineItem {
                 ts: Some(timestamp.clone()),
                 kind: "tracked_request".to_owned(),
@@ -378,14 +387,16 @@ pub(crate) async fn timeline_in_connection(
 /// Native events are supplied in descending event-ID order. Original timestamp
 /// text is retained; valid times sort before unparseable or missing legacy times.
 pub(crate) fn sort_timeline_items(items: &mut [TimelineItem]) {
-    items.sort_by(|left, right| match (
-        parsed_timestamp(left.ts.as_deref()),
-        parsed_timestamp(right.ts.as_deref()),
-    ) {
-        (Some(left), Some(right)) => right.cmp(&left),
-        (Some(_), None) => Ordering::Less,
-        (None, Some(_)) => Ordering::Greater,
-        (None, None) => right.ts.cmp(&left.ts),
+    items.sort_by(|left, right| {
+        match (
+            parsed_timestamp(left.ts.as_deref()),
+            parsed_timestamp(right.ts.as_deref()),
+        ) {
+            (Some(left), Some(right)) => right.cmp(&left),
+            (Some(_), None) => Ordering::Less,
+            (None, Some(_)) => Ordering::Greater,
+            (None, None) => right.ts.cmp(&left.ts),
+        }
     });
 }
 
