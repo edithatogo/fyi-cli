@@ -120,3 +120,9 @@ See `docs/rust-alaveteli-receipt-acquisition.md`. Retain prior merged PR evidenc
 - [ ] Finish Rust probing/capture, queued-reservation backoff handling, downstream
   archive parity and the remaining source acceptance evidence before retiring
   the Python source adapters.
+
+## Execution sequencing and acceptance clarification (2026-11-14)
+
+Canonical ordered roadmap: [docs/implementation-execution-order-20261114.md](../../../docs/implementation-execution-order-20261114.md). This is the next implementation track, **not** a new parallel track. Begin by verifying the latest-head checks and merge/prune status for PR #430. Then deliver #310 and #312 in incremental, reproducibly verified feature PRs; reuse the existing #311/#313/#314 evidence only where it proves current Rust behaviour. Keep source-network inventory, cross-runtime receipt schema/canonicalization, immutable publication, raw entity/attachment/WARC linkage, fail-closed redirect and SSRF controls, pacing, bounded replay, independent-process fault tests, and Linux/macOS/Windows acceptance evidence in scope. Produce a command-to-contract-to-consumer ledger with exact SHA and CI evidence.
+
+Do not set `archive_cutover_allowed=true` or remove Python network transports as part of this track; release-pinned `fyi-archive` shadow parity and rollback belong to the subsequent cutover milestone. Reconcile Conductor and issues against evidence, not unchecked checklist claims.
