@@ -14,7 +14,7 @@
 ## Phase 2.3: Terminal UI Dashboard (`ratatui`)
 - [x] Task: Reconcile rendering and keyboard contracts using deterministic offline fixtures.
 - [x] Task: Complete the bounded read-only Ratatui presentation with typed input snapshots, honest metrics, timelines, privacy and resize behavior.
-- [!] Task: Integrate a read-only local-data adapter and terminal launch after the request-management branch has merged; `main.rs` is owned by that workstream meanwhile.
+- [~] Task: Integrate a bounded read-only local metadata adapter and CLI launch against merged #434/#440/#442; timelines remain explicitly unavailable in this increment.
 - [ ] Task: Verify terminal startup/cleanup, asynchronous input and original performance budgets with runtime evidence.
 - [ ] Task: Record actual user/manual terminal verification; the historical completion checkbox had no supporting evidence.
 
@@ -30,3 +30,19 @@ The focused suite passes 39 tests with 14 complete-buffer fixtures. The two
 presentation tasks are complete; dispatch, terminal lifecycle, asynchronous input,
 manual verification and the original performance budgets remain open. Historical
 CLI/MCP checkboxes above are inherited records, not reverified by this workstream.
+
+## Local runtime increment — 2026-11-14
+
+Baseline: `39591dcf91bb50ed847b0d36bdc3bd670a7e60a7`, including merged
+#435 presentation and #434/#440/#442 local APIs. No inaccessible bundle or frozen
+local-retirement change is assumed integrated. This increment adds a bounded
+SQLx metadata projection, an owned presentation adapter, asynchronous input and
+terminal lifecycle handling. No schema, migration, source, MCP, localization,
+shared CI or shared Conductor registry change is planned.
+
+- [~] Executable red/green CLI, adapter, lifecycle and pseudo-terminal contracts.
+- [ ] Static privacy-safe diagnostics and read-only existing-file access.
+- [ ] Explicit manual accessibility and performance acceptance procedure/evidence.
+- [ ] Exact-head hosted verification and exclusive integration slot requested from
+  the sole `Issue fixes and PR merges` coordinator; no independent master refresh
+  or merge while another owner holds the slot.
