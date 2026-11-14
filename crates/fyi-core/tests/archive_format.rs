@@ -758,3 +758,44 @@ fn public_wacz_does_not_serialise_synthetic_sensitive_headers() {
         assert!(!text.contains(disallowed), "{disallowed} leaked into WARC");
     }
 }
+
+#[test]
+fn connection_nominated_content_type_uses_retained_metadata_and_packages() {
+    let directory = tempfile::tempdir().unwrap();
+    let url = Url::parse("https://example.invalid/request/filtered-content-type").unwrap();
+    let headers = vec![
+        ("Connection".into(), b"Content-Type".to_vec()),
+        ("Content-Type".into(), b"text/html; charset=utf-8".to_vec()),
+        ("ETag".into(), b"\"synthetic-etag\"".to_vec()),
+    ];
+    let warc_path = directory.path().join("capture.warc.gz");
+    let mut writer = WarcWriter::new(File::create(&warc_path).unwrap());
+    let mut response = resource(&url, HTML, &headers);
+    response.kind = "html";
+    let record = writer.append(&response).unwrap();
+    writer.finish().unwrap();
+
+    assert_eq!(record.content_type, "application/octet-stream");
+    let package_path = directory.path().join("filtered-content-type.wacz");
+    write_wacz(
+        &package_path,
+        &warc_path,
+        std::slice::from_ref(&record),
+        &[ArchivePage {
+            url: url.to_string(),
+            ts: timestamp(),
+            title: Some("Synthetic connection token regression".into()),
+            id: None,
+        }],
+    )
+    .unwrap();
+    verify_wacz(&package_path).unwrap();
+
+    let mut package = ZipArchive::new(File::open(package_path).unwrap()).unwrap();
+    let warc_bytes = zip_member(&mut package, "archive/data.warc.gz");
+    let decoded = decoded_member(&warc_bytes, &record);
+    let (_, record_bytes) = split_header(&decoded);
+    let (http, payload) = split_header(&record_bytes[..record_bytes.len() - 4]);
+    assert_eq!(payload, HTML);
+    assert!(!std::str::from_utf8(http).unwrap().to_ascii_lowercase().contains("content-type:"));
+}
