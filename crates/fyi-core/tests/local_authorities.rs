@@ -300,19 +300,17 @@ async fn authority_operations_leave_remote_requests_and_sync_tables_empty() {
         .await
         .unwrap();
     assert_eq!(db.list_local_authorities().await.unwrap().len(), 1);
-    for table in [
-        "requests",
-        "correspondence",
-        "sync_metadata",
-        "sync_field_changes",
-        "sync_outgoing_queue",
-    ] {
-        let count: i64 = sqlx::query_scalar(&format!("SELECT COUNT(*) FROM {table}"))
-            .fetch_one(db.pool())
-            .await
-            .unwrap();
-        assert_eq!(count, 0, "local authority operation changed {table}");
-    }
+    let counts: (i64, i64, i64, i64, i64) = sqlx::query_as(
+        "SELECT (SELECT COUNT(*) FROM requests),
+                (SELECT COUNT(*) FROM correspondence),
+                (SELECT COUNT(*) FROM sync_metadata),
+                (SELECT COUNT(*) FROM sync_field_changes),
+                (SELECT COUNT(*) FROM sync_outgoing_queue)",
+    )
+    .fetch_one(db.pool())
+    .await
+    .unwrap();
+    assert_eq!(counts, (0, 0, 0, 0, 0));
 }
 
 #[tokio::test]
@@ -417,7 +415,7 @@ async fn opening_existing_database_rejects_unverified_migration_ledgers_without_
     for (index, corruption) in corruptions.iter().enumerate() {
         let path = directory.join(format!("invalid-{index}.db"));
         let fixture = migrated_file(&path).await;
-        sqlx::query(corruption).execute(&fixture).await.unwrap();
+        sqlx::query(*corruption).execute(&fixture).await.unwrap();
         fixture.close().await;
         let before = fs::read(&path).unwrap();
         for read_only in [true, false] {
@@ -465,12 +463,18 @@ async fn initialization_rejects_malformed_authority_tables_before_recording_migr
                 .fetch_all(db.pool())
                 .await
                 .unwrap();
-        assert_eq!(after, before, "initialization changed an unsupported schema");
+        assert_eq!(
+            after, before,
+            "initialization changed an unsupported schema"
+        );
         let row: (String, String) = sqlx::query_as("SELECT slug, name FROM authorities")
             .fetch_one(db.pool())
             .await
             .unwrap();
-        assert_eq!(row, ("preserved".to_owned(), "Preserved Authority".to_owned()));
+        assert_eq!(
+            row,
+            ("preserved".to_owned(), "Preserved Authority".to_owned())
+        );
         let ledger_count: i64 = sqlx::query_scalar(
             "SELECT COUNT(*) FROM sqlite_master WHERE name = '_sqlx_migrations'",
         )

@@ -214,7 +214,9 @@ impl DbPool {
         }
         for (row, (name, not_null, primary_key)) in rows.iter().zip(expected) {
             if row.try_get::<String, _>("name")? != name
-                || !row.try_get::<String, _>("type")?.eq_ignore_ascii_case("TEXT")
+                || !row
+                    .try_get::<String, _>("type")?
+                    .eq_ignore_ascii_case("TEXT")
                 || row.try_get::<i64, _>("notnull")? != not_null
                 || row.try_get::<i64, _>("pk")? != primary_key
             {
