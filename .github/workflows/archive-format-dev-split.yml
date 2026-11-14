@@ -1,0 +1,55 @@
+name: Archive format bounded development export
+
+on:
+  push:
+    branches: [dev/archive-format-dependency-export-20261114]
+    paths: [.github/workflows/archive-format-dev-split.yml]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  split:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Fetch the successful pinned export
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          name: archive-format-offline-inputs
+          path: export
+          run-id: 43568160881
+          github-token: ${{ github.token }}
+      - name: Verify original content manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd export
+          grep -E '^[0-9a-f]{64}  ' manifest.txt > checksums.txt
+          sha256sum --check checksums.txt
+      - name: Retain source and dependencies under connector size limit
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: archive-format-source-dependencies
+          path: |
+            export/source.bundle
+            export/cargo-registry.tar.gz
+            export/python-3.15.1-linux.tar.gz
+            export/inputs/
+            export/evidence/
+            export/manifest.txt
+            export/checksums.txt
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 2
+      - name: Retain qualified Rust and LLVM tools separately
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: archive-format-rust-toolchain
+          path: |
+            export/rust-1.99.1-linux.tar.gz
+            export/manifest.txt
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 2
