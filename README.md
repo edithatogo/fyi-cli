@@ -28,14 +28,16 @@ unimplemented commands fail explicitly. See the [migration inventory](docs/rust-
 | **Glama** | `edithatogo/fyi-cli` (`fyi-mcp`) | Live | [glama.ai/mcp/servers/edithatogo/fyi-cli](https://glama.ai/mcp/servers/edithatogo/fyi-cli) · [scores](https://glama.ai/mcp/servers/edithatogo/fyi-cli/score) |
 | **Smithery** | `edithatogo/fyi-mcp` | Live (score pending) | [smithery.ai/server/@edithatogo/fyi-mcp](https://smithery.ai/server/@edithatogo/fyi-mcp) |
 | **PyPI** | `fyi-cli` (legacy Python package) | Live | [pypi.org/project/fyi-cli](https://pypi.org/project/fyi-cli/) |
-| **Crates.io** | Rust workspace crates | Blocked: `fyi-cli` and `fyi-core` are owned by another project | [distribution matrix](docs/registry-distribution-matrix.md) |
+| **Crates.io** | Rust workspace crates | Blocked: `fyi-cli` and `fyi-core` are occupied; project ownership and a matching release remain unverified | [distribution matrix](docs/registry-distribution-matrix.md) |
 | **GitHub Releases** | CLI + MCPB assets | Live | [Releases](https://github.com/edithatogo/fyi-cli/releases) |
 | **Awesome-MCP-Servers** | Legal section entry | PR submitted | [PR #9693](https://github.com/punkpeye/awesome-mcp-servers/pull/9693) |
 | **GitHub curated MCP** (`github.com/mcp`) | — | Blocked external (manual onboarding) | Tracked in [#32](https://github.com/edithatogo/fyi-cli/issues/32) |
 
-**Draft / not yet submitted:** Scoop, WinGet, Homebrew, Chocolatey, GHCR multi-arch workflow, PulseMCP, mcp.so, Docker MCP Catalog, mcp-get, OpenTools, AUR, nixpkgs, Snap, Flatpak, asdf/mise, Debian/PPA, Fedora/COPR.
+**Draft / not yet submitted:** Scoop, WinGet, Homebrew, Chocolatey, GHCR multi-arch publication, PulseMCP, mcp.so, Docker MCP Catalog, mcp-get, OpenTools, AUR, nixpkgs, Snap, private Flatpak, asdf/mise, Debian/PPA, Fedora/COPR.
 
-`cargo-binstall` is blocked by the same crate-name collision. Codex and Anthropic packets are assets-ready but still require external submission.
+Package review packets remain blocked on a coordinated, verified release and native installation evidence; see the [submission runbook](packaging/SUBMISSION_RUNBOOK.md). Flathub is not applicable to this console product.
+
+`cargo-binstall` is blocked by the same crate-name collision; its default strategies are disabled until crate identity and release assets are qualified. Codex and Anthropic packets are assets-ready but still require external submission.
 
 Full status matrix (including planned channels): [`docs/registry-distribution-matrix.md`](docs/registry-distribution-matrix.md).
 
@@ -81,14 +83,14 @@ The [legacy quick start](QUICKSTART.md) describes Python, not the Rust CLI.
 | Path | Command / location | Notes |
 |------|--------------------|--------|
 | **Cargo (clone)** | `cargo install --path crates/fyi-cli` | Recommended |
-| **Cargo (crates.io)** | Blocked | The existing `fyi-cli` and `fyi-core` names belong to another project |
+| **Cargo (crates.io)** | Blocked | The existing `fyi-cli` and `fyi-core` names lack verified project ownership and a matching 0.1.2 release |
 | **cargo-binstall** | Blocked | Requires an unambiguous published crate and matching release assets |
 | **GitHub Releases** | [Releases](https://github.com/edithatogo/fyi-cli/releases) | Prebuilt CLI / MCPB; check asset names per tag |
 | **PyPI (legacy)** | `pip install fyi-cli` | Python `fyi_system`; not extended |
 | **MCP binary** | `cargo install --path crates/fyi-mcp` | Or MCPB from Releases |
 | **MCP registries** | Official / Glama / Smithery | **live** — see table above |
-| **Containers** | `ghcr.io/edithatogo/fyi-mcp` | **assets-ready** — [docs/containers.md](docs/containers.md) |
-| **Scoop, WinGet, Homebrew, Chocolatey, AUR, nix, Snap, Flatpak, Debian, Fedora, asdf, mise** | Drafts under [`packaging/`](packaging/) | **Not claimed live** — [docs/installation-package-managers.md](docs/installation-package-managers.md) |
+| **Containers** | `ghcr.io/edithatogo/fyi-mcp` | **Blocked: public multi-arch pull unverified** — [docs/containers.md](docs/containers.md) |
+| **Scoop, WinGet, Homebrew, Chocolatey, AUR, nix, Snap, Flatpak, Debian, Fedora, asdf, mise** | Review packets under [`packaging/`](packaging/) | **Blocked / not applicable** — [docs/installation-package-managers.md](docs/installation-package-managers.md) |
 
 ```bash
 git clone https://github.com/edithatogo/fyi-cli.git

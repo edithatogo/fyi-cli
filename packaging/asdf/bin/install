@@ -1,103 +1,202 @@
 #!/usr/bin/env bash
-# asdf plugin: install
-# Installs fyi-cli (and fyi-mcp when present) for the requested version.
-#
-# Strategy:
-#   1. Prefer cargo-dist / GitHub Release prebuilt tarball when available
-#   2. Fall back to `cargo install` from the tagged source
-#
-# Env (asdf standard):
-#   ASDF_INSTALL_TYPE  version|ref
-#   ASDF_INSTALL_VERSION  e.g. 0.1.2
-#   ASDF_INSTALL_PATH  target prefix
-#
-# Homepage: https://github.com/edithatogo/fyi-cli
-# License: MIT
-# Publisher: edithatogo
-
+# Install only an explicitly reviewed, version-bound CLI release.
 set -euo pipefail
 
-repo="edithatogo/fyi-cli"
-version="${ASDF_INSTALL_VERSION:?ASDF_INSTALL_VERSION is required}"
-install_path="${ASDF_INSTALL_PATH:?ASDF_INSTALL_PATH is required}"
-bin_dir="${install_path}/bin"
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+exec python3 -I - "${script_dir}/../checksums" "${1:-}" "$(uname -s)" "$(uname -m)" <<'PY'
+import gzip
+import hashlib
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tarfile
+import tempfile
+import zlib
+from pathlib import Path
 
-mkdir -p "${bin_dir}"
+if sys.version_info < (3, 11):
+    sys.exit("asdf-fyi-cli: Python 3.11 or newer is required")
 
-# Normalize tag: accept 0.1.2 or v0.1.2
-tag="v${version#v}"
-
-detect_target() {
-  local os arch
-  os="$(uname -s | tr '[:upper:]' '[:lower:]')"
-  arch="$(uname -m)"
-  case "${os}" in
-    linux) os="unknown-linux-gnu" ;;
-    darwin) os="apple-darwin" ;;
-    mingw*|msys*|cygwin*) os="pc-windows-msvc" ;;
-    *) os="unknown-linux-gnu" ;;
-  esac
-  case "${arch}" in
-    x86_64|amd64) arch="x86_64" ;;
-    aarch64|arm64) arch="aarch64" ;;
-    *) arch="x86_64" ;;
-  esac
-  echo "${arch}-${os}"
+VERSION = re.compile(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)")
+PLATFORMS = {
+    ("Linux", "x86_64"): "fyi-cli-linux-amd64.tar.gz",
+    ("Darwin", "x86_64"): "fyi-cli-macos-amd64.tar.gz",
+    ("Darwin", "arm64"): "fyi-cli-macos-arm64.tar.gz",
 }
+MAX_ARCHIVE_BYTES = 128 * 1024 * 1024
+MAX_BINARY_BYTES = 256 * 1024 * 1024
+MAX_TAR_BYTES = MAX_BINARY_BYTES + 512 * 1024
+COPY_BYTES = 1024 * 1024
 
-target="$(detect_target)"
-# cargo-binstall / cargo-dist style asset names (see packaging/cargo-binstall)
-asset_candidates=(
-  "https://github.com/${repo}/releases/download/fyi-cli-${tag}/fyi-cli-${version#v}-${target}.tar.gz"
-  "https://github.com/${repo}/releases/download/${tag}/fyi-cli-${version#v}-${target}.tar.gz"
-  "https://github.com/${repo}/releases/download/${tag}/fyi-cli-${target}.tar.gz"
-  "https://github.com/${repo}/releases/download/${tag}/fyi-cli-linux-amd64.tar.gz"
-)
 
-download_ok=0
-tmpdir="$(mktemp -d)"
-trap 'rm -rf "${tmpdir}"' EXIT
+def require_curl():
+    curl = shutil.which("curl")
+    if curl is None:
+        raise ValueError("curl 8.4.0 or newer is required")
+    result = subprocess.run(
+        [curl, "--disable", "--version"], check=True, capture_output=True,
+        text=True, timeout=10,
+    )
+    match = re.match(r"curl ([0-9]+)\.([0-9]+)\.([0-9]+)(?:\s|$)", result.stdout)
+    if match is None or tuple(map(int, match.groups())) < (8, 4, 0):
+        raise ValueError("curl 8.4.0 or newer is required for bounded downloads")
+    return curl
 
-for url in "${asset_candidates[@]}"; do
-  if curl -fsSL "${url}" -o "${tmpdir}/fyi-cli.tgz" 2>/dev/null; then
-    tar -xzf "${tmpdir}/fyi-cli.tgz" -C "${tmpdir}"
-    # Find binaries wherever they landed in the archive
-    if [[ -f "${tmpdir}/fyi-cli" ]]; then
-      install -m 755 "${tmpdir}/fyi-cli" "${bin_dir}/fyi-cli"
-      download_ok=1
-    elif found="$(find "${tmpdir}" -type f -name 'fyi-cli' | head -n1)" && [[ -n "${found}" ]]; then
-      install -m 755 "${found}" "${bin_dir}/fyi-cli"
-      download_ok=1
-    fi
-    if found_mcp="$(find "${tmpdir}" -type f -name 'fyi-mcp' | head -n1)" && [[ -n "${found_mcp}" ]]; then
-      install -m 755 "${found_mcp}" "${bin_dir}/fyi-mcp"
-    fi
-    if [[ "${download_ok}" -eq 1 ]]; then
-      break
-    fi
-  fi
-done
 
-if [[ "${download_ok}" -ne 1 ]]; then
-  if ! command -v cargo >/dev/null 2>&1; then
-    echo "asdf-fyi-cli: no prebuilt asset for ${version}/${target} and cargo not found" >&2
-    exit 1
-  fi
-  echo "asdf-fyi-cli: prebuilt asset not found; building from source ${tag}" >&2
-  cargo install fyi-cli --git "https://github.com/${repo}.git" --tag "${tag}" --root "${install_path}" --locked \
-    || cargo install --git "https://github.com/${repo}.git" --tag "${tag}" --root "${install_path}" --locked --path crates/fyi-cli
-  # Also try MCP server
-  cargo install fyi-mcp --git "https://github.com/${repo}.git" --tag "${tag}" --root "${install_path}" --locked 2>/dev/null || true
-fi
+def load_checksums(directory, version):
+    if len(version) > 32 or not VERSION.fullmatch(version):
+        raise ValueError("only stable, canonical X.Y.Z versions are supported")
+    path = directory / (version + ".sha256")
+    if directory.is_symlink() or path.is_symlink() or not path.is_file():
+        raise ValueError("release has no committed checksum approval")
+    if path.stat().st_size > 4096:
+        raise ValueError("checksum approval is oversized")
+    lines = path.read_text(encoding="utf-8").splitlines()
+    if lines[:2] != ["# release-tag: v" + version, "# binary-version: " + version]:
+        raise ValueError("release tag and binary version must match the requested version")
+    checksums = {}
+    for line in lines[2:]:
+        if not line:
+            continue
+        match = re.fullmatch(r"([0-9a-f]{64})  ([a-z0-9.-]+)", line)
+        if match is None:
+            raise ValueError("invalid checksum approval entry")
+        digest, name = match.groups()
+        if name not in PLATFORMS.values() or name in checksums or len(set(digest)) == 1:
+            raise ValueError("unsupported, duplicated or placeholder checksum approval")
+        checksums[name] = digest
+    if not checksums:
+        raise ValueError("checksum approval contains no supported CLI assets")
+    return checksums
 
-if [[ ! -x "${bin_dir}/fyi-cli" ]]; then
-  # cargo install places bins under bin/
-  if [[ -x "${install_path}/bin/fyi-cli" ]]; then
-    :
-  else
-    echo "asdf-fyi-cli: install failed; fyi-cli binary missing under ${bin_dir}" >&2
-    exit 1
-  fi
-fi
 
-echo "asdf-fyi-cli: installed ${version} to ${install_path}"
+def list_versions(directory):
+    if directory.is_symlink():
+        raise ValueError("checksum approval directory must not be a symlink")
+    versions = []
+    for path in directory.glob("*.sha256"):
+        load_checksums(directory, path.stem)
+        versions.append(path.stem)
+    print(" ".join(sorted(versions, key=lambda version: tuple(map(int, version.split("."))))))
+
+
+def extract_cli(archive, candidate):
+    # Read through gzip EOF before parsing, including concatenated members and CRCs.
+    # The spool is a temporary disk file; archive-controlled paths are never used.
+    with tempfile.TemporaryFile(dir=candidate.parent) as unpacked:
+        size = 0
+        with gzip.open(archive, "rb") as compressed:
+            while block := compressed.read(min(COPY_BYTES, MAX_TAR_BYTES - size + 1)):
+                size += len(block)
+                if size > MAX_TAR_BYTES:
+                    raise ValueError("decompressed archive exceeds the size limit")
+                unpacked.write(block)
+        unpacked.seek(0)
+        # A short root filename needs no extended headers. Parse exactly one
+        # ordinary header, avoiding hidden PAX/GNU metadata or sparse members.
+        member = tarfile.TarInfo.frombuf(unpacked.read(512), "utf-8", "strict")
+        if member.name != "fyi-cli" or member.type not in {tarfile.REGTYPE, tarfile.AREGTYPE}:
+            raise ValueError("archive must contain only the root regular file fyi-cli")
+        if member.size <= 0 or member.size > MAX_BINARY_BYTES:
+            raise ValueError("CLI archive member has an invalid size")
+        data_end = 512 + member.size
+        padded_end = ((data_end + 511) // 512) * 512
+        if size % 512 or size < padded_end + 1024:
+            raise ValueError("archive has missing or invalid tar end markers")
+        # Every byte after the executable must be zero padding, including the
+        # two end blocks. This rejects additional members and concatenated tars.
+        unpacked.seek(data_end)
+        while block := unpacked.read(COPY_BYTES):
+            if any(block):
+                raise ValueError("archive contains unexpected padding or trailing content")
+        unpacked.seek(512)
+        remaining = member.size
+        with candidate.open("xb") as destination:
+            while remaining:
+                block = unpacked.read(min(COPY_BYTES, remaining))
+                if not block:
+                    raise ValueError("CLI archive member is truncated")
+                destination.write(block)
+                remaining -= len(block)
+    candidate.chmod(0o755)
+
+
+def check_binary_version(candidate, version, temporary):
+    home = temporary / "smoke-home"
+    home.mkdir()
+    environment = {
+        "PATH": os.defpath,
+        "HOME": str(home),
+        "XDG_CONFIG_HOME": str(home / "config"),
+        "XDG_DATA_HOME": str(home / "data"),
+        "XDG_CACHE_HOME": str(home / "cache"),
+    }
+    result = subprocess.run(
+        [str(candidate), "--version"], check=True, capture_output=True,
+        text=True, timeout=10, cwd=home, env=environment,
+    )
+    if result.stdout.strip() != "fyi-cli " + version:
+        raise ValueError("CLI binary version does not match the approved release")
+
+
+def install(directory, system, machine):
+    if os.environ.get("ASDF_INSTALL_TYPE") != "version":
+        raise ValueError("only version installations are supported; refs are not accepted")
+    version = os.environ.get("ASDF_INSTALL_VERSION", "")
+    checksums = load_checksums(directory, version)
+    asset = PLATFORMS.get((system, machine))
+    if asset is None or asset not in checksums:
+        raise ValueError("no approved release asset for this operating system and architecture")
+    prefix = Path(os.environ.get("ASDF_INSTALL_PATH", ""))
+    if not prefix.is_absolute():
+        raise ValueError("ASDF_INSTALL_PATH must be an absolute installation directory")
+    binaries = prefix / "bin"
+    destination = binaries / "fyi-cli"
+    if prefix.is_symlink() or binaries.is_symlink() or destination.is_symlink():
+        raise ValueError("installation paths must not be symlinks")
+    curl = require_curl()
+    url = "https://github.com/edithatogo/fyi-cli/releases/download/v" + version + "/" + asset
+    with tempfile.TemporaryDirectory(prefix="asdf-fyi-cli-") as temporary_name:
+        temporary = Path(temporary_name)
+        archive = temporary / "release.tar.gz"
+        subprocess.run(
+            [curl, "--disable", "--fail", "--silent", "--show-error", "--location",
+             "--proto", "=https", "--proto-redir", "=https",
+             "--connect-timeout", "15", "--max-time", "60",
+             "--max-filesize", str(MAX_ARCHIVE_BYTES), "--output", str(archive), url],
+            check=True, timeout=65,
+        )
+        if not archive.is_file() or archive.stat().st_size > MAX_ARCHIVE_BYTES:
+            raise ValueError("downloaded archive has an invalid size")
+        with archive.open("rb") as source:
+            digest = hashlib.file_digest(source, "sha256").hexdigest()
+        if digest != checksums[asset]:
+            raise ValueError("release checksum mismatch")
+        candidate = temporary / "fyi-cli"
+        extract_cli(archive, candidate)
+        check_binary_version(candidate, version, temporary)
+        binaries.mkdir(parents=True, exist_ok=True)
+        # Rename on the destination filesystem only after every check succeeds.
+        with tempfile.TemporaryDirectory(prefix=".fyi-cli-", dir=binaries) as staging:
+            staged_binary = Path(staging) / "fyi-cli"
+            shutil.copyfile(candidate, staged_binary)
+            staged_binary.chmod(0o755)
+            os.replace(staged_binary, destination)
+    print("asdf-fyi-cli: installed " + version)
+
+
+try:
+    directory = Path(sys.argv[1])
+    mode = sys.argv[2]
+    if mode == "--list-all":
+        list_versions(directory)
+    elif mode:
+        raise ValueError("unsupported installer argument")
+    else:
+        install(directory, sys.argv[3], sys.argv[4])
+except (OSError, EOFError, ValueError, zlib.error, tarfile.TarError, subprocess.SubprocessError) as error:
+    print("asdf-fyi-cli: " + str(error), file=sys.stderr)
+    sys.exit(1)
+PY

@@ -1,0 +1,24 @@
+{
+  "contract": "urn:fyi-cli:receipt-integer-conformance:1",
+  "note": "Schema integers include integral decimal numbers. Rust retains checked u64 counters; that explicit capacity limit is not full JSON Schema equivalence.",
+  "cases": [
+    {"id": "all-integral-decimals", "patches": {"/responses/0/status": 200.0, "/responses/0/bytes": 7.0, "/responses/0/attempts": 2.0, "/totals/requests": 1.0, "/totals/bytes": 7.0, "/totals/retries": 1.0, "/result/bytes": 3.0}, "schema_valid": true, "rust_valid": true},
+    {"id": "negative-zero", "patches": {"/responses/0/attempts": 1, "/responses/0/retry_delays_seconds": [], "/totals/retries": -0.0}, "schema_valid": true, "rust_valid": true},
+    {"id": "decimal-retry-count", "patches": {"/responses/0/attempts": 2.0, "/responses/0/retry_delays_seconds": [0.25], "/totals/retries": 1.0}, "schema_valid": true, "rust_valid": true},
+    {"id": "native-u64-maximum", "patches": {"/responses/0/bytes": 18446744073709551615, "/totals/bytes": 18446744073709551615}, "schema_valid": true, "rust_valid": true},
+    {"id": "largest-binary64-below-u64-ceiling", "patches": {"/responses/0/bytes": 18446744073709549568.0, "/totals/bytes": 18446744073709549568.0}, "schema_valid": true, "rust_valid": true},
+    {"id": "float-at-u64-exclusive-ceiling", "patches": {"/responses/0/bytes": 18446744073709551616.0, "/totals/bytes": 18446744073709551616.0}, "schema_valid": true, "rust_valid": false},
+    {"id": "native-above-u64-capacity", "patches": {"/responses/0/bytes": 18446744073709551616, "/totals/bytes": 18446744073709551616}, "schema_valid": true, "rust_valid": false},
+    {"id": "fractional-bytes", "patches": {"/responses/0/bytes": 7.5, "/totals/bytes": 7.5}, "schema_valid": false, "rust_valid": false},
+    {"id": "negative-bytes", "patches": {"/responses/0/bytes": -1.0, "/totals/bytes": -1.0}, "schema_valid": false, "rust_valid": false},
+    {"id": "boolean-bytes", "patches": {"/responses/0/bytes": true, "/totals/bytes": true}, "schema_valid": false, "rust_valid": false},
+    {"id": "string-bytes", "patches": {"/responses/0/bytes": "7", "/totals/bytes": "7"}, "schema_valid": false, "rust_valid": false},
+    {"id": "null-bytes", "patches": {"/responses/0/bytes": null, "/totals/bytes": null}, "schema_valid": false, "rust_valid": false},
+    {"id": "zero-attempts", "patches": {"/responses/0/attempts": 0.0}, "schema_valid": false, "rust_valid": false},
+    {"id": "fractional-status", "patches": {"/responses/0/status": 200.5}, "schema_valid": false, "rust_valid": false},
+    {"id": "status-below-range", "patches": {"/responses/0/status": 99.0}, "schema_valid": false, "rust_valid": false},
+    {"id": "status-above-range", "patches": {"/responses/0/status": 600.0}, "schema_valid": false, "rust_valid": false},
+    {"id": "fractional-result-size", "patches": {"/result/bytes": 3.5}, "schema_valid": false, "rust_valid": false},
+    {"id": "decimal-total-mismatch", "patches": {"/totals/bytes": 8.0}, "schema_valid": true, "rust_valid": false}
+  ]
+}

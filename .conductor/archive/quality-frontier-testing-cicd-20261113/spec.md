@@ -27,17 +27,19 @@ Per issue #280 evidence:
 
 ## Acceptance
 
-- [ ] Confirm applicability of DST, MT, and contract testing; document exclusions.
-- [ ] Add deterministic, replayable test suites with bounded runtime and thresholds.
-- [ ] Add mutation testing infrastructure with score thresholds.
-- [ ] Add contract tests for API boundaries.
-- [ ] Pin all GitHub Actions to full commit SHAs.
-- [ ] Add dependency_review to CI for PRs.
-- [ ] Add workflow linting (actionlint) to CI.
-- [ ] Keep PR checks fast; schedule expensive lanes (mutation, E2E) and retain evidence.
-- [ ] Add least-privilege, concurrency, immutable actions, updates, and linting gates.
+- [x] Confirm applicability of DST, MT, and contract testing; document exclusions.
+- [x] Add deterministic, replayable test suites with bounded runtime and thresholds.
+- [x] Add mutation testing infrastructure with score thresholds.
+- [x] Add contract tests for API boundaries.
+- [x] Pin all GitHub Actions to full commit SHAs.
+- [x] Add dependency_review to CI for PRs.
+- [x] Add workflow linting (actionlint) to CI.
+- [x] Keep PR checks fast; schedule expensive lanes (mutation, E2E) and retain evidence.
+- [x] Add least-privilege, concurrency, immutable actions, updates, and linting gates.
 
 ## Non-Goals
 
 - Fixing #281 (security and solo-maintainer context) — separate track.
 - Closing #282 (umbrella) — depends on this track and #281 being complete.
+
+Acceptance is independently reconciled in [acceptance-evidence.md](acceptance-evidence.md) and [ci-verification.json](ci-verification.json). The closing archive PR records its own final-head verification and merge.

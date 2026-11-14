@@ -5,13 +5,53 @@
     "version_source": "git tag v<semver>",
     "integrity_manifest": "SHA256SUMS",
     "provenance": "GitHub artifact attestations when published by the release workflow",
-    "rollback": "Select a prior GitHub Release and verify its SHA256SUMS before installation"
+    "rollback": "Select an independently qualified prior release and reverify integrity, identity, provenance and native install evidence before changing package pins.",
+    "sbom": "SPDX or CycloneDX from the same build with dependency and payload binding; checksum and authenticate it with the release.",
+    "source_commit": "full immutable Git commit recorded in release-manifest.json",
+    "verification_command": "python scripts/create_release_manifest.py RELEASE_DIRECTORY --version COMPONENT_VERSION --commit FULL_COMMIT --verify",
+    "submission_gate": "python scripts/verify_packaging_assets.py --require-submission-ready",
+    "current_status": "blocked: historical v1.2.0 tag contains Rust 0.1.2; operator must reconcile the next release without retagging.",
+    "remote_writes_scope": "Declared help/version smoke only; this is not a statement about all application capabilities."
   },
   "surfaces": [
-    {"name": "fyi-cli", "kind": "cli", "artifact_pattern": "fyi-cli-*", "remote_writes": false},
-    {"name": "fyi-mcp", "kind": "mcp-server", "artifact_pattern": "fyi-mcp-*", "remote_writes": false},
-    {"name": "MCPB", "kind": "desktop-package", "artifact_pattern": "fyi-mcp-*.mcpb", "remote_writes": false},
-    {"name": "container", "kind": "oci", "artifact_pattern": "ghcr.io/edithatogo/fyi-mcp:<tag>", "remote_writes": false},
-    {"name": "legacy-python", "kind": "python-package", "artifact_pattern": "fyi-cli==<version>", "remote_writes": false}
-  ]
+    {
+      "name": "fyi-cli",
+      "kind": "cli",
+      "artifact_pattern": "fyi-cli-*",
+      "remote_writes": false,
+      "supported_targets": [
+        "x86_64-unknown-linux-gnu",
+        "x86_64-apple-darwin",
+        "aarch64-apple-darwin",
+        "x86_64-pc-windows-msvc"
+      ]
+    },
+    {
+      "name": "fyi-mcp",
+      "kind": "mcp-server",
+      "artifact_pattern": "fyi-mcp-*",
+      "remote_writes": false,
+      "current_standalone_assets_verified": false
+    },
+    {
+      "name": "MCPB",
+      "kind": "desktop-package",
+      "artifact_pattern": "fyi-mcp-*.mcpb",
+      "remote_writes": false
+    },
+    {
+      "name": "container",
+      "kind": "oci",
+      "artifact_pattern": "ghcr.io/edithatogo/fyi-mcp:<tag>",
+      "remote_writes": false
+    },
+    {
+      "name": "legacy-python",
+      "kind": "python-package",
+      "artifact_pattern": "fyi-cli==<version>",
+      "remote_writes": false
+    }
+  ],
+  "reviewed_at": "2026-11-14",
+  "observed_release_evidence": "packaging/release-evidence.json"
 }

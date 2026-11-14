@@ -18,6 +18,8 @@ use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::runtime::Runtime;
 
+mod local;
+
 #[allow(dead_code)]
 mod tui;
 
@@ -85,6 +87,8 @@ pub enum Commands {
     InitDb {
         #[arg(long, default_value = "fyi_system.db")]
         db: String,
+        #[arg(long, help = "Explicitly adopt a supported existing Python database")]
+        migrate_legacy: bool,
     },
     #[command(about = "Import authorities from a CSV file")]
     ImportAuthorities {
@@ -97,7 +101,7 @@ pub enum Commands {
         #[arg(long, default_value = "fyi_system.db")]
         db: String,
     },
-    #[command(about = "Register a new tracked request")]
+    #[command(about = "Register a local tracked request without submitting it remotely")]
     RegisterRequest {
         authority_slug: String,
         title: String,
@@ -107,7 +111,7 @@ pub enum Commands {
         #[arg(long, default_value = "draft")]
         status: String,
         #[arg(long)]
-        fyi_request_id: Option<i32>,
+        fyi_request_id: Option<i64>,
         #[arg(long, default_value = "fyi_system.db")]
         db: String,
     },
@@ -118,14 +122,14 @@ pub enum Commands {
     },
     #[command(about = "Set status of a tracked request")]
     SetStatus {
-        request_id: i32,
+        request_id: i64,
         status: String,
         #[arg(long, default_value = "fyi_system.db")]
         db: String,
     },
     #[command(about = "Get request timeline")]
     RequestTimeline {
-        request_id: i32,
+        request_id: i64,
         #[arg(long, default_value = "fyi_system.db")]
         db: String,
     },
@@ -258,9 +262,9 @@ pub enum Commands {
         #[arg(long, default_value = "fyi_system.db")]
         db: String,
     },
-    #[command(about = "Get detailed report of a request")]
+    #[command(about = "Get stored local request fields and history")]
     RequestDetail {
-        request_id: i32,
+        request_id: i64,
         #[arg(long, default_value = "fyi_system.db")]
         db: String,
     },
@@ -594,21 +598,18 @@ fn main() {
         .init();
 
     match &args.command {
-        Commands::InitDb { db } => {
-            if let Err(error) = initialize_database_file(db) {
-                eprintln!("Failed to initialize SQLite database at {db}: {error}");
-                std::process::exit(1);
-            }
-            println!("Initialized SQLite database at {}", db);
+        Commands::InitDb { .. }
+        | Commands::ImportAuthorities { .. }
+        | Commands::ListAuthorities { .. }
+        | Commands::RegisterRequest { .. }
+        | Commands::ListRequests { .. }
+        | Commands::SetStatus { .. }
+        | Commands::RequestTimeline { .. }
+        | Commands::RequestDetail { .. }
+        | Commands::ExportRequests { .. }
+        | Commands::ImportRequests { .. } => {
+            local::run(&args.command, args.output_format);
         }
-        Commands::ImportAuthorities { .. } => unsupported_command("import-authorities"),
-        Commands::ListAuthorities { .. } => unsupported_command("list-authorities"),
-        Commands::RegisterRequest { .. } => unsupported_command("register-request"),
-        Commands::ListRequests { .. } => unsupported_command("list-requests"),
-        Commands::SetStatus { .. } => unsupported_command("set-status"),
-        Commands::RequestTimeline { .. } => unsupported_command("request-timeline"),
-        Commands::ExportRequests { .. } => unsupported_command("export-requests"),
-        Commands::ImportRequests { .. } => unsupported_command("import-requests"),
         Commands::BuildPrefilledUrl {
             authority_slug,
             title,
@@ -771,7 +772,6 @@ fn main() {
         Commands::RunCycle { .. } => unsupported_command("run-cycle"),
         Commands::Scheduler { .. } => unsupported_command("scheduler"),
         Commands::Serve { .. } => unsupported_command("serve"),
-        Commands::RequestDetail { .. } => unsupported_command("request-detail"),
         Commands::ExportRequest { .. } => unsupported_command("export-request"),
         Commands::FollowUpDraft { .. } => unsupported_command("follow-up-draft"),
         Commands::AttachmentManifest { .. } => unsupported_command("attachment-manifest"),
@@ -1397,19 +1397,6 @@ fn create_database_file(db: &str) -> std::io::Result<()> {
     Ok(())
 }
 
-fn initialize_database_file(db: &str) -> std::io::Result<()> {
-    create_database_file(db)?;
-    let runtime = Runtime::new()?;
-    runtime.block_on(async {
-        let pool = DbPool::new(&sqlite_url(db))
-            .await
-            .map_err(std::io::Error::other)?;
-        pool.initialize_rust_schema()
-            .await
-            .map_err(|error| std::io::Error::other(error.to_string()))
-    })
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1438,7 +1425,8 @@ mod tests {
         let args = Cli::try_parse_from(["fyi-cli", "init-db", "--db", "test.db"]).unwrap();
         assert_eq!(args.db, "test.db");
         match args.command {
-            Commands::InitDb { db } => {
+            Commands::InitDb { db, migrate_legacy } => {
+                assert!(!migrate_legacy);
                 assert_eq!(db, "test.db");
             }
             _ => panic!("Expected InitDb command"),
