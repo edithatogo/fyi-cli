@@ -3,7 +3,7 @@ name = "fyi-core"
 version = "0.1.2"
 edition = "2021"
 rust-version = "1.99"
-license = "MIT"
+license = "MIT AND Apache-2.0"
 repository = "https://github.com/edithatogo/fyi-cli"
 description = "Core library for the fyi-cli multi-jurisdiction FOI/Alaveteli platform"
 
@@ -28,6 +28,9 @@ hmac = "0.12"
 sha1 = "0.10"
 data-encoding = "2.6"
 sha2 = "0.10"
+flate2 = "1.1.11"
+zip = { version = "9.5.1", default-features = false }
+surt-rs = "0.1.3"
 percent-encoding = "2.3"
 qrcode = { version = "0.14", default-features = false }
 toml = "0.8"
@@ -35,5 +38,6 @@ fluent-bundle = "0.16"
 unic-langid = "0.9"
 
 [dev-dependencies]
+tempfile = "3.27"
 wiremock = "0.6"
 proptest = "1.4"
