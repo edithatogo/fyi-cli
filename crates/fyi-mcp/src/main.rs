@@ -19,6 +19,7 @@ use fyi_core::sync::{SearchOptions, SyncClient};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::net::TcpListener;
@@ -2520,13 +2521,7 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                         .get("instance_id")
                         .and_then(Value::as_str)
                         .unwrap_or("");
-                    let correlation_id = format!(
-                        "mcp-{}",
-                        req.id
-                            .as_ref()
-                            .map(Value::to_string)
-                            .unwrap_or_else(|| "notification".into())
-                    );
+                    let correlation_id = next_correlation_id();
                     match remote_read(
                         remote_policy,
                         instance_id,
@@ -2549,6 +2544,13 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                         .get("phase")
                         .and_then(Value::as_str)
                         .unwrap_or("prepare");
+                    if !matches!(phase, "prepare" | "commit") {
+                        return Some(JsonRpcResponse::error(
+                            req.id,
+                            -32602,
+                            "Invalid write phase".into(),
+                        ));
+                    }
                     let result = if phase == "commit" {
                         remote_commit_write(
                             remote_policy,
@@ -2588,85 +2590,82 @@ async fn remote_read(
     arguments: &Value,
     correlation_id: &str,
 ) -> Result<Value, String> {
-    policy
-        .authorize(instance_id, policy::RemoteCapability::Read)
+    let permit = policy
+        .begin_request(instance_id, policy::RemoteCapability::Read)
         .map_err(|error| error.to_string())?;
     let instance = policy
         .instance(instance_id)
         .ok_or_else(|| "remote instance is not configured".to_string())?;
     let client = SyncClient::new(&instance.base_url)
         .map_err(|_| "remote client could not be initialized".to_string())?;
-    let result = match operation {
-        "remote_health" => {
-            let health = client.health_check().await;
-            Ok(
-                json!({"instance_id": instance_id, "network_reachable": health.network_reachable, "api_reachable": health.api_reachable}),
-            )
-        }
-        "remote_version" => client
-            .get_api_version()
-            .await
-            .map(|version| json!({"instance_id": instance_id, "version": version}))
-            .map_err(|_| "remote operation failed".to_string()),
-        "remote_search_requests" => {
-            let query = arguments
-                .get("query")
-                .and_then(Value::as_str)
-                .unwrap_or("")
-                .trim();
-            if query.is_empty() || query.len() > 200 {
-                return Err("query must be between 1 and 200 characters".into());
+    let operation_future = async {
+        match operation {
+            "remote_health" => {
+                let health = client.health_check().await;
+                Ok(
+                    json!({"instance_id": instance_id, "network_reachable": health.network_reachable, "api_reachable": health.api_reachable}),
+                )
             }
-            let limit = arguments
-                .get("limit")
-                .and_then(Value::as_u64)
-                .unwrap_or(10)
-                .clamp(1, 50) as usize;
-            client
+            "remote_version" => client
+                .get_api_version()
+                .await
+                .map(|version| json!({"instance_id": instance_id, "version": version}))
+                .map_err(|_| "remote operation failed".to_string()),
+            "remote_search_requests" => {
+                let query = arguments
+                    .get("query")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .trim();
+                if query.is_empty() || query.len() > 200 {
+                    return Err("query must be between 1 and 200 characters".into());
+                }
+                let limit = arguments
+                    .get("limit")
+                    .and_then(Value::as_u64)
+                    .unwrap_or(10)
+                    .clamp(1, 50) as usize;
+                client
                 .search_requests_with_options(&SearchOptions { query: Some(query.into()), per_page: Some(limit as u32), ..Default::default() })
                 .await
                 .map(|requests| json!({"instance_id": instance_id, "query": query, "requests": requests.into_iter().take(limit).collect::<Vec<_>>() }))
                 .map_err(|_| "remote operation failed".to_string())
-        }
-        "remote_get_request" => {
-            let request_id = arguments
-                .get("request_id")
-                .and_then(Value::as_i64)
-                .ok_or_else(|| "request_id must be a positive integer".to_string())?;
-            if request_id < 1 {
-                return Err("request_id must be a positive integer".into());
             }
-            client
-                .fetch_request(request_id)
-                .await
-                .map(|request| json!({"instance_id": instance_id, "request": request}))
-                .map_err(|_| "remote operation failed".to_string())
-        }
-        "remote_list_authorities" => {
-            let filter = arguments
-                .get("filter")
-                .and_then(Value::as_str)
-                .unwrap_or("");
-            if filter.len() > 100 {
-                return Err("filter exceeds 100 characters".into());
+            "remote_get_request" => {
+                let request_id = arguments
+                    .get("request_id")
+                    .and_then(Value::as_i64)
+                    .ok_or_else(|| "request_id must be a positive integer".to_string())?;
+                if request_id < 1 {
+                    return Err("request_id must be a positive integer".into());
+                }
+                client
+                    .fetch_request(request_id)
+                    .await
+                    .map(|request| json!({"instance_id": instance_id, "request": request}))
+                    .map_err(|_| "remote operation failed".to_string())
             }
-            let limit = arguments
-                .get("limit")
-                .and_then(Value::as_u64)
-                .unwrap_or(50)
-                .clamp(1, 200) as usize;
-            client.list_authorities_matching(filter).await.map(|authorities| json!({"instance_id": instance_id, "authorities": authorities.into_iter().take(limit).collect::<Vec<_>>() })).map_err(|_| "remote operation failed".to_string())
+            "remote_list_authorities" => {
+                let filter = arguments
+                    .get("filter")
+                    .and_then(Value::as_str)
+                    .unwrap_or("");
+                if filter.len() > 100 {
+                    return Err("filter exceeds 100 characters".into());
+                }
+                let limit = arguments
+                    .get("limit")
+                    .and_then(Value::as_u64)
+                    .unwrap_or(50)
+                    .clamp(1, 200) as usize;
+                client.list_authorities_matching(filter).await.map(|authorities| json!({"instance_id": instance_id, "authorities": authorities.into_iter().take(limit).collect::<Vec<_>>() })).map_err(|_| "remote operation failed".to_string())
+            }
+            _ => Err("unsupported remote read operation".to_string()),
         }
-        _ => Err("unsupported remote read operation".to_string()),
     };
+    let result = execute_remote_operation(policy, permit, operation_future).await;
     match result {
         Ok(payload) => {
-            let _ = policy.record_request(
-                instance_id,
-                serde_json::to_vec(&payload)
-                    .map(|v| v.len() as u64)
-                    .unwrap_or(0),
-            );
             tracing::info!(
                 correlation_id,
                 operation,
@@ -2676,8 +2675,7 @@ async fn remote_read(
             );
             Ok(payload)
         }
-        Err(_) => {
-            policy.record_failure();
+        Err(error) => {
             tracing::warn!(
                 correlation_id,
                 operation,
@@ -2685,9 +2683,68 @@ async fn remote_read(
                 outcome = "failure",
                 "remote MCP read failed"
             );
-            Err("remote operation failed; see operator audit telemetry".into())
+            Err(error)
         }
     }
+}
+
+fn next_correlation_id() -> String {
+    static NEXT_CORRELATION_ID: AtomicU64 = AtomicU64::new(1);
+    format!(
+        "mcp-{}",
+        NEXT_CORRELATION_ID.fetch_add(1, Ordering::Relaxed)
+    )
+}
+
+/// Bound the complete MCP operation, including failure and cancellation paths.
+/// Source HTTP download bounds remain the source adapter's responsibility.
+async fn execute_remote_operation(
+    policy: &RemoteMcpPolicy,
+    permit: policy::RemoteRequestPermit,
+    operation: impl std::future::Future<Output = Result<Value, String>>,
+) -> Result<Value, String> {
+    let result = tokio::time::timeout(permit.duration_budget(), operation).await;
+    match result {
+        Ok(Ok(payload)) => {
+            let outcome = serialized_payload_bytes(&payload)
+                .and_then(|bytes| permit.finish(bytes).map_err(|error| error.to_string()));
+            if let Err(error) = outcome {
+                policy.record_failure();
+                return Err(error);
+            }
+            policy.record_success();
+            Ok(payload)
+        }
+        Ok(Err(_)) => {
+            policy.record_failure();
+            Err("remote operation failed; see operator audit telemetry".into())
+        }
+        Err(_) => {
+            policy.record_failure();
+            Err("remote operation timed out; see operator audit telemetry".into())
+        }
+    }
+}
+
+fn serialized_payload_bytes(payload: &Value) -> Result<u64, String> {
+    #[derive(Default)]
+    struct Counter(u64);
+    impl std::io::Write for Counter {
+        fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+            self.0 = self
+                .0
+                .checked_add(bytes.len() as u64)
+                .ok_or_else(|| std::io::Error::other("response size overflow"))?;
+            Ok(bytes.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+    let mut counter = Counter::default();
+    serde_json::to_writer(&mut counter, payload)
+        .map_err(|_| "remote result could not be serialized".to_string())?;
+    Ok(counter.0)
 }
 
 async fn remote_commit_write(
@@ -2697,6 +2754,19 @@ async fn remote_commit_write(
     operation: &str,
     arguments: &Value,
 ) -> Result<Value, String> {
+    if !arguments.as_object().is_some_and(|arguments| {
+        arguments.keys().all(|key| {
+            matches!(
+                key.as_str(),
+                "instance_id" | "phase" | "confirmation_token" | "idempotency_key"
+            )
+        })
+    }) {
+        return Err(
+            "commit accepts only its instance, phase, confirmation token and idempotency key"
+                .into(),
+        );
+    }
     policy
         .authorize(instance_id, policy::RemoteCapability::Write)
         .map_err(|error| error.to_string())?;
@@ -2704,10 +2774,12 @@ async fn remote_commit_write(
         .get("confirmation_token")
         .and_then(Value::as_str)
         .ok_or_else(|| "confirmation_token is required for commit".to_string())?;
-    let prepared = gate.take(token)?;
-    if prepared.instance_id != instance_id || prepared.operation != operation {
-        return Err("confirmation token does not match this write operation".into());
-    }
+    let idempotency_key = arguments
+        .get("idempotency_key")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "idempotency_key is required for commit".to_string())?;
+    let (prepared, permit) =
+        gate.reserve_for(policy, token, instance_id, operation, idempotency_key)?;
     let instance = policy
         .instance(instance_id)
         .ok_or_else(|| "remote instance is not configured".to_string())?;
@@ -2719,110 +2791,101 @@ async fn remote_commit_write(
     let client = SyncClient::new(&instance.base_url)
         .map_err(|_| "remote client could not be initialized".to_string())?
         .with_bot_token(bot_token);
-    let result = match operation {
-        "remote_create_request" => {
-            let payload: CreateRequestPayload = serde_json::from_value(prepared.arguments.clone())
-                .map_err(|_| "remote create payload is invalid".to_string())?;
-            client
-                .create_request(&payload)
-                .await
-                .map(|response| json!({"instance_id": instance_id, "request": response}))
-                .map_err(|_| "remote operation failed".to_string())
-        }
-        "remote_add_correspondence" => {
-            let request_id = prepared
-                .arguments
-                .get("request_id")
-                .and_then(Value::as_i64)
-                .ok_or_else(|| "request_id is required".to_string())?;
-            let direction = prepared
-                .arguments
-                .get("direction")
-                .and_then(Value::as_str)
-                .ok_or_else(|| "direction is required".to_string())?;
-            let direction: CorrespondenceDirection = serde_json::from_value(json!(direction))
-                .map_err(|_| "direction is invalid".to_string())?;
-            let payload = AddCorrespondencePayload {
-                direction,
-                body: prepared
-                    .arguments
-                    .get("body")
-                    .and_then(Value::as_str)
-                    .ok_or_else(|| "body is required".to_string())?
-                    .to_string(),
-                sent_at: prepared
-                    .arguments
-                    .get("sent_at")
-                    .and_then(Value::as_str)
-                    .ok_or_else(|| "sent_at is required".to_string())?
-                    .to_string(),
-                state: prepared
-                    .arguments
-                    .get("state")
-                    .and_then(Value::as_str)
-                    .map(str::to_string),
-            };
-            let attachments = validated_attachment_paths(&prepared.arguments).await?;
-            if attachments.is_empty() {
+    let operation_future = async {
+        match operation {
+            "remote_create_request" => {
+                let payload: CreateRequestPayload =
+                    serde_json::from_value(prepared.arguments.clone())
+                        .map_err(|_| "remote create payload is invalid".to_string())?;
                 client
+                    .create_request(&payload)
+                    .await
+                    .map(|response| json!({"instance_id": instance_id, "request": response}))
+                    .map_err(|_| "remote operation failed".to_string())
+            }
+            "remote_add_correspondence" => {
+                let request_id = prepared
+                    .arguments
+                    .get("request_id")
+                    .and_then(Value::as_i64)
+                    .ok_or_else(|| "request_id is required".to_string())?;
+                let direction = prepared
+                    .arguments
+                    .get("direction")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| "direction is required".to_string())?;
+                let direction: CorrespondenceDirection =
+                    serde_json::from_value(json!(direction))
+                        .map_err(|_| "direction is invalid".to_string())?;
+                let payload = AddCorrespondencePayload {
+                    direction,
+                    body: prepared
+                        .arguments
+                        .get("body")
+                        .and_then(Value::as_str)
+                        .ok_or_else(|| "body is required".to_string())?
+                        .to_string(),
+                    sent_at: prepared
+                        .arguments
+                        .get("sent_at")
+                        .and_then(Value::as_str)
+                        .ok_or_else(|| "sent_at is required".to_string())?
+                        .to_string(),
+                    state: prepared
+                        .arguments
+                        .get("state")
+                        .and_then(Value::as_str)
+                        .map(str::to_string),
+                };
+                let attachments = validated_attachment_paths(&prepared.arguments).await?;
+                if attachments.is_empty() {
+                    client
                     .add_correspondence(request_id, &payload)
                     .await
                     .map(|response| json!({"instance_id": instance_id, "correspondence": response}))
                     .map_err(|_| "remote operation failed".to_string())
-            } else {
-                client
+                } else {
+                    client
                     .add_correspondence_with_attachments(request_id, &payload, &attachments)
                     .await
                     .map(|response| json!({"instance_id": instance_id, "correspondence": response}))
                     .map_err(|_| "remote operation failed".to_string())
+                }
             }
+            "remote_update_state" => {
+                let request_id = prepared
+                    .arguments
+                    .get("request_id")
+                    .and_then(Value::as_i64)
+                    .ok_or_else(|| "request_id is required".to_string())?;
+                let expected = prepared
+                    .arguments
+                    .get("expected_current_state")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| "expected_current_state is required".to_string())?;
+                let state = prepared
+                    .arguments
+                    .get("state")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| "state is required".to_string())?;
+                client
+                    .update_request_state_if_current(
+                        request_id,
+                        expected,
+                        &UpdateRequestStatePayload {
+                            state: state.to_string(),
+                        },
+                    )
+                    .await
+                    .map(|response| json!({"instance_id": instance_id, "state": response}))
+                    .map_err(|_| "remote operation failed".to_string())
+            }
+            _ => Err("unsupported remote write operation".to_string()),
         }
-        "remote_update_state" => {
-            let request_id = prepared
-                .arguments
-                .get("request_id")
-                .and_then(Value::as_i64)
-                .ok_or_else(|| "request_id is required".to_string())?;
-            let expected = prepared
-                .arguments
-                .get("expected_current_state")
-                .and_then(Value::as_str)
-                .ok_or_else(|| "expected_current_state is required".to_string())?;
-            let state = prepared
-                .arguments
-                .get("state")
-                .and_then(Value::as_str)
-                .ok_or_else(|| "state is required".to_string())?;
-            client
-                .update_request_state_if_current(
-                    request_id,
-                    expected,
-                    &UpdateRequestStatePayload {
-                        state: state.to_string(),
-                    },
-                )
-                .await
-                .map(|response| json!({"instance_id": instance_id, "state": response}))
-                .map_err(|_| "remote operation failed".to_string())
-        }
-        _ => Err("unsupported remote write operation".to_string()),
     };
-    match result {
-        Ok(payload) => {
-            gate.remember_result(prepared.idempotency_key, payload.clone());
-            let _ = policy.record_request(
-                instance_id,
-                serde_json::to_vec(&payload)
-                    .map(|v| v.len() as u64)
-                    .unwrap_or(0),
-            );
-            Ok(payload)
-        }
-        Err(_) => {
-            policy.record_failure();
-            Err("remote write failed; see operator audit telemetry".into())
-        }
-    }
+    let payload = execute_remote_operation(policy, permit, operation_future).await?;
+    gate.remember_result(&prepared, payload.clone())?;
+    Ok(payload)
 }
 
 async fn validated_attachment_paths(arguments: &Value) -> Result<Vec<PathBuf>, String> {
@@ -2840,6 +2903,13 @@ async fn validated_attachment_paths(arguments: &Value) -> Result<Vec<PathBuf>, S
     let root = tokio::fs::canonicalize(root)
         .await
         .map_err(|_| "attachment root is unavailable".to_string())?;
+    attachment_paths_under_root(&root, values).await
+}
+
+async fn attachment_paths_under_root(
+    root: &std::path::Path,
+    values: &[Value],
+) -> Result<Vec<PathBuf>, String> {
     let mut paths = Vec::with_capacity(values.len());
     for value in values {
         let relative = value
@@ -2847,15 +2917,27 @@ async fn validated_attachment_paths(arguments: &Value) -> Result<Vec<PathBuf>, S
             .ok_or_else(|| "attachment paths must be strings".to_string())?;
         if relative.is_empty()
             || relative.len() > 1024
-            || relative.contains('\0')
-            || relative.contains("..")
+            || relative.contains(['\0', ':'])
+            || relative
+                .split(['/', '\\'])
+                .any(|part| part.is_empty() || matches!(part, "." | ".."))
         {
             return Err("attachment path is invalid".into());
         }
-        let canonical = tokio::fs::canonicalize(root.join(relative))
+        let mut checked = root.to_path_buf();
+        for component in relative.split(['/', '\\']) {
+            checked.push(component);
+            let metadata = tokio::fs::symlink_metadata(&checked)
+                .await
+                .map_err(|_| "attachment path is unavailable".to_string())?;
+            if metadata.file_type().is_symlink() {
+                return Err("attachment symlinks are not allowed".into());
+            }
+        }
+        let canonical = tokio::fs::canonicalize(&checked)
             .await
             .map_err(|_| "attachment path is unavailable".to_string())?;
-        if !canonical.starts_with(&root) {
+        if !canonical.starts_with(root) {
             return Err("attachment path escapes FYI_MCP_ATTACHMENT_ROOT".into());
         }
         paths.push(canonical);
@@ -3451,6 +3533,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         run_stdio(&db, &remote_policy, &write_gate).await
     }
 }
+
+#[cfg(test)]
+mod remote_contract_tests;
 
 #[cfg(test)]
 mod transport_tests;
