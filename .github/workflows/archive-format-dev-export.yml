@@ -1,0 +1,100 @@
+name: Archive format development export
+
+on:
+  push:
+    branches: [dev/archive-format-dependency-export-20261114]
+    paths: [.github/workflows/archive-format-dev-export.yml]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: archive-format-dev-export-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  export:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact live integration baseline
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: 234d90511b7e15866669994d49115358a8860a83
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install the required Rust toolchain
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+        with:
+          toolchain: 1.99.1
+          components: rustfmt, clippy, llvm-tools-preview
+      - name: Install uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78
+      - name: Qualify the only Python runtime used by this export
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv python install 3.15.1
+          python_path="$(uv python find --managed-python 3.15.1)"
+          "$python_path" -c 'import sys; assert sys.version_info[:3] == (3, 15, 1), sys.version; print(sys.version)'
+          printf 'QUALIFIED_PYTHON=%s\n' "$python_path" >> "$GITHUB_ENV"
+      - name: Resolve only the proposed archive-format dependency additions
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p export/inputs export/evidence
+          test "$(git rev-parse HEAD)" = 234d90511b7e15866669994d49115358a8860a83
+          git bundle create export/source.bundle HEAD
+          cp Cargo.lock export/inputs/baseline-Cargo.lock
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const path = 'crates/fyi-core/Cargo.toml';
+          const text = fs.readFileSync(path, 'utf8');
+          const anchor = '[dev-dependencies]';
+          if (text.split(anchor).length !== 2 || /^zip\s*=/m.test(text) || /^surt-rs\s*=/m.test(text)) throw new Error('unexpected dependency baseline');
+          const additions = 'flate2 = "=1.1.11"\nzip = { version = "=9.5.1", default-features = false }\nsurt-rs = "=0.1.3"\n\n';
+          fs.writeFileSync(path, text.replace(anchor, additions + anchor + '\ntempfile = "=3.27.0"'));
+          JS
+          cargo metadata --format-version=1 > export/inputs/cargo-metadata.json
+          cargo fetch --locked --target x86_64-unknown-linux-gnu
+          cp Cargo.lock export/inputs/candidate-Cargo.lock
+          cp crates/fyi-core/Cargo.toml export/inputs/candidate-Cargo.toml
+          git diff -- Cargo.lock crates/fyi-core/Cargo.toml > export/evidence/dependency-change.patch
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const metadata = JSON.parse(fs.readFileSync('export/inputs/cargo-metadata.json', 'utf8'));
+          const wanted = {flate2: '1.1.11', zip: '9.5.1', 'surt-rs': '0.1.3', tempfile: '3.27.0'};
+          const selected = metadata.packages.filter(p => p.name in wanted);
+          for (const [name, version] of Object.entries(wanted)) {
+            if (!selected.some(p => p.name === name && p.version === version)) throw new Error(`missing qualified version ${name}`);
+          }
+          const report = selected.map(({name,version,license,source,rust_version,manifest_path}) => ({name,version,license,source,rust_version,manifest_path}));
+          fs.writeFileSync('export/evidence/selected-dependencies.json', JSON.stringify(report, null, 2) + '\n');
+          console.log(JSON.stringify(report, null, 2));
+          JS
+      - name: Package the public dependencies and qualified local runtimes
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -czf export/cargo-registry.tar.gz -C "$HOME/.cargo" registry
+          toolchain="$(rustc --print sysroot)"
+          tar -czf export/rust-1.99.1-linux.tar.gz -C "$toolchain" .
+          python_root="$(dirname "$(dirname "$QUALIFIED_PYTHON")")"
+          tar -czf export/python-3.15.1-linux.tar.gz -C "$python_root" .
+          {
+            printf 'baseline=234d90511b7e15866669994d49115358a8860a83\nworkflow_source=%s\nrun_id=%s\nrun_attempt=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT"
+            rustc --version --verbose
+            cargo --version
+            "$QUALIFIED_PYTHON" --version
+            (cd export; sha256sum source.bundle *.tar.gz inputs/* evidence/*)
+          } > export/manifest.txt
+          du -h export/*
+      - name: Retain qualification inputs, not merge acceptance
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: archive-format-offline-inputs
+          path: export/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 2
