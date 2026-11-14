@@ -1,0 +1,90 @@
+{
+  "format_version": 1,
+  "bundle_revision": "2026-11-14.2",
+  "input": {
+    "authority": "Example Authority / Te Whānau",
+    "requester": "Anaïs Ngā",
+    "title": "Budget 2026 — Café",
+    "body": "Please provide the 2026 budget.\nInclude annexes."
+  },
+  "requests": [
+    {
+      "locale": "en-NZ",
+      "jurisdiction_id": "nz-fyi",
+      "title": "Budget 2026 — Café",
+      "body": "Kia ora Example Authority / Te Whānau\n\nUnder Official Information Act (OIA 1982) I am making this request.\n\nPlease provide the 2026 budget.\nInclude annexes.\n\nYours sincerely\nAnaïs Ngā",
+      "message_sources": {
+        "closing": "en",
+        "legal_citation": "en",
+        "request_body": "en",
+        "request_title": "en",
+        "salutation": "en-NZ"
+      }
+    },
+    {
+      "locale": "en-AU",
+      "jurisdiction_id": "au-rtk",
+      "title": "Budget 2026 — Café",
+      "body": "Dear Example Authority / Te Whānau\n\nUnder Freedom of Information Act (FOI Act) I am making this FOI request.\n\nPlease provide the 2026 budget.\nInclude annexes.\n\nYours sincerely\nAnaïs Ngā",
+      "message_sources": {
+        "closing": "en",
+        "legal_citation": "en",
+        "request_body": "en",
+        "request_title": "en",
+        "salutation": "en-AU"
+      }
+    },
+    {
+      "locale": "en-GB",
+      "jurisdiction_id": "uk-wdtk",
+      "title": "Budget 2026 — Café",
+      "body": "Dear Example Authority / Te Whānau\n\nUnder Freedom of Information Act (FOIA 2000) I am making this FOI request.\n\nPlease provide the 2026 budget.\nInclude annexes.\n\nYours sincerely\nAnaïs Ngā",
+      "message_sources": {
+        "closing": "en",
+        "legal_citation": "en",
+        "request_body": "en",
+        "request_title": "en",
+        "salutation": "en-GB"
+      }
+    },
+    {
+      "locale": "de-DE",
+      "jurisdiction_id": "de-fds",
+      "title": "Budget 2026 — Café",
+      "body": "Sehr geehrte/r Example Authority / Te Whānau\n\nAuf Grundlage von Informationsfreiheitsgesetz (IFG) stelle ich diese Anfrage.\n\nPlease provide the 2026 budget.\nInclude annexes.\n\nMit freundlichen Grüßen\nAnaïs Ngā",
+      "message_sources": {
+        "closing": "de-DE",
+        "legal_citation": "de-DE",
+        "request_body": "de-DE",
+        "request_title": "de-DE",
+        "salutation": "de-DE"
+      }
+    },
+    {
+      "locale": "fr-FR",
+      "jurisdiction_id": "fr-cada",
+      "title": "Budget 2026 — Café",
+      "body": "Bonjour Example Authority / Te Whānau\n\nEn vertu de Loi sur l'accès aux documents administratifs (Loi sur l'accès aux documents administratifs), je présente cette demande.\n\nPlease provide the 2026 budget.\nInclude annexes.\n\nCordialement\nAnaïs Ngā",
+      "message_sources": {
+        "closing": "fr-FR",
+        "legal_citation": "fr-FR",
+        "request_body": "fr-FR",
+        "request_title": "fr-FR",
+        "salutation": "fr-FR"
+      }
+    },
+    {
+      "locale": "es-ES",
+      "jurisdiction_id": "es-tdas",
+      "title": "Budget 2026 — Café",
+      "body": "Estimado/a Example Authority / Te Whānau\n\nAl amparo de Ley de Transparencia (Ley de Transparencia), presento esta solicitud.\n\nPlease provide the 2026 budget.\nInclude annexes.\n\nAtentamente\nAnaïs Ngā",
+      "message_sources": {
+        "closing": "es-ES",
+        "legal_citation": "es-ES",
+        "request_body": "es-ES",
+        "request_title": "es-ES",
+        "salutation": "es-ES"
+      }
+    }
+  ]
+}

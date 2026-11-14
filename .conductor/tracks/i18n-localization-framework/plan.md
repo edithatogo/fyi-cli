@@ -9,11 +9,17 @@ within this track; shared registries remain untouched during parallel work.
 
 - [x] Bounded increment 1: versioned message bundles, explicit locale selection,
   deterministic fallback and strict interpolation contracts.
-- [ ] Bounded increment 2: typed request/letter templates, golden fixtures and
+- [x] Bounded increment 2: typed request/letter templates, golden fixtures and
   delegation to the existing deadline module.
 
 The historical checklist below is reconciled only against inspectable evidence.
 Human language/legal review is distinct from automated rendering verification.
+
+Delivery checkpoint (2026-11-14 05:30 UTC): foundation PR #436 has successful
+required checks at `727b841` but awaits its coordinated final master refresh and
+merge. Typed-template PR #447 is a dependent draft preserving implementation
+`75d932b`; it must follow #436, retarget to master and qualify its final head.
+See the dated integration evidence below; neither PR is claimed merged here.
 
 ## Phase 1: Fluent-rs Integration
 
@@ -38,25 +44,30 @@ passing with Rust 1.99.1. Manual/human review remains explicitly unchecked.
 ## Phase 2: Request Letter Templates
 
 ### 2.1 Template Structure
-- [ ] Task: Design template schema (salutation, body, citation, sign-off)
-- [ ] Task: Write failing tests for template rendering
-- [ ] Task: Create English templates for NZ, AU, UK
-- [ ] Task: Implement template variable substitution
+- [x] Task: Design template schema (salutation, body, citation, sign-off)
+- [x] Task: Write failing tests for template rendering
+- [x] Task: Create English templates for NZ, AU, UK
+- [x] Task: Implement template variable substitution
 - [ ] Task: Conductor - User Manual Verification 'Phase 2.1: Templates' (Protocol in workflow.md)
 
 ### 2.2 Jurisdiction-Specific Templates
-- [ ] Task: Create NZ OIA request template with legal citation
-- [ ] Task: Create AU FOI request template
-- [ ] Task: Create UK FOIA request template
-- [ ] Task: Test templates with realistic data
+- [x] Task: Create NZ OIA request template with legal citation
+- [x] Task: Create AU FOI request template
+- [x] Task: Create UK FOIA request template
+- [x] Task: Test templates with realistic data
 - [ ] Task: Conductor - User Manual Verification 'Phase 2.2: Jurisdiction Templates' (Protocol in workflow.md)
 
 ### 2.3 Template Variants
-- [ ] Task: Create formal vs. informal template variants
-- [ ] Task: Add follow-up letter templates
-- [ ] Task: Add internal review request templates
-- [ ] Task: Add appeal letter templates
+- [x] Task: Create formal vs. informal template variants
+- [x] Task: Add follow-up letter templates
+- [x] Task: Add internal review request templates
+- [x] Task: Add appeal letter templates
 - [ ] Task: Conductor - User Manual Verification 'Phase 2.3: Variants' (Protocol in workflow.md)
+
+Automated Phase 2 evidence: [acceptance-evidence.md](acceptance-evidence.md),
+21 template/deadline integration tests plus the existing 16 message tests, all
+48 locale/variant/register combinations, six full-letter goldens, and 99.635%
+combined localization line coverage. Human review remains unchecked.
 
 ## Phase 3: Terminology Mapping
 
@@ -86,7 +97,9 @@ passing with Rust 1.99.1. Manual/human review remains explicitly unchecked.
 
 ### 4.2 Working-Day Calculator
 - [ ] Task: Write failing tests for working-day calculation
-- [ ] Task: Implement business day counter (skip weekends)
+- [x] Task: Implement business day counter (skip weekends) — existing canonical
+  `deadlines.rs` implementation retained through delegation; holiday/legal rules
+  remain unverified and open below.
 - [ ] Task: Integrate holiday calendar skipping
 - [ ] Task: Handle jurisdiction-specific rules (e.g., observed holidays)
 - [ ] Task: Conductor - User Manual Verification 'Phase 4.2: Calculator' (Protocol in workflow.md)
@@ -101,24 +114,24 @@ passing with Rust 1.99.1. Manual/human review remains explicitly unchecked.
 ## Phase 5: European Locales (Non-English)
 
 ### 5.1 German Localization (de-DE)
-- [ ] Task: Create de-DE message bundles
-- [ ] Task: Create German IFG request template
+- [x] Task: Create de-DE message bundles
+- [x] Task: Create German IFG request template
 - [ ] Task: Add German terminology (Informationsfreiheitsgesetz)
 - [ ] Task: Add German holiday calendar
 - [ ] Task: Human review and verification
 - [ ] Task: Conductor - User Manual Verification 'Phase 5.1: German' (Protocol in workflow.md)
 
 ### 5.2 French Localization (fr-FR)
-- [ ] Task: Create fr-FR message bundles
-- [ ] Task: Create French CADA request template
+- [x] Task: Create fr-FR message bundles
+- [x] Task: Create French CADA request template
 - [ ] Task: Add French terminology
 - [ ] Task: Add French holiday calendar
 - [ ] Task: Human review and verification
 - [ ] Task: Conductor - User Manual Verification 'Phase 5.2: French' (Protocol in workflow.md)
 
 ### 5.3 Spanish Localization (es-ES)
-- [ ] Task: Create es-ES message bundles
-- [ ] Task: Create Spanish transparency request template
+- [x] Task: Create es-ES message bundles
+- [x] Task: Create Spanish transparency request template
 - [ ] Task: Add Spanish terminology
 - [ ] Task: Add Spanish holiday calendar
 - [ ] Task: Human review and verification
@@ -127,32 +140,36 @@ passing with Rust 1.99.1. Manual/human review remains explicitly unchecked.
 ## Phase 6: Integration & Testing
 
 ### 6.1 Instance Integration
-- [ ] Task: Connect i18n system to Instance model
+- [x] Task: Connect i18n system to Instance model
 - [ ] Task: Auto-select locale from instance configuration
 - [ ] Task: Test locale switching with instance changes
 - [ ] Task: Conductor - User Manual Verification 'Phase 6.1: Integration' (Protocol in workflow.md)
 
 ### 6.2 End-to-End Testing
-- [ ] Task: Create comprehensive i18n test suite
-- [ ] Task: Test all templates in all locales
+- [x] Task: Create comprehensive i18n test suite
+- [x] Task: Test all templates in all locales
 - [ ] Task: Verify deadline calculations for all jurisdictions
-- [ ] Task: Test fallback locale chains
+- [x] Task: Test fallback locale chains
 - [ ] Task: Conductor - User Manual Verification 'Phase 6.2: E2E Tests' (Protocol in workflow.md)
 
 ### 6.3 Documentation
-- [ ] Task: Document i18n architecture
-- [ ] Task: Create locale addition guide
-- [ ] Task: Document template customization
-- [ ] Task: Create translation guidelines for contributors
+- [x] Task: Document i18n architecture
+- [x] Task: Create locale addition guide
+- [x] Task: Document template customization
+- [x] Task: Create translation guidelines for contributors
 - [ ] Task: Conductor - User Manual Verification 'Phase 6.3: Documentation' (Protocol in workflow.md)
 
 ## Completion Criteria
 - [ ] All phases complete
-- [ ] fluent-rs integrated with 6+ locales
+- [x] fluent-rs integrated with 6+ locales
 - [ ] All templates human-verified
 - [ ] Deadline engine accurate for all jurisdictions
-- [ ] 95%+ test coverage on i18n module
+- [x] 95%+ test coverage on i18n module
 - [ ] Documentation complete
 
 ## Track History
 - **2026-07-08**: Track created for multi-jurisdictional expansion
+
+- **2026-11-14**: Reconciled historical completion; Phases 1 and 2 implementation
+  and automated verification complete. Manual translation/legal review and later
+  acceptance criteria remain open. Canonical deadline arithmetic is reused.

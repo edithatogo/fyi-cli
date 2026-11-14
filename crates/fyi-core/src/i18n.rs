@@ -1,15 +1,22 @@
 //! Deterministic, data-only localization. Rendering never validates a legal request.
 //!
 //! Locale identifiers are normalized separately from user text. Interpolated text
-//! is preserved as supplied: there is no NFC/NFKC normalization, HTML escaping,
-//! recursive evaluation, filesystem access, or registered Fluent callback.
+//! is preserved as supplied: there is no NFC/NFKC normalization, recursive
+//! evaluation, filesystem access, or registered Fluent callback. Raw messages are
+//! plain text; typed letter output can explicitly request HTML text escaping.
 
 use crate::jurisdiction::Instance;
-use chrono::{Datelike, NaiveDate};
+use chrono::{Days, NaiveDate};
+
+mod templates;
 use fluent_bundle::{concurrent::FluentBundle, FluentArgs, FluentResource};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
+pub use templates::{
+    LegalCitation, LetterRegister, OutputFormat, RenderedRequest, RequestTemplateInput,
+    ReviewInformation, TemplateVariant, ValidationStatus,
+};
 use thiserror::Error;
 use unic_langid::LanguageIdentifier;
 
@@ -71,6 +78,12 @@ pub enum I18nError {
     MissingMessage { key: String },
     #[error("message formatting failed (missing variable or invalid expression): {key}")]
     Formatting { key: String },
+    #[error("required template field is empty: {field}")]
+    MissingField { field: &'static str },
+    #[error("template field contains a disallowed control character: {field}")]
+    InvalidField { field: &'static str },
+    #[error("deadline exceeds the representable date or day-count range")]
+    DeadlineRange,
 }
 
 /// Parsed Fluent resource with explicit schema/content versioning.
@@ -346,12 +359,18 @@ impl LocalizationEngine {
 
     /// Legacy unvalidated plain-text scaffold; its last line remains the sign-off.
     pub fn render_request_template(&self, authority_name: &str, law_name: &str) -> String {
-        let variables = BTreeMap::from([("authority".into(), authority_name.into())]);
-        format!(
-            "{}\n\nUnder {} I am requesting information for this {}.\n\n{}",
-            self.embedded_message("salutation", &variables),
-            law_name,
+        let mut variables = BTreeMap::from([
+            ("authority".into(), authority_name.into()),
+            ("law_name".into(), law_name.into()),
+        ]);
+        variables.insert(
+            "request_term".into(),
             self.embedded_message("request_term", &variables),
+        );
+        format!(
+            "{}\n\n{}\n\n{}",
+            self.embedded_message("salutation", &variables),
+            self.embedded_message("legacy_request_body", &variables),
             self.embedded_message("closing", &variables)
         )
     }
@@ -366,66 +385,119 @@ impl LocalizationEngine {
         format!("{} {}", days, self.embedded_message(key, &BTreeMap::new()))
     }
 
-    /// Legacy instance scaffold. Legal references come from the supplied catalog instance.
+    /// Legacy instance scaffold. Catalog references and output shape remain compatible.
     pub fn render_request_template_with_instance(
         &self,
         authority_name: &str,
         instance: &Instance,
     ) -> String {
-        let variables = BTreeMap::from([("authority".into(), authority_name.into())]);
         let law_name = instance.foi_law.law_name.as_str();
         let citation = instance.foi_law.citation.as_deref().unwrap_or(law_name);
-        let appeal = instance
-            .foi_law
-            .appeal_body
-            .as_deref()
-            .map(|body| {
-                format!(
-                    "\n\nIf this request is refused, I may seek review by {}.",
-                    body
-                )
-            })
-            .unwrap_or_default();
-        format!(
-            "{}\n\nUnder {} ({}) I am making this {}.{}",
+        let mut variables = BTreeMap::from([
+            ("authority".into(), authority_name.into()),
+            (
+                "legal_citation".into(),
+                format!("{} ({})", law_name, citation),
+            ),
+            ("request_term".into(), instance.foi_law.request_term.clone()),
+        ]);
+        let mut sections = vec![
             self.embedded_message("salutation", &variables),
-            law_name,
-            citation,
-            instance.foi_law.request_term,
-            appeal
-        )
-    }
-
-    pub fn deadline_for_instance(&self, start: NaiveDate, instance: &Instance) -> NaiveDate {
-        let days = instance
-            .foi_law
-            .statutory_deadline_days
-            .unwrap_or(20)
-            .max(0) as usize;
-        self.add_working_days(start, days)
-    }
-
-    pub fn add_working_days(&self, start: NaiveDate, days: usize) -> NaiveDate {
-        let mut current = start;
-        let mut remaining = days;
-        while remaining > 0 {
-            current = current.succ_opt().unwrap_or(current);
-            if is_weekday(current) {
-                remaining -= 1;
-            }
+            self.embedded_message("legacy_instance_body", &variables),
+        ];
+        if let Some(body) = instance.foi_law.appeal_body.as_deref() {
+            variables.insert("review_authority".into(), body.into());
+            sections.push(self.embedded_message("legacy_review", &variables));
         }
-        current
+        sections.join("\n\n")
+    }
+
+    /// Compatibility adapter. Panics for an unrepresentable result; prefer the fallible API.
+    /// This is a weekday-only catalog estimate, not a legally verified deadline.
+    pub fn deadline_for_instance(&self, start: NaiveDate, instance: &Instance) -> NaiveDate {
+        self.try_deadline_for_instance(start, instance)
+            .expect("deadline is outside the supported date range")
+    }
+
+    /// Apply existing catalog policy and delegate arithmetic to the canonical deadline module.
+    pub fn try_deadline_for_instance(
+        &self,
+        start: NaiveDate,
+        instance: &Instance,
+    ) -> Result<NaiveDate, I18nError> {
+        let input = crate::deadlines::DeadlineInput::from_instance(start, instance);
+        check_deadline_capacity(&input)?;
+        Ok(crate::deadlines::calculate_deadline_for_instance(start, instance).due_date)
+    }
+
+    /// Compatibility weekday adapter. Panics for unrepresentable counts/results.
+    pub fn add_working_days(&self, start: NaiveDate, days: usize) -> NaiveDate {
+        self.try_add_working_days(start, days)
+            .expect("deadline is outside the supported date range")
+    }
+
+    /// Check representation bounds, then use the existing weekday arithmetic.
+    pub fn try_add_working_days(
+        &self,
+        start: NaiveDate,
+        days: usize,
+    ) -> Result<NaiveDate, I18nError> {
+        let days = u32::try_from(days).map_err(|_| I18nError::DeadlineRange)?;
+        let input = crate::deadlines::DeadlineInput::new(start, days);
+        check_deadline_capacity(&input)?;
+        Ok(crate::deadlines::add_working_days(
+            start,
+            days,
+            input.working_day_rule,
+        ))
     }
 }
 
-fn is_weekday(day: NaiveDate) -> bool {
-    matches!(day.weekday().num_days_from_monday(), 0..=4)
+// Representation guard only, not a calendar engine. Count capacity until MAX in
+// full weeks and <=6 tail dates, using the canonical weekday predicate. This
+// prevents the legacy engine from repeatedly operating on its terminal date.
+fn check_deadline_capacity(input: &crate::deadlines::DeadlineInput) -> Result<(), I18nError> {
+    use crate::deadlines::{is_weekday, WorkingDayRule};
+    let available = (NaiveDate::MAX - input.start_date).num_days() as u64;
+    let capacity = match input.working_day_rule {
+        WorkingDayRule::CalendarDays => available,
+        WorkingDayRule::WeekdaysOnly => {
+            let mut capacity = available / 7 * 5;
+            for offset in 1..=available % 7 {
+                let day = input
+                    .start_date
+                    .checked_add_days(Days::new(offset))
+                    .ok_or(I18nError::DeadlineRange)?;
+                if is_weekday(day) {
+                    capacity += 1;
+                }
+            }
+            capacity
+        }
+    };
+    if u64::from(input.statutory_deadline_days) > capacity {
+        return Err(I18nError::DeadlineRange);
+    }
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::jurisdiction::InstanceRegistry;
+
+    #[test]
+    fn capacity_guard_preserves_canonical_calendar_day_boundaries() {
+        use crate::deadlines::{DeadlineInput, WorkingDayRule};
+        let start = NaiveDate::MAX.pred_opt().unwrap();
+        let valid = DeadlineInput::new(start, 1).with_rule(WorkingDayRule::CalendarDays);
+        assert!(check_deadline_capacity(&valid).is_ok());
+        let invalid = DeadlineInput::new(start, 2).with_rule(WorkingDayRule::CalendarDays);
+        assert_eq!(
+            check_deadline_capacity(&invalid),
+            Err(I18nError::DeadlineRange)
+        );
+    }
 
     #[test]
     fn english_locale_uses_english_terms() {
