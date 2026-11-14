@@ -1,0 +1,289 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:fyi:mcp:exchanges:2",
+  "title": "FYI MCP synthetic success and error exchanges v2",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "protocol_version",
+    "cases"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 2
+    },
+    "protocol_version": {
+      "const": "2025-06-18"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "integer"
+        }
+      ]
+    },
+    "textContent": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "type",
+          "text"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "text"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "successResponse": {
+      "type": "object",
+      "required": [
+        "jsonrpc",
+        "id",
+        "result"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0"
+        },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "result": {
+          "type": "object",
+          "required": [
+            "structuredContent",
+            "content"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "structuredContent": {
+              "type": "object"
+            },
+            "content": {
+              "$ref": "#/$defs/textContent"
+            },
+            "isError": {
+              "const": false
+            }
+          }
+        }
+      }
+    },
+    "toolErrorResponse": {
+      "type": "object",
+      "required": [
+        "jsonrpc",
+        "id",
+        "result"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0"
+        },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "result": {
+          "type": "object",
+          "required": [
+            "isError",
+            "content"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "isError": {
+              "const": true
+            },
+            "content": {
+              "$ref": "#/$defs/textContent"
+            }
+          }
+        }
+      }
+    },
+    "protocolErrorResponse": {
+      "type": "object",
+      "required": [
+        "jsonrpc",
+        "id",
+        "error"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "error": {
+          "type": "object",
+          "required": [
+            "code",
+            "message"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "integer",
+              "enum": [
+                -32700,
+                -32600,
+                -32601,
+                -32602
+              ]
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "required": [
+        "name",
+        "kind",
+        "verification",
+        "response"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,95}$"
+        },
+        "kind": {
+          "enum": [
+            "tool_success",
+            "tool_error",
+            "protocol_error"
+          ]
+        },
+        "verification": {
+          "enum": [
+            "handler",
+            "synthetic_output"
+          ]
+        },
+        "request": {
+          "type": "object"
+        },
+        "request_text": {
+          "type": "string"
+        },
+        "response": {
+          "type": "object"
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "request"
+          ],
+          "not": {
+            "required": [
+              "request_text"
+            ]
+          }
+        },
+        {
+          "required": [
+            "request_text"
+          ],
+          "not": {
+            "required": [
+              "request"
+            ]
+          }
+        }
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "tool_success"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "response": {
+                "$ref": "#/$defs/successResponse"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "tool_error"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "response": {
+                "$ref": "#/$defs/toolErrorResponse"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "protocol_error"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "response": {
+                "$ref": "#/$defs/protocolErrorResponse"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

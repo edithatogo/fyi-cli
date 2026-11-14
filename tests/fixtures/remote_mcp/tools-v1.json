@@ -1,0 +1,2603 @@
+{
+  "schema_version": 1,
+  "tools": [
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "List locally tracked FYI/Alaveteli official information requests, ordered newest first. Use for dashboards, triage, or finding an ID before retrieve_request; do not use when you already know the ID and need correspondence (use retrieve_request) or only need health metrics (use check_status). Read-only and idempotent; does not contact remote authorities.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "description": "Optional filters for the request list.",
+        "properties": {
+          "limit": {
+            "default": 100,
+            "description": "Maximum number of request records to return (1-500). Defaults to 100 when omitted; raise only when the agent needs a broader scan.",
+            "maximum": 500,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "name": "list_requests",
+      "outputSchema": {
+        "additionalProperties": false,
+        "description": "A request list payload.",
+        "properties": {
+          "requests": {
+            "description": "Requests ordered by most recently updated.",
+            "items": {
+              "additionalProperties": false,
+              "description": "One tracked FYI/Alaveteli request.",
+              "properties": {
+                "body": {
+                  "description": "Request body or draft correspondence text.",
+                  "type": "string"
+                },
+                "created_at": {
+                  "description": "ISO-8601 creation timestamp when recorded.",
+                  "format": "date-time",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "id": {
+                  "description": "Stable local request identifier.",
+                  "type": "integer"
+                },
+                "status": {
+                  "description": "Current Alaveteli/FYI request lifecycle status.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "tags": {
+                  "description": "Optional local tags attached to the request.",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                },
+                "title": {
+                  "description": "Public title of the official information request.",
+                  "type": "string"
+                },
+                "updated_at": {
+                  "description": "ISO-8601 update timestamp used for ordering and sync.",
+                  "format": "date-time",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "url": {
+                  "description": "Canonical public request URL when available.",
+                  "format": "uri",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "user_name": {
+                  "description": "Requester display name when known.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "body"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "requests"
+        ],
+        "type": "object"
+      },
+      "title": "List Requests"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Retrieve one locally tracked FYI/Alaveteli request and its stored correspondence by request ID. Use after list_requests when you need full text/history for a single request; do not use for bulk listing (list_requests) or database health (check_status). Read-only and idempotent; fails if the ID is missing; never contacts remote sites.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "description": "Request identifier to load.",
+        "properties": {
+          "id": {
+            "description": "Stable local request ID to load (must already exist; typically from list_requests).",
+            "maximum": 9223372036854775807,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "name": "retrieve_request",
+      "outputSchema": {
+        "additionalProperties": false,
+        "description": "A request payload with correspondence.",
+        "properties": {
+          "correspondence": {
+            "description": "Stored correspondence items linked to the request, in database order.",
+            "items": {
+              "additionalProperties": false,
+              "description": "A correspondence item associated with an FYI request.",
+              "properties": {
+                "attachments": {
+                  "description": "Optional attachment URLs or identifiers linked to the correspondence.",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                },
+                "body": {
+                  "description": "Message body or extracted correspondence text.",
+                  "type": "string"
+                },
+                "direction": {
+                  "description": "Whether the correspondence was sent by the requester or received as an authority response.",
+                  "enum": [
+                    "request",
+                    "response"
+                  ],
+                  "type": "string"
+                },
+                "sent_at": {
+                  "description": "ISO-8601 sent timestamp when captured.",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "state": {
+                  "description": "Optional Alaveteli correspondence state when captured.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "direction",
+                "body",
+                "sent_at"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "request": {
+            "additionalProperties": false,
+            "description": "The requested FYI/Alaveteli request record.",
+            "properties": {
+              "body": {
+                "description": "Request body or draft correspondence text.",
+                "type": "string"
+              },
+              "created_at": {
+                "description": "ISO-8601 creation timestamp when recorded.",
+                "format": "date-time",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "id": {
+                "description": "Stable local request identifier.",
+                "type": "integer"
+              },
+              "status": {
+                "description": "Current Alaveteli/FYI request lifecycle status.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "tags": {
+                "description": "Optional local tags attached to the request.",
+                "items": {
+                  "type": "string"
+                },
+                "type": [
+                  "array",
+                  "null"
+                ]
+              },
+              "title": {
+                "description": "Public title of the official information request.",
+                "type": "string"
+              },
+              "updated_at": {
+                "description": "ISO-8601 update timestamp used for ordering and sync.",
+                "format": "date-time",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "url": {
+                "description": "Canonical public request URL when available.",
+                "format": "uri",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "user_name": {
+                "description": "Requester display name when known.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "body"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "request",
+          "correspondence"
+        ],
+        "type": "object"
+      },
+      "title": "Retrieve Request"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Create a new local FYI/Alaveteli request row (draft or tracked) in SQLite. Use only when starting a new request; use update_request to change an existing ID and delete_request to remove one. Mutating and not idempotent: each call allocates a new ID. Does not submit to a remote authority, send email, or require network access; title and body are required.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "description": "Fields for the request to create.",
+        "properties": {
+          "body": {
+            "description": "Full request body or draft text to store locally (required, non-empty).",
+            "minLength": 1,
+            "type": "string"
+          },
+          "status": {
+            "description": "Optional initial local lifecycle status. Prefer draft until the request is ready; does not trigger remote submission.",
+            "enum": [
+              "draft",
+              "submitted",
+              "waiting_response",
+              "successful",
+              "partially_successful",
+              "refused",
+              "overdue",
+              "clean",
+              "dirty",
+              "pending",
+              "conflict"
+            ],
+            "type": "string"
+          },
+          "tags": {
+            "description": "Optional local classification tags for filtering/reporting; replace-not-merge semantics only apply on update_request.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": {
+            "description": "Short public-facing request title (required, non-empty).",
+            "minLength": 1,
+            "type": "string"
+          },
+          "url": {
+            "description": "Optional absolute FYI/Alaveteli URL when the request already exists online; omit for pure local drafts.",
+            "format": "uri",
+            "type": "string"
+          },
+          "user_name": {
+            "description": "Optional requester display name for local tracking only.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "body"
+        ],
+        "type": "object"
+      },
+      "name": "create_request",
+      "outputSchema": {
+        "additionalProperties": false,
+        "description": "The created request.",
+        "properties": {
+          "request": {
+            "additionalProperties": false,
+            "description": "The newly created local request record.",
+            "properties": {
+              "body": {
+                "description": "Request body or draft correspondence text.",
+                "type": "string"
+              },
+              "created_at": {
+                "description": "ISO-8601 creation timestamp when recorded.",
+                "format": "date-time",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "id": {
+                "description": "Stable local request identifier.",
+                "type": "integer"
+              },
+              "status": {
+                "description": "Current Alaveteli/FYI request lifecycle status.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "tags": {
+                "description": "Optional local tags attached to the request.",
+                "items": {
+                  "type": "string"
+                },
+                "type": [
+                  "array",
+                  "null"
+                ]
+              },
+              "title": {
+                "description": "Public title of the official information request.",
+                "type": "string"
+              },
+              "updated_at": {
+                "description": "ISO-8601 update timestamp used for ordering and sync.",
+                "format": "date-time",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "url": {
+                "description": "Canonical public request URL when available.",
+                "format": "uri",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "user_name": {
+                "description": "Requester display name when known.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "body"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "request"
+        ],
+        "type": "object"
+      },
+      "title": "Create Request"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Replace editable fields on an existing local FYI/Alaveteli request by ID and mark the record dirty for offline sync. Use when the request already exists and fields changed; use create_request for a new ID and delete_request to remove. Requires id, title, and body (full replacement for those fields, not a sparse patch). Mutating but non-destructive; safe to re-run with the same values; does not call remote APIs.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "description": "Fields for the request update.",
+        "properties": {
+          "body": {
+            "description": "Replacement request body or draft text (required; full replace).",
+            "minLength": 1,
+            "type": "string"
+          },
+          "id": {
+            "description": "Existing local request ID to update (must already exist).",
+            "maximum": 9223372036854775807,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "status": {
+            "description": "Optional replacement local lifecycle status; omission clears the stored value. Changing status does not submit or withdraw a remote request.",
+            "enum": [
+              "draft",
+              "submitted",
+              "waiting_response",
+              "successful",
+              "partially_successful",
+              "refused",
+              "overdue",
+              "clean",
+              "dirty",
+              "pending",
+              "conflict"
+            ],
+            "type": "string"
+          },
+          "tags": {
+            "description": "Optional full replacement tag list; omission clears the stored value.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": {
+            "description": "Replacement request title (required; full replace, not merge).",
+            "minLength": 1,
+            "type": "string"
+          },
+          "url": {
+            "description": "Optional replacement absolute FYI/Alaveteli URL; omission clears the stored value.",
+            "format": "uri",
+            "type": "string"
+          },
+          "user_name": {
+            "description": "Optional replacement requester display name; omission clears the stored value.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "body"
+        ],
+        "type": "object"
+      },
+      "name": "update_request",
+      "outputSchema": {
+        "additionalProperties": false,
+        "description": "The updated request.",
+        "properties": {
+          "request": {
+            "additionalProperties": false,
+            "description": "The updated local request record.",
+            "properties": {
+              "body": {
+                "description": "Request body or draft correspondence text.",
+                "type": "string"
+              },
+              "created_at": {
+                "description": "ISO-8601 creation timestamp when recorded.",
+                "format": "date-time",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "id": {
+                "description": "Stable local request identifier.",
+                "type": "integer"
+              },
+              "status": {
+                "description": "Current Alaveteli/FYI request lifecycle status.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "tags": {
+                "description": "Optional local tags attached to the request.",
+                "items": {
+                  "type": "string"
+                },
+                "type": [
+                  "array",
+                  "null"
+                ]
+              },
+              "title": {
+                "description": "Public title of the official information request.",
+                "type": "string"
+              },
+              "updated_at": {
+                "description": "ISO-8601 update timestamp used for ordering and sync.",
+                "format": "date-time",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "url": {
+                "description": "Canonical public request URL when available.",
+                "format": "uri",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "user_name": {
+                "description": "Requester display name when known.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "body"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "request"
+        ],
+        "type": "object"
+      },
+      "title": "Update Request"
+    },
+    {
+      "annotations": {
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Permanently delete a local request and all of its stored correspondence from SQLite. Use only after the agent confirms the ID should be discarded; prefer update_request for status/text edits and list_requests/retrieve_request for inspection. Destructive and irreversible in this database; does not delete anything on remote FYI/Alaveteli sites.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "description": "Request identifier to delete.",
+        "properties": {
+          "id": {
+            "description": "Stable local request ID to delete permanently.",
+            "maximum": 9223372036854775807,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "name": "delete_request",
+      "outputSchema": {
+        "additionalProperties": false,
+        "description": "Deletion result.",
+        "properties": {
+          "deleted": {
+            "description": "True when the local delete operation completed.",
+            "type": "boolean"
+          },
+          "request_id": {
+            "description": "Request ID that was targeted for deletion.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "deleted",
+          "request_id"
+        ],
+        "type": "object"
+      },
+      "title": "Delete Request"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "List imported public authority records (government/public bodies) used to route or classify FOI/OIA requests. Use to browse existing slugs/names before drafting; use import_authorities to add or upsert records, and list_requests for request data. Read-only and idempotent; returns the full local authority table (no pagination).",
+      "inputSchema": {
+        "additionalProperties": false,
+        "description": "No arguments are required.",
+        "properties": {},
+        "type": "object"
+      },
+      "name": "list_authorities",
+      "outputSchema": {
+        "additionalProperties": false,
+        "description": "A list of authorities.",
+        "properties": {
+          "authorities": {
+            "description": "Imported public authority records.",
+            "items": {
+              "additionalProperties": false,
+              "description": "Public authority record used to route or classify requests.",
+              "properties": {
+                "name": {
+                  "description": "Human-readable public authority name.",
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "slug": {
+                  "description": "Stable authority slug used as an import key.",
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "url": {
+                  "description": "Optional public authority URL.",
+                  "format": "uri",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "slug",
+                "name"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "authorities"
+        ],
+        "type": "object"
+      },
+      "title": "List Authorities"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Upsert local public authority reference records by slug for request routing and discovery. Use after list_authorities when seeding or refreshing the catalog; do not use for FOI request CRUD (create_request/update_request). Mutating but non-destructive and idempotent: same slug re-import updates name/url without creating duplicates; does not contact remote authority directories.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "description": "Authorities to import or update.",
+        "properties": {
+          "authorities": {
+            "description": "Authority records to upsert; slug is the primary key, name is required, url is optional. All names are checked before writes; a later database failure can leave earlier rows imported.",
+            "items": {
+              "additionalProperties": false,
+              "description": "Public authority record used to route or classify requests.",
+              "properties": {
+                "name": {
+                  "description": "Human-readable public authority name.",
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "slug": {
+                  "description": "Stable authority slug used as an import key.",
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "url": {
+                  "description": "Optional public authority URL.",
+                  "format": "uri",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "slug",
+                "name"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "authorities"
+        ],
+        "type": "object"
+      },
+      "name": "import_authorities",
+      "outputSchema": {
+        "additionalProperties": false,
+        "description": "Import summary.",
+        "properties": {
+          "imported": {
+            "description": "Number of authority records accepted for import or update.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "imported"
+        ],
+        "type": "object"
+      },
+      "title": "Import Authorities"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Summarize offline synchronization health: clean/dirty/conflict request counts, outgoing queue depth, latest sync time, and offline degradation indicators. Use for an operations overview; prefer sync_status for one request, sync_conflicts to list conflicted rows, and check_status for database connectivity/record totals. Read-only and idempotent; does not start a sync job.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "description": "No arguments are required.",
+        "properties": {},
+        "type": "object"
+      },
+      "name": "sync_monitor",
+      "outputSchema": {
+        "additionalProperties": false,
+        "description": "Global synchronization monitor data.",
+        "properties": {
+          "offline_degradation": {
+            "additionalProperties": false,
+            "description": "Operational indicators showing queued local changes and dirty records.",
+            "properties": {
+              "dirty_records": {
+                "description": "Requests with unsynced local changes.",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "queued_changes": {
+                "description": "Pending plus failed outgoing queue entries.",
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "queued_changes",
+              "dirty_records"
+            ],
+            "type": "object"
+          },
+          "queue": {
+            "additionalProperties": false,
+            "description": "Outgoing offline queue counts by pending, submitted, and failed status.",
+            "properties": {
+              "failed": {
+                "description": "Outgoing queue entries that failed submission.",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "pending": {
+                "description": "Outgoing queue entries waiting to be submitted.",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "submitted": {
+                "description": "Outgoing queue entries already submitted.",
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "pending",
+              "submitted",
+              "failed"
+            ],
+            "type": "object"
+          },
+          "sync": {
+            "additionalProperties": false,
+            "description": "Aggregate request sync counts and latest sync timestamp.",
+            "properties": {
+              "clean": {
+                "description": "Requests known to be cleanly synchronized.",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "conflict": {
+                "description": "Requests with unresolved sync conflicts.",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "dirty": {
+                "description": "Requests with unsynced local changes.",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "latest_sync": {
+                "description": "Most recent successful synchronization timestamp.",
+                "format": "date-time",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "pending": {
+                "description": "Requests pending synchronization.",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "total": {
+                "description": "Total number of requests tracked by sync metadata.",
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "total",
+              "clean",
+              "dirty",
+              "pending",
+              "conflict",
+              "latest_sync"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "sync",
+          "queue",
+          "offline_degradation"
+        ],
+        "type": "object"
+      },
+      "title": "Sync Monitor"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "List locally tracked requests whose offline sync metadata is marked conflict. Use after sync_monitor shows conflict>0 to obtain IDs for review; use sync_resolve_conflict to clear a conflict, list_requests for all requests regardless of sync state. Read-only and idempotent; does not resolve conflicts or start network sync.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "description": "Optional filters for the conflict list.",
+        "properties": {
+          "limit": {
+            "default": 100,
+            "description": "Maximum number of conflicted request records to return (1-500). Defaults to 100 when omitted.",
+            "maximum": 500,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "name": "sync_conflicts",
+      "outputSchema": {
+        "additionalProperties": false,
+        "description": "A conflict list payload.",
+        "properties": {
+          "conflicts": {
+            "description": "Requests with sync_status set to conflict.",
+            "items": {
+              "additionalProperties": false,
+              "description": "A request currently marked as a sync conflict.",
+              "properties": {
+                "body": {
+                  "description": "Request body or draft correspondence text.",
+                  "type": "string"
+                },
+                "created_at": {
+                  "description": "ISO-8601 creation timestamp when recorded.",
+                  "format": "date-time",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "id": {
+                  "description": "Stable local request identifier.",
+                  "type": "integer"
+                },
+                "status": {
+                  "description": "Current Alaveteli/FYI request lifecycle status.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "tags": {
+                  "description": "Optional local tags attached to the request.",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                },
+                "title": {
+                  "description": "Public title of the official information request.",
+                  "type": "string"
+                },
+                "updated_at": {
+                  "description": "ISO-8601 update timestamp used for ordering and sync.",
+                  "format": "date-time",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "url": {
+                  "description": "Canonical public request URL when available.",
+                  "format": "uri",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "user_name": {
+                  "description": "Requester display name when known.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "body"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "conflicts"
+        ],
+        "type": "object"
+      },
+      "title": "Sync Conflicts"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Resolve a local offline-sync conflict by updating only the request's sync metadata: mark_clean=true after the agent has reconciled local vs remote (status becomes clean); mark_clean=false keeps the row dirty for a later push. Prerequisite: the request should already appear in sync_conflicts. Side effects are local SQLite metadata only—no automatic merge of body text, no remote API calls, and no deletion of the request. Prefer sync_conflicts to list candidates and sync_status to inspect timestamps; do not use for ordinary field edits (update_request). Mutating, non-destructive, and idempotent for the same mark_clean value.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "description": "Conflict resolution parameters.",
+        "properties": {
+          "mark_clean": {
+            "default": false,
+            "description": "true: mark reconciled/clean after manual review; false (default): leave dirty so a later offline push is expected. Does not rewrite title/body.",
+            "type": "boolean"
+          },
+          "request_id": {
+            "description": "Local request ID currently in conflict (from sync_conflicts).",
+            "maximum": 9223372036854775807,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "request_id"
+        ],
+        "type": "object"
+      },
+      "name": "sync_resolve_conflict",
+      "outputSchema": {
+        "additionalProperties": false,
+        "description": "Conflict resolution result.",
+        "properties": {
+          "request_id": {
+            "description": "Request ID whose conflict state was updated.",
+            "type": "integer"
+          },
+          "resolved": {
+            "description": "True when the conflict metadata was written successfully.",
+            "type": "boolean"
+          },
+          "sync_status": {
+            "description": "Resulting sync status string (typically clean or dirty).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "resolved",
+          "sync_status"
+        ],
+        "type": "object"
+      },
+      "title": "Resolve Sync Conflict"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Read offline-sync metadata either as aggregate counts (omit request_id) or for one request (provide request_id). Use when you need clean/dirty/pending/conflict numbers or per-request last_synced timestamps; use sync_monitor for queue depth + offline degradation, sync_conflicts for conflicted rows only, and check_status for database health. Read-only and idempotent; does not mutate state or trigger network sync.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "description": "Optional request identifier for per-request sync metadata.",
+        "properties": {
+          "request_id": {
+            "description": "Optional local request ID. Omit for aggregate counts; set to load that request's sync_status, last_synced_at, and conflict_version.",
+            "maximum": 9223372036854775807,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "name": "sync_status",
+      "outputSchema": {
+        "description": "Synchronization metadata. Aggregate counts are returned when request_id is omitted; per-request metadata is returned when request_id is provided.",
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "description": "Aggregate offline synchronization counts.",
+            "properties": {
+              "clean": {
+                "description": "Number of requests with clean sync metadata.",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "conflict": {
+                "description": "Number of requests currently in conflict.",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "dirty": {
+                "description": "Number of requests with unsynced local changes.",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "pending": {
+                "description": "Number of requests queued or pending sync.",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "total": {
+                "description": "Total number of requests represented in aggregate sync status.",
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "total",
+              "clean",
+              "dirty",
+              "pending",
+              "conflict"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "Per-request offline synchronization metadata.",
+            "properties": {
+              "conflict_version": {
+                "description": "Conflict version counter when a sync conflict has been detected.",
+                "minimum": 0,
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "last_synced_at": {
+                "description": "Last successful sync timestamp for this request.",
+                "format": "date-time",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "local_updated_at": {
+                "description": "Last local update timestamp known for this request.",
+                "format": "date-time",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "remote_updated_at": {
+                "description": "Last remote update timestamp known for this request.",
+                "format": "date-time",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "request_id": {
+                "description": "Request ID for the per-request sync lookup.",
+                "minimum": 1,
+                "type": "integer"
+              },
+              "sync_status": {
+                "description": "Per-request sync status, or null when that request has no sync metadata.",
+                "enum": [
+                  "clean",
+                  "dirty",
+                  "pending",
+                  "conflict",
+                  null
+                ],
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "request_id",
+              "sync_status"
+            ],
+            "type": "object"
+          }
+        ],
+        "type": "object"
+      },
+      "title": "Sync Status"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Check FYI MCP SQLite readiness and return record-count metrics for requests, correspondence, and optional sync totals. Use as a first health probe or liveness check; prefer sync_monitor for queue/offline depth and list_requests for request content. Read-only, idempotent, and safe to call repeatedly; does not write data or contact remote services.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "description": "No arguments are required.",
+        "properties": {},
+        "type": "object"
+      },
+      "name": "check_status",
+      "outputSchema": {
+        "additionalProperties": false,
+        "description": "Database health summary.",
+        "properties": {
+          "database": {
+            "description": "Database connection state used by the MCP server.",
+            "type": "string"
+          },
+          "metrics": {
+            "additionalProperties": false,
+            "description": "Record-count metrics for core FYI tables.",
+            "properties": {
+              "sync": {
+                "additionalProperties": false,
+                "description": "Aggregate sync counts when sync metadata can be read.",
+                "properties": {
+                  "clean": {
+                    "description": "Number of clean synchronized requests.",
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "conflict": {
+                    "description": "Number of requests in sync conflict.",
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "dirty": {
+                    "description": "Number of requests with unsynced local changes.",
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "pending": {
+                    "description": "Number of requests pending sync.",
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "total": {
+                    "description": "Total number of requests represented in sync metadata.",
+                    "minimum": 0,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "total",
+                  "clean",
+                  "dirty",
+                  "pending",
+                  "conflict"
+                ],
+                "type": [
+                  "object",
+                  "null"
+                ]
+              },
+              "total_correspondence": {
+                "description": "Number of correspondence records in the database.",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "total_requests": {
+                "description": "Number of request records in the database.",
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "total_requests",
+              "total_correspondence",
+              "sync"
+            ],
+            "type": "object"
+          },
+          "status": {
+            "description": "Overall service health, reported as healthy when database queries succeed.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "database",
+          "metrics"
+        ],
+        "type": "object"
+      },
+      "title": "Check Status"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Compute a statutory FOI/OIA deadline from a start date and day count using the bleeding-edge fyi-core deadline engine. Use for local working-day or calendar-day deadline math; do not use for listing requests (list_requests) or sync health (sync_monitor). Read-only and idempotent; pure calculation with no database or network access. Returns a StatutoryDeadline JSON object (start_date, due_date, statutory_deadline_days, working_day_rule).",
+      "inputSchema": {
+        "additionalProperties": false,
+        "description": "Deadline calculation parameters.",
+        "properties": {
+          "calendar": {
+            "default": false,
+            "description": "When true, count calendar days including weekends; when false/omitted, count weekdays only (Mon–Fri).",
+            "type": "boolean"
+          },
+          "days": {
+            "description": "Number of statutory days to count after start_date (0-36500, working days by default).",
+            "maximum": 36500,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "start_date": {
+            "description": "Inclusive statutory period start date in YYYY-MM-DD (typically submission/receipt day).",
+            "maxLength": 10,
+            "minLength": 10,
+            "type": "string"
+          }
+        },
+        "required": [
+          "start_date",
+          "days"
+        ],
+        "type": "object"
+      },
+      "name": "compute_deadline",
+      "outputSchema": {
+        "additionalProperties": false,
+        "description": "Computed StatutoryDeadline.",
+        "properties": {
+          "due_date": {
+            "description": "Computed due date (YYYY-MM-DD).",
+            "type": "string"
+          },
+          "instance_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "start_date": {
+            "description": "Start date echoed from input (YYYY-MM-DD).",
+            "type": "string"
+          },
+          "statutory_deadline_days": {
+            "description": "Day count used in the calculation.",
+            "type": "integer"
+          },
+          "working_day_rule": {
+            "description": "Rule applied: weekdays_only or calendar_days.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start_date",
+          "due_date",
+          "statutory_deadline_days",
+          "working_day_rule"
+        ],
+        "type": "object"
+      },
+      "title": "Compute Deadline"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Search a built-in sample FOI document corpus with the bleeding-edge in-memory inverted index (demo). Use for experimental full-text search over sample titles/bodies; prefer list_requests/retrieve_request for real local SQLite requests. Read-only and idempotent; does not query the database or network. Returns ranked hits with id, score, and title.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "description": "Search parameters.",
+        "properties": {
+          "limit": {
+            "default": 10,
+            "description": "Maximum number of ranked hits to return (1-50). Defaults to 10.",
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "query": {
+            "description": "Free-text search query tokenized into alphanumeric terms.",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "name": "search_corpus",
+      "outputSchema": {
+        "additionalProperties": false,
+        "description": "Ranked search results over the demo corpus.",
+        "properties": {
+          "document_count": {
+            "description": "Number of documents in the demo corpus.",
+            "type": "integer"
+          },
+          "hits": {
+            "description": "Ranked search hits (id, score, title).",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "score": {
+                  "type": "number"
+                },
+                "title": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "score",
+                "title"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "query": {
+            "description": "Echo of the search query.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query",
+          "document_count",
+          "hits"
+        ],
+        "type": "object"
+      },
+      "title": "Search Corpus"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Evaluate an operator-published endorsed-client capability document locally. Read-only, fail-closed, and never enables a route or contacts a remote service.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "bulk_export": {
+            "default": false,
+            "description": "Whether to request the bounded bulk-export capability; defaults to false and requires its explicit endorsed scope.",
+            "type": "boolean"
+          },
+          "capabilities": {
+            "description": "Operator-published capability document to evaluate; it must contain the endorsed client route configuration. Scope and client lists are bounded before authorization.",
+            "properties": {
+              "client_allowlist": {
+                "items": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "maxItems": 128,
+                "minItems": 1,
+                "type": "array"
+              },
+              "scopes": {
+                "items": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "maxItems": 128,
+                "minItems": 1,
+                "type": "array"
+              }
+            },
+            "type": "object"
+          },
+          "client_id": {
+            "description": "Stable client identifier to authorize against the capability document's endorsed client allow-list.",
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "now_epoch": {
+            "description": "Current Unix time in seconds used to reject expired capability documents.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "scopes": {
+            "description": "Requested non-empty permission scopes; every requested scope must be endorsed by the route.",
+            "items": {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 128,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "capabilities",
+          "client_id",
+          "scopes",
+          "now_epoch"
+        ],
+        "type": "object"
+      },
+      "name": "endorsed_route_status",
+      "outputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "bulk_export": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "instance_id": {
+            "type": "string"
+          },
+          "quotas": {
+            "type": "object"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "authorized",
+              "denied"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "title": "Endorsed Route Status"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "description": "Read-only remote health probe",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "instance_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "instance_id"
+        ],
+        "type": "object"
+      },
+      "name": "remote_health",
+      "outputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "api_reachable": {
+            "type": "boolean"
+          },
+          "instance_id": {
+            "type": "string"
+          },
+          "network_reachable": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "instance_id",
+          "network_reachable",
+          "api_reachable"
+        ],
+        "type": "object"
+      },
+      "title": "Read-only remote health probe"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "description": "Read-only remote API version",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "instance_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "instance_id"
+        ],
+        "type": "object"
+      },
+      "name": "remote_version",
+      "outputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "instance_id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "instance_id",
+          "version"
+        ],
+        "type": "object"
+      },
+      "title": "Read-only remote API version"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "description": "Bounded remote request search",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "instance_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "limit": {
+            "default": 10,
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "query": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "instance_id",
+          "query"
+        ],
+        "type": "object"
+      },
+      "name": "remote_search_requests",
+      "outputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "instance_id": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "requests": {
+            "items": {
+              "additionalProperties": false,
+              "description": "A remote request returned by the source adapter.",
+              "properties": {
+                "body": {
+                  "description": "Request body or draft correspondence text.",
+                  "type": "string"
+                },
+                "created_at": {
+                  "description": "ISO-8601 creation timestamp when recorded.",
+                  "format": "date-time",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "id": {
+                  "description": "Stable local request identifier.",
+                  "type": "integer"
+                },
+                "status": {
+                  "description": "Current Alaveteli/FYI request lifecycle status.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "tags": {
+                  "description": "Optional local tags attached to the request.",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                },
+                "title": {
+                  "description": "Public title of the official information request.",
+                  "type": "string"
+                },
+                "updated_at": {
+                  "description": "ISO-8601 update timestamp used for ordering and sync.",
+                  "format": "date-time",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "url": {
+                  "description": "Canonical public request URL when available.",
+                  "format": "uri",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "user_name": {
+                  "description": "Requester display name when known.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "body"
+              ],
+              "type": "object"
+            },
+            "maxItems": 50,
+            "type": "array"
+          }
+        },
+        "required": [
+          "instance_id",
+          "query",
+          "requests"
+        ],
+        "type": "object"
+      },
+      "title": "Bounded remote request search"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "description": "Read-only remote request retrieval",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "instance_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "request_id": {
+            "maximum": 9223372036854775807,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "instance_id",
+          "request_id"
+        ],
+        "type": "object"
+      },
+      "name": "remote_get_request",
+      "outputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "instance_id": {
+            "type": "string"
+          },
+          "request": {
+            "additionalProperties": false,
+            "description": "The remote request returned by the source adapter.",
+            "properties": {
+              "body": {
+                "description": "Request body or draft correspondence text.",
+                "type": "string"
+              },
+              "created_at": {
+                "description": "ISO-8601 creation timestamp when recorded.",
+                "format": "date-time",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "id": {
+                "description": "Stable local request identifier.",
+                "type": "integer"
+              },
+              "status": {
+                "description": "Current Alaveteli/FYI request lifecycle status.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "tags": {
+                "description": "Optional local tags attached to the request.",
+                "items": {
+                  "type": "string"
+                },
+                "type": [
+                  "array",
+                  "null"
+                ]
+              },
+              "title": {
+                "description": "Public title of the official information request.",
+                "type": "string"
+              },
+              "updated_at": {
+                "description": "ISO-8601 update timestamp used for ordering and sync.",
+                "format": "date-time",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "url": {
+                "description": "Canonical public request URL when available.",
+                "format": "uri",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "user_name": {
+                "description": "Requester display name when known.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "body"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "instance_id",
+          "request"
+        ],
+        "type": "object"
+      },
+      "title": "Read-only remote request retrieval"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "description": "Bounded remote authority discovery",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "filter": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "instance_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "limit": {
+            "default": 50,
+            "maximum": 200,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "instance_id"
+        ],
+        "type": "object"
+      },
+      "name": "remote_list_authorities",
+      "outputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "authorities": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "name": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "slug": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "url": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "slug",
+                "name",
+                "url"
+              ],
+              "type": "object"
+            },
+            "maxItems": 200,
+            "type": "array"
+          },
+          "instance_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "instance_id",
+          "authorities"
+        ],
+        "type": "object"
+      },
+      "title": "Bounded remote authority discovery"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Prepare or commit a governed remote request creation",
+      "inputSchema": {
+        "description": "Prepare binds an immutable payload to a short-lived confirmation. Commit accepts only that confirmation and its original scope. Re-prepare the original payload/key to retrieve a completed result within this server process.",
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "properties": {
+              "body": {
+                "maxLength": 100000,
+                "minLength": 1,
+                "type": "string"
+              },
+              "external_url": {
+                "maxLength": 2048,
+                "type": "string"
+              },
+              "external_user_name": {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              "idempotency_key": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "instance_id": {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              "phase": {
+                "const": "prepare",
+                "default": "prepare",
+                "type": "string"
+              },
+              "tags": {
+                "maxLength": 500,
+                "type": "string"
+              },
+              "title": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "instance_id",
+              "title",
+              "body",
+              "external_user_name",
+              "external_url",
+              "idempotency_key"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "confirmation_token": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "idempotency_key": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "instance_id": {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              "phase": {
+                "const": "commit",
+                "type": "string"
+              }
+            },
+            "required": [
+              "instance_id",
+              "phase",
+              "confirmation_token",
+              "idempotency_key"
+            ],
+            "type": "object"
+          }
+        ],
+        "type": "object"
+      },
+      "name": "remote_create_request",
+      "outputSchema": {
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "properties": {
+              "confirmation_token": {
+                "maxLength": 32,
+                "minLength": 32,
+                "type": "string"
+              },
+              "expires_in_seconds": {
+                "maximum": 300,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "idempotency_key": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "requires_commit": {
+                "const": true,
+                "type": "boolean"
+              },
+              "status": {
+                "const": "prepared",
+                "type": "string"
+              }
+            },
+            "required": [
+              "status",
+              "confirmation_token",
+              "idempotency_key",
+              "expires_in_seconds",
+              "requires_commit"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "idempotency_key": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "result": {
+                "additionalProperties": false,
+                "properties": {
+                  "instance_id": {
+                    "type": "string"
+                  },
+                  "request": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "url": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "url"
+                    ],
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "instance_id",
+                  "request"
+                ],
+                "type": "object"
+              },
+              "status": {
+                "const": "already_committed",
+                "type": "string"
+              }
+            },
+            "required": [
+              "status",
+              "idempotency_key",
+              "result"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "instance_id": {
+                "type": "string"
+              },
+              "request": {
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "url": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "url"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "instance_id",
+              "request"
+            ],
+            "type": "object"
+          }
+        ],
+        "type": "object"
+      },
+      "title": "Prepare or commit a governed remote request creation"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Prepare or commit governed remote correspondence",
+      "inputSchema": {
+        "description": "Prepare binds an immutable payload to a short-lived confirmation. Commit accepts only that confirmation and its original scope. Re-prepare the original payload/key to retrieve a completed result within this server process.",
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "properties": {
+              "attachments": {
+                "items": {
+                  "maxLength": 1024,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "maxItems": 8,
+                "type": "array"
+              },
+              "body": {
+                "maxLength": 100000,
+                "minLength": 1,
+                "type": "string"
+              },
+              "direction": {
+                "enum": [
+                  "request",
+                  "response"
+                ],
+                "type": "string"
+              },
+              "idempotency_key": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "instance_id": {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              "phase": {
+                "const": "prepare",
+                "default": "prepare",
+                "type": "string"
+              },
+              "request_id": {
+                "maximum": 9223372036854775807,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "sent_at": {
+                "maxLength": 64,
+                "type": "string"
+              },
+              "state": {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "instance_id",
+              "request_id",
+              "direction",
+              "body",
+              "sent_at",
+              "idempotency_key"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "confirmation_token": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "idempotency_key": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "instance_id": {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              "phase": {
+                "const": "commit",
+                "type": "string"
+              }
+            },
+            "required": [
+              "instance_id",
+              "phase",
+              "confirmation_token",
+              "idempotency_key"
+            ],
+            "type": "object"
+          }
+        ],
+        "type": "object"
+      },
+      "name": "remote_add_correspondence",
+      "outputSchema": {
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "properties": {
+              "confirmation_token": {
+                "maxLength": 32,
+                "minLength": 32,
+                "type": "string"
+              },
+              "expires_in_seconds": {
+                "maximum": 300,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "idempotency_key": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "requires_commit": {
+                "const": true,
+                "type": "boolean"
+              },
+              "status": {
+                "const": "prepared",
+                "type": "string"
+              }
+            },
+            "required": [
+              "status",
+              "confirmation_token",
+              "idempotency_key",
+              "expires_in_seconds",
+              "requires_commit"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "idempotency_key": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "result": {
+                "additionalProperties": false,
+                "properties": {
+                  "correspondence": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "success": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "success"
+                    ],
+                    "type": "object"
+                  },
+                  "instance_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "instance_id",
+                  "correspondence"
+                ],
+                "type": "object"
+              },
+              "status": {
+                "const": "already_committed",
+                "type": "string"
+              }
+            },
+            "required": [
+              "status",
+              "idempotency_key",
+              "result"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "correspondence": {
+                "additionalProperties": false,
+                "properties": {
+                  "success": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "success"
+                ],
+                "type": "object"
+              },
+              "instance_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "instance_id",
+              "correspondence"
+            ],
+            "type": "object"
+          }
+        ],
+        "type": "object"
+      },
+      "title": "Prepare or commit governed remote correspondence"
+    },
+    {
+      "annotations": {
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Prepare or commit an optimistic remote state update",
+      "inputSchema": {
+        "description": "Prepare binds an immutable payload to a short-lived confirmation. Commit accepts only that confirmation and its original scope. Re-prepare the original payload/key to retrieve a completed result within this server process.",
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "properties": {
+              "expected_current_state": {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              "idempotency_key": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "instance_id": {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              "phase": {
+                "const": "prepare",
+                "default": "prepare",
+                "type": "string"
+              },
+              "request_id": {
+                "maximum": 9223372036854775807,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "state": {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "instance_id",
+              "request_id",
+              "expected_current_state",
+              "state",
+              "idempotency_key"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "confirmation_token": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "idempotency_key": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "instance_id": {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              "phase": {
+                "const": "commit",
+                "type": "string"
+              }
+            },
+            "required": [
+              "instance_id",
+              "phase",
+              "confirmation_token",
+              "idempotency_key"
+            ],
+            "type": "object"
+          }
+        ],
+        "type": "object"
+      },
+      "name": "remote_update_state",
+      "outputSchema": {
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "properties": {
+              "confirmation_token": {
+                "maxLength": 32,
+                "minLength": 32,
+                "type": "string"
+              },
+              "expires_in_seconds": {
+                "maximum": 300,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "idempotency_key": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "requires_commit": {
+                "const": true,
+                "type": "boolean"
+              },
+              "status": {
+                "const": "prepared",
+                "type": "string"
+              }
+            },
+            "required": [
+              "status",
+              "confirmation_token",
+              "idempotency_key",
+              "expires_in_seconds",
+              "requires_commit"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "idempotency_key": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "result": {
+                "additionalProperties": false,
+                "properties": {
+                  "instance_id": {
+                    "type": "string"
+                  },
+                  "state": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "updated": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "updated"
+                    ],
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "instance_id",
+                  "state"
+                ],
+                "type": "object"
+              },
+              "status": {
+                "const": "already_committed",
+                "type": "string"
+              }
+            },
+            "required": [
+              "status",
+              "idempotency_key",
+              "result"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "instance_id": {
+                "type": "string"
+              },
+              "state": {
+                "additionalProperties": false,
+                "properties": {
+                  "updated": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "updated"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "instance_id",
+              "state"
+            ],
+            "type": "object"
+          }
+        ],
+        "type": "object"
+      },
+      "title": "Prepare or commit an optimistic remote state update"
+    }
+  ]
+}
