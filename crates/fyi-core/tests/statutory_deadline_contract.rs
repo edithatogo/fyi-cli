@@ -186,3 +186,76 @@ fn source_and_calendar_metadata_are_required_and_legal_status_is_never_approved(
     assert!(serde_json::from_str::<CalculatedDeadline>(&json.replace("unvalidated", "approved"))
         .is_err());
 }
+
+#[test]
+fn malformed_calendar_and_unknown_weekend_code_fail_closed() {
+    let mut c = calendar();
+    c.weekend_days.insert(7);
+    assert_eq!(
+        calculate_explicit_deadline(day(2026, 7, 3), &rule(StatutoryUnit::WorkingDays, 1), &c, None),
+        Err(DeadlineRuleError::InvalidCalendar)
+    );
+    let mut c = calendar();
+    c.excluded_dates.insert(day(2028, 1, 1));
+    assert_eq!(
+        calculate_explicit_deadline(day(2026, 7, 3), &rule(StatutoryUnit::WorkingDays, 1), &c, None),
+        Err(DeadlineRuleError::InvalidCalendar)
+    );
+    let mut c = calendar();
+    c.weekend_days = BTreeSet::from([0, 1, 2, 3, 4, 5, 6]);
+    assert_eq!(
+        calculate_explicit_deadline(day(2026, 7, 3), &rule(StatutoryUnit::WorkingDays, 1), &c, None),
+        Err(DeadlineRuleError::InvalidCalendar)
+    );
+}
+
+#[test]
+fn effective_receipt_window_is_checked_independently_of_calendar_coverage() {
+    let mut p = rule(StatutoryUnit::CalendarDays, 1);
+    p.effective_from = day(2026, 8, 1);
+    assert_eq!(
+        calculate_explicit_deadline(day(2026, 7, 3), &p, &calendar(), None),
+        Err(DeadlineRuleError::RuleNotEffective)
+    );
+    p.effective_to = Some(day(2026, 7, 1));
+    assert_eq!(
+        calculate_explicit_deadline(day(2026, 7, 3), &p, &calendar(), None),
+        Err(DeadlineRuleError::InvalidRule)
+    );
+}
+
+#[test]
+fn terminal_adjustment_requires_coverage_beyond_unadjusted_due_date() {
+    let mut c = calendar();
+    c.valid_to = day(2026, 7, 5);
+    c.excluded_dates.clear();
+    let mut p = rule(StatutoryUnit::CalendarDays, 2);
+    p.due_date_adjustment = DeadlineAdjustment::NextWorkingDay;
+    assert_eq!(
+        calculate_explicit_deadline(day(2026, 7, 3), &p, &c, None),
+        Err(DeadlineRuleError::CalendarCoverage)
+    );
+}
+
+#[test]
+fn alternative_weekends_and_inclusive_calendar_days_are_data_not_locale_rules() {
+    let mut c = calendar();
+    c.excluded_dates.clear();
+    c.weekend_days = BTreeSet::from([4, 5]); // Friday / Saturday
+    let r = rule(StatutoryUnit::WorkingDays, 1);
+    let result = calculate_explicit_deadline(day(2026, 7, 2), &r, &c, None).unwrap();
+    assert_eq!(result.due_date, day(2026, 7, 5)); // Sunday counts
+
+    let mut inclusive = rule(StatutoryUnit::CalendarDays, 2);
+    inclusive.receipt_convention = ReceiptConvention::IncludeReceiptDay;
+    let result = calculate_explicit_deadline(day(2026, 7, 3), &inclusive, &c, None).unwrap();
+    assert_eq!(result.due_date, day(2026, 7, 4));
+}
+
+#[test]
+fn input_documents_are_closed_to_unknown_fields() {
+    let raw = serde_json::to_value(rule(StatutoryUnit::CalendarDays, 2)).unwrap();
+    let mut extra = raw.as_object().unwrap().clone();
+    extra.insert("legal_approval".into(), serde_json::json!(true));
+    assert!(serde_json::from_value::<LegalClockRule>(serde_json::Value::Object(extra)).is_err());
+}
