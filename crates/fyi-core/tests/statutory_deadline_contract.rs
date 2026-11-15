@@ -55,8 +55,7 @@ fn working_day_clock_skips_explicit_regional_exclusion_and_weekend() {
 fn calendar_day_clock_counts_weekends_then_explicitly_rolls_due_date() {
     let mut policy = rule(StatutoryUnit::CalendarDays, 2);
     policy.due_date_adjustment = DeadlineAdjustment::NextWorkingDay;
-    let result =
-        calculate_explicit_deadline(day(2026, 7, 3), &policy, &calendar(), None).unwrap();
+    let result = calculate_explicit_deadline(day(2026, 7, 3), &policy, &calendar(), None).unwrap();
     assert_eq!(result.unadjusted_due_date, day(2026, 7, 5));
     assert_eq!(result.due_date, day(2026, 7, 7));
 }
@@ -65,8 +64,7 @@ fn calendar_day_clock_counts_weekends_then_explicitly_rolls_due_date() {
 fn calendar_month_count_is_not_an_alias_for_thirty_days() {
     let mut policy = rule(StatutoryUnit::CalendarMonths, 1);
     policy.due_date_adjustment = DeadlineAdjustment::NextWorkingDay;
-    let result =
-        calculate_explicit_deadline(day(2026, 1, 31), &policy, &calendar(), None).unwrap();
+    let result = calculate_explicit_deadline(day(2026, 1, 31), &policy, &calendar(), None).unwrap();
     assert_eq!(result.unadjusted_due_date, day(2026, 2, 28));
     assert_eq!(result.due_date, day(2026, 3, 2));
 }
@@ -75,8 +73,7 @@ fn calendar_month_count_is_not_an_alias_for_thirty_days() {
 fn receipt_day_convention_is_explicit_and_not_selected_from_locale() {
     let mut policy = rule(StatutoryUnit::WorkingDays, 1);
     policy.receipt_convention = ReceiptConvention::IncludeReceiptDay;
-    let result =
-        calculate_explicit_deadline(day(2026, 7, 3), &policy, &calendar(), None).unwrap();
+    let result = calculate_explicit_deadline(day(2026, 7, 3), &policy, &calendar(), None).unwrap();
     assert_eq!(result.due_date, day(2026, 7, 3));
     policy.period.unit = StatutoryUnit::CalendarMonths;
     assert_eq!(
@@ -183,8 +180,10 @@ fn source_and_calendar_metadata_are_required_and_legal_status_is_never_approved(
     let restored: CalculatedDeadline = serde_json::from_str(&json).unwrap();
     assert_eq!(restored, result);
     assert!(json.contains("unvalidated"));
-    assert!(serde_json::from_str::<CalculatedDeadline>(&json.replace("unvalidated", "approved"))
-        .is_err());
+    assert!(
+        serde_json::from_str::<CalculatedDeadline>(&json.replace("unvalidated", "approved"))
+            .is_err()
+    );
 }
 
 #[test]
@@ -192,19 +191,34 @@ fn malformed_calendar_and_unknown_weekend_code_fail_closed() {
     let mut c = calendar();
     c.weekend_days.insert(7);
     assert_eq!(
-        calculate_explicit_deadline(day(2026, 7, 3), &rule(StatutoryUnit::WorkingDays, 1), &c, None),
+        calculate_explicit_deadline(
+            day(2026, 7, 3),
+            &rule(StatutoryUnit::WorkingDays, 1),
+            &c,
+            None
+        ),
         Err(DeadlineRuleError::InvalidCalendar)
     );
     let mut c = calendar();
     c.excluded_dates.insert(day(2028, 1, 1));
     assert_eq!(
-        calculate_explicit_deadline(day(2026, 7, 3), &rule(StatutoryUnit::WorkingDays, 1), &c, None),
+        calculate_explicit_deadline(
+            day(2026, 7, 3),
+            &rule(StatutoryUnit::WorkingDays, 1),
+            &c,
+            None
+        ),
         Err(DeadlineRuleError::InvalidCalendar)
     );
     let mut c = calendar();
     c.weekend_days = BTreeSet::from([0, 1, 2, 3, 4, 5, 6]);
     assert_eq!(
-        calculate_explicit_deadline(day(2026, 7, 3), &rule(StatutoryUnit::WorkingDays, 1), &c, None),
+        calculate_explicit_deadline(
+            day(2026, 7, 3),
+            &rule(StatutoryUnit::WorkingDays, 1),
+            &c,
+            None
+        ),
         Err(DeadlineRuleError::InvalidCalendar)
     );
 }
