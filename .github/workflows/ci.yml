@@ -217,7 +217,19 @@ jobs:
             uname -a
           } > artifacts/security-audit/environment.txt
 
-      - name: Install cargo-audit
+      # Use checksummed, prebuilt binaries rather than recompiling these
+      # tools on every ephemeral runner. Versions match the previous
+      # cargo-install results (verified in the 2026-11-14 audit logs).
+      # Both versions are available in the v2.90.4 action manifests.
+      - name: Install audit tools (verified binaries)
+        uses: taiki-e/install-action@4a76afe23f9e08d2d9550fb56e556444e8611d21 # v2.90.4
+        with:
+          tool: |
+            cargo-audit@0.23.0
+            cargo-deny@0.20.2
+          fallback: none
+
+      - name: Record audit toolchain versions
         shell: bash
         run: |
           set -o pipefail
@@ -225,15 +237,8 @@ jobs:
             rustc --version --verbose
             cargo --version
           } >> artifacts/security-audit/environment.txt
-          cargo install cargo-audit --locked 2>&1 | tee artifacts/security-audit/install-audit.log
-          cargo audit --version >> artifacts/security-audit/environment.txt
-
-      - name: Install cargo-deny
-        shell: bash
-        run: |
-          set -o pipefail
-          cargo install cargo-deny --locked 2>&1 | tee artifacts/security-audit/install-deny.log
-          cargo deny --version >> artifacts/security-audit/environment.txt
+          cargo audit --version | tee artifacts/security-audit/install-audit.log | tee -a artifacts/security-audit/environment.txt
+          cargo deny --version | tee artifacts/security-audit/install-deny.log | tee -a artifacts/security-audit/environment.txt
 
       - name: Run security audit
         shell: bash
