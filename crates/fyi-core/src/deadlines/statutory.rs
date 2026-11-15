@@ -138,7 +138,9 @@ fn validate_rule(rule: &LegalClockRule) -> Result<(), DeadlineRuleError> {
         || rule.jurisdiction.trim().is_empty()
         || rule.revision.trim().is_empty()
         || rule.source_reference.trim().is_empty()
-        || rule.effective_to.is_some_and(|end| end < rule.effective_from)
+        || rule
+            .effective_to
+            .is_some_and(|end| end < rule.effective_from)
     {
         return Err(DeadlineRuleError::InvalidRule);
     }
@@ -161,20 +163,14 @@ fn validate_calendar(calendar: &HolidayCalendar) -> Result<(), DeadlineRuleError
     Ok(())
 }
 
-fn check_coverage(
-    date: NaiveDate,
-    calendar: &HolidayCalendar,
-) -> Result<(), DeadlineRuleError> {
+fn check_coverage(date: NaiveDate, calendar: &HolidayCalendar) -> Result<(), DeadlineRuleError> {
     if date < calendar.valid_from || date > calendar.valid_to {
         return Err(DeadlineRuleError::CalendarCoverage);
     }
     Ok(())
 }
 
-fn is_working(
-    date: NaiveDate,
-    calendar: &HolidayCalendar,
-) -> Result<bool, DeadlineRuleError> {
+fn is_working(date: NaiveDate, calendar: &HolidayCalendar) -> Result<bool, DeadlineRuleError> {
     check_coverage(date, calendar)?;
     Ok(!calendar
         .weekend_days
@@ -263,8 +259,7 @@ pub fn calculate_explicit_deadline(
     if rule.jurisdiction != calendar.jurisdiction {
         return Err(DeadlineRuleError::JurisdictionMismatch);
     }
-    if receipt_date < rule.effective_from
-        || rule.effective_to.is_some_and(|end| receipt_date > end)
+    if receipt_date < rule.effective_from || rule.effective_to.is_some_and(|end| receipt_date > end)
     {
         return Err(DeadlineRuleError::RuleNotEffective);
     }
@@ -274,12 +269,7 @@ pub fn calculate_explicit_deadline(
             return Err(DeadlineRuleError::InvalidExtension);
         }
     }
-    let primary = advance_period(
-        receipt_date,
-        rule.period,
-        rule.receipt_convention,
-        calendar,
-    )?;
+    let primary = advance_period(receipt_date, rule.period, rule.receipt_convention, calendar)?;
     let mut date = if let Some(ext) = extension {
         advance_period(
             primary,
@@ -293,9 +283,7 @@ pub fn calculate_explicit_deadline(
     let unadjusted_due_date = date;
     if rule.due_date_adjustment == DeadlineAdjustment::NextWorkingDay {
         while !is_working(date, calendar)? {
-            date = date
-                .succ_opt()
-                .ok_or(DeadlineRuleError::DateOutOfRange)?;
+            date = date.succ_opt().ok_or(DeadlineRuleError::DateOutOfRange)?;
         }
     }
     Ok(CalculatedDeadline {
