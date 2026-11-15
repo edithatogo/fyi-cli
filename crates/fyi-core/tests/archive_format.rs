@@ -797,5 +797,8 @@ fn connection_nominated_content_type_uses_retained_metadata_and_packages() {
     let (_, record_bytes) = split_header(&decoded);
     let (http, payload) = split_header(&record_bytes[..record_bytes.len() - 4]);
     assert_eq!(payload, HTML);
-    assert!(!std::str::from_utf8(http).unwrap().to_ascii_lowercase().contains("content-type:"));
+    assert!(!std::str::from_utf8(http)
+        .unwrap()
+        .to_ascii_lowercase()
+        .contains("content-type:"));
 }
