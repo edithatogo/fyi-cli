@@ -81,8 +81,26 @@ def test_audit_and_coverage_evidence_preserve_gate_commands_and_versions() -> No
     ):
         assert f"--ignore {advisory}" in audit
     assert "cargo deny check" in step("audit", "Run cargo-deny")["run"]
-    assert "cargo audit --version" in step("audit", "Install cargo-audit")["run"]
-    assert "cargo deny --version" in step("audit", "Install cargo-deny")["run"]
+    # Both pinned binaries must be installed without a source-build fallback.
+    install = step("audit", "Install audit tools (verified binaries)")
+    assert install["uses"] == (
+        "taiki-e/install-action@4a76afe23f9e08d2d9550fb56e556444e8611d21"
+    )
+    assert install["with"]["tool"].splitlines() == [
+        "cargo-audit@0.23.0",
+        "cargo-deny@0.20.2",
+    ]
+    assert install["with"]["fallback"] == "none"
+
+    versions = step("audit", "Record audit toolchain versions")["run"]
+    for command in ("rustc --version --verbose", "cargo --version", "cargo audit --version", "cargo deny --version"):
+        assert command in versions
+    for log in (
+        "artifacts/security-audit/install-audit.log",
+        "artifacts/security-audit/install-deny.log",
+        "artifacts/security-audit/environment.txt",
+    ):
+        assert log in versions
 
     coverage = step("coverage", "Run tests with coverage")["run"]
     assert "cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info" in coverage
