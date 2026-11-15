@@ -42,8 +42,7 @@ def test_audit_parser_preserves_pinned_versions_and_hashes(tmp_path: Path) -> No
     requirement = tmp_path / "requirements.txt"
     digest = "0" * 64
     requirement.write_text(
-        "# Synthetic audit input: café, Māori, 日本語\n"
-        f"pip-api==0.0.35 --hash=sha256:{digest}\n",
+        f"# Synthetic audit input: café, Māori, 日本語\npip-api==0.0.35 --hash=sha256:{digest}\n",
         encoding="utf-8",
     )
     parsed = pip_api.parse_requirements(str(requirement))
