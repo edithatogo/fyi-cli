@@ -16,6 +16,18 @@
   over shared receipt and CLI paths; replay must consume its pinned contract.
 - [~] Integrate a guarded, bounded transport, actual response receipts and the
   Rust CLI after the receipt-integrity packet reaches a stable receiving head.
+- [~] Chat `01a1e3da-9d35-7a01-8723-b07a2749f7bd` owns the next transport
+  increment in managed worktree
+  `/Users/doughnut/.codex/worktrees/fyi-replay-transport-312/fyi-cli`, branch
+  `codex/fyi-replay-transport-312`, based on the replay engine integrated in
+  PR #481. Its paths are the Rust replay, transport and CLI code, focused tests,
+  and CLI parity manifest. No live authority, native object or authentication
+  scope is assigned. Next: hosted checks and receipt-verifier integration.
+- [x] Implement the bounded transport, CLI, ordered response-body evidence and
+  v1 replay receipts, with fail-closed handling for incomplete exchanges.
+  Focused offline tests cover redirects, compressed entities, response and
+  result tampering, path collisions, checkpoints and runtime limits. [source
+  checkpoint: e6e1052]
 - [ ] Verify the source/CLI integration, immutable byte receipts, and existing
   cross-platform and downstream gates before treating #312 as complete. Hosted
   live smoke still requires separate exact operator authorization.
