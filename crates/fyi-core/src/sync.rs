@@ -19,6 +19,52 @@ use std::time::{Duration, Instant};
 use tokio::sync::{oneshot, Mutex, OwnedSemaphorePermit, Semaphore};
 use tokio::task::JoinHandle;
 
+/// An HTTP status observed by the guarded source client.
+///
+/// The typed value contains no response body, URL, credential or header. A
+/// separate error context may carry the existing operator-facing description.
+#[derive(Debug, thiserror::Error)]
+#[error("source returned HTTP {status}")]
+pub struct SourceHttpError {
+    status: u16,
+}
+
+impl SourceHttpError {
+    /// Construct a typed status for an observed HTTP response.
+    pub fn new(status: u16) -> Self {
+        Self { status }
+    }
+
+    /// Return the actual response status, without interpreting error text.
+    pub fn status(&self) -> u16 {
+        self.status
+    }
+}
+
+/// Source failure metadata that can be shared without exposing private text.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SourceFailureKind {
+    /// A response with an observed HTTP status.
+    HttpStatus(u16),
+    /// The HTTP transport reported a timeout.
+    Timeout,
+}
+
+/// Inspect typed source failures without inferring facts from their messages.
+pub fn source_failure_kind(error: &anyhow::Error) -> Option<SourceFailureKind> {
+    if let Some(status) = error.downcast_ref::<SourceHttpError>() {
+        return Some(SourceFailureKind::HttpStatus(status.status()));
+    }
+    if error.chain().any(|cause| {
+        cause
+            .downcast_ref::<reqwest::Error>()
+            .is_some_and(|e| e.is_timeout())
+    }) {
+        return Some(SourceFailureKind::Timeout);
+    }
+    None
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct PullReport {
     pub fetched: usize,
@@ -1662,11 +1708,13 @@ async fn ensure_success(response: GuardedResponse, endpoint: &str) -> Result<Gua
         .and_then(|value| value.to_str().ok())
         .map(str::to_owned);
 
-    Err(anyhow!(api_status_error(
-        endpoint,
-        status,
-        retry_after.as_deref()
-    )))
+    Err(
+        anyhow::Error::new(SourceHttpError::new(status.as_u16())).context(api_status_error(
+            endpoint,
+            status,
+            retry_after.as_deref(),
+        )),
+    )
 }
 
 fn is_bulk_export_url(url: &Url) -> bool {
@@ -3152,6 +3200,59 @@ mod tests {
             assert!(!message.contains("api_key"));
             assert!(!message.contains("token"));
         }
+    }
+
+    #[tokio::test]
+    async fn source_failure_kind_retains_actual_http_status_without_body() {
+        for status in [401, 403, 404, 429, 500, 502, 503, 418] {
+            let server = MockServer::start().await;
+            Mock::given(method("GET"))
+                .and(path("/api/v2/version.json"))
+                .respond_with(
+                    ResponseTemplate::new(status)
+                        .insert_header("Retry-After", "401")
+                        .set_body_string("synthetic-private-response"),
+                )
+                .expect(1)
+                .mount(&server)
+                .await;
+            let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+            let error = client
+                .get_api_version()
+                .await
+                .unwrap_err()
+                .context("synthetic-private-context-404");
+            assert_eq!(
+                source_failure_kind(&error),
+                Some(SourceFailureKind::HttpStatus(status))
+            );
+            assert!(!format!("{error:#}").contains("synthetic-private-response"));
+        }
+        assert_eq!(
+            source_failure_kind(&anyhow!("HTTP 503, retry after 401")),
+            None
+        );
+    }
+
+    #[tokio::test]
+    async fn source_failure_kind_detects_a_typed_transport_timeout() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/api/v2/version.json"))
+            .respond_with(ResponseTemplate::new(200).set_delay(Duration::from_secs(2)))
+            .mount(&server)
+            .await;
+        let http = Client::builder()
+            .timeout(Duration::from_millis(50))
+            .build()
+            .unwrap();
+        let client =
+            SyncClient::with_http_client_and_validation(&server.uri(), http, true).unwrap();
+        let error = client.get_api_version().await.unwrap_err();
+        assert_eq!(
+            source_failure_kind(&error),
+            Some(SourceFailureKind::Timeout)
+        );
     }
 
     #[test]

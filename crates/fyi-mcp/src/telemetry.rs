@@ -3,6 +3,7 @@
 //! Storage has exactly eight rows and five terminal outcomes. No caller data is
 //! accepted as a label. Correlation IDs belong only to events/spans, never metrics.
 
+use fyi_core::sync::{source_failure_kind, SourceFailureKind};
 use serde::Serialize;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -96,7 +97,6 @@ pub(crate) enum RemoteErrorKind {
     UpstreamUnavailable,
     UpstreamServer,
     Timeout,
-    Validation,
     UpstreamUnknown,
 }
 
@@ -110,7 +110,6 @@ impl RemoteErrorKind {
             Self::UpstreamUnavailable => "upstream_unavailable",
             Self::UpstreamServer => "upstream_server",
             Self::Timeout => "timeout",
-            Self::Validation => "validation",
             Self::UpstreamUnknown => "upstream_unknown",
         }
     }
@@ -127,101 +126,80 @@ pub(crate) struct RemoteErrorClassification {
 }
 
 impl RemoteErrorClassification {
-    pub(crate) fn classify(operation: RemoteOperation, raw_message: &str) -> Self {
-        let lower = raw_message.to_ascii_lowercase();
-        if lower.contains("401") || lower.contains("authentication failed") {
-            return Self {
-                kind: RemoteErrorKind::Auth,
-                operation,
-                retryable: false,
-                status: Some(401),
-                safe_message: "remote authentication failed",
-            };
-        }
-        if lower.contains("403") || lower.contains("permission denied") {
-            return Self {
-                kind: RemoteErrorKind::Forbidden,
-                operation,
-                retryable: false,
-                status: Some(403),
-                safe_message: "remote permission denied",
-            };
-        }
-        if lower.contains("404") || lower.contains("not found") {
-            return Self {
-                kind: RemoteErrorKind::NotFound,
-                operation,
-                retryable: false,
-                status: Some(404),
-                safe_message: "remote resource not found",
-            };
-        }
-        if lower.contains("429") || lower.contains("rate limited") {
-            return Self {
-                kind: RemoteErrorKind::RateLimited,
-                operation,
-                retryable: true,
-                status: Some(429),
-                safe_message: "remote endpoint rate limited request",
-            };
-        }
-        if lower.contains("503") || lower.contains("service unavailable") {
-            return Self {
-                kind: RemoteErrorKind::UpstreamUnavailable,
-                operation,
-                retryable: true,
-                status: Some(503),
-                safe_message: "remote endpoint temporarily unavailable",
-            };
-        }
-        if lower.contains("500")
-            || lower.contains("502")
-            || lower.contains("504")
-            || lower.contains("server error")
-        {
-            let status = if lower.contains("502") {
-                Some(502)
-            } else if lower.contains("504") {
-                Some(504)
-            } else {
-                Some(500)
-            };
-            return Self {
-                kind: RemoteErrorKind::UpstreamServer,
-                operation,
-                retryable: true,
-                status,
-                safe_message: "remote endpoint returned server error",
-            };
-        }
-        if lower.contains("timed out") || lower.contains("timeout") {
-            return Self {
-                kind: RemoteErrorKind::Timeout,
-                operation,
-                retryable: true,
-                status: None,
-                safe_message: "remote operation timed out",
-            };
-        }
-        if lower.contains("stale")
-            || lower.contains("expected_current_state")
-            || lower.contains("invalid")
-            || lower.contains("required")
-        {
-            return Self {
-                kind: RemoteErrorKind::Validation,
-                operation,
-                retryable: false,
-                status: None,
-                safe_message: "remote operation arguments or state rejected",
-            };
-        }
-        Self {
-            kind: RemoteErrorKind::UpstreamUnknown,
+    pub(crate) fn classify(operation: RemoteOperation, error: &anyhow::Error) -> Self {
+        let (kind, status, potentially_retryable, safe_message) = match source_failure_kind(error) {
+            Some(SourceFailureKind::HttpStatus(401)) => (
+                RemoteErrorKind::Auth,
+                Some(401),
+                false,
+                "remote authentication failed",
+            ),
+            Some(SourceFailureKind::HttpStatus(403)) => (
+                RemoteErrorKind::Forbidden,
+                Some(403),
+                false,
+                "remote permission denied",
+            ),
+            Some(SourceFailureKind::HttpStatus(404)) => (
+                RemoteErrorKind::NotFound,
+                Some(404),
+                false,
+                "remote resource not found",
+            ),
+            Some(SourceFailureKind::HttpStatus(429)) => (
+                RemoteErrorKind::RateLimited,
+                Some(429),
+                true,
+                "remote endpoint rate limited request",
+            ),
+            Some(SourceFailureKind::HttpStatus(503)) => (
+                RemoteErrorKind::UpstreamUnavailable,
+                Some(503),
+                true,
+                "remote endpoint temporarily unavailable",
+            ),
+            Some(SourceFailureKind::HttpStatus(status @ 500..=599)) => (
+                RemoteErrorKind::UpstreamServer,
+                Some(status),
+                true,
+                "remote endpoint returned server error",
+            ),
+            Some(SourceFailureKind::HttpStatus(status)) => (
+                RemoteErrorKind::UpstreamUnknown,
+                Some(status),
+                false,
+                "remote operation failed",
+            ),
+            Some(SourceFailureKind::Timeout) => (
+                RemoteErrorKind::Timeout,
+                None,
+                true,
+                "remote operation timed out",
+            ),
+            None => (
+                RemoteErrorKind::UpstreamUnknown,
+                None,
+                false,
+                "remote operation failed",
+            ),
+        };
+        // A failed write may already have reached the source. The durable
+        // journal reserves that uncertain outcome; telemetry must not suggest
+        // an automatic retry even when its HTTP status is transient.
+        let read_only = matches!(
             operation,
-            retryable: false,
-            status: None,
-            safe_message: "remote operation failed",
+            RemoteOperation::Health
+                | RemoteOperation::Version
+                | RemoteOperation::SearchRequests
+                | RemoteOperation::GetRequest
+                | RemoteOperation::ListAuthorities
+        );
+        Self {
+            kind,
+            operation,
+            retryable: potentially_retryable && read_only,
+            status,
+            safe_message,
         }
     }
 }

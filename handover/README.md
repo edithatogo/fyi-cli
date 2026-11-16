@@ -1,5 +1,30 @@
 Generated handovers can be written here.
 
+## Active ownership — MCP classification and source follow-up, 2026-11-16
+
+- Chat `01a1e3da-9d35-7a01-8723-b07a2749f7bd` owns the current
+  error-classification increment and sequential repository integration.
+- Managed worktree `/Users/doughnut/.codex/worktrees/fyi-mcp-errors-170/fyi-cli`
+  uses branch `codex/fyi-mcp-errors-170-172` based on master `047cc131`.
+- Current scope: source HTTP error identity, MCP classification and offline
+  regression contracts for #170, #172 and #173. No authority, account,
+  application database, credential or native service object is assigned.
+- Next operation: demonstrate the classification failure with offline tests,
+  implement typed propagation, open a scoped PR and verify its required checks.
+  Receipt and replay follow-ups retain the existing source-adapter ownership;
+  preserve the prior local replay branch and its dependencies.
+- Chat `01a1e3da-6e02-7012-8e4a-1e4f2034d019` owns the bounded #477/#310
+  receipt-integrity follow-up in managed worktree
+  `/Users/doughnut/.codex/worktrees/fyi-receipt-integrity-310/fyi-cli`, branch
+  `codex/fyi-sync-receipt-integrity-310`, also based on `047cc131`.
+  Its scope is `crates/fyi-cli/src/main.rs`,
+  `crates/fyi-core/src/acquisition_receipts.rs`, the associated new sync receipt
+  tests, and its receipt-coverage note. It has no native object/authentication
+  scope. Its next operation is an offline fail-closed receipt preflight and
+  terminal evidence handoff; this MCP lane owns `sync.rs` and the shared
+  receiving-head/merge coordination. The #312 replay lane follows the pinned
+  receipt contract and does not duplicate the receipt increment.
+
 ## Active ownership — Rust cutover, 2026-11-13
 
 - Chat `01a1d482-9735-7c83-a979-a8dc46f3f2b1` owns this lane.
