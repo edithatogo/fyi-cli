@@ -288,6 +288,43 @@ The baseline deliberately has a closed locale list. Adding arbitrary locales
 without code changes and configurable external overrides remain track requirements;
 the low-level data-only bundle parser does not imply an override-loading facility.
 
+## Holiday calendars
+
+Explicit statutory deadline calculations in `fyi_core::deadlines::statutory` use
+a versioned JSON holiday-calendar catalog (`HolidayCalendarCatalog`):
+
+- **Embedded starter catalog (`HolidayCalendarCatalog::embedded()`):** Includes
+  2026 national public-holiday starter entries for `NZ`, `AU`, and `GB`
+  (`crates/fyi-core/locales/calendars/v1/catalog.json`). These entries are
+  explicitly marked `unvalidated-*` and produce `ValidationStatus::Unvalidated`;
+  regional, state/provincial, and observed holidays (such as NZ provincial
+  anniversary days, Australian state/territory holidays, or Scotland/Northern
+  Ireland bank holidays) must be supplied for the target subdivision and reviewed
+  against authoritative statutory sources before operational reliance.
+- **Community / caller-supplied catalogs (`HolidayCalendarCatalog::from_json` and
+  `HolidayCalendar::from_json`):** Parse and validate in-memory JSON without
+  filesystem or network I/O. Payloads are bounded to 256 KiB (`MAX_CALENDAR_CATALOG_BYTES`)
+  and use `#[serde(deny_unknown_fields)]`.
+- **Schema v1 format:**
+  ```json
+  {
+    "schema_version": 1,
+    "calendars": [
+      {
+        "jurisdiction": "NZ-WGN",
+        "revision": "community-2026-v1",
+        "valid_from": "2026-01-01",
+        "valid_to": "2026-12-31",
+        "weekend_days": [5, 6],
+        "excluded_dates": ["2026-01-19"]
+      }
+    ]
+  }
+  ```
+  `weekend_days` uses `0 = Monday .. 6 = Sunday`, and every date in
+  `excluded_dates` must lie within `valid_from..=valid_to`. Duplicate
+  `jurisdiction` keys, empty catalogs, and unknown fields are rejected.
+
 ## Remaining acceptance work
 
 Additional terminology regimes, holiday calendars, statutory-rule validation,

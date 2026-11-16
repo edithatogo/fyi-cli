@@ -2,8 +2,8 @@
 use chrono::NaiveDate;
 use fyi_core::deadlines::statutory::{
     calculate_explicit_deadline, CalculatedDeadline, DeadlineAdjustment, DeadlineExtension,
-    DeadlineRuleError, HolidayCalendar, LegalClockRule, ReceiptConvention, StatutoryDuration,
-    StatutoryUnit, ValidationStatus,
+    DeadlineRuleError, HolidayCalendar, HolidayCalendarCatalog, LegalClockRule, ReceiptConvention,
+    StatutoryDuration, StatutoryUnit, ValidationStatus, MAX_CALENDAR_CATALOG_BYTES,
 };
 use std::collections::BTreeSet;
 
@@ -272,4 +272,80 @@ fn input_documents_are_closed_to_unknown_fields() {
     let mut extra = raw.as_object().unwrap().clone();
     extra.insert("legal_approval".into(), serde_json::json!(true));
     assert!(serde_json::from_value::<LegalClockRule>(serde_json::Value::Object(extra)).is_err());
+}
+
+#[test]
+fn embedded_calendar_catalog_covers_nz_au_gb_and_skips_national_holidays() {
+    let catalog = HolidayCalendarCatalog::embedded();
+    let keys: Vec<&str> = catalog.jurisdictions().collect();
+    assert_eq!(keys, vec!["AU", "GB", "NZ"]);
+
+    let nz = catalog.get("NZ").expect("NZ starter calendar");
+    assert!(nz.excluded_dates.contains(&day(2026, 2, 6))); // Waitangi Day
+    let mut nz_rule = rule(StatutoryUnit::WorkingDays, 1);
+    nz_rule.jurisdiction = "NZ".into();
+    // Easter weekend 2026: Good Friday (Apr 3) + Sat/Sun + Easter Monday (Apr 6) -> Apr 7.
+    let result = calculate_explicit_deadline(day(2026, 4, 2), &nz_rule, nz, None).unwrap();
+    assert_eq!(result.due_date, day(2026, 4, 7));
+    assert_eq!(result.validation_status, ValidationStatus::Unvalidated);
+
+    let au = catalog.get("AU").expect("AU starter calendar");
+    assert!(au.excluded_dates.contains(&day(2026, 1, 26)));
+
+    let gb = catalog.get("GB").expect("GB starter calendar");
+    assert!(gb.excluded_dates.contains(&day(2026, 8, 31)));
+}
+
+#[test]
+fn holiday_calendar_catalog_from_json_allows_custom_contributions_and_fails_closed() {
+    let custom = r#"{
+      "schema_version": 1,
+      "calendars": [
+        {
+          "jurisdiction": "NZ-WGN",
+          "revision": "community-2026-v1",
+          "valid_from": "2026-01-01",
+          "valid_to": "2026-12-31",
+          "weekend_days": [5, 6],
+          "excluded_dates": ["2026-01-19"]
+        }
+      ]
+    }"#;
+    let catalog = HolidayCalendarCatalog::from_json(custom).unwrap();
+    let wgn = catalog.get("NZ-WGN").unwrap();
+    assert!(wgn.excluded_dates.contains(&day(2026, 1, 19)));
+
+    let single = HolidayCalendar::from_json(
+        r#"{
+          "jurisdiction": "CA-ON",
+          "revision": "community-2026-v1",
+          "valid_from": "2026-01-01",
+          "valid_to": "2026-12-31",
+          "weekend_days": [5, 6],
+          "excluded_dates": ["2026-07-01"]
+        }"#,
+    )
+    .unwrap();
+    assert_eq!(single.jurisdiction, "CA-ON");
+
+    for bad in [
+        r#"{"schema_version":2,"calendars":[]}"#.to_string(),
+        r#"{"schema_version":1,"calendars":[]}"#.to_string(),
+        r#"{"schema_version":1,"extra":true,"calendars":[]}"#.to_string(),
+        // Duplicate jurisdiction
+        r#"{"schema_version":1,"calendars":[
+            {"jurisdiction":"NZ","revision":"r1","valid_from":"2026-01-01","valid_to":"2026-12-31","weekend_days":[5,6],"excluded_dates":[]},
+            {"jurisdiction":"NZ","revision":"r2","valid_from":"2026-01-01","valid_to":"2026-12-31","weekend_days":[5,6],"excluded_dates":[]}
+        ]}"#.to_string(),
+        // Excluded date outside valid_from..=valid_to
+        r#"{"schema_version":1,"calendars":[
+            {"jurisdiction":"NZ","revision":"r1","valid_from":"2026-01-01","valid_to":"2026-12-31","weekend_days":[5,6],"excluded_dates":["2027-01-01"]}
+        ]}"#.to_string(),
+        " ".repeat(MAX_CALENDAR_CATALOG_BYTES + 1),
+    ] {
+        assert_eq!(
+            HolidayCalendarCatalog::from_json(&bad),
+            Err(DeadlineRuleError::InvalidCalendar)
+        );
+    }
 }
