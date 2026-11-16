@@ -2360,6 +2360,7 @@ dependencies = [
  "percent-encoding",
  "proptest",
  "qrcode",
+ "regex",
  "reqwest",
  "serde",
  "serde_json",

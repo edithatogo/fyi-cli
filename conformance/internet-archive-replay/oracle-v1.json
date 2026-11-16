@@ -1,0 +1,1822 @@
+{
+  "cases": [
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [
+        {
+          "body_hex": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a",
+          "headers": {
+            "Content-Length": "50",
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "status": 200
+        }
+      ],
+      "expected": {
+        "calls": [
+          {
+            "byte_cap": 1024,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "checkpoint_json": "{\"checkpoint_sha256\":\"2f5322e880802dbad12229be2ea1be548b68465697bf8f29ff10df9038203bb2\",\"completed\":[{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/1.json\",\"path\":\"000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":0,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250101000000\"}],\"config\":{\"allowed_target_host\":\"example.test\",\"max_payload_bytes\":1024,\"replay_origin\":\"https://web.archive.org\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"},\"config_sha256\":\"2ebc343e18287cde52f4d877e70659afed96132af696d0911a31c13d32813bf4\",\"next_position\":1,\"schema\":\"urn:fyi-cli:internet-archive-replay-checkpoint:1\"}\n",
+        "error": null,
+        "files": {
+          "000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a"
+        },
+        "observations": [
+          {
+            "attempts": 1,
+            "bytes": 50,
+            "retry_delays_seconds": [],
+            "sha256": "b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc",
+            "status": 200,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "result_json": "{\"objects\":[{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/1.json\",\"path\":\"000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":0,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-result:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+      },
+      "initial": null,
+      "name": "baseline",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [
+        {
+          "body_hex": "",
+          "headers": {
+            "Content-Length": "0",
+            "Content-Type": "application/json; charset=utf-8",
+            "Location": "https://web.archive.org/web/20250102000000id_/https://example.test/request/1.json"
+          },
+          "status": 302
+        },
+        {
+          "body_hex": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a",
+          "headers": {
+            "Content-Length": "50",
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "status": 200
+        }
+      ],
+      "expected": {
+        "calls": [
+          {
+            "byte_cap": 1024,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          },
+          {
+            "byte_cap": 1024,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250102000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "checkpoint_json": "{\"checkpoint_sha256\":\"e634422406d66ecd6df91ec31b9c3116e9c38cfb3badb983076614d56b137d23\",\"completed\":[{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250102000000id_/https://example.test/request/1.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/1.json\",\"path\":\"000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":0,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250101000000\"}],\"config\":{\"allowed_target_host\":\"example.test\",\"max_payload_bytes\":1024,\"replay_origin\":\"https://web.archive.org\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"},\"config_sha256\":\"2ebc343e18287cde52f4d877e70659afed96132af696d0911a31c13d32813bf4\",\"next_position\":1,\"schema\":\"urn:fyi-cli:internet-archive-replay-checkpoint:1\"}\n",
+        "error": null,
+        "files": {
+          "000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a"
+        },
+        "observations": [
+          {
+            "attempts": 1,
+            "bytes": 0,
+            "retry_delays_seconds": [],
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "status": 302,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          },
+          {
+            "attempts": 1,
+            "bytes": 50,
+            "retry_delays_seconds": [],
+            "sha256": "b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc",
+            "status": 200,
+            "url": "https://web.archive.org/web/20250102000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "result_json": "{\"objects\":[{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250102000000id_/https://example.test/request/1.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/1.json\",\"path\":\"000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":0,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-result:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+      },
+      "initial": null,
+      "name": "same_target_redirect",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [
+        {
+          "body_hex": "",
+          "headers": {
+            "Content-Length": "0",
+            "Content-Type": "application/json; charset=utf-8",
+            "Location": "https://web.archive.org/web/20250102000000id_/https://example.test/request/1.json?view=raw&n=2"
+          },
+          "status": 307
+        },
+        {
+          "body_hex": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a",
+          "headers": {
+            "Content-Length": "50",
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "status": 200
+        }
+      ],
+      "expected": {
+        "calls": [
+          {
+            "byte_cap": 1024,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json?view=raw&n=2"
+          },
+          {
+            "byte_cap": 1024,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250102000000id_/https://example.test/request/1.json?view=raw&n=2"
+          }
+        ],
+        "checkpoint_json": "{\"checkpoint_sha256\":\"5c830a2aff42ee172bf77b71302bfac175b5bf4eacfe2472a2522d084c5b853f\",\"completed\":[{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250102000000id_/https://example.test/request/1.json?view=raw&n=2\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/1.json?view=raw&n=2\",\"path\":\"000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":0,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250101000000\"}],\"config\":{\"allowed_target_host\":\"example.test\",\"max_payload_bytes\":1024,\"replay_origin\":\"https://web.archive.org\",\"selection_sha256\":\"bc32533ea943989c021b470b4940e73fd42f0b6ea8b564d4bfc58993f5cb2ab8\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"},\"config_sha256\":\"e6ae73411779d9686c243ee45ec48fa249f799fe4930e0910894243b9eba70f1\",\"next_position\":1,\"schema\":\"urn:fyi-cli:internet-archive-replay-checkpoint:1\"}\n",
+        "error": null,
+        "files": {
+          "000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a"
+        },
+        "observations": [
+          {
+            "attempts": 1,
+            "bytes": 0,
+            "retry_delays_seconds": [],
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "status": 307,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json?view=raw&n=2"
+          },
+          {
+            "attempts": 1,
+            "bytes": 50,
+            "retry_delays_seconds": [],
+            "sha256": "b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc",
+            "status": 200,
+            "url": "https://web.archive.org/web/20250102000000id_/https://example.test/request/1.json?view=raw&n=2"
+          }
+        ],
+        "result_json": "{\"objects\":[{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250102000000id_/https://example.test/request/1.json?view=raw&n=2\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/1.json?view=raw&n=2\",\"path\":\"000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":0,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-result:1\",\"selection_sha256\":\"bc32533ea943989c021b470b4940e73fd42f0b6ea8b564d4bfc58993f5cb2ab8\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+      },
+      "initial": null,
+      "name": "query_target_redirect",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json?view=raw&n=2\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"bc32533ea943989c021b470b4940e73fd42f0b6ea8b564d4bfc58993f5cb2ab8\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [
+        {
+          "body_hex": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a",
+          "headers": {
+            "Content-Length": "50",
+            "Content-Type": "text/plain"
+          },
+          "status": 200
+        }
+      ],
+      "expected": {
+        "calls": [
+          {
+            "byte_cap": 1024,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "checkpoint_json": "{\"checkpoint_sha256\":\"0c9431477f09612e4c41d96214478b4b3984b3b65382bc711038a2f65b5b658a\",\"completed\":[{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json\",\"media_type\":\"text/plain\",\"original\":\"https://example.test/request/1.json\",\"path\":\"000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":0,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250101000000\"}],\"config\":{\"allowed_target_host\":\"example.test\",\"max_payload_bytes\":1024,\"replay_origin\":\"https://web.archive.org\",\"selection_sha256\":\"f8a3eb24fcfa5f024491422ac2038940dfb7871c312e2196d81593cb96a21d9c\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"},\"config_sha256\":\"fded11b97a3273fc55122e4c5eef893b279ad11f02d934897c5e30a23880de69\",\"next_position\":1,\"schema\":\"urn:fyi-cli:internet-archive-replay-checkpoint:1\"}\n",
+        "error": null,
+        "files": {
+          "000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a"
+        },
+        "observations": [
+          {
+            "attempts": 1,
+            "bytes": 50,
+            "retry_delays_seconds": [],
+            "sha256": "b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc",
+            "status": 200,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "result_json": "{\"objects\":[{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json\",\"media_type\":\"text/plain\",\"original\":\"https://example.test/request/1.json\",\"path\":\"000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":0,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-result:1\",\"selection_sha256\":\"f8a3eb24fcfa5f024491422ac2038940dfb7871c312e2196d81593cb96a21d9c\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+      },
+      "initial": null,
+      "name": "optional_media_type",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"f8a3eb24fcfa5f024491422ac2038940dfb7871c312e2196d81593cb96a21d9c\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [
+        {
+          "body_hex": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a",
+          "headers": {
+            "Content-Length": "50",
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "status": 200
+        },
+        {
+          "body_hex": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a",
+          "headers": {
+            "Content-Length": "50",
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "status": 200
+        }
+      ],
+      "expected": {
+        "calls": [
+          {
+            "byte_cap": 1024,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          },
+          {
+            "byte_cap": 1024,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250202000000id_/https://example.test/request/2.json"
+          }
+        ],
+        "checkpoint_json": "{\"checkpoint_sha256\":\"05ae69b7a9fc198cebee7c86557d449d1c174651097c0635c30aa53a53c7c221\",\"completed\":[{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/1.json\",\"path\":\"000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":0,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250101000000\"},{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250202000000id_/https://example.test/request/2.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/2.json\",\"path\":\"000009-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":9,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250202000000\"}],\"config\":{\"allowed_target_host\":\"example.test\",\"max_payload_bytes\":1024,\"replay_origin\":\"https://web.archive.org\",\"selection_sha256\":\"65beb96abfdebb8015bbec246bfe4124474a9bd7bbc5e1e80d6b927319a9cbdb\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"},\"config_sha256\":\"b368247f2020cce3d7c94bb1386ef2b539e5d95cf94fc1a563241a99b4f3d983\",\"next_position\":2,\"schema\":\"urn:fyi-cli:internet-archive-replay-checkpoint:1\"}\n",
+        "error": null,
+        "files": {
+          "000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a",
+          "000009-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a"
+        },
+        "observations": [
+          {
+            "attempts": 1,
+            "bytes": 50,
+            "retry_delays_seconds": [],
+            "sha256": "b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc",
+            "status": 200,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          },
+          {
+            "attempts": 1,
+            "bytes": 50,
+            "retry_delays_seconds": [],
+            "sha256": "b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc",
+            "status": 200,
+            "url": "https://web.archive.org/web/20250202000000id_/https://example.test/request/2.json"
+          }
+        ],
+        "result_json": "{\"objects\":[{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/1.json\",\"path\":\"000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":0,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250101000000\"},{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250202000000id_/https://example.test/request/2.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/2.json\",\"path\":\"000009-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":9,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250202000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-result:1\",\"selection_sha256\":\"65beb96abfdebb8015bbec246bfe4124474a9bd7bbc5e1e80d6b927319a9cbdb\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+      },
+      "initial": null,
+      "name": "two_rows",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"},{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/2.json\",\"row_index\":9,\"timestamp\":\"20250202000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"65beb96abfdebb8015bbec246bfe4124474a9bd7bbc5e1e80d6b927319a9cbdb\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [
+        {
+          "body_hex": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a",
+          "headers": {
+            "Content-Length": "50",
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "status": 200
+        },
+        {
+          "error": "retryable"
+        }
+      ],
+      "expected": {
+        "calls": [
+          {
+            "byte_cap": 1024,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          },
+          {
+            "byte_cap": 1024,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250202000000id_/https://example.test/request/2.json"
+          }
+        ],
+        "checkpoint_json": "{\"checkpoint_sha256\":\"47b21d348b8d281d49a50bba9b0d505967532c4e56466b8434227d914a360a1b\",\"completed\":[{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/1.json\",\"path\":\"000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":0,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250101000000\"}],\"config\":{\"allowed_target_host\":\"example.test\",\"max_payload_bytes\":1024,\"replay_origin\":\"https://web.archive.org\",\"selection_sha256\":\"65beb96abfdebb8015bbec246bfe4124474a9bd7bbc5e1e80d6b927319a9cbdb\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"},\"config_sha256\":\"b368247f2020cce3d7c94bb1386ef2b539e5d95cf94fc1a563241a99b4f3d983\",\"next_position\":1,\"schema\":\"urn:fyi-cli:internet-archive-replay-checkpoint:1\"}\n",
+        "error": {
+          "message": "synthetic offline transport failure",
+          "type": "ConnectError"
+        },
+        "files": {
+          "000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a"
+        },
+        "observations": [
+          {
+            "attempts": 1,
+            "bytes": 50,
+            "retry_delays_seconds": [],
+            "sha256": "b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc",
+            "status": 200,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "result_json": null
+      },
+      "initial": null,
+      "name": "partial_failure",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"},{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/2.json\",\"row_index\":9,\"timestamp\":\"20250202000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"65beb96abfdebb8015bbec246bfe4124474a9bd7bbc5e1e80d6b927319a9cbdb\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [
+        {
+          "body_hex": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a",
+          "headers": {
+            "Content-Length": "50",
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "status": 200
+        }
+      ],
+      "expected": {
+        "calls": [
+          {
+            "byte_cap": 1024,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250202000000id_/https://example.test/request/2.json"
+          }
+        ],
+        "checkpoint_json": "{\"checkpoint_sha256\":\"05ae69b7a9fc198cebee7c86557d449d1c174651097c0635c30aa53a53c7c221\",\"completed\":[{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/1.json\",\"path\":\"000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":0,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250101000000\"},{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250202000000id_/https://example.test/request/2.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/2.json\",\"path\":\"000009-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":9,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250202000000\"}],\"config\":{\"allowed_target_host\":\"example.test\",\"max_payload_bytes\":1024,\"replay_origin\":\"https://web.archive.org\",\"selection_sha256\":\"65beb96abfdebb8015bbec246bfe4124474a9bd7bbc5e1e80d6b927319a9cbdb\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"},\"config_sha256\":\"b368247f2020cce3d7c94bb1386ef2b539e5d95cf94fc1a563241a99b4f3d983\",\"next_position\":2,\"schema\":\"urn:fyi-cli:internet-archive-replay-checkpoint:1\"}\n",
+        "error": null,
+        "files": {
+          "000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a",
+          "000009-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a"
+        },
+        "observations": [
+          {
+            "attempts": 1,
+            "bytes": 50,
+            "retry_delays_seconds": [],
+            "sha256": "b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc",
+            "status": 200,
+            "url": "https://web.archive.org/web/20250202000000id_/https://example.test/request/2.json"
+          }
+        ],
+        "result_json": "{\"objects\":[{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/1.json\",\"path\":\"000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":0,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250101000000\"},{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250202000000id_/https://example.test/request/2.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/2.json\",\"path\":\"000009-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":9,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250202000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-result:1\",\"selection_sha256\":\"65beb96abfdebb8015bbec246bfe4124474a9bd7bbc5e1e80d6b927319a9cbdb\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+      },
+      "initial": {
+        "checkpoint_json": "{\"checkpoint_sha256\":\"47b21d348b8d281d49a50bba9b0d505967532c4e56466b8434227d914a360a1b\",\"completed\":[{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/1.json\",\"path\":\"000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":0,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250101000000\"}],\"config\":{\"allowed_target_host\":\"example.test\",\"max_payload_bytes\":1024,\"replay_origin\":\"https://web.archive.org\",\"selection_sha256\":\"65beb96abfdebb8015bbec246bfe4124474a9bd7bbc5e1e80d6b927319a9cbdb\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"},\"config_sha256\":\"b368247f2020cce3d7c94bb1386ef2b539e5d95cf94fc1a563241a99b4f3d983\",\"next_position\":1,\"schema\":\"urn:fyi-cli:internet-archive-replay-checkpoint:1\"}\n",
+        "files": {
+          "000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a"
+        }
+      },
+      "name": "resume_partial",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"},{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/2.json\",\"row_index\":9,\"timestamp\":\"20250202000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"65beb96abfdebb8015bbec246bfe4124474a9bd7bbc5e1e80d6b927319a9cbdb\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [],
+      "expected": {
+        "calls": [],
+        "checkpoint_json": "{\"checkpoint_sha256\":\"2f5322e880802dbad12229be2ea1be548b68465697bf8f29ff10df9038203bb2\",\"completed\":[{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/1.json\",\"path\":\"000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":0,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250101000000\"}],\"config\":{\"allowed_target_host\":\"example.test\",\"max_payload_bytes\":1024,\"replay_origin\":\"https://web.archive.org\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"},\"config_sha256\":\"2ebc343e18287cde52f4d877e70659afed96132af696d0911a31c13d32813bf4\",\"next_position\":1,\"schema\":\"urn:fyi-cli:internet-archive-replay-checkpoint:1\"}\n",
+        "error": null,
+        "files": {
+          "000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a"
+        },
+        "observations": [],
+        "result_json": "{\"objects\":[{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/1.json\",\"path\":\"000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":0,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-result:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+      },
+      "initial": {
+        "checkpoint_json": "{\"checkpoint_sha256\":\"2f5322e880802dbad12229be2ea1be548b68465697bf8f29ff10df9038203bb2\",\"completed\":[{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/1.json\",\"path\":\"000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":0,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250101000000\"}],\"config\":{\"allowed_target_host\":\"example.test\",\"max_payload_bytes\":1024,\"replay_origin\":\"https://web.archive.org\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"},\"config_sha256\":\"2ebc343e18287cde52f4d877e70659afed96132af696d0911a31c13d32813bf4\",\"next_position\":1,\"schema\":\"urn:fyi-cli:internet-archive-replay-checkpoint:1\"}\n",
+        "files": {
+          "000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a"
+        }
+      },
+      "name": "resume_complete",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [
+        {
+          "error": "retryable"
+        }
+      ],
+      "expected": {
+        "calls": [
+          {
+            "byte_cap": 1024,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "checkpoint_json": null,
+        "error": {
+          "message": "synthetic offline transport failure",
+          "type": "ConnectError"
+        },
+        "files": {},
+        "observations": [],
+        "result_json": null
+      },
+      "initial": null,
+      "name": "transport_failure_no_retry",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [
+        {
+          "body_hex": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a",
+          "headers": {
+            "Content-Length": "50",
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "status": 404
+        }
+      ],
+      "expected": {
+        "calls": [
+          {
+            "byte_cap": 1024,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "checkpoint_json": null,
+        "error": {
+          "message": "Wayback response status does not match approval",
+          "type": "ReplayError"
+        },
+        "files": {},
+        "observations": [
+          {
+            "attempts": 1,
+            "bytes": 50,
+            "retry_delays_seconds": [],
+            "sha256": "b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc",
+            "status": 404,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "result_json": null
+      },
+      "initial": null,
+      "name": "status_mismatch",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [
+        {
+          "body_hex": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a",
+          "headers": {
+            "Content-Length": "invalid",
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "status": 200
+        }
+      ],
+      "expected": {
+        "calls": [
+          {
+            "byte_cap": 1024,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "checkpoint_json": null,
+        "error": {
+          "message": "Wayback declared length is invalid",
+          "type": "ReplayError"
+        },
+        "files": {},
+        "observations": [
+          {
+            "attempts": 1,
+            "bytes": 50,
+            "retry_delays_seconds": [],
+            "sha256": "b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc",
+            "status": 200,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "result_json": null
+      },
+      "initial": null,
+      "name": "declared_length_invalid",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [
+        {
+          "body_hex": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a",
+          "headers": {
+            "Content-Length": "49",
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "status": 200
+        }
+      ],
+      "expected": {
+        "calls": [
+          {
+            "byte_cap": 1024,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "checkpoint_json": null,
+        "error": {
+          "message": "Wayback declared length does not match payload",
+          "type": "ReplayError"
+        },
+        "files": {},
+        "observations": [
+          {
+            "attempts": 1,
+            "bytes": 50,
+            "retry_delays_seconds": [],
+            "sha256": "b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc",
+            "status": 200,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "result_json": null
+      },
+      "initial": null,
+      "name": "declared_length_mismatch",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [
+        {
+          "body_hex": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a",
+          "headers": {
+            "Content-Length": "50",
+            "Content-Type": "text/plain"
+          },
+          "status": 200
+        }
+      ],
+      "expected": {
+        "calls": [
+          {
+            "byte_cap": 1024,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "checkpoint_json": null,
+        "error": {
+          "message": "Wayback media type does not match approval",
+          "type": "ReplayError"
+        },
+        "files": {},
+        "observations": [
+          {
+            "attempts": 1,
+            "bytes": 50,
+            "retry_delays_seconds": [],
+            "sha256": "b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc",
+            "status": 200,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "result_json": null
+      },
+      "initial": null,
+      "name": "media_type_mismatch",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [
+        {
+          "body_hex": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a",
+          "headers": {
+            "Content-Length": "50",
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "status": 200
+        }
+      ],
+      "expected": {
+        "calls": [
+          {
+            "byte_cap": 1024,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "checkpoint_json": null,
+        "error": {
+          "message": "Wayback payload length does not match approval",
+          "type": "ReplayError"
+        },
+        "files": {},
+        "observations": [
+          {
+            "attempts": 1,
+            "bytes": 50,
+            "retry_delays_seconds": [],
+            "sha256": "b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc",
+            "status": 200,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "result_json": null
+      },
+      "initial": null,
+      "name": "payload_length_mismatch",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":49,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"92dd7680d2fe9e1892e6c464a9289b76c8c3072eb2d0006817215902fb559bb8\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [
+        {
+          "body_hex": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a",
+          "headers": {
+            "Content-Length": "50",
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "status": 200
+        }
+      ],
+      "expected": {
+        "calls": [
+          {
+            "byte_cap": 1024,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "checkpoint_json": null,
+        "error": {
+          "message": "Wayback payload digest does not match approval",
+          "type": "ReplayError"
+        },
+        "files": {},
+        "observations": [
+          {
+            "attempts": 1,
+            "bytes": 50,
+            "retry_delays_seconds": [],
+            "sha256": "b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc",
+            "status": 200,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "result_json": null
+      },
+      "initial": null,
+      "name": "payload_digest_mismatch",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"a608559bf0c2b86261e9c4090f31277655c0f43a684b2e70bcd031019312c3d3\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [
+        {
+          "body_hex": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a",
+          "headers": {
+            "Content-Length": "50",
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "status": 200,
+          "url": "https://web.archive.org/web/20250102000000id_/https://example.test/request/1.json"
+        }
+      ],
+      "expected": {
+        "calls": [
+          {
+            "byte_cap": 1024,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "checkpoint_json": null,
+        "error": {
+          "message": "Wayback transport response URL differs from its request",
+          "type": "ReplayError"
+        },
+        "files": {},
+        "observations": [],
+        "result_json": null
+      },
+      "initial": null,
+      "name": "response_url_mismatch",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [
+        {
+          "body_hex": "",
+          "headers": {
+            "Content-Length": "0",
+            "Content-Type": "application/json; charset=utf-8",
+            "Location": "https://other.test/web/20250102000000id_/https://example.test/request/1.json"
+          },
+          "status": 302
+        }
+      ],
+      "expected": {
+        "calls": [
+          {
+            "byte_cap": 1024,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "checkpoint_json": null,
+        "error": {
+          "message": "Wayback redirect escaped the archive host allowlist",
+          "type": "ReplayError"
+        },
+        "files": {},
+        "observations": [
+          {
+            "attempts": 1,
+            "bytes": 0,
+            "retry_delays_seconds": [],
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "status": 302,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "result_json": null
+      },
+      "initial": null,
+      "name": "redirect_other_origin",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [
+        {
+          "body_hex": "",
+          "headers": {
+            "Content-Length": "0",
+            "Content-Type": "application/json; charset=utf-8",
+            "Location": "/web/20250102000000id_/https://example.test/request/1.json"
+          },
+          "status": 302
+        }
+      ],
+      "expected": {
+        "calls": [
+          {
+            "byte_cap": 1024,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "checkpoint_json": null,
+        "error": {
+          "message": "Wayback redirect must be an absolute approved URL",
+          "type": "ReplayError"
+        },
+        "files": {},
+        "observations": [
+          {
+            "attempts": 1,
+            "bytes": 0,
+            "retry_delays_seconds": [],
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "status": 302,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "result_json": null
+      },
+      "initial": null,
+      "name": "redirect_relative",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [
+        {
+          "body_hex": "",
+          "headers": {
+            "Content-Length": "0",
+            "Content-Type": "application/json; charset=utf-8",
+            "Location": "https://web.archive.org/web/20250102000000id_/https://example.test/request/2.json"
+          },
+          "status": 302
+        }
+      ],
+      "expected": {
+        "calls": [
+          {
+            "byte_cap": 1024,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "checkpoint_json": null,
+        "error": {
+          "message": "Wayback redirect changed the approved target",
+          "type": "ReplayError"
+        },
+        "files": {},
+        "observations": [
+          {
+            "attempts": 1,
+            "bytes": 0,
+            "retry_delays_seconds": [],
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "status": 302,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "result_json": null
+      },
+      "initial": null,
+      "name": "redirect_changed_target",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [
+        {
+          "body_hex": "",
+          "headers": {
+            "Content-Length": "0",
+            "Content-Type": "application/json; charset=utf-8",
+            "Location": "https://web.archive.org:444/web/20250102000000id_/https://example.test/request/1.json"
+          },
+          "status": 302
+        }
+      ],
+      "expected": {
+        "calls": [
+          {
+            "byte_cap": 1024,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "checkpoint_json": null,
+        "error": {
+          "message": "Wayback redirect escaped the archive host allowlist",
+          "type": "ReplayError"
+        },
+        "files": {},
+        "observations": [
+          {
+            "attempts": 1,
+            "bytes": 0,
+            "retry_delays_seconds": [],
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "status": 302,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "result_json": null
+      },
+      "initial": null,
+      "name": "redirect_wrong_port",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 0,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [
+        {
+          "body_hex": "",
+          "headers": {
+            "Content-Length": "0",
+            "Content-Type": "application/json; charset=utf-8",
+            "Location": "https://web.archive.org/web/20250102000000id_/https://example.test/request/1.json"
+          },
+          "status": 302
+        }
+      ],
+      "expected": {
+        "calls": [
+          {
+            "byte_cap": 1024,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "checkpoint_json": null,
+        "error": {
+          "message": "Wayback redirect limit exceeded",
+          "type": "ReplayError"
+        },
+        "files": {},
+        "observations": [
+          {
+            "attempts": 1,
+            "bytes": 0,
+            "retry_delays_seconds": [],
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "status": 302,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "result_json": null
+      },
+      "initial": null,
+      "name": "redirect_budget",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 50,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [
+        {
+          "body_hex": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a78",
+          "headers": {
+            "Content-Length": "51",
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "status": 200
+        }
+      ],
+      "expected": {
+        "calls": [
+          {
+            "byte_cap": 50,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "checkpoint_json": null,
+        "error": {
+          "message": "Wayback response exceeded the byte cap",
+          "type": "ReplayError"
+        },
+        "files": {},
+        "observations": [],
+        "result_json": null
+      },
+      "initial": null,
+      "name": "response_byte_cap",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "other.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [],
+      "expected": {
+        "calls": [],
+        "checkpoint_json": null,
+        "error": {
+          "message": "approved row target host does not match allowed target host",
+          "type": "ValueError"
+        },
+        "files": {},
+        "observations": [],
+        "result_json": null
+      },
+      "initial": null,
+      "name": "wrong_allowed_target",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 1,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [],
+      "expected": {
+        "calls": [],
+        "checkpoint_json": null,
+        "error": {
+          "message": "approved replay selection exceeds max_rows",
+          "type": "ValueError"
+        },
+        "files": {},
+        "observations": [],
+        "result_json": null
+      },
+      "initial": null,
+      "name": "row_cap",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"},{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/2.json\",\"row_index\":9,\"timestamp\":\"20250202000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"65beb96abfdebb8015bbec246bfe4124474a9bd7bbc5e1e80d6b927319a9cbdb\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 49,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [],
+      "expected": {
+        "calls": [],
+        "checkpoint_json": null,
+        "error": {
+          "message": "approved payload length exceeds max_payload_bytes",
+          "type": "ValueError"
+        },
+        "files": {},
+        "observations": [],
+        "result_json": null
+      },
+      "initial": null,
+      "name": "approval_byte_cap",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [
+        {
+          "body_hex": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a",
+          "headers": {
+            "Content-Length": "50",
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "status": 200
+        }
+      ],
+      "expected": {
+        "calls": [
+          {
+            "byte_cap": 1024,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "checkpoint_json": "{\"checkpoint_sha256\":\"2f5322e880802dbad12229be2ea1be548b68465697bf8f29ff10df9038203bb2\",\"completed\":[{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/1.json\",\"path\":\"000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":0,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250101000000\"}],\"config\":{\"allowed_target_host\":\"example.test\",\"max_payload_bytes\":1024,\"replay_origin\":\"https://web.archive.org\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"},\"config_sha256\":\"2ebc343e18287cde52f4d877e70659afed96132af696d0911a31c13d32813bf4\",\"next_position\":1,\"schema\":\"urn:fyi-cli:internet-archive-replay-checkpoint:1\"}\n",
+        "error": null,
+        "files": {
+          "000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a"
+        },
+        "observations": [
+          {
+            "attempts": 1,
+            "bytes": 50,
+            "retry_delays_seconds": [],
+            "sha256": "b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc",
+            "status": 200,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "result_json": "{\"objects\":[{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/1.json\",\"path\":\"000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":0,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-result:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+      },
+      "initial": {
+        "files": {
+          "000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a"
+        }
+      },
+      "name": "matching_orphan",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [
+        {
+          "body_hex": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a",
+          "headers": {
+            "Content-Length": "50",
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "status": 200
+        }
+      ],
+      "expected": {
+        "calls": [
+          {
+            "byte_cap": 1024,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "checkpoint_json": null,
+        "error": {
+          "message": "replay object collision or corruption",
+          "type": "ValueError"
+        },
+        "files": {
+          "000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw": "6368616e676564"
+        },
+        "observations": [
+          {
+            "attempts": 1,
+            "bytes": 50,
+            "retry_delays_seconds": [],
+            "sha256": "b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc",
+            "status": 200,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "result_json": null
+      },
+      "initial": {
+        "files": {
+          "000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw": "6368616e676564"
+        }
+      },
+      "name": "conflicting_orphan",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [],
+      "expected": {
+        "calls": [],
+        "checkpoint_json": "{\"checkpoint_sha256\":\"2f5322e880802dbad12229be2ea1be548b68465697bf8f29ff10df9038203bb2\",\"completed\":[{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/1.json\",\"path\":\"000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":0,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250101000000\"}],\"config\":{\"allowed_target_host\":\"example.test\",\"max_payload_bytes\":1024,\"replay_origin\":\"https://web.archive.org\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"},\"config_sha256\":\"2ebc343e18287cde52f4d877e70659afed96132af696d0911a31c13d32813bf4\",\"next_position\":0,\"schema\":\"urn:fyi-cli:internet-archive-replay-checkpoint:1\"}\n",
+        "error": {
+          "message": "replay checkpoint self-digest mismatch",
+          "type": "ValueError"
+        },
+        "files": {
+          "000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a"
+        },
+        "observations": [],
+        "result_json": null
+      },
+      "initial": {
+        "checkpoint_json": "{\"checkpoint_sha256\":\"2f5322e880802dbad12229be2ea1be548b68465697bf8f29ff10df9038203bb2\",\"completed\":[{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/1.json\",\"path\":\"000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":0,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250101000000\"}],\"config\":{\"allowed_target_host\":\"example.test\",\"max_payload_bytes\":1024,\"replay_origin\":\"https://web.archive.org\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"},\"config_sha256\":\"2ebc343e18287cde52f4d877e70659afed96132af696d0911a31c13d32813bf4\",\"next_position\":0,\"schema\":\"urn:fyi-cli:internet-archive-replay-checkpoint:1\"}\n",
+        "files": {
+          "000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a"
+        }
+      },
+      "name": "checkpoint_self_digest_mismatch",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [
+        {
+          "body_hex": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a",
+          "headers": {
+            "Content-Length": "50",
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "status": 200
+        }
+      ],
+      "expected": {
+        "calls": [
+          {
+            "byte_cap": 1024,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "checkpoint_json": "{\"checkpoint_sha256\":\"d0fec7e21feb889ac2f5f46c54ce2b7e15b6796a970c6dd3b9a27b57e45c68af\",\"completed\":[{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/1.json\",\"path\":\"184467440737095516161234567890-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":184467440737095516161234567890,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250101000000\"}],\"config\":{\"allowed_target_host\":\"example.test\",\"max_payload_bytes\":1024,\"replay_origin\":\"https://web.archive.org\",\"selection_sha256\":\"15c867017d60a0effb08a61fc6b6f6fd718fc9a68c9fd325f2d41d52ebb01dee\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"},\"config_sha256\":\"85e227d18e067d26fb54ec4e40a90a843b0da36c6cfd3071b4c7bda4451d41a0\",\"next_position\":1,\"schema\":\"urn:fyi-cli:internet-archive-replay-checkpoint:1\"}\n",
+        "error": null,
+        "files": {
+          "184467440737095516161234567890-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a"
+        },
+        "observations": [
+          {
+            "attempts": 1,
+            "bytes": 50,
+            "retry_delays_seconds": [],
+            "sha256": "b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc",
+            "status": 200,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "result_json": "{\"objects\":[{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/1.json\",\"path\":\"184467440737095516161234567890-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":184467440737095516161234567890,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-result:1\",\"selection_sha256\":\"15c867017d60a0effb08a61fc6b6f6fd718fc9a68c9fd325f2d41d52ebb01dee\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+      },
+      "initial": null,
+      "name": "unbounded_selection_integers",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":9999999999999999999999999999999999999999,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":184467440737095516161234567890,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"15c867017d60a0effb08a61fc6b6f6fd718fc9a68c9fd325f2d41d52ebb01dee\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [
+        {
+          "body_hex": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a",
+          "headers": {
+            "Content-Length": "50",
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "status": 200
+        }
+      ],
+      "expected": {
+        "calls": [
+          {
+            "byte_cap": 1024,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "checkpoint_json": "{\"checkpoint_sha256\":\"2f5322e880802dbad12229be2ea1be548b68465697bf8f29ff10df9038203bb2\",\"completed\":[{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/1.json\",\"path\":\"000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":0,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250101000000\"}],\"config\":{\"allowed_target_host\":\"example.test\",\"max_payload_bytes\":1024,\"replay_origin\":\"https://web.archive.org\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"},\"config_sha256\":\"2ebc343e18287cde52f4d877e70659afed96132af696d0911a31c13d32813bf4\",\"next_position\":1,\"schema\":\"urn:fyi-cli:internet-archive-replay-checkpoint:1\"}\n",
+        "error": null,
+        "files": {
+          "000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a"
+        },
+        "observations": [
+          {
+            "attempts": 1,
+            "bytes": 50,
+            "retry_delays_seconds": [],
+            "sha256": "b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc",
+            "status": 200,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "result_json": "{\"objects\":[{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/1.json\",\"path\":\"000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":0,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-result:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+      },
+      "initial": null,
+      "name": "negative_zero_selection_integer",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":-0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    }
+  ],
+  "fixture_sha256": "4bae8c7c4d5e9fa86d09d39fcd5f77c08f41e74cbfb550bc68aa58c345ec77cd",
+  "invalid_configs": [
+    {
+      "config": {
+        "allowed_target_host": "Example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "error": "allowed_target_host must be a normalized lowercase hostname"
+    },
+    {
+      "config": {
+        "allowed_target_host": "localhost",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "error": "allowed_host must be a valid public DNS hostname"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 0,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "error": "max_rows must be between 1 and 10000"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10001,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "error": "max_rows must be between 1 and 10000"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 0,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "error": "max_payload_bytes must be between 1 and 16777216"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 16777217,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "error": "max_payload_bytes must be between 1 and 16777216"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": -1,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "error": "max_redirects must be between 0 and 5"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 6,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "error": "max_redirects must be between 0 and 5"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 0.0,
+        "request_timeout_seconds": 5.0
+      },
+      "error": "max_runtime_seconds must be positive"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": -1.0
+      },
+      "error": "request_timeout_seconds must be positive"
+    }
+  ],
+  "invalid_selections": [
+    {
+      "error": {
+        "message": "invalid replay selection: Additional properties are not allowed ('extra' was unexpected)",
+        "type": "ValueError"
+      },
+      "name": "unknown_top",
+      "selection_json": "{\"extra\":true,\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"4bdbca24946133d4805da213774a7597014c445092ec6e5c0fc021e2c70b0eaa\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "error": {
+        "message": "invalid replay selection: Additional properties are not allowed ('extra' was unexpected)",
+        "type": "ValueError"
+      },
+      "name": "unknown_row",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"extra\":true,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"48ada2fff95d2d7a45fb6d870fecb63a67a82be3eb2fe49df1200e640aacd437\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "error": {
+        "message": "invalid replay selection: [] should be non-empty",
+        "type": "ValueError"
+      },
+      "name": "empty_rows",
+      "selection_json": "{\"rows\":[],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"53d9cae7c255fe88bee860883e6715719333a63eefd7ea906b93039180c6cd11\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "error": {
+        "message": "invalid replay selection: 'xyz' does not match '^[0-9a-f]{64}$'",
+        "type": "ValueError"
+      },
+      "name": "source_pin",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"74e93be6738a6117641d7e045c63f428d42643deb88fb50fe31221ed14bbf55e\",\"source_cdx_sha256\":\"xyz\"}\n"
+    },
+    {
+      "error": {
+        "message": "invalid replay selection: -1 is less than the minimum of 0",
+        "type": "ValueError"
+      },
+      "name": "negative_index",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":-1,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"bee9b219d48e533cd77b6f665fc1b442414419e558fce2bf302513492603d4f7\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "error": {
+        "message": "invalid replay selection: True is not of type 'integer'",
+        "type": "ValueError"
+      },
+      "name": "bool_index",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":true,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"38131435ccf38e2398f37c02affdeb419b3e2eeb4249053b7bdcc767d911e7b6\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "error": {
+        "message": "invalid replay selection: 0.5 is not of type 'integer'",
+        "type": "ValueError"
+      },
+      "name": "fractional_index",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0.5,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"1e5697d01dee445c59b033634ba316fd196d7af04d9e0a81e2bfc5cca961480b\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "error": {
+        "message": "invalid replay selection: '2025' does not match '^[0-9]{14}$'",
+        "type": "ValueError"
+      },
+      "name": "timestamp_width",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"2025\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"044ad1c48429082d2254b7e6729c4891e7659e95f0d018ca1383a668bdd657bd\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "error": {
+        "message": "invalid replay selection: '２２２２２２２２２２２２２２' does not match '^[0-9]{14}$'",
+        "type": "ValueError"
+      },
+      "name": "timestamp_non_ascii",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"２２２２２２２２２２２２２２\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"d91c4c92d3a3d80de866151223212941bd8661aa7b3fd87add196153d99c0859\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "error": {
+        "message": "invalid replay selection: '' should be non-empty",
+        "type": "ValueError"
+      },
+      "name": "empty_cdx_digest",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"469a8026319fa6d877094ea45f3e4790c5a41cc7882c975d853c56ed96fc2dfa\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "error": {
+        "message": "invalid replay selection: 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' is too long",
+        "type": "ValueError"
+      },
+      "name": "long_cdx_digest",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"491b6a00e9d33000993efce6f4f4672f9c74772bedf39389d60f121153e0b114\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "error": {
+        "message": "invalid replay selection: 600 is greater than the maximum of 599",
+        "type": "ValueError"
+      },
+      "name": "cdx_status",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":600,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"b7c452f1d7e1cf7879a9feb6eb641d0cae66ce244a5c6e52a583fcac05c8b676\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "error": {
+        "message": "invalid replay selection: 99 is less than the minimum of 100",
+        "type": "ValueError"
+      },
+      "name": "expected_status",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":99,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"912d32698cefc9ceef4d88e5399e44d05e6af3aa3a95251f2ed15c8270383050\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "error": {
+        "message": "invalid replay selection: -1 is less than the minimum of 0",
+        "type": "ValueError"
+      },
+      "name": "negative_length",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":-1,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"844980c154d13b8b25564c7ac3b4ff9a2523f0522d1381778280a6824441778e\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "error": {
+        "message": "invalid replay selection: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' does not match '^[0-9a-f]{64}$'",
+        "type": "ValueError"
+      },
+      "name": "uppercase_payload_pin",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"2105e5028eee1f236151713a8b3be382eeb8900dac2eb764f4650a29084f8f0b\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "error": {
+        "message": "invalid replay selection: 'Application/JSON' does not match '^[a-z0-9.+-]+/[a-z0-9.+-]+$'",
+        "type": "ValueError"
+      },
+      "name": "invalid_media_type",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"Application/JSON\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"58f7ad098db19aff4d521fd580f327f4527dc8b3da525319c0eb80791c8b3bc6\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "error": {
+        "message": "invalid replay selection: 'http://example.test/request/1.json' does not match '^https://'",
+        "type": "ValueError"
+      },
+      "name": "http_original",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"http://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"2419f9616fdd480ebb246419b42379973bbf842e97ad12b5cb7db7f32307c5ef\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "error": {
+        "message": "original must be a canonical HTTPS URL",
+        "type": "ValueError"
+      },
+      "name": "credentials",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://name@example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"1682d0825b5ea7ce4bd85d6263605481ff0217f501e89cde6d080b9529833ef0\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "error": {
+        "message": "original must be a canonical HTTPS URL",
+        "type": "ValueError"
+      },
+      "name": "fragment",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json#part\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"b2d131386a9d4b6fdd7be8233f1d3662d9bc57ec8d6fc7eeacb896215ef447d4\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "error": {
+        "message": "original must be a canonical HTTPS URL",
+        "type": "ValueError"
+      },
+      "name": "dot_segments",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/a/../request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"805a566d8e3bf557f323a5f7462e04338ddedadaa9327670779cf52772e95b79\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "error": {
+        "message": "original must be a canonical HTTPS URL",
+        "type": "ValueError"
+      },
+      "name": "root_without_slash",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"ef5e1f22335a2d0bbd95ede93e59ca1c73708c542690d8ae44a652f2e78da170\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "error": {
+        "message": "approved replay rows must have unique URL/timestamp identities",
+        "type": "ValueError"
+      },
+      "name": "duplicate_identity",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"},{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":1,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"3421417859e896c0bd7de6dbba8afe38442f07a888c1734ebdea90bcf0571e18\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "error": {
+        "message": "approved replay row indexes must be unique and ordered",
+        "type": "ValueError"
+      },
+      "name": "unordered_indexes",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":2,\"timestamp\":\"20250101000000\"},{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/2.json\",\"row_index\":1,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"dd169f0f5e3e267600fcda4a344e15e6297d9f2630d8e187cb86ab935beddc92\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "error": {
+        "message": "invalid replay selection: selection_sha256 mismatch",
+        "type": "ValueError"
+      },
+      "name": "selection_pin",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    }
+  ],
+  "legacy_negative_evidence": [
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [
+        {
+          "body_hex": "1f8b08000000000000ffab562a4a2d2c4d2d2e51b2522aaecc2bc9482dc94cd635303054d2512a2e492c292d0649942627a71617a795e628d57201005683991b32000000",
+          "headers": {
+            "Content-Encoding": "gzip",
+            "Content-Length": "68",
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "status": 200
+        }
+      ],
+      "expected": {
+        "calls": [
+          {
+            "byte_cap": 1024,
+            "timeout_seconds": 5.0,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "checkpoint_json": null,
+        "error": {
+          "message": "Wayback declared length does not match payload",
+          "type": "ReplayError"
+        },
+        "files": {},
+        "observations": [
+          {
+            "attempts": 1,
+            "bytes": 50,
+            "retry_delays_seconds": [],
+            "sha256": "b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc",
+            "status": 200,
+            "url": "https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json"
+          }
+        ],
+        "result_json": null
+      },
+      "initial": null,
+      "name": "legacy_encoded_length_failure",
+      "native_expected_checkpoint_json": "{\"checkpoint_sha256\":\"2f5322e880802dbad12229be2ea1be548b68465697bf8f29ff10df9038203bb2\",\"completed\":[{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/1.json\",\"path\":\"000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":0,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250101000000\"}],\"config\":{\"allowed_target_host\":\"example.test\",\"max_payload_bytes\":1024,\"replay_origin\":\"https://web.archive.org\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"},\"config_sha256\":\"2ebc343e18287cde52f4d877e70659afed96132af696d0911a31c13d32813bf4\",\"next_position\":1,\"schema\":\"urn:fyi-cli:internet-archive-replay-checkpoint:1\"}\n",
+      "native_expected_result_json": "{\"objects\":[{\"bytes\":50,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/1.json\",\"path\":\"000000-b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc.raw\",\"row_index\":0,\"sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"status\":200,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-result:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    },
+    {
+      "config": {
+        "allowed_target_host": "example.test",
+        "max_payload_bytes": 1024,
+        "max_redirects": 2,
+        "max_rows": 10,
+        "max_runtime_seconds": 60.0,
+        "request_timeout_seconds": 5.0
+      },
+      "events": [],
+      "expected": {
+        "calls": [],
+        "checkpoint_json": "{\"checkpoint_sha256\":\"7da27e11d42562dc6dfc12af8e400271a69ef8fe36ce7ad0a365399dd89d2db4\",\"completed\":[{\"bytes\":25,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/1.json\",\"path\":\"000000-dc307c0b675e0ecbf1e6d06eb34873d42814d8a3f286572acdacbb52f511cd65.raw\",\"row_index\":0,\"sha256\":\"dc307c0b675e0ecbf1e6d06eb34873d42814d8a3f286572acdacbb52f511cd65\",\"status\":200,\"timestamp\":\"20250101000000\"}],\"config\":{\"allowed_target_host\":\"example.test\",\"max_payload_bytes\":1024,\"replay_origin\":\"https://web.archive.org\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"},\"config_sha256\":\"2ebc343e18287cde52f4d877e70659afed96132af696d0911a31c13d32813bf4\",\"next_position\":1,\"schema\":\"urn:fyi-cli:internet-archive-replay-checkpoint:1\"}\n",
+        "error": null,
+        "files": {
+          "000000-dc307c0b675e0ecbf1e6d06eb34873d42814d8a3f286572acdacbb52f511cd65.raw": "73796e74686574696320616c7465726564207061796c6f6164"
+        },
+        "observations": [],
+        "result_json": "{\"objects\":[{\"bytes\":25,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/1.json\",\"path\":\"000000-dc307c0b675e0ecbf1e6d06eb34873d42814d8a3f286572acdacbb52f511cd65.raw\",\"row_index\":0,\"sha256\":\"dc307c0b675e0ecbf1e6d06eb34873d42814d8a3f286572acdacbb52f511cd65\",\"status\":200,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-result:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+      },
+      "initial": {
+        "checkpoint_json": "{\"checkpoint_sha256\":\"7da27e11d42562dc6dfc12af8e400271a69ef8fe36ce7ad0a365399dd89d2db4\",\"completed\":[{\"bytes\":25,\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"final_url\":\"https://web.archive.org/web/20250101000000id_/https://example.test/request/1.json\",\"media_type\":\"application/json\",\"original\":\"https://example.test/request/1.json\",\"path\":\"000000-dc307c0b675e0ecbf1e6d06eb34873d42814d8a3f286572acdacbb52f511cd65.raw\",\"row_index\":0,\"sha256\":\"dc307c0b675e0ecbf1e6d06eb34873d42814d8a3f286572acdacbb52f511cd65\",\"status\":200,\"timestamp\":\"20250101000000\"}],\"config\":{\"allowed_target_host\":\"example.test\",\"max_payload_bytes\":1024,\"replay_origin\":\"https://web.archive.org\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"},\"config_sha256\":\"2ebc343e18287cde52f4d877e70659afed96132af696d0911a31c13d32813bf4\",\"next_position\":1,\"schema\":\"urn:fyi-cli:internet-archive-replay-checkpoint:1\"}\n",
+        "files": {
+          "000000-dc307c0b675e0ecbf1e6d06eb34873d42814d8a3f286572acdacbb52f511cd65.raw": "73796e74686574696320616c7465726564207061796c6f6164"
+        }
+      },
+      "name": "legacy_resigned_checkpoint_approval_bypass",
+      "selection_json": "{\"rows\":[{\"cdx_digest\":\"sha256:synthetic-cdx-digest\",\"cdx_length\":321,\"cdx_statuscode\":200,\"expected_media_type\":\"application/json\",\"expected_payload_bytes\":50,\"expected_payload_sha256\":\"b1de64cdb44bbcceb330c6880f7bc3d489a3a0ab3b8a761eace27d0aedab63fc\",\"expected_status\":200,\"original\":\"https://example.test/request/1.json\",\"row_index\":0,\"timestamp\":\"20250101000000\"}],\"schema\":\"urn:fyi-cli:internet-archive-replay-selection:1\",\"selection_sha256\":\"a2114e4c8a53be859ce987db2a1947c0642e293093cb7dedece5bf4c6cb0f933\",\"source_cdx_sha256\":\"954b0f80ad2a44038f364d240cc9baac815f252a43535c8403dec060ddb730bd\"}\n"
+    }
+  ],
+  "oracle": {
+    "httpx": "0.28.1",
+    "jsonschema": "4.26.0",
+    "network": "mocked-only",
+    "python": "3.15.1",
+    "schema_sha256": "1d044d547dcf64cb03196fcf36fa77698cd545493521dff0dec95fd3f8c4adf5",
+    "source_commit": "9c52d73e496b3d5f972d51566eb8da855a8b167d",
+    "source_sha256": "385bbb4195f7a709b196e48996b7c54dc3b864911a72a38f21fffff295f4439a"
+  },
+  "payload_hex": "7b2272657175657374223a2273796e7468657469632d303031222c22737461747573223a227375636365737366756c227d0a"
+}
