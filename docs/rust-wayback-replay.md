@@ -19,8 +19,9 @@ The guarded transport never follows redirects automatically or retries. The
 replay engine validates each redirect against the archive origin and approved
 original URL before the next request, then checks the final status, media type,
 length and payload digest against the selection. Its configured byte and time
-bounds are enforced independently of the shared network guardrails. No live
-source is contacted by the tests.
+bounds are enforced independently of the shared network guardrails. The replay
+transport regressions use injected in-process responses and open no sockets;
+they do not establish the behavior of a live HTTP server.
 
 Verified decoded payloads are stored under `--output-dir`. The original encoded
 HTTP entity body for each physical response, including redirect responses, is

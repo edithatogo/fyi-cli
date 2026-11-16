@@ -151,6 +151,12 @@ tools, private source failure, prepare/reject/cache no-dispatch behavior,
 restart reset, schema strictness and twelve deterministic generated caller values.
 The local TLS trust fixture remains explicitly Linux-qualified.
 
+The `Retry-After: 401` versus HTTP 503 regression added in PR #478 is now
+covered by socket-free source-response and MCP classification/audit tests.
+The specific TLS test added by that PR was removed from the active suite to
+honor the no-network test rule. Its earlier hosted pass remains historical
+evidence; the replacement does not claim an SDK-to-source TLS exchange.
+
 This increment does not complete #172's original correlated source observability.
 Source-owned typed outcomes and cache provenance, raw allowance sharing, retry /
 throttle / cache / guardrail events, bounded source metrics, and runtime/platform
