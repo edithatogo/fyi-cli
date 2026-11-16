@@ -19,6 +19,11 @@ use std::time::{Duration, Instant};
 use tokio::sync::{oneshot, Mutex, OwnedSemaphorePermit, Semaphore};
 use tokio::task::JoinHandle;
 
+mod pull_evidence;
+pub use pull_evidence::{
+    preflight_sync_pull_evidence, SyncPullEvidenceClient, SyncPullEvidencePaths,
+};
+
 /// An HTTP status observed by the guarded source client.
 ///
 /// The typed value contains no response body, URL, credential or header. A
@@ -2109,7 +2114,6 @@ mod tests {
         db.upsert_synced_request(&existing, existing.updated_at.as_deref())
             .await
             .unwrap();
-
         Mock::given(method("GET"))
             .and(path("/api/v2/request.json"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
@@ -2127,6 +2131,267 @@ mod tests {
         assert_eq!(report.applied, 1);
         assert_eq!(saved.title, "Remote update");
         assert_eq!(metadata.sync_status.as_str(), "clean");
+    }
+
+    #[tokio::test]
+    async fn pull_receipt_binds_observed_response_and_applied_result() {
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+        let existing = request(1, "Existing", "2026-06-30T00:00:00Z");
+        db.upsert_synced_request(&existing, existing.updated_at.as_deref())
+            .await
+            .unwrap();
+        let boundary = db.get_latest_sync_timestamp().await.unwrap().unwrap();
+        let raw = serde_json::to_vec(&serde_json::json!({
+            "requests": [request(2, "Synthetic update", "2026-06-30T01:00:00Z")]
+        }))
+        .unwrap();
+        let client = SyncPullEvidenceClient::new("https://example.test").unwrap();
+        let dir =
+            tempfile::tempdir_in(std::fs::canonicalize(std::env::temp_dir()).unwrap()).unwrap();
+        let raw_path = dir.path().join("response.raw");
+        let result_path = dir.path().join("result.json");
+        let receipt_path = dir.path().join("receipt.json");
+        let paths = SyncPullEvidencePaths {
+            raw: &raw_path,
+            result: &result_path,
+            receipt: &receipt_path,
+        };
+        let supplied = raw.clone();
+        let report = client
+            .pull_using(&db, &paths, |url| async move {
+                assert_eq!(url.path(), "/api/v2/request.json");
+                assert!(url.query().is_some());
+                Ok(pull_evidence::SyncPullResponse {
+                    status: StatusCode::OK,
+                    url,
+                    headers: header::HeaderMap::new(),
+                    body: supplied,
+                })
+            })
+            .await
+            .unwrap();
+        assert_eq!(report.fetched, 1);
+        assert_eq!(
+            db.get_request(2).await.unwrap().unwrap().title,
+            "Synthetic update"
+        );
+        assert_eq!(std::fs::read(raw_path).unwrap(), raw);
+        let receipt: Value = serde_json::from_slice(&std::fs::read(receipt_path).unwrap()).unwrap();
+        crate::acquisition_receipts::verify_receipt_raw_bytes(&receipt, &raw).unwrap();
+        crate::acquisition_receipts::verify_receipt_result_bytes(
+            &receipt,
+            &std::fs::read(result_path).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(receipt["command"], "sync-pull");
+        assert_eq!(receipt["totals"]["requests"], 1);
+        assert_eq!(receipt["status"], "succeeded");
+        assert!(receipt["responses"][0]["url"]
+            .as_str()
+            .unwrap()
+            .ends_with("?REDACTED"));
+        assert_eq!(
+            receipt["request_bounds"]["updated_since_sha256"],
+            crate::provenance::sha256_hex(boundary.as_bytes())
+        );
+        assert!(!receipt["request_bounds"].to_string().contains(&boundary));
+    }
+
+    #[tokio::test]
+    async fn pull_receipt_records_http_failure_without_applying_updates() {
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+        let client = SyncPullEvidenceClient::new("https://example.test").unwrap();
+        let dir =
+            tempfile::tempdir_in(std::fs::canonicalize(std::env::temp_dir()).unwrap()).unwrap();
+        let raw_path = dir.path().join("response.raw");
+        let result_path = dir.path().join("result.json");
+        let receipt_path = dir.path().join("receipt.json");
+        let paths = SyncPullEvidencePaths {
+            raw: &raw_path,
+            result: &result_path,
+            receipt: &receipt_path,
+        };
+        assert!(client
+            .pull_using(&db, &paths, |url| async move {
+                Ok(pull_evidence::SyncPullResponse {
+                    status: StatusCode::SERVICE_UNAVAILABLE,
+                    url,
+                    headers: header::HeaderMap::new(),
+                    body: b"synthetic failure".to_vec(),
+                })
+            })
+            .await
+            .is_err());
+        let receipt: Value = serde_json::from_slice(&std::fs::read(receipt_path).unwrap()).unwrap();
+        crate::acquisition_receipts::verify_receipt(&receipt).unwrap();
+        assert_eq!(receipt["status"], "failed");
+        assert_eq!(receipt["responses"][0]["status"], 503);
+        assert_eq!(std::fs::read(raw_path).unwrap(), b"synthetic failure");
+        assert!(db.get_request(2).await.unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn pull_receipt_never_follows_a_redirect_or_replaces_evidence() {
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+        let client = SyncPullEvidenceClient::new("https://example.test").unwrap();
+        let dir =
+            tempfile::tempdir_in(std::fs::canonicalize(std::env::temp_dir()).unwrap()).unwrap();
+        let raw_path = dir.path().join("response.raw");
+        let result_path = dir.path().join("result.json");
+        let receipt_path = dir.path().join("receipt.json");
+        let paths = SyncPullEvidencePaths {
+            raw: &raw_path,
+            result: &result_path,
+            receipt: &receipt_path,
+        };
+        std::fs::write(&receipt_path, b"preserve").unwrap();
+        let calls = std::sync::atomic::AtomicUsize::new(0);
+        assert!(client
+            .pull_using(&db, &paths, |_url| {
+                calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                async { Err(anyhow!("must not execute")) }
+            })
+            .await
+            .is_err());
+        assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 0);
+        assert_eq!(std::fs::read(&receipt_path).unwrap(), b"preserve");
+        std::fs::remove_file(&receipt_path).unwrap();
+        assert!(client
+            .pull_using(&db, &paths, |url| {
+                calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                async move {
+                    let mut headers = header::HeaderMap::new();
+                    headers.insert(header::LOCATION, "/unapproved".parse().unwrap());
+                    Ok(pull_evidence::SyncPullResponse {
+                        status: StatusCode::FOUND,
+                        url,
+                        headers,
+                        body: Vec::new(),
+                    })
+                }
+            })
+            .await
+            .is_err());
+        assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 1);
+        let receipt: Value = serde_json::from_slice(&std::fs::read(receipt_path).unwrap()).unwrap();
+        assert_eq!(receipt["status"], "failed");
+        assert_eq!(receipt["responses"][0]["status"], 302);
+    }
+
+    #[tokio::test]
+    async fn pull_receipt_does_not_claim_an_incomplete_response() {
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+        let client = SyncPullEvidenceClient::new("https://example.test").unwrap();
+        let dir =
+            tempfile::tempdir_in(std::fs::canonicalize(std::env::temp_dir()).unwrap()).unwrap();
+        let raw = dir.path().join("response.raw");
+        let result = dir.path().join("result.json");
+        let receipt = dir.path().join("receipt.json");
+        let paths = SyncPullEvidencePaths {
+            raw: &raw,
+            result: &result,
+            receipt: &receipt,
+        };
+        let error = client
+            .pull_using(&db, &paths, |_url| async {
+                Err(anyhow!("synthetic incomplete response"))
+            })
+            .await
+            .unwrap_err();
+        assert!(error.to_string().contains("no receipt was published"));
+        assert!(!raw.exists() && !result.exists() && !receipt.exists());
+        assert!(db.get_request(2).await.unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn pull_receipt_rejects_unexpected_url_and_oversized_body_without_evidence() {
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+        let client = SyncPullEvidenceClient::new("https://example.test").unwrap();
+        let dir =
+            tempfile::tempdir_in(std::fs::canonicalize(std::env::temp_dir()).unwrap()).unwrap();
+        let raw = dir.path().join("response.raw");
+        let result = dir.path().join("result.json");
+        let receipt = dir.path().join("receipt.json");
+        let paths = SyncPullEvidencePaths {
+            raw: &raw,
+            result: &result,
+            receipt: &receipt,
+        };
+        let wrong_url = client
+            .pull_using(&db, &paths, |_| async {
+                Ok(pull_evidence::SyncPullResponse {
+                    status: StatusCode::OK,
+                    url: Url::parse("https://other.example.test/api/v2/request.json").unwrap(),
+                    headers: header::HeaderMap::new(),
+                    body: b"{}".to_vec(),
+                })
+            })
+            .await;
+        assert!(wrong_url.is_err());
+        let oversized = client
+            .pull_using(&db, &paths, |url| async move {
+                Ok(pull_evidence::SyncPullResponse {
+                    status: StatusCode::OK,
+                    url,
+                    headers: header::HeaderMap::new(),
+                    body: vec![0; 16 * 1024 * 1024 + 1],
+                })
+            })
+            .await;
+        assert!(oversized.is_err());
+        assert!(!raw.exists() && !result.exists() && !receipt.exists());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn pull_evidence_preflight_rejects_symlinked_parent_traversal() {
+        let dir =
+            tempfile::tempdir_in(std::fs::canonicalize(std::env::temp_dir()).unwrap()).unwrap();
+        let nested = dir.path().join("nested");
+        std::fs::create_dir(&nested).unwrap();
+        let link = dir.path().join("link");
+        std::os::unix::fs::symlink(&nested, &link).unwrap();
+        let raw = link.join("../response.raw");
+        let result = dir.path().join("result.json");
+        let receipt = dir.path().join("receipt.json");
+        let paths = SyncPullEvidencePaths {
+            raw: &raw,
+            result: &result,
+            receipt: &receipt,
+        };
+        assert!(preflight_sync_pull_evidence(&paths, None).is_err());
+        assert!(!dir.path().join("response.raw").exists());
+    }
+
+    #[test]
+    fn pull_evidence_preflight_rejects_nested_paths_and_sqlite_sidecars() {
+        let dir =
+            tempfile::tempdir_in(std::fs::canonicalize(std::env::temp_dir()).unwrap()).unwrap();
+        let database = dir.path().join("sync.db");
+        let raw = dir.path().join("nested");
+        let nested_result = raw.join("result.json");
+        let receipt = dir.path().join("receipt.json");
+        let nested = SyncPullEvidencePaths {
+            raw: &raw,
+            result: &nested_result,
+            receipt: &receipt,
+        };
+        assert!(preflight_sync_pull_evidence(&nested, Some(&database)).is_err());
+        assert!(!raw.exists());
+        let sidecar = dir.path().join("sync.db-wal");
+        let result = dir.path().join("result.json");
+        let colliding = SyncPullEvidencePaths {
+            raw: &sidecar,
+            result: &result,
+            receipt: &receipt,
+        };
+        assert!(preflight_sync_pull_evidence(&colliding, Some(&database)).is_err());
+        assert!(!database.exists());
     }
 
     #[tokio::test]
