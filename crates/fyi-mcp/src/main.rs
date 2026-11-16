@@ -2823,7 +2823,7 @@ async fn remote_read(
         .ok_or_else(|| "remote instance is not configured".to_string())?;
     let operation_future = async {
         let client = SyncClient::new(&instance.base_url)
-            .map_err(|_| "remote client could not be initialized".to_string())?;
+            .map_err(|_| anyhow::anyhow!("remote client could not be initialized"))?;
         match operation {
             "remote_health" => {
                 let health = client.health_check().await;
@@ -2834,8 +2834,7 @@ async fn remote_read(
             "remote_version" => client
                 .get_api_version()
                 .await
-                .map(|version| json!({"instance_id": instance_id, "version": version}))
-                .map_err(|error| error.to_string()),
+                .map(|version| json!({"instance_id": instance_id, "version": version})),
             "remote_search_requests" => {
                 let limit = arguments
                     .get("limit")
@@ -2846,22 +2845,20 @@ async fn remote_read(
                 .search_requests_with_options(&SearchOptions { query: Some(query.into()), per_page: Some(limit as u32), ..Default::default() })
                 .await
                 .map(|requests| json!({"instance_id": instance_id, "query": query, "requests": requests.into_iter().take(limit).collect::<Vec<_>>() }))
-                .map_err(|error| error.to_string())
             }
             "remote_get_request" => client
                 .fetch_request(request_id.expect("request ID validated before admission"))
                 .await
-                .map(|request| json!({"instance_id": instance_id, "request": request}))
-                .map_err(|error| error.to_string()),
+                .map(|request| json!({"instance_id": instance_id, "request": request})),
             "remote_list_authorities" => {
                 let limit = arguments
                     .get("limit")
                     .and_then(Value::as_u64)
                     .unwrap_or(50)
                     .clamp(1, 200) as usize;
-                client.list_authorities_matching(filter).await.map(|authorities| json!({"instance_id": instance_id, "authorities": authorities.into_iter().take(limit).collect::<Vec<_>>() })).map_err(|error| error.to_string())
+                client.list_authorities_matching(filter).await.map(|authorities| json!({"instance_id": instance_id, "authorities": authorities.into_iter().take(limit).collect::<Vec<_>>() }))
             }
-            _ => Err("unsupported remote read operation".to_string()),
+            _ => Err(anyhow::anyhow!("unsupported remote read operation")),
         }
     };
     execute_remote_operation(policy, permit, observed_operation, operation_future).await
@@ -2881,7 +2878,7 @@ async fn execute_remote_operation(
     policy: &RemoteMcpPolicy,
     permit: policy::RemoteRequestPermit,
     observed_operation: RemoteOperation,
-    operation: impl std::future::Future<Output = Result<Value, String>>,
+    operation: impl std::future::Future<Output = anyhow::Result<Value>>,
 ) -> Result<Value, String> {
     let observation = policy.telemetry.begin(observed_operation)?;
     let result = tokio::time::timeout(
@@ -2995,46 +2992,45 @@ async fn remote_commit_write(
     let bot_token = std::env::var(instance.bot_token_env_name()).ok();
     let operation_future = async {
         let client = SyncClient::new(&instance.base_url)
-            .map_err(|_| "remote client could not be initialized".to_string())?
+            .map_err(|_| anyhow::anyhow!("remote client could not be initialized"))?
             .with_bot_token(bot_token);
         match operation {
             "remote_create_request" => {
                 let payload: CreateRequestPayload =
                     serde_json::from_value(prepared.arguments.clone())
-                        .map_err(|_| "remote create payload is invalid".to_string())?;
+                        .map_err(|_| anyhow::anyhow!("remote create payload is invalid"))?;
                 client
                     .create_request(&payload)
                     .await
                     .map(|response| json!({"instance_id": instance_id, "request": response}))
-                    .map_err(|_| "remote operation failed".to_string())
             }
             "remote_add_correspondence" => {
                 let request_id = prepared
                     .arguments
                     .get("request_id")
                     .and_then(Value::as_i64)
-                    .ok_or_else(|| "request_id is required".to_string())?;
+                    .ok_or_else(|| anyhow::anyhow!("request_id is required"))?;
                 let direction = prepared
                     .arguments
                     .get("direction")
                     .and_then(Value::as_str)
-                    .ok_or_else(|| "direction is required".to_string())?;
+                    .ok_or_else(|| anyhow::anyhow!("direction is required"))?;
                 let direction: CorrespondenceDirection =
                     serde_json::from_value(json!(direction))
-                        .map_err(|_| "direction is invalid".to_string())?;
+                        .map_err(|_| anyhow::anyhow!("direction is invalid"))?;
                 let payload = AddCorrespondencePayload {
                     direction,
                     body: prepared
                         .arguments
                         .get("body")
                         .and_then(Value::as_str)
-                        .ok_or_else(|| "body is required".to_string())?
+                        .ok_or_else(|| anyhow::anyhow!("body is required"))?
                         .to_string(),
                     sent_at: prepared
                         .arguments
                         .get("sent_at")
                         .and_then(Value::as_str)
-                        .ok_or_else(|| "sent_at is required".to_string())?
+                        .ok_or_else(|| anyhow::anyhow!("sent_at is required"))?
                         .to_string(),
                     state: prepared
                         .arguments
@@ -3042,19 +3038,18 @@ async fn remote_commit_write(
                         .and_then(Value::as_str)
                         .map(str::to_string),
                 };
-                let attachments = validated_attachment_paths(&prepared.arguments).await?;
-                if attachments.is_empty() {
-                    client
-                    .add_correspondence(request_id, &payload)
+                let attachments = validated_attachment_paths(&prepared.arguments)
                     .await
-                    .map(|response| json!({"instance_id": instance_id, "correspondence": response}))
-                    .map_err(|_| "remote operation failed".to_string())
+                    .map_err(anyhow::Error::msg)?;
+                if attachments.is_empty() {
+                    client.add_correspondence(request_id, &payload).await.map(
+                        |response| json!({"instance_id": instance_id, "correspondence": response}),
+                    )
                 } else {
                     client
                     .add_correspondence_with_attachments(request_id, &payload, &attachments)
                     .await
                     .map(|response| json!({"instance_id": instance_id, "correspondence": response}))
-                    .map_err(|_| "remote operation failed".to_string())
                 }
             }
             "remote_update_state" => {
@@ -3062,17 +3057,17 @@ async fn remote_commit_write(
                     .arguments
                     .get("request_id")
                     .and_then(Value::as_i64)
-                    .ok_or_else(|| "request_id is required".to_string())?;
+                    .ok_or_else(|| anyhow::anyhow!("request_id is required"))?;
                 let expected = prepared
                     .arguments
                     .get("expected_current_state")
                     .and_then(Value::as_str)
-                    .ok_or_else(|| "expected_current_state is required".to_string())?;
+                    .ok_or_else(|| anyhow::anyhow!("expected_current_state is required"))?;
                 let state = prepared
                     .arguments
                     .get("state")
                     .and_then(Value::as_str)
-                    .ok_or_else(|| "state is required".to_string())?;
+                    .ok_or_else(|| anyhow::anyhow!("state is required"))?;
                 client
                     .update_request_state_if_current(
                         request_id,
@@ -3083,9 +3078,8 @@ async fn remote_commit_write(
                     )
                     .await
                     .map(|response| json!({"instance_id": instance_id, "state": response}))
-                    .map_err(|_| "remote operation failed".to_string())
             }
-            _ => Err("unsupported remote write operation".to_string()),
+            _ => Err(anyhow::anyhow!("unsupported remote write operation")),
         }
     };
     let result =

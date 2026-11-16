@@ -96,7 +96,9 @@ async fn failed_remote_future_has_a_private_error_and_releases_concurrency() {
             .begin_request("synthetic", RemoteCapability::Read)
             .unwrap();
         let error = execute_remote_operation(&policy, permit, RemoteOperation::Version, async {
-            Err("synthetic-secret upstream response /private/path".into())
+            Err(anyhow::anyhow!(
+                "synthetic-secret upstream response /private/path"
+            ))
         })
         .await
         .unwrap_err();

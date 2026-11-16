@@ -184,6 +184,45 @@ def test_private_source_error_records_coarse_failure_without_status_guessing(
 
 
 @LINUX_TLS
+@pytest.mark.e2e
+@pytest.mark.security
+def test_source_status_uses_typed_metadata_not_retry_after_text(
+    mcp_binary: Path,
+    tmp_path: Path,
+) -> None:
+    exchange = {
+        "method": "GET",
+        "path": "/api/v2/version.json",
+        "status": 503,
+        "headers": {"Retry-After": "401"},
+        "json": {"message": PRIVATE_MARKER},
+    }
+
+    async def scenario() -> None:
+        with upstream_server(tmp_path, [exchange]) as upstream:
+            async with upstream_session(mcp_binary, tmp_path, upstream) as session:
+                result = await session.call_tool("remote_version", {"instance_id": "synthetic"})
+                assert result.isError
+                assert result.content[0].text == (
+                    "remote operation failed; see operator audit telemetry"
+                )
+                assert PRIVATE_MARKER not in result.model_dump_json()
+            upstream.assert_complete()
+            assert len(upstream.observed) == 1
+
+    anyio.run(scenario)
+    _events(tmp_path, "remote_version", "failed")
+    diagnostics = (tmp_path / "upstream-server.stderr").read_text(encoding="utf-8")
+    diagnostics = re.sub(r"\x1b\[[0-9;]*m", "", diagnostics)
+    classified = [line for line in diagnostics.splitlines() if "classified failure" in line]
+    assert len(classified) == 1, diagnostics
+    assert "upstream_unavailable" in classified[0]
+    assert "http_status=503" in classified[0]
+    assert "retryable=true" in classified[0]
+    assert PRIVATE_MARKER not in diagnostics
+
+
+@LINUX_TLS
 @pytest.mark.property
 @pytest.mark.security
 @settings(max_examples=12, derandomize=True, deadline=None)
