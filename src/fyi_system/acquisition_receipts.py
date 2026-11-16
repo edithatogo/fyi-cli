@@ -99,6 +99,8 @@ def _schema() -> Mapping[str, Any]:
 _RFC3339_DATETIME_RE = re.compile(
     r"^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[Zz]|[+-]\d{2}:\d{2})$",
 )
+_ADAPTER_ID_RE = re.compile(r"[a-z0-9][a-z0-9._-]*")
+_SHA256_RE = re.compile(r"[0-9a-f]{64}")
 
 
 def _parse_rfc3339_datetime(value: str, field_name: str) -> datetime:
@@ -174,6 +176,7 @@ def _response_totals(responses: list[dict[str, Any]]) -> tuple[int, int]:
     total_retries = 0
     for response in responses:
         _validate_recorded_url(response["url"])
+        _validate_digest(response["sha256"])
         total_bytes += _checked_receipt_integer(response["bytes"], "response bytes")
         total_retries += _checked_receipt_integer(response["attempts"], "response attempts") - 1
         if total_bytes > _U64_MAX or total_retries > _U64_MAX:
@@ -182,6 +185,12 @@ def _response_totals(responses: list[dict[str, Any]]) -> tuple[int, int]:
         for delay in response["retry_delays_seconds"]:
             _validate_nonnegative_finite(delay, "retry delay")
     return total_bytes, total_retries
+
+
+def _validate_digest(value: str) -> None:
+    if not _SHA256_RE.fullmatch(value):
+        message = "invalid acquisition receipt: malformed SHA-256 digest"
+        raise ValueError(message)
 
 
 def _validate_request_bounds_numbers(bounds: dict[str, Any]) -> None:
@@ -203,6 +212,17 @@ def _validate_request_bounds_numbers(bounds: dict[str, Any]) -> None:
 
 def _validate_receipt_evidence(receipt: Mapping[str, Any]) -> None:
     """Check transport counters and URL safety after schema validation."""
+    if not _ADAPTER_ID_RE.fullmatch(receipt["adapter"]["id"]):
+        message = "invalid acquisition receipt: malformed adapter ID"
+        raise ValueError(message)
+    for digest in (
+        receipt["receipt_sha256"],
+        receipt["result"]["sha256"],
+        receipt["checkpoint"]["before_sha256"],
+        receipt["checkpoint"]["after_sha256"],
+    ):
+        if digest is not None:
+            _validate_digest(digest)
     _validate_recorded_url(receipt["source"]["url"])
     _validate_request_bounds_numbers(receipt["request_bounds"])
     responses = receipt["responses"]
