@@ -518,6 +518,9 @@ pub enum SyncCommand {
         interval_seconds: u64,
         #[arg(long, default_value = "fyi_system.db")]
         db: String,
+        /// Optional path for an immutable v1 acquisition receipt.
+        #[arg(long)]
+        receipt: Option<String>,
     },
     #[command(about = "Push dirty local requests to FYI")]
     Push {
@@ -527,6 +530,9 @@ pub enum SyncCommand {
         max_retries: u32,
         #[arg(long, default_value = "fyi_system.db")]
         db: String,
+        /// Optional path for an immutable v1 acquisition receipt.
+        #[arg(long)]
+        receipt: Option<String>,
     },
     #[command(about = "List local sync conflicts")]
     Conflicts {
@@ -1126,7 +1132,14 @@ fn handle_sync_command(
             feed_url,
             interval_seconds,
             db,
+            receipt,
         } => runtime.block_on(async {
+            if let Some(receipt_path) = receipt.as_deref() {
+                if Path::new(receipt_path) == Path::new(db) {
+                    return Err("receipt and database paths must be distinct".into());
+                }
+            }
+            let started_at = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
             let pool = DbPool::new(&sqlite_url(db)).await?;
             pool.run_migrations().await?;
             let client = SyncClient::new(base_url)?;
@@ -1135,10 +1148,56 @@ fn handle_sync_command(
                 ..SyncConfig::default()
             };
 
-            let mut reports = vec![client.pull_incremental(&pool).await?];
-            if let Some(feed_url) = feed_url {
-                reports.push(client.pull_feed(&pool, feed_url).await?);
+            let pull_outcome = async {
+                let mut reports = vec![client.pull_incremental(&pool).await?];
+                if let Some(feed_url) = feed_url {
+                    reports.push(client.pull_feed(&pool, feed_url).await?);
+                }
+                Ok::<Vec<PullReport>, Box<dyn std::error::Error>>(reports)
             }
+            .await;
+
+            if let Some(receipt_path) = receipt.as_deref() {
+                let completed_at =
+                    chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+                let projection_value = match &pull_outcome {
+                    Ok(reports) => serde_json::Value::Array(
+                        reports
+                            .iter()
+                            .map(|report| {
+                                serde_json::json!({
+                                    "source": report.source,
+                                    "fetched": report.fetched,
+                                    "applied": report.applied,
+                                })
+                            })
+                            .collect(),
+                    ),
+                    Err(_) => serde_json::json!({"status": "failed"}),
+                };
+                let projection =
+                    fyi_core::acquisition_receipts::canonical_json_bytes(&projection_value)?;
+                let receipt_doc = fyi_core::acquisition_receipts::build_sync_command_receipt(
+                    fyi_core::acquisition_receipts::SyncReceiptInput {
+                        command: "sync-pull",
+                        source_url: base_url,
+                        request_bounds: serde_json::json!({
+                            "interval_seconds": (*interval_seconds).max(1),
+                            "has_feed_url": feed_url.is_some(),
+                        }),
+                        started_at: &started_at,
+                        completed_at: &completed_at,
+                        result_projection: &projection,
+                        failure_type: pull_outcome.as_ref().err().map(|_| "SyncPullError"),
+                    },
+                )?;
+                fyi_core::acquisition_receipts::write_receipt_atomic(
+                    Path::new(receipt_path),
+                    &receipt_doc,
+                )?;
+            }
+
+            let reports = pull_outcome?;
             print_pull_reports(&reports, &config, output_format)?;
 
             Ok(())
@@ -1147,7 +1206,14 @@ fn handle_sync_command(
             base_url,
             max_retries,
             db,
+            receipt,
         } => runtime.block_on(async {
+            if let Some(receipt_path) = receipt.as_deref() {
+                if Path::new(receipt_path) == Path::new(db) {
+                    return Err("receipt and database paths must be distinct".into());
+                }
+            }
+            let started_at = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
             let pool = DbPool::new(&sqlite_url(db)).await?;
             pool.run_migrations().await?;
             let client = SyncClient::new(base_url)?;
@@ -1155,7 +1221,41 @@ fn handle_sync_command(
                 push_max_retries: (*max_retries).max(1),
                 ..SyncConfig::default()
             };
-            let report = client.push_dirty_with_config(&pool, &config).await?;
+            let push_outcome = client.push_dirty_with_config(&pool, &config).await;
+
+            if let Some(receipt_path) = receipt.as_deref() {
+                let completed_at =
+                    chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+                let projection_value = match &push_outcome {
+                    Ok(report) => serde_json::json!({
+                        "queued": report.queued,
+                        "submitted": report.submitted,
+                        "failed": report.failed,
+                    }),
+                    Err(_) => serde_json::json!({"status": "failed"}),
+                };
+                let projection =
+                    fyi_core::acquisition_receipts::canonical_json_bytes(&projection_value)?;
+                let receipt_doc = fyi_core::acquisition_receipts::build_sync_command_receipt(
+                    fyi_core::acquisition_receipts::SyncReceiptInput {
+                        command: "sync-push",
+                        source_url: base_url,
+                        request_bounds: serde_json::json!({
+                            "max_retries": (*max_retries).max(1),
+                        }),
+                        started_at: &started_at,
+                        completed_at: &completed_at,
+                        result_projection: &projection,
+                        failure_type: push_outcome.as_ref().err().map(|_| "SyncPushError"),
+                    },
+                )?;
+                fyi_core::acquisition_receipts::write_receipt_atomic(
+                    Path::new(receipt_path),
+                    &receipt_doc,
+                )?;
+            }
+
+            let report = push_outcome?;
             let queue_depth = pool.get_outgoing_queue_depth().await?;
             print_push_report(&report, &queue_depth, output_format)?;
 
@@ -1552,6 +1652,7 @@ mod tests {
                     feed_url: Some("https://example.org/feed.atom".to_string()),
                     interval_seconds: 60,
                     db: "test.db".to_string(),
+                    receipt: None,
                 }
             }
         );
@@ -1579,6 +1680,51 @@ mod tests {
                     base_url: "https://example.org".to_string(),
                     max_retries: 2,
                     db: "test.db".to_string(),
+                    receipt: None,
+                }
+            }
+        );
+    }
+
+    #[test]
+    fn test_parse_sync_pull_and_push_with_receipt() {
+        let pull = Cli::try_parse_from([
+            "fyi-cli",
+            "sync",
+            "pull",
+            "--receipt",
+            "evidence/pull-receipt.json",
+        ])
+        .unwrap();
+        assert_eq!(
+            pull.command,
+            Commands::Sync {
+                command: SyncCommand::Pull {
+                    base_url: "https://fyi.org.nz".to_string(),
+                    feed_url: None,
+                    interval_seconds: 300,
+                    db: "fyi_system.db".to_string(),
+                    receipt: Some("evidence/pull-receipt.json".to_string()),
+                }
+            }
+        );
+
+        let push = Cli::try_parse_from([
+            "fyi-cli",
+            "sync",
+            "push",
+            "--receipt",
+            "evidence/push-receipt.json",
+        ])
+        .unwrap();
+        assert_eq!(
+            push.command,
+            Commands::Sync {
+                command: SyncCommand::Push {
+                    base_url: "https://fyi.org.nz".to_string(),
+                    max_retries: 3,
+                    db: "fyi_system.db".to_string(),
+                    receipt: Some("evidence/push-receipt.json".to_string()),
                 }
             }
         );
