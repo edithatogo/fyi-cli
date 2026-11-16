@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 
 import pytest
+from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema.exceptions import ValidationError
 
 from fyi_system.acquisition_receipts import (
     canonical_json_bytes,
@@ -14,17 +16,21 @@ from fyi_system.acquisition_receipts import (
 ROOT = Path(__file__).resolve().parents[1]
 CORPUS = json.loads(
     (ROOT / "conformance/acquisition/integer-schema-cases-v1.json").read_text(
-        encoding="utf-8"
-    )
+        encoding="utf-8",
+    ),
+)
+SCHEMA = json.loads(
+    (ROOT / "src/fyi_system/schemas/acquisition-receipt-v1.schema.json").read_text(
+        encoding="utf-8",
+    ),
 )
 
 
-@pytest.mark.parametrize("case", CORPUS["cases"], ids=lambda case: case["id"])
-def test_python_schema_contract_for_shared_numeric_cases(case):
+def _receipt_for_case(case):
     receipt = json.loads(
         (ROOT / "conformance/acquisition/receipt-v1-python.json").read_text(
-            encoding="utf-8"
-        )
+            encoding="utf-8",
+        ),
     )
     for pointer, replacement in case["patches"].items():
         tokens = pointer.removeprefix("/").split("/")
@@ -35,7 +41,24 @@ def test_python_schema_contract_for_shared_numeric_cases(case):
         target[key] = replacement
     receipt.pop("receipt_sha256")
     receipt["receipt_sha256"] = sha256_bytes(canonical_json_bytes(receipt))
+    return receipt
+
+
+@pytest.mark.parametrize("case", CORPUS["cases"], ids=lambda case: case["id"])
+def test_python_schema_contract_for_shared_numeric_cases(case):
+    receipt = _receipt_for_case(case)
+    validator = Draft202012Validator(SCHEMA, format_checker=FormatChecker())
     if case["schema_valid"]:
+        validator.validate(receipt)
+    else:
+        with pytest.raises(ValidationError):
+            validator.validate(receipt)
+
+
+@pytest.mark.parametrize("case", CORPUS["cases"], ids=lambda case: case["id"])
+def test_python_verifier_matches_rust_for_shared_numeric_cases(case):
+    receipt = _receipt_for_case(case)
+    if case["rust_valid"]:
         validate_receipt(receipt)
     else:
         with pytest.raises(ValueError, match="invalid acquisition receipt"):
@@ -53,6 +76,6 @@ def test_frozen_decimal_fixture_matches_python_without_rehashing() -> None:
 
 def test_integer_conformance_runs_in_cross_platform_receipt_gate() -> None:
     workflow = (ROOT / ".github/workflows/receipt-portability.yml").read_text(
-        encoding="utf-8"
+        encoding="utf-8",
     )
     assert "--test receipt_integer_schema \\" in workflow
