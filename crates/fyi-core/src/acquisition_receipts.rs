@@ -7,12 +7,20 @@ mod canonical;
 
 use crate::provenance::sha256_hex;
 use anyhow::{bail, ensure, Context, Result};
-use chrono::DateTime;
+use chrono::{DateTime, FixedOffset};
 use serde_json::Value;
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
+
+fn parse_rfc3339_timestamp(value: &str, field: &str) -> Result<DateTime<FixedOffset>> {
+    ensure!(
+        matches!(value.as_bytes().get(10), Some(b'T' | b't')),
+        "invalid {field}: expected RFC 3339 'T' separator"
+    );
+    DateTime::parse_from_rfc3339(value).with_context(|| format!("invalid {field}"))
+}
 
 /// Canonical UTF-8 JSON with stable key ordering and exactly one newline.
 ///
@@ -169,10 +177,8 @@ pub fn verify_receipt(receipt: &Value) -> Result<()> {
     restrict_fields(origin, &["url"], "source")?;
     safe_url(origin, "url")?;
     object_field(receipt, "request_bounds")?;
-    let start = DateTime::parse_from_rfc3339(string(receipt, "started_at")?)
-        .context("invalid started_at")?;
-    let end = DateTime::parse_from_rfc3339(string(receipt, "completed_at")?)
-        .context("invalid completed_at")?;
+    let start = parse_rfc3339_timestamp(string(receipt, "started_at")?, "started_at")?;
+    let end = parse_rfc3339_timestamp(string(receipt, "completed_at")?, "completed_at")?;
     ensure!(end >= start, "receipt completion precedes start");
     let status = string(receipt, "status")?;
     ensure!(

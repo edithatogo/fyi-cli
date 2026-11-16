@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Synthetic Alaveteli Atom Feed</title>
+  <id>https://foi-repository.example/feed</id>
+  <entry>
+    <title>Synthetic Request 2001</title>
+    <id>https://foi-repository.example/requests/2001</id>
+    <link href="https://foi-repository.example/request/2001/atom-first"/>
+  </entry>
+  <entry>
+    <title>Synthetic Request 2002</title>
+    <id>https://foi-repository.example/requests/2002</id>
+    <link href="https://foi-repository.example/request/2002"/>
+  </entry>
+</feed>

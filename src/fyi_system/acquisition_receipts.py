@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import tempfile
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -91,6 +92,26 @@ def _schema() -> Mapping[str, Any]:
     return value
 
 
+_RFC3339_DATETIME_RE = re.compile(
+    r"^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[Zz]|[+-]\d{2}:\d{2})$",
+)
+
+
+def _parse_rfc3339_datetime(value: str, field_name: str) -> datetime:
+    if not _RFC3339_DATETIME_RE.fullmatch(value):
+        message = f"invalid acquisition receipt: {field_name} must be an RFC 3339 date-time"
+        raise ValueError(message)
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError as error:
+        message = f"invalid acquisition receipt: {field_name} is not a valid date-time"
+        raise ValueError(message) from error
+    if parsed.tzinfo is None:
+        message = f"invalid acquisition receipt: {field_name} must include a UTC offset"
+        raise ValueError(message)
+    return parsed
+
+
 def validate_receipt(receipt: Mapping[str, Any]) -> None:
     """Validate structure and the self-digest of a receipt."""
     try:
@@ -98,6 +119,11 @@ def validate_receipt(receipt: Mapping[str, Any]) -> None:
     except ValidationError as error:
         message = f"invalid acquisition receipt: {error.message}"
         raise ValueError(message) from error
+    started = _parse_rfc3339_datetime(str(receipt["started_at"]), "started_at")
+    completed = _parse_rfc3339_datetime(str(receipt["completed_at"]), "completed_at")
+    if completed < started:
+        message = "invalid acquisition receipt: completed_at precedes started_at"
+        raise ValueError(message)
     unsigned = dict(receipt)
     supplied = str(unsigned.pop("receipt_sha256"))
     expected = sha256_bytes(canonical_json_bytes(unsigned))

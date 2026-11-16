@@ -278,7 +278,13 @@ fn input_documents_are_closed_to_unknown_fields() {
 fn embedded_calendar_catalog_covers_nz_au_gb_and_skips_national_holidays() {
     let catalog = HolidayCalendarCatalog::embedded();
     let keys: Vec<&str> = catalog.jurisdictions().collect();
-    assert_eq!(keys, vec!["AU", "GB", "NZ"]);
+    assert_eq!(
+        keys,
+        vec![
+            "AU", "AU-ACT", "AU-NSW", "AU-VIC", "DE", "ES", "FR", "GB", "GB-NIR", "GB-SCT", "NZ",
+            "NZ-AUK", "NZ-WGN",
+        ]
+    );
 
     let nz = catalog.get("NZ").expect("NZ starter calendar");
     assert!(nz.excluded_dates.contains(&day(2026, 2, 6))); // Waitangi Day
@@ -289,11 +295,33 @@ fn embedded_calendar_catalog_covers_nz_au_gb_and_skips_national_holidays() {
     assert_eq!(result.due_date, day(2026, 4, 7));
     assert_eq!(result.validation_status, ValidationStatus::Unvalidated);
 
+    let nz_wgn = catalog.get("NZ-WGN").expect("NZ-WGN regional calendar");
+    assert!(nz_wgn.excluded_dates.contains(&day(2026, 1, 19)));
+    let mut wgn_rule = rule(StatutoryUnit::WorkingDays, 1);
+    wgn_rule.jurisdiction = "NZ-WGN".into();
+    let wgn_result =
+        calculate_explicit_deadline(day(2026, 1, 16), &wgn_rule, nz_wgn, None).unwrap();
+    assert_eq!(wgn_result.due_date, day(2026, 1, 20));
+    assert_eq!(wgn_result.validation_status, ValidationStatus::Unvalidated);
+
     let au = catalog.get("AU").expect("AU starter calendar");
     assert!(au.excluded_dates.contains(&day(2026, 1, 26)));
+    let au_act = catalog.get("AU-ACT").expect("AU-ACT regional calendar");
+    assert!(au_act.excluded_dates.contains(&day(2026, 6, 1)));
 
     let gb = catalog.get("GB").expect("GB starter calendar");
     assert!(gb.excluded_dates.contains(&day(2026, 8, 31)));
+    let gb_sct = catalog.get("GB-SCT").expect("GB-SCT regional calendar");
+    assert!(gb_sct.excluded_dates.contains(&day(2026, 11, 30)));
+    let gb_nir = catalog.get("GB-NIR").expect("GB-NIR regional calendar");
+    assert!(gb_nir.excluded_dates.contains(&day(2026, 3, 17)));
+
+    let de = catalog.get("DE").expect("DE starter calendar");
+    assert!(de.excluded_dates.contains(&day(2026, 10, 3)));
+    let fr = catalog.get("FR").expect("FR starter calendar");
+    assert!(fr.excluded_dates.contains(&day(2026, 7, 14)));
+    let es = catalog.get("ES").expect("ES starter calendar");
+    assert!(es.excluded_dates.contains(&day(2026, 10, 12)));
 }
 
 #[test]
