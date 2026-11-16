@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Synthetic Alaveteli Feed</title>
+    <link>https://foi-repository.example/feed/search/transparency</link>
+    <item>
+      <title>Synthetic Request 1001</title>
+      <link>https://foi-repository.example/request/1001/synthetic-first</link>
+    </item>
+    <item>
+      <title>Synthetic Request 1002</title>
+      <link>https://foi-repository.example/request/1002/synthetic-second</link>
+    </item>
+    <item>
+      <title>Duplicate Request 1001</title>
+      <link>https://foi-repository.example/request/1001/synthetic-first</link>
+    </item>
+    <item>
+      <title>Authority Page (non-request)</title>
+      <link>https://foi-repository.example/body/synthetic-authority</link>
+    </item>
+  </channel>
+</rss>

@@ -2573,6 +2573,53 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn feed_and_error_fixtures_match_sync_expectations() {
+        let rss = include_str!("../../../tests/fixtures/api_contracts/feed-rss-v1.xml");
+        let atom = include_str!("../../../tests/fixtures/api_contracts/feed-atom-v1.xml");
+        assert_eq!(request_ids_from_feed(rss), vec![1001, 1002]);
+        assert_eq!(request_ids_from_feed(atom), vec![2001, 2002]);
+
+        let error_fixtures = [
+            (
+                401_u16,
+                include_str!("../../../tests/fixtures/api_contracts/error-401-unauthorized.json"),
+                "Authentication credentials were missing or invalid.",
+            ),
+            (
+                403_u16,
+                include_str!("../../../tests/fixtures/api_contracts/error-403-forbidden.json"),
+                "The authenticated client is not permitted to perform this action.",
+            ),
+            (
+                404_u16,
+                include_str!("../../../tests/fixtures/api_contracts/error-404-not-found.json"),
+                "The requested FOIA record was not found.",
+            ),
+            (
+                503_u16,
+                include_str!("../../../tests/fixtures/api_contracts/error-503-unavailable.json"),
+                "Upstream service is temporarily unavailable.",
+            ),
+        ];
+
+        for (status, body, secret_message) in error_fixtures {
+            let server = MockServer::start().await;
+            Mock::given(method("GET"))
+                .and(path("/api/v2/request/999.json"))
+                .respond_with(ResponseTemplate::new(status).set_body_string(body))
+                .mount(&server)
+                .await;
+
+            let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+            let err = client.fetch_request(999).await.unwrap_err().to_string();
+            assert!(
+                !err.contains(secret_message),
+                "status {status} leaked body: {err}"
+            );
+        }
+    }
+
+    #[tokio::test]
     async fn pull_incremental_accepts_unexpected_optional_fields() {
         let server = MockServer::start().await;
         let db = DbPool::new_in_memory().await.unwrap();
