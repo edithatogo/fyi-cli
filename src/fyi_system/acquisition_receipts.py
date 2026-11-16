@@ -334,6 +334,8 @@ def write_receipt_atomic(path: Path, receipt: Mapping[str, Any]) -> None:
     """
     validate_receipt(receipt)
     payload = canonical_json_bytes(receipt)
+    # Do not publish evidence that the bounded reader cannot reopen.
+    parse_receipt_bytes(payload)
     path.parent.mkdir(parents=True, exist_ok=True)
     handle, temporary_name = tempfile.mkstemp(
         prefix=f".{path.name}.",

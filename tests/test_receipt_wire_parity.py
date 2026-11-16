@@ -118,3 +118,30 @@ def test_atomic_writer_preserves_existing_oversized_receipt(tmp_path: Path) -> N
     with pytest.raises(FileExistsError, match="existing acquisition receipt is invalid"):
         receipts.write_receipt_atomic(destination, json.loads(GOLDEN))
     assert destination.read_bytes() == existing
+
+
+def test_atomic_writer_rejects_unreadable_size_before_publication(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    destination = tmp_path / "new-parent" / "receipt.json"
+    receipt = json.loads(GOLDEN)
+    limit = len(receipts.canonical_json_bytes(receipt)) - 1
+    monkeypatch.setattr(receipts, "MAX_RECEIPT_BYTES", limit)
+    with pytest.raises(ValueError, match="receipt"):
+        receipts.write_receipt_atomic(destination, receipt)
+    assert not destination.parent.exists()
+
+
+def test_atomic_writer_rejects_unreadable_nesting_before_publication(tmp_path: Path) -> None:
+    receipt = json.loads(GOLDEN)
+    nested = 0
+    for _ in range(126):
+        nested = [nested]
+    receipt["request_bounds"] = {"nested": nested}
+    receipt.pop("receipt_sha256")
+    receipt["receipt_sha256"] = receipts.sha256_bytes(receipts.canonical_json_bytes(receipt))
+    destination = tmp_path / "new-parent" / "receipt.json"
+    with pytest.raises(ValueError, match="receipt"):
+        receipts.write_receipt_atomic(destination, receipt)
+    assert not destination.parent.exists()

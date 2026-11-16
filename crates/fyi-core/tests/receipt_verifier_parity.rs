@@ -1,6 +1,6 @@
 //! Shared semantic receipt cases, independently exercised in Rust and Python.
-use fyi_core::acquisition_receipts::{canonical_json_bytes, verify_receipt};
-use fyi_core::receipt_wire::parse_receipt_bytes;
+use fyi_core::acquisition_receipts::{canonical_json_bytes, verify_receipt, write_receipt_atomic};
+use fyi_core::receipt_wire::{parse_receipt_bytes, MAX_RECEIPT_BYTES};
 use serde_json::{json, Value};
 
 const GOLDEN: &str = include_str!("../../../conformance/acquisition/receipt-v1-python.json");
@@ -76,5 +76,31 @@ fn wire_checks_python_signed_integer_bounds_at_serde_capacity() {
             valid,
             "{number}"
         );
+    }
+}
+
+#[test]
+fn writer_rejects_receipts_that_the_wire_reader_cannot_reopen() {
+    let directory = tempfile::tempdir().unwrap();
+    for oversized in [false, true] {
+        let mut receipt: Value = serde_json::from_str(GOLDEN).unwrap();
+        if oversized {
+            receipt["request_bounds"] = json!({"payload": "x".repeat(MAX_RECEIPT_BYTES)});
+        } else {
+            let mut nested = json!(0);
+            for _ in 0..126 {
+                nested = json!([nested]);
+            }
+            receipt["request_bounds"] = json!({"nested": nested});
+        }
+        receipt.as_object_mut().unwrap().remove("receipt_sha256");
+        receipt["receipt_sha256"] = json!(fyi_core::provenance::sha256_hex(
+            &canonical_json_bytes(&receipt).unwrap()
+        ));
+        let destination = directory
+            .path()
+            .join(if oversized { "large.json" } else { "deep.json" });
+        assert!(write_receipt_atomic(&destination, &receipt).is_err());
+        assert!(!destination.exists());
     }
 }

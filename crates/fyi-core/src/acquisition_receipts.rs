@@ -333,6 +333,8 @@ static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
 pub fn write_receipt_atomic(path: &Path, receipt: &Value) -> Result<()> {
     verify_receipt(receipt)?;
     let canonical = canonical_json_bytes(receipt)?;
+    // Publication must not create evidence that the bounded reader cannot reopen.
+    crate::receipt_wire::parse_receipt_bytes(&canonical)?;
     write_bytes_no_clobber(path, &canonical, true)
 }
 
