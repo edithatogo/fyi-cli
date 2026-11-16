@@ -173,6 +173,34 @@ pub enum Commands {
         #[arg(long, default_value = "fyi_system.db")]
         db: String,
     },
+    #[command(about = "Replay explicitly approved Wayback rows with bounded evidence")]
+    InternetArchiveReplay {
+        #[arg(long)]
+        selection: String,
+        #[arg(long)]
+        allowed_target_host: String,
+        #[arg(long)]
+        output_dir: String,
+        /// Directory for the original entity bytes of each response hop.
+        #[arg(long)]
+        responses_dir: String,
+        #[arg(long)]
+        result: String,
+        #[arg(long)]
+        checkpoint: String,
+        #[arg(long)]
+        receipt: String,
+        #[arg(long, default_value_t = 100)]
+        max_rows: usize,
+        #[arg(long, default_value_t = 16 * 1024 * 1024)]
+        max_payload_bytes: usize,
+        #[arg(long, default_value_t = 3)]
+        max_redirects: usize,
+        #[arg(long, default_value = "180.0")]
+        max_runtime_seconds: String,
+        #[arg(long, default_value = "30.0")]
+        request_timeout_seconds: String,
+    },
     #[command(about = "Fetch request HTML page and parse info")]
     FetchRequestPage {
         request_id: i32,
@@ -444,6 +472,12 @@ pub enum Commands {
             help = "Original HTTP response bytes to verify against the receipt"
         )]
         raw_file: Option<String>,
+        #[arg(
+            long,
+            conflicts_with = "raw_file",
+            help = "Directory of ordered Wayback response bodies to verify"
+        )]
+        responses_dir: Option<String>,
     },
     #[command(about = "Run Model Context Protocol (MCP) server")]
     McpServer,
@@ -673,6 +707,49 @@ fn main() {
         }
         Commands::IngestFeed { .. } => unsupported_command("ingest-feed"),
         Commands::ReconcileEvents { .. } => unsupported_command("reconcile-events"),
+        Commands::InternetArchiveReplay {
+            selection,
+            allowed_target_host,
+            output_dir,
+            responses_dir,
+            result,
+            checkpoint,
+            receipt,
+            max_rows,
+            max_payload_bytes,
+            max_redirects,
+            max_runtime_seconds,
+            request_timeout_seconds,
+        } => {
+            use fyi_core::internet_archive_replay::{
+                replay_archive_with_evidence, ReplayConfig, ReplayEvidencePaths,
+            };
+            let operation = || -> Result<(), Box<dyn std::error::Error>> {
+                let config = ReplayConfig {
+                    allowed_target_host: allowed_target_host.clone(),
+                    max_rows: *max_rows,
+                    max_payload_bytes: *max_payload_bytes,
+                    max_redirects: *max_redirects,
+                    max_runtime_seconds: max_runtime_seconds.parse()?,
+                    request_timeout_seconds: request_timeout_seconds.parse()?,
+                };
+                let paths = ReplayEvidencePaths {
+                    selection: Path::new(selection),
+                    output_dir: Path::new(output_dir),
+                    responses_dir: Path::new(responses_dir),
+                    checkpoint: Path::new(checkpoint),
+                    result: Path::new(result),
+                    receipt: Path::new(receipt),
+                };
+                Runtime::new()?.block_on(replay_archive_with_evidence(&paths, &config))?;
+                println!("{result}");
+                Ok(())
+            };
+            if let Err(error) = operation() {
+                eprintln!("Wayback replay failed: {error:#}");
+                std::process::exit(1);
+            }
+        }
         Commands::FetchRequestPage {
             request_id,
             base_url,
@@ -867,6 +944,7 @@ fn main() {
             path,
             result_file,
             raw_file,
+            responses_dir,
         } => {
             let result = std::fs::File::open(path)
                 .map_err(|error| format!("reading receipt failed: {error}"))
@@ -888,6 +966,13 @@ fn main() {
                             .map_err(|error| format!("reading raw HTTP body failed: {error}"))?;
                         fyi_core::acquisition_receipts::verify_receipt_raw_bytes(&receipt, &bytes)
                             .map_err(|error| error.to_string())?;
+                    }
+                    if let Some(directory) = responses_dir {
+                        fyi_core::internet_archive_replay::verify_replay_response_files(
+                            &receipt,
+                            Path::new(directory),
+                        )
+                        .map_err(|error| error.to_string())?;
                     }
                     Ok(())
                 });

@@ -148,6 +148,101 @@ pub struct SyncClient {
     shared_pacing: Option<SharedPacing>,
 }
 
+/// Redirect-free, bounded source transport for approved Wayback replay.
+///
+/// Replay selection and target validation remain the replay engine's job.
+/// This transport only connects to the fixed archive origin, never follows a
+/// redirect, and retains encoded response bytes for the caller's evidence.
+pub(crate) struct WaybackTransport {
+    client: SyncClient,
+}
+
+impl WaybackTransport {
+    /// Construct a transport pinned to the public Wayback origin.
+    pub(crate) fn new() -> Result<Self> {
+        let identity = crate::agent_runtime::ClientIdentity::default_identity(None)?;
+        let http = build_wayback_http_client(&identity)?;
+        Ok(Self {
+            client: SyncClient::with_http_client_and_identity(
+                crate::internet_archive_replay::REPLAY_ORIGIN,
+                http,
+                identity,
+            )?,
+        })
+    }
+
+    /// Fetch one archive response without redirects, cache reuse or retries.
+    pub(crate) async fn fetch(
+        &self,
+        raw_url: &str,
+        timeout: Duration,
+        max_bytes: usize,
+    ) -> Result<crate::internet_archive_replay::ReplayResponse> {
+        let url = Url::parse(raw_url).context("invalid Wayback URL")?;
+        anyhow::ensure!(
+            url.as_str() == raw_url
+                && url.scheme() == "https"
+                && url.host_str() == Some("web.archive.org")
+                && url.port_or_known_default() == Some(443)
+                && url.username().is_empty()
+                && url.password().is_none()
+                && url.fragment().is_none()
+                && url.path().starts_with("/web/"),
+            "Wayback URL escaped the archive origin"
+        );
+        self.fetch_bound_origin(&url, timeout, max_bytes).await
+    }
+
+    async fn fetch_bound_origin(
+        &self,
+        url: &Url,
+        timeout: Duration,
+        max_bytes: usize,
+    ) -> Result<crate::internet_archive_replay::ReplayResponse> {
+        anyhow::ensure!(
+            url.origin() == self.client.base_url.origin(),
+            "Wayback origin mismatch"
+        );
+        anyhow::ensure!(
+            (1..=crate::internet_archive_replay::MAX_PAYLOAD_BYTES).contains(&max_bytes),
+            "Wayback response byte limit is invalid"
+        );
+        anyhow::ensure!(!timeout.is_zero(), "Wayback timeout must be positive");
+        let request = self
+            .client
+            .http
+            .get(url.clone())
+            .header(header::ACCEPT_ENCODING, "identity")
+            .timeout(timeout);
+        let response = self
+            .client
+            .send_guarded_with_limits(request, Some(max_bytes as u64), false, "wayback_replay")
+            .await?;
+        Ok(crate::internet_archive_replay::ReplayResponse {
+            url: response.final_url,
+            status: response.source_status,
+            version: response.version,
+            headers: response.headers,
+            body: response.body,
+            captured_at: Utc::now(),
+        })
+    }
+}
+
+fn build_wayback_http_client(identity: &crate::agent_runtime::ClientIdentity) -> Result<Client> {
+    identity.validate()?;
+    Client::builder()
+        .user_agent(identity.user_agent())
+        .timeout(Duration::from_secs(60))
+        .redirect(reqwest::redirect::Policy::none())
+        .no_gzip()
+        .no_brotli()
+        .no_deflate()
+        .no_zstd()
+        .build()
+        .context("failed to build Wayback HTTP client")
+}
+
 #[derive(Clone)]
 struct SharedPacing {
     db: DbPool,
@@ -185,6 +280,7 @@ struct GuardedResponse {
     /// Actual upstream status (unmodified, including 304), unlike status
     /// which retains legacy effective-cache behavior.
     source_status: StatusCode,
+    version: reqwest::Version,
     final_url: Url,
     headers: reqwest::header::HeaderMap,
     body: Vec<u8>,
@@ -361,6 +457,17 @@ impl SyncClient {
     }
 
     async fn send_guarded(&self, request: RequestBuilder) -> Result<GuardedResponse> {
+        self.send_guarded_with_limits(request, None, true, "alaveteli_api")
+            .await
+    }
+
+    async fn send_guarded_with_limits(
+        &self,
+        request: RequestBuilder,
+        response_byte_limit: Option<u64>,
+        allow_cache: bool,
+        route_class: &'static str,
+    ) -> Result<GuardedResponse> {
         let mut request = request
             .build()
             .context("failed to build outbound request")?;
@@ -370,8 +477,9 @@ impl SyncClient {
             ));
         }
         let cache_key = request.url().to_string();
-        let cacheable_get =
-            request.method() == reqwest::Method::GET && !is_bulk_export_url(request.url());
+        let cacheable_get = allow_cache
+            && request.method() == reqwest::Method::GET
+            && !is_bulk_export_url(request.url());
         if let Some(token) = &self.bot_token {
             let value = header::HeaderValue::from_str(token)
                 .map_err(|_| anyhow!("configured bot token is not a valid header value"))?;
@@ -399,7 +507,7 @@ impl SyncClient {
         }
         let meta = crate::agent_runtime::OutboundRequestMeta {
             instance_id: self.base_url.host_str().unwrap_or("unknown").to_string(),
-            route_class: "alaveteli_api".to_string(),
+            route_class: route_class.to_string(),
             method: request.method().to_string(),
             url: request.url().to_string(),
         };
@@ -442,6 +550,7 @@ impl SyncClient {
             .await
             .context("outbound request failed")?;
         let status = response.status();
+        let version = response.version();
         let final_url = response.url().clone();
         let headers = response.headers().clone();
         let header_values = headers
@@ -463,7 +572,16 @@ impl SyncClient {
             .await
             .guardrails
             .config
-            .max_response_bytes;
+            .max_response_bytes
+            .min(response_byte_limit.unwrap_or(u64::MAX));
+        if response_byte_limit.is_some() {
+            if let Some(length) = response.content_length() {
+                anyhow::ensure!(
+                    length <= max_response_bytes,
+                    "outbound response exceeds the byte limit"
+                );
+            }
+        }
         let mut body = Vec::new();
         while let Some(chunk) = response
             .chunk()
@@ -489,7 +607,7 @@ impl SyncClient {
                 .map_err(|error| anyhow!("outbound response blocked: {error}"))?;
             body.extend_from_slice(&chunk);
         }
-        if status == StatusCode::NOT_MODIFIED {
+        if status == StatusCode::NOT_MODIFIED && allow_cache {
             let cached = self.validator_cache.lock().await.get(&cache_key).cloned();
             let Some(cached) = cached else {
                 return Err(anyhow!(
@@ -539,12 +657,13 @@ impl SyncClient {
         }
 
         Ok(GuardedResponse {
-            status: if status == StatusCode::NOT_MODIFIED {
+            status: if status == StatusCode::NOT_MODIFIED && allow_cache {
                 StatusCode::OK
             } else {
                 status
             },
             source_status: status,
+            version,
             final_url,
             headers,
             body,
@@ -1789,6 +1908,196 @@ mod tests {
         assert!(SyncClient::new("https://example.com?x=1").is_err());
         assert!(SyncClient::new("http://127.0.0.1").is_err());
         assert!(SyncClient::new_for_testing("http://127.0.0.1").is_ok());
+    }
+
+    #[tokio::test]
+    async fn replay_transport_exposes_redirect_before_following_it() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/approved"))
+            .respond_with(ResponseTemplate::new(302).insert_header("Location", "/unapproved"))
+            .mount(&server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/unapproved"))
+            .respond_with(ResponseTemplate::new(200).set_body_string("wrong target"))
+            .mount(&server)
+            .await;
+        let transport = replay_transport_for_testing(&server.uri());
+        let url = Url::parse(&format!("{}/approved", server.uri())).unwrap();
+        let response = transport
+            .fetch_bound_origin(&url, Duration::from_secs(2), 1024)
+            .await
+            .unwrap();
+        assert_eq!(response.status, StatusCode::FOUND);
+        assert_eq!(server.received_requests().await.unwrap().len(), 1);
+    }
+
+    fn replay_transport_for_testing(base_url: &str) -> WaybackTransport {
+        let identity = crate::agent_runtime::ClientIdentity::default_identity(None).unwrap();
+        let http = build_wayback_http_client(&identity).unwrap();
+        WaybackTransport {
+            client: SyncClient::with_http_client_and_validation(base_url, http, true).unwrap(),
+        }
+    }
+
+    #[tokio::test]
+    async fn replay_transport_enforces_raw_limits_and_preserves_encoded_bytes() {
+        use std::io::Write;
+        let mut encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+        encoder.write_all(b"synthetic replay payload").unwrap();
+        let encoded = encoder.finish().unwrap();
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/encoded"))
+            .and(header("Accept-Encoding", "identity"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .insert_header("Content-Encoding", "gzip")
+                    .set_body_bytes(encoded.clone()),
+            )
+            .mount(&server)
+            .await;
+        let transport = replay_transport_for_testing(&server.uri());
+        let url = Url::parse(&format!("{}/encoded", server.uri())).unwrap();
+        let response = transport
+            .fetch_bound_origin(&url, Duration::from_secs(2), 1024)
+            .await
+            .unwrap();
+        assert_eq!(response.body, encoded);
+        assert_eq!(response.headers[header::CONTENT_ENCODING], "gzip");
+
+        let error = transport
+            .fetch_bound_origin(&url, Duration::from_secs(2), 2)
+            .await
+            .unwrap_err();
+        assert!(format!("{error:#}").contains("byte limit"));
+        assert_eq!(server.received_requests().await.unwrap().len(), 2);
+    }
+
+    #[tokio::test]
+    async fn replay_transport_rejects_foreign_origins_and_invalid_limits_before_io() {
+        let server = MockServer::start().await;
+        let transport = replay_transport_for_testing(&server.uri());
+        let local = Url::parse(&format!("{}/approved", server.uri())).unwrap();
+        let foreign =
+            Url::parse("https://example.invalid/web/20260101000000id_/https://example.invalid/")
+                .unwrap();
+        assert!(transport
+            .fetch_bound_origin(&foreign, Duration::from_secs(2), 1024)
+            .await
+            .is_err());
+        assert!(transport
+            .fetch_bound_origin(&local, Duration::ZERO, 1024)
+            .await
+            .is_err());
+        assert!(transport
+            .fetch_bound_origin(&local, Duration::from_secs(2), 0)
+            .await
+            .is_err());
+        let production = WaybackTransport::new().unwrap();
+        assert!(production
+            .fetch(
+                "https://example.invalid/web/20260101000000id_/https://example.invalid/",
+                Duration::from_secs(2),
+                1024
+            )
+            .await
+            .is_err());
+        assert!(server.received_requests().await.unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn replay_transport_rejects_oversized_chunked_bodies() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let mut request = [0_u8; 2048];
+            let _ = stream.read(&mut request).await.unwrap();
+            let _ = stream.write_all(b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n6\r\nabcdef\r\n0\r\n\r\n").await;
+        });
+        let base = format!("http://{address}");
+        let transport = replay_transport_for_testing(&base);
+        let url = Url::parse(&format!("{base}/approved")).unwrap();
+        let error = transport
+            .fetch_bound_origin(&url, Duration::from_secs(2), 5)
+            .await
+            .unwrap_err();
+        assert!(format!("{error:#}").contains("maximum response bytes exceeded"));
+        server.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn replay_transport_never_reuses_a_cached_response() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/cached"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .insert_header("ETag", "\"prior\"")
+                    .set_body_string("fresh"),
+            )
+            .expect(2)
+            .mount(&server)
+            .await;
+        let transport = replay_transport_for_testing(&server.uri());
+        let url = Url::parse(&format!("{}/cached", server.uri())).unwrap();
+        for _ in 0..2 {
+            assert_eq!(
+                transport
+                    .fetch_bound_origin(&url, Duration::from_secs(2), 1024)
+                    .await
+                    .unwrap()
+                    .body,
+                b"fresh"
+            );
+        }
+        let requests = server.received_requests().await.unwrap();
+        assert_eq!(requests.len(), 2);
+        assert!(requests
+            .iter()
+            .all(|request| !request.headers.contains_key("if-none-match")));
+    }
+
+    #[tokio::test]
+    async fn replay_transport_preserves_a_304_as_an_observed_response() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/not-modified"))
+            .respond_with(ResponseTemplate::new(304))
+            .mount(&server)
+            .await;
+        let transport = replay_transport_for_testing(&server.uri());
+        let url = Url::parse(&format!("{}/not-modified", server.uri())).unwrap();
+        let response = transport
+            .fetch_bound_origin(&url, Duration::from_secs(2), 1024)
+            .await
+            .unwrap();
+        assert_eq!(response.status, StatusCode::NOT_MODIFIED);
+        assert!(response.body.is_empty());
+        assert_eq!(server.received_requests().await.unwrap().len(), 1);
+    }
+
+    #[tokio::test]
+    async fn replay_transport_enforces_the_per_exchange_timeout() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/slow"))
+            .respond_with(ResponseTemplate::new(200).set_delay(Duration::from_secs(2)))
+            .mount(&server)
+            .await;
+        let transport = replay_transport_for_testing(&server.uri());
+        let url = Url::parse(&format!("{}/slow", server.uri())).unwrap();
+        let error = transport
+            .fetch_bound_origin(&url, Duration::from_millis(50), 1024)
+            .await
+            .unwrap_err();
+        assert_eq!(
+            source_failure_kind(&error),
+            Some(SourceFailureKind::Timeout)
+        );
     }
 
     #[tokio::test]
