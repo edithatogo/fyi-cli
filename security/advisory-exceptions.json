@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "allow_new_exceptions": false,
+  "policy": "Seven existing RustSec suppressions remain time-bounded; thirteen others were retired after a logged no-matching-crate audit at master 9050a664. New suppressions are forbidden.",
+  "exceptions": {
+    "RUSTSEC-2024-0436": {
+      "owner": "edithatogo",
+      "tracking_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
+      "reason": "Existing Tor-related or legacy advisory pending per-advisory dependency reachability and patch qualification",
+      "expires": "2026-12-14"
+    },
+    "RUSTSEC-2023-0071": {
+      "owner": "edithatogo",
+      "tracking_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
+      "reason": "Existing Tor-related or legacy advisory pending per-advisory dependency reachability and patch qualification",
+      "expires": "2026-12-14"
+    },
+    "RUSTSEC-2026-0387": {
+      "owner": "edithatogo",
+      "tracking_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
+      "reason": "crypto-bigint timing fix blocked by elliptic-curve and p256 transitive version constraints",
+      "expires": "2026-12-14"
+    },
+    "RUSTSEC-2026-0459": {
+      "owner": "edithatogo",
+      "tracking_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
+      "reason": "SQLite bundled-library patch blocked by sqlx/rusqlite native-link compatibility; assess untrusted WAL input",
+      "expires": "2026-12-14"
+    },
+    "RUSTSEC-2026-0370": {
+      "owner": "edithatogo",
+      "tracking_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
+      "reason": "unmaintained zvariant/zbus chain pending upstream keyring migration",
+      "expires": "2026-12-14"
+    },
+    "RUSTSEC-2026-0371": {
+      "owner": "edithatogo",
+      "tracking_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
+      "reason": "unmaintained zvariant/zbus chain pending upstream keyring migration",
+      "expires": "2026-12-14"
+    },
+    "RUSTSEC-2026-0372": {
+      "owner": "edithatogo",
+      "tracking_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
+      "reason": "unmaintained zvariant/zbus chain pending upstream keyring migration",
+      "expires": "2026-12-14"
+    }
+  }
+}

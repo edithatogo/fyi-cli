@@ -13,29 +13,8 @@ version = 2
 # is tracked as follow-up work rather than silently accepted forever. Do not
 # add further ignores here without a corresponding tracking issue.
 ignore = [
-  "RUSTSEC-2026-0190", # curve25519-dalek timing variability (via arti-client -> tor-*)
-  "RUSTSEC-2024-0344", # curve25519-dalek timing variability, older advisory (via arti-client)
-  "RUSTSEC-2024-0388", # derivative unmaintained (via arti-client -> tor-*)
-  "RUSTSEC-2022-0093", # ed25519-dalek double public key oracle attack (via arti-client)
-  "RUSTSEC-2026-0174", # http/hyper header ASCII invariant notice (via arti-client -> tor-*)
-  "RUSTSEC-2024-0384", # instant unmaintained (via arti-client -> tor-*)
   "RUSTSEC-2024-0436", # paste unmaintained (via arti-client -> tor-*)
-  "RUSTSEC-2025-0009", # aes overflow panic (via arti-client -> tor-*)
-  "RUSTSEC-2025-0010", # ring unmaintained pre-0.17 (via arti-client -> tor-*)
   "RUSTSEC-2023-0071", # rsa Marvin Attack timing sidechannel (via arti-client -> tor-*)
-  "RUSTSEC-2025-0134", # rustls-pemfile unmaintained (via arti-client -> tor-*)
-  "RUSTSEC-2026-0098", # webpki/x509 name constraint issue (via arti-client -> tor-*)
-  "RUSTSEC-2026-0099", # webpki/x509 name constraint wildcard issue (via arti-client -> tor-*)
-  "RUSTSEC-2026-0104", # x509 reachable panic in CRL parsing (via arti-client -> tor-*)
-  # RUSTSEC-2024-0363: sqlx binary protocol truncation. Upgrading to sqlx >=0.8.1
-  # is blocked by a `links = "sqlite3"` conflict with arti-client's transitive
-  # `rusqlite` (via tor-dirmgr), which pins libsqlite3-sys 0.26 vs sqlx 0.8's
-  # 0.28 -- cargo refuses to link two versions of the native sqlite3 lib in one
-  # binary. Per the advisory itself, only Postgres is demonstrated exploitable;
-  # "MySQL and SQLite do not appear to be exploitable, but upgrading is
-  # recommended nonetheless." We only use the sqlite driver here. Revisit once
-  # arti-client updates its rusqlite dependency.
-  "RUSTSEC-2024-0363",
   # RUSTSEC-2026-0387: crypto-bigint timing variability. Blocked because
   # ssh-key-fork-arti 0.6.7 (latest) requires p256 ^0.13, which requires
   # elliptic-curve ^0.13, which requires crypto-bigint ^0.5. Cannot upgrade

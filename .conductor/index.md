@@ -25,6 +25,7 @@ This directory contains the canonical Conductor project context and management f
 - [Tracks Directory](./tracks/) - Individual track specifications and plans
 
 ### Active Tracks
+- **security-advisory-remediation-20261114** — Retire all RustSec suppressions through verified dependency upgrades; stop new/expired exceptions with required CI and an optional pre-commit hook (issue #325; in progress).
 - **i18n-localization-framework** — Fluent, typed letters and terminology are merged (#436, #447, #450); calendars/statutory rules, human review and remaining integration/performance acceptance stay open under #39.
 - **remote-mcp-contract-harness-20260711** — Executable protocol, SDK and synthetic upstream contracts are delivered; feed/cache/transfer, broader property/mutation and platform acceptance remain open under #169/#173.
 - **remote-mcp-write-governance-20260711** — Governed writes and a bounded durable journal are implemented; immutable attachment submission, atomic upstream state changes and platform qualification remain open under #169/#171.
@@ -37,7 +38,6 @@ This directory contains the canonical Conductor project context and management f
 - **package-registry-submissions_20260712** - Reproducible package, container and developer distribution submissions
 - **foi-platform-landscape_20260712** - Source-backed map of non-Alaveteli FOI platforms, with Phase 3 drift monitoring still open
 - **jurisdiction-capture-completion-20260721** - Bounded jurisdiction capture increments; live runs remain operator-authorised
-
 - **remote-mcp-observability-security-20260711** - Bounded MCP dispatch telemetry; source correlation, raw metrics and platform acceptance remain open (#172, #460)
 
 ### Completed Tracks
