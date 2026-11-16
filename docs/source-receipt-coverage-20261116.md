@@ -30,9 +30,10 @@ The receipt verifier checks structural and digest consistency. A schema-valid
 empty response list by itself does not prove that a sync operation made no
 requests, and a result digest does not stand in for captured response bytes.
 The Rust verifier's conservative rejection of empty `alaveteli-sync` receipts
-is stricter than the generic v1 JSON schema and the Python structural validator.
-Cross-runtime semantic parity for this case remains an open, blocking follow-up;
-the Python validator must not be treated as proof of observed sync transport.
+is stricter than the generic v1 JSON schema. The Python verifier now applies
+the same rejection and checks observed response totals, safe URLs and bounded,
+unambiguous receipt bytes. This fixes that specific mismatch; neither verifier
+can create evidence of transport observations that were not recorded.
 
 ## Bounded integrity increment
 
@@ -83,3 +84,17 @@ and retain all required CI/security/coverage gates. Independent transport-backed
 receipt construction, cross-runtime semantics, release pinning,
 raw/attachment/WARC linkage and `fyi-archive` shadow parity remain open. The
 preserved Rust replay branch and its dependencies stay with the #312 owner.
+
+## Python and Rust verifier parity increment
+
+The scoped verifier change adds 29 shared synthetic cases and wire-format
+regressions, including duplicate keys, nesting, invalid URLs, complete digest
+and adapter-ID matches, and counter totals.
+Both writers also reject a receipt before publication if its canonical bytes
+cannot be reopened by the bounded verifier. The source worktree passed 265
+focused Python tests on Python 3.15.2 and 45 focused Rust tests offline. Its
+existing portability workflow now runs the Rust corpus alongside Python on
+Linux, macOS and Windows. These finite cases do not prove complete URL or JSON
+equivalence; hosted checks on the integrated PR are
+still required. Transport-backed sync receipts, source coverage, live smoke,
+release and downstream shadow parity remain open.
