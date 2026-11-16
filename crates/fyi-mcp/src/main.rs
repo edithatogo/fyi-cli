@@ -2831,10 +2831,17 @@ async fn remote_read(
                     json!({"instance_id": instance_id, "network_reachable": health.network_reachable, "api_reachable": health.api_reachable}),
                 )
             }
-            "remote_version" => client
-                .get_api_version()
-                .await
-                .map(|version| json!({"instance_id": instance_id, "version": version})),
+            "remote_version" => {
+                #[cfg(feature = "sdk-regression-fixture")]
+                let version = if policy.sdk_regression_fixture {
+                    client.get_api_version_for_sdk_fixture().await
+                } else {
+                    client.get_api_version().await
+                };
+                #[cfg(not(feature = "sdk-regression-fixture"))]
+                let version = client.get_api_version().await;
+                version.map(|version| json!({"instance_id": instance_id, "version": version}))
+            }
             "remote_search_requests" => {
                 let limit = arguments
                     .get("limit")
@@ -3703,6 +3710,29 @@ async fn run_stdio(
         }
     }
     Ok(())
+}
+
+/// Entrypoint for the separately built, socket-free SDK regression fixture.
+/// The normal server cannot select the synthetic source via configuration.
+#[cfg(feature = "sdk-regression-fixture")]
+#[allow(dead_code)] // Called by the separate example, not by the server binary.
+pub(crate) async fn run_sdk_regression_fixture() -> Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::fmt()
+        .with_writer(std::io::stderr)
+        .with_env_filter(tracing_subscriber::EnvFilter::new("info"))
+        .init();
+    let mut policy = RemoteMcpPolicy::new(vec![policy::RemoteInstancePolicy {
+        instance_id: "synthetic".into(),
+        base_url: "https://mcp-fixture.invalid".into(),
+        read_enabled: true,
+        write_enabled: false,
+        budget: policy::RemoteBudget::default(),
+    }])?;
+    policy.sdk_regression_fixture = true;
+    let db = DbPool::new_in_memory().await?;
+    db.run_migrations().await?;
+    ensure_authorities_table(db.pool()).await?;
+    run_stdio(&db, &policy, &RemoteWriteGate::default()).await
 }
 
 #[tokio::main]

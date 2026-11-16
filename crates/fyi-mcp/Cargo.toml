@@ -13,6 +13,15 @@ readme = "README.md"
 [package.metadata.binstall]
 disabled-strategies = ["crate-meta-data", "quick-install", "compile"]
 
+[features]
+# Exposes a separate, explicitly invoked test example; the server's normal
+# entry point never enables its synthetic source response.
+sdk-regression-fixture = ["fyi-core/sdk-regression-fixture"]
+
+[[example]]
+name = "sdk-regression-fixture"
+required-features = ["sdk-regression-fixture"]
+
 [dependencies]
 axum = "0.7"
 tokio = { version = "1.36", features = ["full"] }

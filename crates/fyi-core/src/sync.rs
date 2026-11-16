@@ -199,15 +199,8 @@ impl WaybackTransport {
         timeout: Duration,
         max_bytes: usize,
     ) -> Result<crate::internet_archive_replay::ReplayResponse> {
-        self.fetch_bound_origin_using(url, timeout, max_bytes, |request| async {
-            let response = self
-                .client
-                .http
-                .execute(request)
-                .await
-                .context("outbound request failed")?;
-            let url = response.url().clone();
-            Ok((response, url))
+        self.fetch_bound_origin_using(url, timeout, max_bytes, |request| {
+            self.client.execute_guarded_request(request)
         })
         .await
     }
@@ -505,17 +498,24 @@ impl SyncClient {
             response_byte_limit,
             allow_cache,
             route_class,
-            |request| async {
-                let response = self
-                    .http
-                    .execute(request)
-                    .await
-                    .context("outbound request failed")?;
-                let url = response.url().clone();
-                Ok((response, url))
-            },
+            |request| self.execute_guarded_request(request),
         )
         .await
+    }
+
+    // All actual source sends pass through the guarded caller above or the
+    // replay/version variants which use the same guarded execution seam.
+    async fn execute_guarded_request(
+        &self,
+        request: reqwest::Request,
+    ) -> Result<(reqwest::Response, Url)> {
+        let response = self
+            .http
+            .execute(request)
+            .await
+            .context("outbound request failed")?;
+        let url = response.url().clone();
+        Ok((response, url))
     }
 
     async fn send_guarded_with_limits_using<F, Fut>(
@@ -1264,13 +1264,28 @@ impl SyncClient {
     }
 
     pub async fn get_api_version(&self) -> Result<String> {
+        self.get_api_version_using(|request| self.execute_guarded_request(request))
+            .await
+    }
+
+    async fn get_api_version_using<F, Fut>(&self, execute: F) -> Result<String>
+    where
+        F: FnOnce(reqwest::Request) -> Fut,
+        Fut: std::future::Future<Output = Result<(reqwest::Response, Url)>>,
+    {
         let url = self
             .base_url
             .join("api/v2/version.json")
             .context("failed to build API version URL")?;
 
         let response = self
-            .send_guarded(self.http.get(url))
+            .send_guarded_with_limits_using(
+                self.http.get(url),
+                None,
+                true,
+                "alaveteli_api",
+                execute,
+            )
             .await
             .context("failed to get API version")?;
         let value = ensure_success(response, "version endpoint")
@@ -1288,6 +1303,28 @@ impl SyncClient {
                 .ok_or_else(|| anyhow!("version endpoint did not include a version string")),
             _ => Err(anyhow!("version endpoint returned an unsupported payload")),
         }
+    }
+
+    /// Exercise the real version-response path with an in-process synthetic HTTP
+    /// response. This explicit feature is used only by the standalone SDK test
+    /// executable; normal clients never select this transport.
+    #[cfg(feature = "sdk-regression-fixture")]
+    #[doc(hidden)]
+    pub async fn get_api_version_for_sdk_fixture(&self) -> Result<String> {
+        self.get_api_version_using(|request| async move {
+            anyhow::ensure!(
+                request.method() == reqwest::Method::GET
+                    && request.url().as_str() == "https://mcp-fixture.invalid/api/v2/version.json",
+                "SDK fixture received an unexpected source request"
+            );
+            let url = request.url().clone();
+            let response = http::Response::builder()
+                .status(503)
+                .header(header::RETRY_AFTER, "401")
+                .body(reqwest::Body::from("synthetic-upstream-private-error"))?;
+            Ok((response.into(), url))
+        })
+        .await
     }
 
     pub async fn build_prefilled_url(

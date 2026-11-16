@@ -101,6 +101,11 @@ No existing #310–#314 issue is closed by this incremental Rust implementation.
   and a stalled connector; preserve the typed 503/401 and timeout regressions.
   Focused tests also passed with network access explicitly denied. [source
   checkpoint: 75d5fd1]
+- [~] Preserve the Python SDK 503-versus-401 acceptance test through the real
+  MCP stdio dispatcher and source response path using an explicitly selected,
+  in-process transport fixture. The production entrypoint cannot select that
+  fixture. The SDK and guardrail-boundary regressions passed with network
+  access denied; final integrated hosted checks are pending.
 
 ## Result-byte verification tranche (PR #406 merged, 2026-11-13)
 
