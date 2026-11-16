@@ -1,0 +1,5 @@
+{
+  "error": "unauthorized",
+  "status": 401,
+  "message": "Authentication credentials were missing or invalid."
+}
