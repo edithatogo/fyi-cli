@@ -213,6 +213,7 @@ def test_source_status_uses_typed_metadata_not_retry_after_text(
     anyio.run(scenario)
     _events(tmp_path, "remote_version", "failed")
     diagnostics = (tmp_path / "upstream-server.stderr").read_text(encoding="utf-8")
+    diagnostics = re.sub(r"\x1b\[[0-9;]*m", "", diagnostics)
     classified = [line for line in diagnostics.splitlines() if "classified failure" in line]
     assert len(classified) == 1, diagnostics
     assert "upstream_unavailable" in classified[0]
