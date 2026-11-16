@@ -88,6 +88,20 @@ The new Rust verifier is read-only and does not claim write-path or network acqu
 
 No existing #310–#314 issue is closed by this incremental Rust implementation.
 
+## Socket-free source regressions — 2026-11-16
+
+- [~] Chat `01a1e3da-9d35-7a01-8723-b07a2749f7bd` owns the socket-free
+  regression follow-up in managed worktree
+  `/Users/doughnut/.codex/worktrees/fyi-replay-transport-312/fyi-cli`, branch
+  `codex/fyi-replay-socket-free-tests`. Scope: replay transport fixtures, typed
+  source failure fixtures, the corresponding test-only dependencies and
+  affected evidence documentation. No native or authentication scope is
+  assigned. Next: hosted checks and integration through a PR.
+- [x] Replace the new replay/source socket fixtures with in-process responses
+  and a stalled connector; preserve the typed 503/401 and timeout regressions.
+  Focused tests also passed with network access explicitly denied. [source
+  checkpoint: 75d5fd1]
+
 ## Result-byte verification tranche (PR #406 merged, 2026-11-13)
 
 - [x] Rust `verify_receipt_result_bytes` independently checks stored canonical result projection length and SHA-256 after verifying the receipt's own integrity (PR #406, merge `5c5bf30d`).
