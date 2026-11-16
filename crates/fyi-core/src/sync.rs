@@ -2135,7 +2135,6 @@ mod tests {
 
     #[tokio::test]
     async fn pull_receipt_binds_observed_response_and_applied_result() {
-        let server = MockServer::start().await;
         let db = DbPool::new_in_memory().await.unwrap();
         db.run_migrations().await.unwrap();
         let existing = request(1, "Existing", "2026-06-30T00:00:00Z");
@@ -2147,12 +2146,7 @@ mod tests {
             "requests": [request(2, "Synthetic update", "2026-06-30T01:00:00Z")]
         }))
         .unwrap();
-        Mock::given(method("GET"))
-            .and(path("/api/v2/request.json"))
-            .respond_with(ResponseTemplate::new(200).set_body_bytes(raw.clone()))
-            .mount(&server)
-            .await;
-        let client = SyncPullEvidenceClient::for_testing(&server.uri()).unwrap();
+        let client = SyncPullEvidenceClient::new("https://example.test").unwrap();
         let dir =
             tempfile::tempdir_in(std::fs::canonicalize(std::env::temp_dir()).unwrap()).unwrap();
         let raw_path = dir.path().join("response.raw");
@@ -2163,7 +2157,20 @@ mod tests {
             result: &result_path,
             receipt: &receipt_path,
         };
-        let report = client.pull(&db, &paths).await.unwrap();
+        let supplied = raw.clone();
+        let report = client
+            .pull_using(&db, &paths, |url| async move {
+                assert_eq!(url.path(), "/api/v2/request.json");
+                assert!(url.query().is_some());
+                Ok(pull_evidence::SyncPullResponse {
+                    status: StatusCode::OK,
+                    url,
+                    headers: header::HeaderMap::new(),
+                    body: supplied,
+                })
+            })
+            .await
+            .unwrap();
         assert_eq!(report.fetched, 1);
         assert_eq!(
             db.get_request(2).await.unwrap().unwrap().title,
@@ -2193,15 +2200,9 @@ mod tests {
 
     #[tokio::test]
     async fn pull_receipt_records_http_failure_without_applying_updates() {
-        let server = MockServer::start().await;
         let db = DbPool::new_in_memory().await.unwrap();
         db.run_migrations().await.unwrap();
-        Mock::given(method("GET"))
-            .and(path("/api/v2/request.json"))
-            .respond_with(ResponseTemplate::new(503).set_body_string("synthetic failure"))
-            .mount(&server)
-            .await;
-        let client = SyncPullEvidenceClient::for_testing(&server.uri()).unwrap();
+        let client = SyncPullEvidenceClient::new("https://example.test").unwrap();
         let dir =
             tempfile::tempdir_in(std::fs::canonicalize(std::env::temp_dir()).unwrap()).unwrap();
         let raw_path = dir.path().join("response.raw");
@@ -2212,7 +2213,17 @@ mod tests {
             result: &result_path,
             receipt: &receipt_path,
         };
-        assert!(client.pull(&db, &paths).await.is_err());
+        assert!(client
+            .pull_using(&db, &paths, |url| async move {
+                Ok(pull_evidence::SyncPullResponse {
+                    status: StatusCode::SERVICE_UNAVAILABLE,
+                    url,
+                    headers: header::HeaderMap::new(),
+                    body: b"synthetic failure".to_vec(),
+                })
+            })
+            .await
+            .is_err());
         let receipt: Value = serde_json::from_slice(&std::fs::read(receipt_path).unwrap()).unwrap();
         crate::acquisition_receipts::verify_receipt(&receipt).unwrap();
         assert_eq!(receipt["status"], "failed");
@@ -2223,15 +2234,9 @@ mod tests {
 
     #[tokio::test]
     async fn pull_receipt_never_follows_a_redirect_or_replaces_evidence() {
-        let server = MockServer::start().await;
         let db = DbPool::new_in_memory().await.unwrap();
         db.run_migrations().await.unwrap();
-        Mock::given(method("GET"))
-            .and(path("/api/v2/request.json"))
-            .respond_with(ResponseTemplate::new(302).insert_header("Location", "/unapproved"))
-            .mount(&server)
-            .await;
-        let client = SyncPullEvidenceClient::for_testing(&server.uri()).unwrap();
+        let client = SyncPullEvidenceClient::new("https://example.test").unwrap();
         let dir =
             tempfile::tempdir_in(std::fs::canonicalize(std::env::temp_dir()).unwrap()).unwrap();
         let raw_path = dir.path().join("response.raw");
@@ -2243,12 +2248,34 @@ mod tests {
             receipt: &receipt_path,
         };
         std::fs::write(&receipt_path, b"preserve").unwrap();
-        assert!(client.pull(&db, &paths).await.is_err());
-        assert!(server.received_requests().await.unwrap().is_empty());
+        let calls = std::sync::atomic::AtomicUsize::new(0);
+        assert!(client
+            .pull_using(&db, &paths, |_url| {
+                calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                async { Err(anyhow!("must not execute")) }
+            })
+            .await
+            .is_err());
+        assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 0);
         assert_eq!(std::fs::read(&receipt_path).unwrap(), b"preserve");
         std::fs::remove_file(&receipt_path).unwrap();
-        assert!(client.pull(&db, &paths).await.is_err());
-        assert_eq!(server.received_requests().await.unwrap().len(), 1);
+        assert!(client
+            .pull_using(&db, &paths, |url| {
+                calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                async move {
+                    let mut headers = header::HeaderMap::new();
+                    headers.insert(header::LOCATION, "/unapproved".parse().unwrap());
+                    Ok(pull_evidence::SyncPullResponse {
+                        status: StatusCode::FOUND,
+                        url,
+                        headers,
+                        body: Vec::new(),
+                    })
+                }
+            })
+            .await
+            .is_err());
+        assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 1);
         let receipt: Value = serde_json::from_slice(&std::fs::read(receipt_path).unwrap()).unwrap();
         assert_eq!(receipt["status"], "failed");
         assert_eq!(receipt["responses"][0]["status"], 302);
@@ -2256,22 +2283,9 @@ mod tests {
 
     #[tokio::test]
     async fn pull_receipt_does_not_claim_an_incomplete_response() {
-        use tokio::io::{AsyncReadExt, AsyncWriteExt};
-        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let address = listener.local_addr().unwrap();
-        let server = tokio::spawn(async move {
-            let (mut stream, _) = listener.accept().await.unwrap();
-            let mut request = [0_u8; 2048];
-            let _ = stream.read(&mut request).await.unwrap();
-            let _ = stream
-                .write_all(
-                    b"HTTP/1.1 200 OK\r\nContent-Length: 100\r\nConnection: close\r\n\r\nshort",
-                )
-                .await;
-        });
         let db = DbPool::new_in_memory().await.unwrap();
         db.run_migrations().await.unwrap();
-        let client = SyncPullEvidenceClient::for_testing(&format!("http://{address}")).unwrap();
+        let client = SyncPullEvidenceClient::new("https://example.test").unwrap();
         let dir =
             tempfile::tempdir_in(std::fs::canonicalize(std::env::temp_dir()).unwrap()).unwrap();
         let raw = dir.path().join("response.raw");
@@ -2282,11 +2296,55 @@ mod tests {
             result: &result,
             receipt: &receipt,
         };
-        let error = client.pull(&db, &paths).await.unwrap_err();
+        let error = client
+            .pull_using(&db, &paths, |_url| async {
+                Err(anyhow!("synthetic incomplete response"))
+            })
+            .await
+            .unwrap_err();
         assert!(error.to_string().contains("no receipt was published"));
         assert!(!raw.exists() && !result.exists() && !receipt.exists());
         assert!(db.get_request(2).await.unwrap().is_none());
-        server.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn pull_receipt_rejects_unexpected_url_and_oversized_body_without_evidence() {
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+        let client = SyncPullEvidenceClient::new("https://example.test").unwrap();
+        let dir =
+            tempfile::tempdir_in(std::fs::canonicalize(std::env::temp_dir()).unwrap()).unwrap();
+        let raw = dir.path().join("response.raw");
+        let result = dir.path().join("result.json");
+        let receipt = dir.path().join("receipt.json");
+        let paths = SyncPullEvidencePaths {
+            raw: &raw,
+            result: &result,
+            receipt: &receipt,
+        };
+        let wrong_url = client
+            .pull_using(&db, &paths, |_| async {
+                Ok(pull_evidence::SyncPullResponse {
+                    status: StatusCode::OK,
+                    url: Url::parse("https://other.example.test/api/v2/request.json").unwrap(),
+                    headers: header::HeaderMap::new(),
+                    body: b"{}".to_vec(),
+                })
+            })
+            .await;
+        assert!(wrong_url.is_err());
+        let oversized = client
+            .pull_using(&db, &paths, |url| async move {
+                Ok(pull_evidence::SyncPullResponse {
+                    status: StatusCode::OK,
+                    url,
+                    headers: header::HeaderMap::new(),
+                    body: vec![0; 16 * 1024 * 1024 + 1],
+                })
+            })
+            .await;
+        assert!(oversized.is_err());
+        assert!(!raw.exists() && !result.exists() && !receipt.exists());
     }
 
     #[cfg(unix)]

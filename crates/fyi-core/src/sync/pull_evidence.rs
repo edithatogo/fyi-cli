@@ -9,6 +9,7 @@ use crate::provenance::sha256_hex;
 use anyhow::{bail, ensure, Context, Result};
 use serde_json::json;
 use std::fs;
+use std::future::Future;
 use std::path::{Component, Path, PathBuf};
 
 const MAX_RESPONSE_BYTES: u64 = 16 * 1024 * 1024;
@@ -111,6 +112,13 @@ pub struct SyncPullEvidenceClient {
     client: SyncClient,
 }
 
+pub(super) struct SyncPullResponse {
+    pub(super) status: StatusCode,
+    pub(super) url: Url,
+    pub(super) headers: header::HeaderMap,
+    pub(super) body: Vec<u8>,
+}
+
 fn capture_http(identity: &crate::agent_runtime::ClientIdentity) -> Result<Client> {
     identity.validate()?;
     Client::builder()
@@ -134,18 +142,42 @@ impl SyncPullEvidenceClient {
         })
     }
 
-    #[cfg(test)]
-    pub(super) fn for_testing(base_url: &str) -> Result<Self> {
-        let identity = crate::agent_runtime::ClientIdentity::default_identity(None)?;
-        let http = capture_http(&identity)?;
-        Ok(Self {
-            client: SyncClient::with_http_client_and_validation(base_url, http, true)?,
-        })
-    }
-
     /// Capture one complete response, apply parsed updates, then publish a receipt.
     /// An incomplete response has no v1 representation and produces no receipt.
     pub async fn pull(&self, db: &DbPool, paths: &SyncPullEvidencePaths<'_>) -> Result<PullReport> {
+        self.pull_using(db, paths, |url| async move {
+            let response = self
+                .client
+                .send_guarded_with_limits(
+                    self.client
+                        .http
+                        .get(url)
+                        .header(header::ACCEPT_ENCODING, "identity"),
+                    Some(MAX_RESPONSE_BYTES),
+                    false,
+                    "sync_pull_evidence",
+                )
+                .await?;
+            Ok(SyncPullResponse {
+                status: response.source_status,
+                url: response.final_url,
+                headers: response.headers,
+                body: response.body,
+            })
+        })
+        .await
+    }
+
+    pub(super) async fn pull_using<F, Fut>(
+        &self,
+        db: &DbPool,
+        paths: &SyncPullEvidencePaths<'_>,
+        fetch: F,
+    ) -> Result<PullReport>
+    where
+        F: FnOnce(Url) -> Fut,
+        Fut: Future<Output = Result<SyncPullResponse>>,
+    {
         preflight_sync_pull_evidence(paths, None)?;
         let since = db.get_latest_sync_timestamp().await?;
         ensure!(
@@ -161,21 +193,19 @@ impl SyncPullEvidenceClient {
             url.query_pairs_mut().append_pair("updated_since", since);
         }
         let started = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true);
-        let response = self
-            .client
-            .send_guarded_with_limits(
-                self.client
-                    .http
-                    .get(url)
-                    .header(header::ACCEPT_ENCODING, "identity"),
-                Some(MAX_RESPONSE_BYTES),
-                false,
-                "sync_pull_evidence",
-            )
+        let response = fetch(url.clone())
             .await
             .map_err(|_| anyhow!("sync source exchange incomplete; no receipt was published"))?;
-        let status = response.source_status;
-        let mut response_url = response.final_url.clone();
+        ensure!(
+            response.url == url,
+            "sync response URL differs from its request; no receipt was published"
+        );
+        ensure!(
+            response.body.len() as u64 <= MAX_RESPONSE_BYTES,
+            "sync response exceeds its limit; no receipt was published"
+        );
+        let status = response.status;
+        let mut response_url = response.url.clone();
         if response_url.query().is_some() {
             response_url.set_query(Some("REDACTED"));
         }
