@@ -325,6 +325,45 @@ a versioned JSON holiday-calendar catalog (`HolidayCalendarCatalog`):
   `excluded_dates` must lie within `valid_from..=valid_to`. Duplicate
   `jurisdiction` keys, empty catalogs, and unknown fields are rejected.
 
+### Extending holiday calendars for a new jurisdiction
+
+1. **Runtime / caller-supplied extension (no library recompilation):** Load a
+   custom catalog JSON string with `HolidayCalendarCatalog::from_json` (or a
+   single entry with `HolidayCalendar::from_json`) and pass the matching
+   `HolidayCalendar` to `calculate_explicit_deadline`:
+   ```rust
+   use chrono::NaiveDate;
+   use fyi_core::deadlines::statutory::{
+       calculate_explicit_deadline, HolidayCalendarCatalog, LegalClockRule,
+   };
+
+   let catalog = HolidayCalendarCatalog::from_json(custom_json)?;
+   let calendar = catalog.get("NZ-WGN").expect("calendar present");
+   let deadline = calculate_explicit_deadline(
+       NaiveDate::from_ymd_opt(2026, 1, 16).unwrap(),
+       &rule,
+       calendar,
+       None,
+   )?;
+   ```
+   The calendar `jurisdiction` must exactly match `rule.jurisdiction`; there is
+   no automatic fallback from a regional subdivision (such as `NZ-WGN` or
+   `GB-SCT`) to a national entry (`NZ` or `GB`). Mismatched jurisdictions or
+   dates outside `valid_from..=valid_to` fail closed with
+   `DeadlineRuleError::JurisdictionMismatch` or
+   `DeadlineRuleError::CalendarCoverage`.
+
+2. **Contributing an embedded jurisdiction or subdivision:**
+   - Add the entry to `crates/fyi-core/locales/calendars/v1/catalog.json`
+     with a `revision` prefixed `unvalidated-` and complete `valid_from..=valid_to`
+     coverage including all national, regional/state, observed/substitute, and
+     one-off proclaimed holidays for the covered period.
+   - Validate the catalog against the Draft 2020-12 JSON Schema
+     (`crates/fyi-core/locales/calendars/v1/catalog.schema.json`) and run
+     `cargo test -p fyi-core --test statutory_deadline_contract --locked`.
+   - Keep `ValidationStatus::Unvalidated` until an authoritative statutory and
+     legal calendar review signs off on the source citations and effective dates.
+
 ## Remaining acceptance work
 
 Additional terminology regimes, holiday calendars, statutory-rule validation,
