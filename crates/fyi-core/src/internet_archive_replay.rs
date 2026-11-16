@@ -363,13 +363,7 @@ pub fn validate_selection_bytes(bytes: &[u8]) -> Result<ApprovedSelection> {
         }
         validate_digest(&row.expected_payload_sha256)?;
         if let Some(media_type) = &row.expected_media_type {
-            static MEDIA_TYPE: OnceLock<Regex> = OnceLock::new();
-            ensure!(
-                MEDIA_TYPE
-                    .get_or_init(|| Regex::new(r"\A[a-z0-9.+-]+/[a-z0-9.+-]+\z").unwrap())
-                    .is_match(media_type),
-                "invalid approved media type"
-            );
+            ensure!(valid_media_type(media_type), "invalid approved media type");
         }
         ensure!(
             identities.insert((&row.original, &row.timestamp)),
@@ -385,6 +379,13 @@ pub fn validate_selection_bytes(bytes: &[u8]) -> Result<ApprovedSelection> {
         previous = Some(&row.row_index);
     }
     Ok(ApprovedSelection(selection))
+}
+
+fn valid_media_type(value: &str) -> bool {
+    static MEDIA_TYPE: OnceLock<Regex> = OnceLock::new();
+    MEDIA_TYPE
+        .get_or_init(|| Regex::new(r"\A[a-z0-9.+-]+/[a-z0-9.+-]+\z").unwrap())
+        .is_match(value)
 }
 
 fn validate_digest(value: &str) -> Result<()> {
