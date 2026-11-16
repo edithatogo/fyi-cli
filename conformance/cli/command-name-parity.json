@@ -78,6 +78,7 @@
     "ingest-feed",
     "init-db",
     "instances",
+    "internet-archive-replay",
     "list-authorities",
     "list-requests",
     "mcp-server",
@@ -122,6 +123,7 @@
     "import-requests",
     "ingest-feed",
     "init-db",
+    "internet-archive-replay",
     "list-authorities",
     "list-requests",
     "next-best-action",
@@ -150,7 +152,6 @@
     "emit-evidence-delta",
     "historical-index",
     "internet-archive-cdx",
-    "internet-archive-replay",
     "source-probe",
     "validate-process-events"
   ],
