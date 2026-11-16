@@ -31,11 +31,11 @@ jobs:
       uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3
       with:
         auto-update-conda: true
-        python-version: '3.15.1'
+        python-version: '3.15.2'
         channels: conda-forge,defaults
         channel-priority: strict
 
-    - name: Verify repository-local Python 3.15.1
+    - name: Verify repository-local Python 3.15.2
       run: |
         python -m venv .venv
         .venv/bin/python scripts/verify_python315_runtime.py
