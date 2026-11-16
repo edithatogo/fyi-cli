@@ -1,0 +1,29 @@
+{
+  "contract": "urn:fyi-cli:receipt-verifier-parity:1",
+  "cases": [
+    {"id": "golden", "patches": {}, "valid": true},
+    {"id": "observed-sync", "patches": {"/command": "sync-pull", "/adapter/id": "alaveteli-sync"}, "valid": true},
+    {"id": "empty-sync-pull", "patches": {"/command": "sync-pull", "/adapter/id": "alaveteli-sync", "/responses": [], "/totals/requests": 0, "/totals/bytes": 0, "/totals/retries": 0}, "valid": false},
+    {"id": "empty-sync-push", "patches": {"/command": "sync-push", "/adapter/id": "alaveteli-sync", "/responses": [], "/totals/requests": 0, "/totals/bytes": 0, "/totals/retries": 0}, "valid": false},
+    {"id": "empty-failed-sync", "patches": {"/command": "sync-push", "/adapter/id": "alaveteli-sync", "/status": "failed", "/failure": {"type": "SyncError"}, "/responses": [], "/totals/requests": 0, "/totals/bytes": 0, "/totals/retries": 0}, "valid": false},
+    {"id": "empty-failed-other-adapter", "patches": {"/status": "failed", "/failure": {"type": "NetworkError"}, "/responses": [], "/totals/requests": 0, "/totals/bytes": 0, "/totals/retries": 0}, "valid": true},
+    {"id": "request-total-mismatch", "patches": {"/totals/requests": 2}, "valid": false},
+    {"id": "byte-total-mismatch", "patches": {"/totals/bytes": 8}, "valid": false},
+    {"id": "retry-total-mismatch", "patches": {"/totals/retries": 0}, "valid": false},
+    {"id": "source-userinfo", "patches": {"/source/url": "https://placeholder@example.invalid/"}, "valid": false},
+    {"id": "source-query", "patches": {"/source/url": "https://example.invalid/?key=value"}, "valid": false},
+    {"id": "source-redacted-query", "patches": {"/source/url": "https://example.invalid/?REDACTED"}, "valid": true},
+    {"id": "source-empty-query", "patches": {"/source/url": "https://example.invalid/?"}, "valid": false},
+    {"id": "source-fragment", "patches": {"/source/url": "https://example.invalid/#fragment"}, "valid": false},
+    {"id": "source-empty-fragment", "patches": {"/source/url": "https://example.invalid/#"}, "valid": false},
+    {"id": "response-query", "patches": {"/responses/0/url": "https://example.invalid/?key=value"}, "valid": false},
+    {"id": "response-invalid-port", "patches": {"/responses/0/url": "https://example.invalid:invalid/"}, "valid": false},
+    {"id": "missing-raw-authority", "patches": {"/source/url": "https:///missing-host"}, "valid": false},
+    {"id": "uppercase-scheme", "patches": {"/source/url": "HTTPS://example.invalid/"}, "valid": false},
+    {"id": "unescaped-space", "patches": {"/source/url": "https://example.invalid/a b"}, "valid": false},
+    {"id": "unescaped-c1-control", "patches": {"/source/url": "https://example.invalid/a\u0080b"}, "valid": false},
+    {"id": "unescaped-backslash", "patches": {"/source/url": "https://example.invalid/a\\b"}, "valid": false},
+    {"id": "escaped-space", "patches": {"/source/url": "https://example.invalid/a%20b"}, "valid": true},
+    {"id": "u64-overflow", "patches": {"/responses/0/bytes": 18446744073709551616, "/totals/bytes": 18446744073709551616}, "valid": false}
+  ]
+}

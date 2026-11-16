@@ -96,6 +96,18 @@ fn hash(value: &Value, name: &str) -> Result<()> {
 
 fn safe_url(value: &Value, name: &str) -> Result<()> {
     let raw = string(value, name)?;
+    ensure!(
+        raw.strip_prefix("https://")
+            .or_else(|| raw.strip_prefix("http://"))
+            .and_then(|rest| rest.split(['/', '?', '#']).next())
+            .is_some_and(|authority| !authority.is_empty()),
+        "receipt URL missing an explicit HTTP(S) authority"
+    );
+    ensure!(
+        !raw.chars()
+            .any(|c| c.is_control() || c.is_whitespace() || c == '\\'),
+        "receipt URL contains invalid unescaped characters"
+    );
     let url = reqwest::Url::parse(raw).context("invalid receipt URL")?;
     ensure!(
         url.scheme() == "http" || url.scheme() == "https",
