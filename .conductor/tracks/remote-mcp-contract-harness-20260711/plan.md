@@ -1,5 +1,21 @@
 # Plan: Remote MCP contract harness
 
+## Error-classification regression increment — 2026-11-16
+
+- [x] For #170/#172/#173, exercise typed source HTTP failures and private MCP
+  classification with offline status, conflicting-digit, unknown-error and
+  redaction cases. Preserve the current caller-facing private error.
+- [x] Retain source error identity through the MCP boundary and classify only
+  trusted typed metadata; do not infer status or retryability from error text.
+- [~] Record focused and protected final-head verification. This increment does
+  not close the broader source-budget, cache, platform or harness requirements.
+
+The initial offline regression failed: untrusted `401` text was classified as
+authentication. Typed status/timeout, 500 generated status contexts, write
+retryability and private tracing now pass focused local Rust tests. The Linux-only
+real SDK/TLS status-propagation contract and protected final-head checks remain
+hosted verification; do not infer their result from the local macOS run.
+
 ## Phase 1: Versioned contracts
 
 - [~] Task: Inventory remote MCP and Alaveteli contract variants and assign fixture versions

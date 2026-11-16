@@ -157,7 +157,9 @@ async fn failed_and_rejected_results_have_fixed_outcomes_without_private_errors(
             if bytes == 1 {
                 Ok(json!({"private":"synthetic-private-result"}))
             } else {
-                Err("synthetic-private-error /private/path?credential=secret".into())
+                Err(anyhow::anyhow!(
+                    "synthetic-private-error /private/path?credential=secret"
+                ))
             }
         })
         .await;
@@ -353,83 +355,196 @@ async fn invalid_or_disallowed_calls_cannot_allocate_metric_dimensions() {
 }
 
 #[test]
+fn remote_error_classification_rejects_untrusted_status_digits() {
+    use telemetry::{RemoteErrorClassification, RemoteErrorKind};
+
+    for raw in [
+        "private record 401 contained a synthetic secret",
+        "request endpoint returned HTTP 503: retry after 401 seconds",
+        "permission denied, timed out, or 429 in untrusted text",
+    ] {
+        let unknown =
+            RemoteErrorClassification::classify(RemoteOperation::GetRequest, &anyhow::anyhow!(raw));
+        assert_eq!(unknown.kind, RemoteErrorKind::UpstreamUnknown);
+        assert_eq!(unknown.status, None);
+        assert!(!unknown.retryable);
+    }
+
+    let error = anyhow::Error::new(fyi_core::sync::SourceHttpError::new(503))
+        .context("private record 401 and retry after 401 seconds");
+    let unavailable = RemoteErrorClassification::classify(RemoteOperation::GetRequest, &error);
+    assert_eq!(unavailable.kind, RemoteErrorKind::UpstreamUnavailable);
+    assert_eq!(unavailable.status, Some(503));
+    assert!(unavailable.retryable);
+}
+
+#[test]
 fn remote_error_classification_maps_status_and_redacts_upstream_secrets() {
     use telemetry::{RemoteErrorClassification, RemoteErrorKind};
 
     let cases = [
         (
-            "HTTP 401 authentication failed bearer=secret-token-value",
+            401,
             RemoteErrorKind::Auth,
             false,
-            Some(401),
             "remote authentication failed",
         ),
         (
-            "HTTP 403 permission denied for private-user@example.org",
+            403,
             RemoteErrorKind::Forbidden,
             false,
-            Some(403),
             "remote permission denied",
         ),
         (
-            "HTTP 404 not found",
+            404,
             RemoteErrorKind::NotFound,
             false,
-            Some(404),
             "remote resource not found",
         ),
         (
-            "HTTP 429 rate limited; retry after 30 seconds",
+            429,
             RemoteErrorKind::RateLimited,
             true,
-            Some(429),
             "remote endpoint rate limited request",
         ),
         (
-            "HTTP 503 service unavailable",
+            503,
             RemoteErrorKind::UpstreamUnavailable,
             true,
-            Some(503),
             "remote endpoint temporarily unavailable",
         ),
         (
-            "HTTP 502 bad gateway",
+            502,
             RemoteErrorKind::UpstreamServer,
             true,
-            Some(502),
             "remote endpoint returned server error",
         ),
         (
-            "request timed out waiting for headers",
-            RemoteErrorKind::Timeout,
-            true,
-            None,
-            "remote operation timed out",
-        ),
-        (
-            "stale expected_current_state mismatch",
-            RemoteErrorKind::Validation,
-            false,
-            None,
-            "remote operation arguments or state rejected",
-        ),
-        (
-            "unexpected secret=my-api-key-123 failure",
+            418,
             RemoteErrorKind::UpstreamUnknown,
             false,
-            None,
             "remote operation failed",
         ),
     ];
 
-    for (raw, expected_kind, expected_retryable, expected_status, expected_msg) in cases {
-        let classified = RemoteErrorClassification::classify(RemoteOperation::GetRequest, raw);
+    for (status, expected_kind, expected_retryable, expected_msg) in cases {
+        let error = anyhow::Error::new(fyi_core::sync::SourceHttpError::new(status))
+            .context("synthetic private-user@example.org secret-token-value 401");
+        let classified = RemoteErrorClassification::classify(RemoteOperation::GetRequest, &error);
         assert_eq!(classified.kind, expected_kind);
         assert_eq!(classified.operation, RemoteOperation::GetRequest);
         assert_eq!(classified.retryable, expected_retryable);
-        assert_eq!(classified.status, expected_status);
+        assert_eq!(classified.status, Some(status));
         assert_eq!(classified.safe_message, expected_msg);
         assert!(!classified.safe_message.contains("secret"));
         assert!(!classified.safe_message.contains("private-user"));
+
+        for write in [
+            RemoteOperation::CreateRequest,
+            RemoteOperation::AddCorrespondence,
+            RemoteOperation::UpdateState,
+        ] {
+            let classified_write = RemoteErrorClassification::classify(write, &error);
+            assert_eq!(classified_write.kind, expected_kind);
+            assert_eq!(classified_write.status, Some(status));
+            assert!(
+                !classified_write.retryable,
+                "uncertain writes must not be retried automatically"
+            );
+        }
     }
+}
+
+#[test]
+fn generated_error_contexts_cannot_override_status_or_leak_secrets() {
+    use telemetry::{RemoteErrorClassification, RemoteErrorKind};
+
+    for status in 100..=599 {
+        let text = format!("synthetic-private-401 HTTP {status} retry after 503");
+        let untyped = anyhow::anyhow!(text.clone());
+        let unknown = RemoteErrorClassification::classify(RemoteOperation::GetRequest, &untyped);
+        assert_eq!(unknown.kind, RemoteErrorKind::UpstreamUnknown);
+        assert_eq!(unknown.status, None);
+        assert!(!unknown.retryable);
+
+        let typed = anyhow::Error::new(fyi_core::sync::SourceHttpError::new(status)).context(text);
+        for operation in [RemoteOperation::GetRequest, RemoteOperation::CreateRequest] {
+            let classified = RemoteErrorClassification::classify(operation, &typed);
+            assert_eq!(classified.status, Some(status));
+            if operation == RemoteOperation::CreateRequest {
+                assert!(!classified.retryable);
+            }
+            assert!(!serde_json::to_string(&classified)
+                .unwrap()
+                .contains("synthetic-private"));
+        }
+    }
+}
+
+#[tokio::test]
+async fn typed_failure_audit_retains_status_without_private_context() {
+    if std::env::var_os("FYI_MCP_ERROR_TRACE_CHILD").as_deref() != Some(std::ffi::OsStr::new("1")) {
+        let output = tokio::time::timeout(
+            std::time::Duration::from_secs(30),
+            tokio::process::Command::new(std::env::current_exe().unwrap())
+                .args(["--exact", "observability_tests::typed_failure_audit_retains_status_without_private_context", "--nocapture"])
+                .env("FYI_MCP_ERROR_TRACE_CHILD", "1")
+                .kill_on_drop(true)
+                .output(),
+        )
+        .await
+        .expect("isolated audit contract timed out")
+        .unwrap();
+        assert!(
+            output.status.success(),
+            "{}\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        return;
+    }
+    let capture = Capture::default();
+    let writer = capture.clone();
+    tracing::subscriber::set_global_default(
+        tracing_subscriber::fmt()
+            .with_ansi(false)
+            .without_time()
+            .with_writer(move || writer.clone())
+            .finish(),
+    )
+    .unwrap();
+    let policy = policy(4096);
+    for operation in [RemoteOperation::GetRequest, RemoteOperation::CreateRequest] {
+        let permit = policy
+            .begin_request("synthetic", RemoteCapability::Read)
+            .unwrap();
+        let error = anyhow::Error::new(fyi_core::sync::SourceHttpError::new(503))
+            .context("synthetic-private-context-401");
+        let caller =
+            execute_remote_operation(&policy, permit, operation, async move { Err(error) })
+                .await
+                .unwrap_err();
+        assert_eq!(
+            caller,
+            "remote operation failed; see operator audit telemetry"
+        );
+    }
+    let logs = String::from_utf8(capture.0.lock().unwrap().clone()).unwrap();
+    let failures: Vec<_> = logs
+        .lines()
+        .filter(|line| line.contains("classified failure"))
+        .collect();
+    assert_eq!(failures.len(), 2, "{logs}");
+    assert!(
+        failures[0].contains("http_status=503") && failures[0].contains("retryable=true"),
+        "{logs}"
+    );
+    assert!(
+        failures[1].contains("http_status=503") && failures[1].contains("retryable=false"),
+        "{logs}"
+    );
+    assert!(failures
+        .iter()
+        .all(|line| line.contains("upstream_unavailable")));
+    assert!(!logs.contains("synthetic-private-context"));
 }

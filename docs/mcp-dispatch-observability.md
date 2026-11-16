@@ -98,6 +98,17 @@ counters. Correlation IDs are event fields, **never metric labels**. The legacy
 policy `audit_event` token-normalizer is not used to sanitize dispatch events;
 excluding private data and using enums provides this boundary.
 
+Failed dispatches also emit a fixed-vocabulary `error_kind`, the actual HTTP
+`http_status` when the guarded source client observed one, and `retryable`.
+The source preserves typed HTTP status and transport timeout causes through the
+MCP boundary; arbitrary error text is never parsed for those fields. Failures
+without typed source evidence use `upstream_unknown` and have no inferred status.
+Only read operations can be marked retryable for a rate limit, server failure or
+transport timeout. A write may already have reached the source, so its audit
+event never suggests an automatic retry; the durable reservation and recovery
+procedures continue to govern it. These fields contain no source message,
+response body, URL, credential or `Retry-After` value.
+
 The default subscriber produces readable structured fields. An operator can
 collect those fields through the existing logging setup; this change does not
 add a network exporter or an automatically retained event file. A hard process
