@@ -1,0 +1,96 @@
+{
+  "schema_version": "1.0.0",
+  "canonical_cases": [
+    {
+      "name": "maori_macrons_and_cjk",
+      "value": {
+        "note": "Kāwanatanga Pānui 情報公開",
+        "emoji": "🔐"
+      },
+      "expected_canonical": "{\"emoji\":\"🔐\",\"note\":\"Kāwanatanga Pānui 情報公開\"}\n",
+      "expected_sha256": "5c54b90a8d37300da80bf838c8c0a5e5aa59c28af49a3195a39ceb5b43703dc5"
+    },
+    {
+      "name": "combining_vs_precomposed_preserved",
+      "value": {
+        "combining": "e\u0301",
+        "precomposed": "\u00e9"
+      },
+      "expected_canonical": "{\"combining\":\"e\u0301\",\"precomposed\":\"é\"}\n",
+      "expected_sha256": "8938157ac17b1daeca35235c082e2c3a73fe1caa0be598d9124840fd2b765012"
+    },
+    {
+      "name": "control_chars_and_slashes",
+      "value": {
+        "escapes": "\b\f\n\r\t\"\\/",
+        "nul": "\u0000",
+        "esc": "\u001b"
+      },
+      "expected_canonical": "{\"esc\":\"\\u001b\",\"escapes\":\"\\b\\f\\n\\r\\t\\\"\\\\/\",\"nul\":\"\\u0000\"}\n",
+      "expected_sha256": "3d968a9860c803a8a8389c345d5775397b05cb22bcdfa39c5c7be32e224334af"
+    },
+    {
+      "name": "key_ordering_unicode_codepoints",
+      "value": {
+        "🔐": 5,
+        "情報": 4,
+        "é": 3,
+        "z": 2,
+        "a": 1
+      },
+      "expected_canonical": "{\"a\":1,\"z\":2,\"é\":3,\"情報\":4,\"🔐\":5}\n",
+      "expected_sha256": "53d7daf3571b7b919b0b49fbae86e1e3a0000115e3f7fc512e0f54da92cf8d1c"
+    }
+  ],
+  "timestamp_cases": [
+    {
+      "name": "utc_z_sequential",
+      "started_at": "2026-11-16T00:00:00Z",
+      "completed_at": "2026-11-16T00:00:01Z",
+      "schema_valid": true,
+      "chronology_valid": true
+    },
+    {
+      "name": "utc_fractional_seconds_equal_instant",
+      "started_at": "2026-11-16T00:00:00.123456Z",
+      "completed_at": "2026-11-16T00:00:00.123456Z",
+      "schema_valid": true,
+      "chronology_valid": true
+    },
+    {
+      "name": "offset_equivalent_instant",
+      "started_at": "2026-11-16T12:00:00+12:00",
+      "completed_at": "2026-11-16T00:00:00Z",
+      "schema_valid": true,
+      "chronology_valid": true
+    },
+    {
+      "name": "offset_completion_precedes_start",
+      "started_at": "2026-11-16T00:00:00Z",
+      "completed_at": "2026-11-16T12:00:00+13:00",
+      "schema_valid": true,
+      "chronology_valid": false
+    },
+    {
+      "name": "date_only_not_rfc3339_datetime",
+      "started_at": "2026-11-16",
+      "completed_at": "2026-11-16T00:00:01Z",
+      "schema_valid": false,
+      "chronology_valid": false
+    },
+    {
+      "name": "space_separator_not_rfc3339",
+      "started_at": "2026-11-16T00:00:00Z",
+      "completed_at": "2026-11-16 00:00:01Z",
+      "schema_valid": false,
+      "chronology_valid": false
+    },
+    {
+      "name": "non_timestamp_string",
+      "started_at": "not-a-timestamp",
+      "completed_at": "2026-11-16T00:00:01Z",
+      "schema_valid": false,
+      "chronology_valid": false
+    }
+  ]
+}
