@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 import tempfile
 from copy import deepcopy
+from datetime import timedelta
 from pathlib import Path
 
 import anyio
@@ -13,6 +15,8 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 from jsonschema import Draft202012Validator
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
 from mcp.shared.exceptions import McpError
 
 from tests import test_mcp_client_interop
@@ -22,6 +26,7 @@ from tests.mcp_upstream_fixture import (
     upstream_server,
     upstream_session,
 )
+from tests.test_mcp_client_interop import _cargo_executable, _server_environment
 from tests.test_mcp_upstream_contract import FIXTURE, LINUX_TLS, REMOTE_TOOLS
 
 mcp_binary = test_mcp_client_interop.mcp_binary
@@ -30,6 +35,43 @@ SCHEMA = Path(__file__).parent / "fixtures/remote_mcp/status-v1.schema.json"
 CONTRACT = json.loads(FIXTURE.read_text(encoding="utf-8"))
 CASES = list({case["tool"]: case for case in CONTRACT["cases"]}.values())
 pytestmark = [pytest.mark.integration, pytest.mark.compatibility]
+
+
+@pytest.fixture(scope="session")
+def socket_free_sdk_fixture() -> Path:
+    """Build the test-only entrypoint which runs the real MCP/source code."""
+    cargo = _cargo_executable()
+    if cargo is None:
+        pytest.fail("the socket-free MCP SDK regression requires Cargo")
+    build = subprocess.run(  # noqa: S603 - fixed Cargo arguments, no shell.
+        [
+            cargo,
+            "build",
+            "--locked",
+            "--offline",
+            "--package",
+            "fyi-mcp",
+            "--example",
+            "sdk-regression-fixture",
+            "--features",
+            "sdk-regression-fixture",
+            "--message-format=json",
+        ],
+        cwd=test_mcp_client_interop.ROOT,
+        capture_output=True,
+        text=True,
+        timeout=900,
+        check=False,
+    )
+    if build.returncode:
+        pytest.fail(f"socket-free MCP fixture build failed:\n{build.stderr[-12000:]}")
+    for line in build.stdout.splitlines():
+        artifact = json.loads(line)
+        if artifact.get("target", {}).get("name") == "sdk-regression-fixture":
+            executable = artifact.get("executable")
+            if executable and Path(executable).is_file():
+                return Path(executable).resolve()
+    pytest.fail("Cargo succeeded without producing the socket-free MCP fixture")
 
 
 async def _status(session) -> dict:
@@ -183,32 +225,41 @@ def test_private_source_error_records_coarse_failure_without_status_guessing(
     _events(tmp_path, "remote_version", "failed")
 
 
-@LINUX_TLS
 @pytest.mark.e2e
 @pytest.mark.security
 def test_source_status_uses_typed_metadata_not_retry_after_text(
-    mcp_binary: Path,
+    socket_free_sdk_fixture: Path,
     tmp_path: Path,
 ) -> None:
-    exchange = {
-        "method": "GET",
-        "path": "/api/v2/version.json",
-        "status": 503,
-        "headers": {"Retry-After": "401"},
-        "json": {"message": PRIVATE_MARKER},
-    }
+    """The official SDK sees a redacted failure and audit retains HTTP 503."""
 
     async def scenario() -> None:
-        with upstream_server(tmp_path, [exchange]) as upstream:
-            async with upstream_session(mcp_binary, tmp_path, upstream) as session:
+        server = StdioServerParameters(
+            command=str(socket_free_sdk_fixture),
+            cwd=tmp_path,
+            env=_server_environment(),
+        )
+        with (
+            anyio.fail_after(20),
+            (tmp_path / "upstream-server.stderr").open("w", encoding="utf-8") as diagnostics,
+        ):
+            async with (
+                stdio_client(server, errlog=diagnostics) as streams,
+                ClientSession(*streams, read_timeout_seconds=timedelta(seconds=5)) as session,
+            ):
+                await session.initialize()
                 result = await session.call_tool("remote_version", {"instance_id": "synthetic"})
                 assert result.isError
                 assert result.content[0].text == (
                     "remote operation failed; see operator audit telemetry"
                 )
                 assert PRIVATE_MARKER not in result.model_dump_json()
-            upstream.assert_complete()
-            assert len(upstream.observed) == 1
+                status = await _status(session)
+                metric = _row(status, "remote_version")
+                assert metric["started"] == 1
+                assert metric["outcomes"]["failed"] == 1
+                assert metric["in_flight"] == 0
+                assert status["policy"]["instances"][0]["requests_used"] == 1
 
     anyio.run(scenario)
     _events(tmp_path, "remote_version", "failed")

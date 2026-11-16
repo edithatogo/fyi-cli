@@ -204,6 +204,23 @@ impl WaybackTransport {
         timeout: Duration,
         max_bytes: usize,
     ) -> Result<crate::internet_archive_replay::ReplayResponse> {
+        self.fetch_bound_origin_using(url, timeout, max_bytes, |request| {
+            self.client.execute_guarded_request(request)
+        })
+        .await
+    }
+
+    async fn fetch_bound_origin_using<F, Fut>(
+        &self,
+        url: &Url,
+        timeout: Duration,
+        max_bytes: usize,
+        execute: F,
+    ) -> Result<crate::internet_archive_replay::ReplayResponse>
+    where
+        F: FnOnce(reqwest::Request) -> Fut,
+        Fut: std::future::Future<Output = Result<(reqwest::Response, Url)>>,
+    {
         anyhow::ensure!(
             url.origin() == self.client.base_url.origin(),
             "Wayback origin mismatch"
@@ -219,10 +236,18 @@ impl WaybackTransport {
             .get(url.clone())
             .header(header::ACCEPT_ENCODING, "identity")
             .timeout(timeout);
-        let response = self
-            .client
-            .send_guarded_with_limits(request, Some(max_bytes as u64), false, "wayback_replay")
-            .await?;
+        let response = tokio::time::timeout(
+            timeout,
+            self.client.send_guarded_with_limits_using(
+                request,
+                Some(max_bytes as u64),
+                false,
+                "wayback_replay",
+                execute,
+            ),
+        )
+        .await
+        .context("Wayback exchange timed out")??;
         Ok(crate::internet_archive_replay::ReplayResponse {
             url: response.final_url,
             status: response.source_status,
@@ -473,6 +498,43 @@ impl SyncClient {
         allow_cache: bool,
         route_class: &'static str,
     ) -> Result<GuardedResponse> {
+        self.send_guarded_with_limits_using(
+            request,
+            response_byte_limit,
+            allow_cache,
+            route_class,
+            |request| self.execute_guarded_request(request),
+        )
+        .await
+    }
+
+    // All actual source sends pass through the guarded caller above or the
+    // replay/version variants which use the same guarded execution seam.
+    async fn execute_guarded_request(
+        &self,
+        request: reqwest::Request,
+    ) -> Result<(reqwest::Response, Url)> {
+        let response = self
+            .http
+            .execute(request)
+            .await
+            .context("outbound request failed")?;
+        let url = response.url().clone();
+        Ok((response, url))
+    }
+
+    async fn send_guarded_with_limits_using<F, Fut>(
+        &self,
+        request: RequestBuilder,
+        response_byte_limit: Option<u64>,
+        allow_cache: bool,
+        route_class: &'static str,
+        execute: F,
+    ) -> Result<GuardedResponse>
+    where
+        F: FnOnce(reqwest::Request) -> Fut,
+        Fut: std::future::Future<Output = Result<(reqwest::Response, Url)>>,
+    {
         let mut request = request
             .build()
             .context("failed to build outbound request")?;
@@ -549,14 +611,9 @@ impl SyncClient {
         }
 
         let started = Instant::now();
-        let mut response = self
-            .http
-            .execute(request)
-            .await
-            .context("outbound request failed")?;
+        let (mut response, final_url) = execute(request).await?;
         let status = response.status();
         let version = response.version();
-        let final_url = response.url().clone();
         let headers = response.headers().clone();
         let header_values = headers
             .iter()
@@ -1212,13 +1269,28 @@ impl SyncClient {
     }
 
     pub async fn get_api_version(&self) -> Result<String> {
+        self.get_api_version_using(|request| self.execute_guarded_request(request))
+            .await
+    }
+
+    async fn get_api_version_using<F, Fut>(&self, execute: F) -> Result<String>
+    where
+        F: FnOnce(reqwest::Request) -> Fut,
+        Fut: std::future::Future<Output = Result<(reqwest::Response, Url)>>,
+    {
         let url = self
             .base_url
             .join("api/v2/version.json")
             .context("failed to build API version URL")?;
 
         let response = self
-            .send_guarded(self.http.get(url))
+            .send_guarded_with_limits_using(
+                self.http.get(url),
+                None,
+                true,
+                "alaveteli_api",
+                execute,
+            )
             .await
             .context("failed to get API version")?;
         let value = ensure_success(response, "version endpoint")
@@ -1236,6 +1308,28 @@ impl SyncClient {
                 .ok_or_else(|| anyhow!("version endpoint did not include a version string")),
             _ => Err(anyhow!("version endpoint returned an unsupported payload")),
         }
+    }
+
+    /// Exercise the real version-response path with an in-process synthetic HTTP
+    /// response. This explicit feature is used only by the standalone SDK test
+    /// executable; normal clients never select this transport.
+    #[cfg(feature = "sdk-regression-fixture")]
+    #[doc(hidden)]
+    pub async fn get_api_version_for_sdk_fixture(&self) -> Result<String> {
+        self.get_api_version_using(|request| async move {
+            anyhow::ensure!(
+                request.method() == reqwest::Method::GET
+                    && request.url().as_str() == "https://mcp-fixture.invalid/api/v2/version.json",
+                "SDK fixture received an unexpected source request"
+            );
+            let url = request.url().clone();
+            let response = http::Response::builder()
+                .status(503)
+                .header(header::RETRY_AFTER, "401")
+                .body(reqwest::Body::from("synthetic-upstream-private-error"))?;
+            Ok((response.into(), url))
+        })
+        .await
     }
 
     pub async fn build_prefilled_url(
@@ -1915,35 +2009,54 @@ mod tests {
         assert!(SyncClient::new_for_testing("http://127.0.0.1").is_ok());
     }
 
+    async fn replay_fixture_transport() -> WaybackTransport {
+        let transport = WaybackTransport::new().unwrap();
+        transport
+            .client
+            .middleware
+            .lock()
+            .await
+            .pacing
+            .current_delay = Duration::ZERO;
+        transport
+    }
+
+    fn replay_fixture_url() -> Url {
+        Url::parse("https://web.archive.org/web/20250101000000id_/https://example.test/item")
+            .unwrap()
+    }
+
+    fn fixture_response(
+        request: reqwest::Request,
+        response: http::Response<reqwest::Body>,
+    ) -> Result<(reqwest::Response, Url)> {
+        let url = request.url().clone();
+        Ok((response.into(), url))
+    }
+
     #[tokio::test]
     async fn replay_transport_exposes_redirect_before_following_it() {
-        let server = MockServer::start().await;
-        Mock::given(method("GET"))
-            .and(path("/approved"))
-            .respond_with(ResponseTemplate::new(302).insert_header("Location", "/unapproved"))
-            .mount(&server)
-            .await;
-        Mock::given(method("GET"))
-            .and(path("/unapproved"))
-            .respond_with(ResponseTemplate::new(200).set_body_string("wrong target"))
-            .mount(&server)
-            .await;
-        let transport = replay_transport_for_testing(&server.uri());
-        let url = Url::parse(&format!("{}/approved", server.uri())).unwrap();
+        let transport = replay_fixture_transport().await;
+        let url = replay_fixture_url();
+        let calls = std::sync::atomic::AtomicUsize::new(0);
         let response = transport
-            .fetch_bound_origin(&url, Duration::from_secs(2), 1024)
+            .fetch_bound_origin_using(&url, Duration::from_secs(2), 1024, |request| {
+                calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                async move {
+                    fixture_response(
+                        request,
+                        http::Response::builder()
+                            .status(302)
+                            .header(header::LOCATION, "https://example.invalid/unapproved")
+                            .body(reqwest::Body::from(""))
+                            .unwrap(),
+                    )
+                }
+            })
             .await
             .unwrap();
         assert_eq!(response.status, StatusCode::FOUND);
-        assert_eq!(server.received_requests().await.unwrap().len(), 1);
-    }
-
-    fn replay_transport_for_testing(base_url: &str) -> WaybackTransport {
-        let identity = crate::agent_runtime::ClientIdentity::default_identity(None).unwrap();
-        let http = build_wayback_http_client(&identity).unwrap();
-        WaybackTransport {
-            client: SyncClient::with_http_client_and_validation(base_url, http, true).unwrap(),
-        }
+        assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 1);
     }
 
     #[tokio::test]
@@ -1952,56 +2065,61 @@ mod tests {
         let mut encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
         encoder.write_all(b"synthetic replay payload").unwrap();
         let encoded = encoder.finish().unwrap();
-        let server = MockServer::start().await;
-        Mock::given(method("GET"))
-            .and(path("/encoded"))
-            .and(header("Accept-Encoding", "identity"))
-            .respond_with(
-                ResponseTemplate::new(200)
-                    .insert_header("Content-Encoding", "gzip")
-                    .set_body_bytes(encoded.clone()),
-            )
-            .mount(&server)
-            .await;
-        let transport = replay_transport_for_testing(&server.uri());
-        let url = Url::parse(&format!("{}/encoded", server.uri())).unwrap();
+        let transport = replay_fixture_transport().await;
+        let url = replay_fixture_url();
+        let body = encoded.clone();
         let response = transport
-            .fetch_bound_origin(&url, Duration::from_secs(2), 1024)
+            .fetch_bound_origin_using(&url, Duration::from_secs(2), 1024, |request| async move {
+                assert_eq!(request.headers()[header::ACCEPT_ENCODING], "identity");
+                fixture_response(
+                    request,
+                    http::Response::builder()
+                        .status(200)
+                        .header(header::CONTENT_ENCODING, "gzip")
+                        .body(reqwest::Body::from(body))
+                        .unwrap(),
+                )
+            })
             .await
             .unwrap();
         assert_eq!(response.body, encoded);
         assert_eq!(response.headers[header::CONTENT_ENCODING], "gzip");
-
+        let body = encoded.clone();
         let error = transport
-            .fetch_bound_origin(&url, Duration::from_secs(2), 2)
+            .fetch_bound_origin_using(&url, Duration::from_secs(2), 2, |request| async move {
+                fixture_response(
+                    request,
+                    http::Response::builder()
+                        .status(200)
+                        .body(reqwest::Body::from(body))
+                        .unwrap(),
+                )
+            })
             .await
             .unwrap_err();
         assert!(format!("{error:#}").contains("byte limit"));
-        assert_eq!(server.received_requests().await.unwrap().len(), 2);
     }
 
     #[tokio::test]
     async fn replay_transport_rejects_foreign_origins_and_invalid_limits_before_io() {
-        let server = MockServer::start().await;
-        let transport = replay_transport_for_testing(&server.uri());
-        let local = Url::parse(&format!("{}/approved", server.uri())).unwrap();
+        let transport = replay_fixture_transport().await;
+        let local = replay_fixture_url();
         let foreign =
             Url::parse("https://example.invalid/web/20260101000000id_/https://example.invalid/")
                 .unwrap();
+        for (url, timeout, limit) in [
+            (&foreign, Duration::from_secs(2), 1024),
+            (&local, Duration::ZERO, 1024),
+            (&local, Duration::from_secs(2), 0),
+        ] {
+            assert!(transport
+                .fetch_bound_origin_using(url, timeout, limit, |_request| async {
+                    panic!("invalid request must not reach transport")
+                })
+                .await
+                .is_err());
+        }
         assert!(transport
-            .fetch_bound_origin(&foreign, Duration::from_secs(2), 1024)
-            .await
-            .is_err());
-        assert!(transport
-            .fetch_bound_origin(&local, Duration::ZERO, 1024)
-            .await
-            .is_err());
-        assert!(transport
-            .fetch_bound_origin(&local, Duration::from_secs(2), 0)
-            .await
-            .is_err());
-        let production = WaybackTransport::new().unwrap();
-        assert!(production
             .fetch(
                 "https://example.invalid/web/20260101000000id_/https://example.invalid/",
                 Duration::from_secs(2),
@@ -2009,100 +2127,94 @@ mod tests {
             )
             .await
             .is_err());
-        assert!(server.received_requests().await.unwrap().is_empty());
     }
 
     #[tokio::test]
     async fn replay_transport_rejects_oversized_chunked_bodies() {
-        use tokio::io::{AsyncReadExt, AsyncWriteExt};
-        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let address = listener.local_addr().unwrap();
-        let server = tokio::spawn(async move {
-            let (mut stream, _) = listener.accept().await.unwrap();
-            let mut request = [0_u8; 2048];
-            let _ = stream.read(&mut request).await.unwrap();
-            let _ = stream.write_all(b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n6\r\nabcdef\r\n0\r\n\r\n").await;
-        });
-        let base = format!("http://{address}");
-        let transport = replay_transport_for_testing(&base);
-        let url = Url::parse(&format!("{base}/approved")).unwrap();
+        let transport = replay_fixture_transport().await;
+        let url = replay_fixture_url();
         let error = transport
-            .fetch_bound_origin(&url, Duration::from_secs(2), 5)
+            .fetch_bound_origin_using(&url, Duration::from_secs(2), 5, |request| async move {
+                let chunks = futures_util::stream::iter(vec![
+                    Ok::<_, std::io::Error>(b"abc".to_vec()),
+                    Ok::<_, std::io::Error>(b"def".to_vec()),
+                ]);
+                fixture_response(
+                    request,
+                    http::Response::builder()
+                        .status(200)
+                        .header(header::TRANSFER_ENCODING, "chunked")
+                        .body(reqwest::Body::wrap_stream(chunks))
+                        .unwrap(),
+                )
+            })
             .await
             .unwrap_err();
         assert!(format!("{error:#}").contains("maximum response bytes exceeded"));
-        server.await.unwrap();
     }
 
     #[tokio::test]
     async fn replay_transport_never_reuses_a_cached_response() {
-        let server = MockServer::start().await;
-        Mock::given(method("GET"))
-            .and(path("/cached"))
-            .respond_with(
-                ResponseTemplate::new(200)
-                    .insert_header("ETag", "\"prior\"")
-                    .set_body_string("fresh"),
-            )
-            .expect(2)
-            .mount(&server)
-            .await;
-        let transport = replay_transport_for_testing(&server.uri());
-        let url = Url::parse(&format!("{}/cached", server.uri())).unwrap();
+        let transport = replay_fixture_transport().await;
+        let url = replay_fixture_url();
+        let calls = std::sync::atomic::AtomicUsize::new(0);
         for _ in 0..2 {
-            assert_eq!(
-                transport
-                    .fetch_bound_origin(&url, Duration::from_secs(2), 1024)
-                    .await
-                    .unwrap()
-                    .body,
-                b"fresh"
-            );
+            let response = transport
+                .fetch_bound_origin_using(&url, Duration::from_secs(2), 1024, |request| {
+                    calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                    async move {
+                        assert!(!request.headers().contains_key(header::IF_NONE_MATCH));
+                        fixture_response(
+                            request,
+                            http::Response::builder()
+                                .status(200)
+                                .header(header::ETAG, "\"prior\"")
+                                .body(reqwest::Body::from("fresh"))
+                                .unwrap(),
+                        )
+                    }
+                })
+                .await
+                .unwrap();
+            assert_eq!(response.body, b"fresh");
         }
-        let requests = server.received_requests().await.unwrap();
-        assert_eq!(requests.len(), 2);
-        assert!(requests
-            .iter()
-            .all(|request| !request.headers.contains_key("if-none-match")));
+        assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 2);
     }
 
     #[tokio::test]
     async fn replay_transport_preserves_a_304_as_an_observed_response() {
-        let server = MockServer::start().await;
-        Mock::given(method("GET"))
-            .and(path("/not-modified"))
-            .respond_with(ResponseTemplate::new(304))
-            .mount(&server)
-            .await;
-        let transport = replay_transport_for_testing(&server.uri());
-        let url = Url::parse(&format!("{}/not-modified", server.uri())).unwrap();
+        let transport = replay_fixture_transport().await;
+        let url = replay_fixture_url();
         let response = transport
-            .fetch_bound_origin(&url, Duration::from_secs(2), 1024)
+            .fetch_bound_origin_using(&url, Duration::from_secs(2), 1024, |request| async move {
+                fixture_response(
+                    request,
+                    http::Response::builder()
+                        .status(304)
+                        .body(reqwest::Body::from(""))
+                        .unwrap(),
+                )
+            })
             .await
             .unwrap();
         assert_eq!(response.status, StatusCode::NOT_MODIFIED);
         assert!(response.body.is_empty());
-        assert_eq!(server.received_requests().await.unwrap().len(), 1);
     }
 
     #[tokio::test]
     async fn replay_transport_enforces_the_per_exchange_timeout() {
-        let server = MockServer::start().await;
-        Mock::given(method("GET"))
-            .and(path("/slow"))
-            .respond_with(ResponseTemplate::new(200).set_delay(Duration::from_secs(2)))
-            .mount(&server)
-            .await;
-        let transport = replay_transport_for_testing(&server.uri());
-        let url = Url::parse(&format!("{}/slow", server.uri())).unwrap();
+        let transport = replay_fixture_transport().await;
+        let url = replay_fixture_url();
+        let calls = std::sync::atomic::AtomicUsize::new(0);
         let error = transport
-            .fetch_bound_origin(&url, Duration::from_millis(50), 1024)
+            .fetch_bound_origin_using(&url, Duration::from_millis(50), 1024, |_request| {
+                calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                std::future::pending::<Result<(reqwest::Response, Url)>>()
+            })
             .await
             .unwrap_err();
-        assert_eq!(
-            source_failure_kind(&error),
-            Some(SourceFailureKind::Timeout)
-        );
+        assert!(format!("{error:#}").contains("timed out"));
+        assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 1);
     }
 
     #[tokio::test]
@@ -3779,23 +3891,32 @@ mod tests {
     #[tokio::test]
     async fn source_failure_kind_retains_actual_http_status_without_body() {
         for status in [401, 403, 404, 429, 500, 502, 503, 418] {
-            let server = MockServer::start().await;
-            Mock::given(method("GET"))
-                .and(path("/api/v2/version.json"))
-                .respond_with(
-                    ResponseTemplate::new(status)
-                        .insert_header("Retry-After", "401")
-                        .set_body_string("synthetic-private-response"),
+            let transport = replay_fixture_transport().await;
+            let client = &transport.client;
+            let url = client.base_url.join("api/v2/version.json").unwrap();
+            let response = client
+                .send_guarded_with_limits_using(
+                    client.http.get(url),
+                    Some(1024),
+                    false,
+                    "alaveteli_api",
+                    |request| async move {
+                        fixture_response(
+                            request,
+                            http::Response::builder()
+                                .status(status)
+                                .header(header::RETRY_AFTER, "401")
+                                .body(reqwest::Body::from("synthetic-private-response"))
+                                .unwrap(),
+                        )
+                    },
                 )
-                .expect(1)
-                .mount(&server)
-                .await;
-            let client = SyncClient::new_for_testing(&server.uri()).unwrap();
-            let error = client
-                .get_api_version()
                 .await
-                .unwrap_err()
-                .context("synthetic-private-context-404");
+                .unwrap();
+            let error = ensure_success(response, "version endpoint")
+                .await
+                .err()
+                .expect("source status must be rejected");
             assert_eq!(
                 source_failure_kind(&error),
                 Some(SourceFailureKind::HttpStatus(status))
@@ -3810,23 +3931,64 @@ mod tests {
 
     #[tokio::test]
     async fn source_failure_kind_detects_a_typed_transport_timeout() {
-        let server = MockServer::start().await;
-        Mock::given(method("GET"))
-            .and(path("/api/v2/version.json"))
-            .respond_with(ResponseTemplate::new(200).set_delay(Duration::from_secs(2)))
-            .mount(&server)
-            .await;
+        use std::pin::Pin;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::task::{Context, Poll};
+
+        #[derive(Clone)]
+        struct StallLayer(Arc<AtomicUsize>);
+        #[derive(Clone)]
+        struct StallService<S> {
+            _inner: S,
+            calls: Arc<AtomicUsize>,
+        }
+        impl<S> tower::Layer<S> for StallLayer {
+            type Service = StallService<S>;
+            fn layer(&self, inner: S) -> Self::Service {
+                StallService {
+                    _inner: inner,
+                    calls: self.0.clone(),
+                }
+            }
+        }
+        impl<S, Request> tower::Service<Request> for StallService<S>
+        where
+            S: tower::Service<Request>,
+            S::Response: Send + 'static,
+            S::Error: Send + 'static,
+        {
+            type Response = S::Response;
+            type Error = S::Error;
+            type Future = Pin<
+                Box<dyn std::future::Future<Output = Result<Self::Response, Self::Error>> + Send>,
+            >;
+            fn poll_ready(&mut self, _context: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+                Poll::Ready(Ok(()))
+            }
+            fn call(&mut self, _request: Request) -> Self::Future {
+                self.calls.fetch_add(1, Ordering::SeqCst);
+                Box::pin(std::future::pending())
+            }
+        }
+        let calls = Arc::new(AtomicUsize::new(0));
         let http = Client::builder()
+            .no_proxy()
+            .connector_layer(StallLayer(calls.clone()))
             .timeout(Duration::from_millis(50))
             .build()
             .unwrap();
-        let client =
-            SyncClient::with_http_client_and_validation(&server.uri(), http, true).unwrap();
-        let error = client.get_api_version().await.unwrap_err();
+        let error = http
+            .get("https://example.test/api/v2/version.json")
+            .send()
+            .await
+            .unwrap_err();
+        assert!(error.is_timeout());
+        let error = anyhow::Error::new(error).context("synthetic source timeout");
         assert_eq!(
             source_failure_kind(&error),
             Some(SourceFailureKind::Timeout)
         );
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
     }
 
     #[test]

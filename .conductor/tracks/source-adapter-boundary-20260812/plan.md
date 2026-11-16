@@ -14,15 +14,15 @@
   The independently
   owned #310 receipt-integrity work has priority
   over shared receipt and CLI paths; replay must consume its pinned contract.
-- [~] Integrate a guarded, bounded transport, actual response receipts and the
-  Rust CLI after the receipt-integrity packet reaches a stable receiving head.
+- [x] Integrate the guarded replay transport, response receipts and Rust CLI
+  after receipt-integrity integration. [PR #483; merge checkpoint: 71bf805]
 - [~] Chat `01a1e3da-9d35-7a01-8723-b07a2749f7bd` owns the next transport
   increment in managed worktree
   `/Users/doughnut/.codex/worktrees/fyi-replay-transport-312/fyi-cli`, branch
   `codex/fyi-replay-transport-312`, based on the replay engine integrated in
   PR #481. Its paths are the Rust replay, transport and CLI code, focused tests,
   and CLI parity manifest. No live authority, native object or authentication
-  scope is assigned. Next: hosted checks and receipt-verifier integration.
+  scope is assigned. The bounded increment merged through PR #483.
 - [x] Implement the bounded transport, CLI, ordered response-body evidence and
   v1 replay receipts, with fail-closed handling for incomplete exchanges.
   Focused offline tests cover redirects, compressed entities, response and
@@ -33,8 +33,8 @@
   `/Users/doughnut/.codex/worktrees/fyi-post-replay-receiving-312/fyi-cli`,
   branch `codex/fyi-sync-pull-receipt-310`, initially based on replay PR #483.
   Its scope is Rust sync pull evidence, CLI preflight and offline tests. No live
-  authority, native object or authentication scope is assigned. Next: integrate
-  after replay, then run hosted checks on the receiving head.
+  authority, native object or authentication scope is assigned. The increment
+  merged through PR #484 after its protected checks and MSRV check passed.
 - [x] Implement a fresh, redirect-free single-list sync pull with immutable raw,
   result and receipt files. Offline tests cover a successful pull, HTTP failure,
   redirect, incomplete response and evidence-path preflight. Feed and push
@@ -98,6 +98,25 @@ The new Rust verifier is read-only and does not claim write-path or network acqu
 - [ ] Sign release evidence and pin upstream/downstream client versions before archive cutover.
 
 No existing #310–#314 issue is closed by this incremental Rust implementation.
+
+## Socket-free source regressions — 2026-11-16
+
+- [~] Chat `01a1e3da-9d35-7a01-8723-b07a2749f7bd` owns the socket-free
+  regression follow-up in managed worktree
+  `/Users/doughnut/.codex/worktrees/fyi-replay-transport-312/fyi-cli`, branch
+  `codex/fyi-replay-socket-free-tests`. Scope: replay transport fixtures, typed
+  source failure fixtures, the corresponding test-only dependencies and
+  affected evidence documentation. No native or authentication scope is
+  assigned. Next: hosted checks and integration through a PR.
+- [x] Replace the new replay/source socket fixtures with in-process responses
+  and a stalled connector; preserve the typed 503/401 and timeout regressions.
+  Focused tests also passed with network access explicitly denied. [source
+  checkpoint: 75d5fd1]
+- [x] Preserve the Python SDK 503-versus-401 acceptance test through the real
+  MCP stdio dispatcher and source response path using an explicitly selected,
+  in-process transport fixture. The production entrypoint cannot select that
+  fixture. The SDK and guardrail-boundary regressions passed with network
+  access denied. [source checkpoint: 2cd7b1b]
 
 ## Result-byte verification tranche (PR #406 merged, 2026-11-13)
 

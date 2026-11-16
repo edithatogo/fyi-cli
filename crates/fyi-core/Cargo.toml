@@ -7,7 +7,12 @@ license = "MIT AND Apache-2.0"
 repository = "https://github.com/edithatogo/fyi-cli"
 description = "Core library for the fyi-cli multi-jurisdiction FOI/Alaveteli platform"
 
+[features]
+# Explicitly selected only by the standalone SDK regression fixture.
+sdk-regression-fixture = ["dep:http"]
+
 [dependencies]
+http = { version = "1.5", optional = true }
 tokio = { version = "1.36", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["float_roundtrip", "raw_value"] }
@@ -40,5 +45,9 @@ fluent-bundle = "0.16"
 unic-langid = "0.9"
 
 [dev-dependencies]
+futures-util = "0.3"
+http = "1.5"
+reqwest = { version = "^0.13", features = ["stream"] }
+tower = "0.5"
 wiremock = "0.6"
 proptest = "1.4"

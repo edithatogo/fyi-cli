@@ -131,6 +131,8 @@ pub struct RemoteMcpPolicy {
     instances: BTreeMap<String, RemoteInstancePolicy>,
     state: Arc<Mutex<ControlState>>,
     pub(crate) telemetry: super::telemetry::RemoteTelemetry,
+    #[cfg(feature = "sdk-regression-fixture")]
+    pub(super) sdk_regression_fixture: bool,
     circuit_failure_threshold: u32,
     circuit_cooldown: Duration,
 }
@@ -233,6 +235,8 @@ impl RemoteMcpPolicy {
         Ok(Self {
             instances: map,
             telemetry: super::telemetry::RemoteTelemetry::default(),
+            #[cfg(feature = "sdk-regression-fixture")]
+            sdk_regression_fixture: false,
             state: Arc::new(Mutex::new(ControlState {
                 kill_switch: false,
                 degraded: false,
