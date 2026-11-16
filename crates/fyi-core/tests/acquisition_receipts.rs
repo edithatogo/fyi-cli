@@ -259,43 +259,24 @@ fn raw_evidence_writes_fail_closed_on_existing_symlink() {
 }
 
 #[test]
-fn sync_command_receipt_builds_valid_succeeded_and_failed_v1_evidence() {
-    use fyi_core::acquisition_receipts::{
-        build_sync_command_receipt, verify_receipt_result_bytes, SyncReceiptInput,
-    };
+fn sync_command_receipt_rejects_inputs_without_observed_transport() {
+    use fyi_core::acquisition_receipts::{build_sync_command_receipt, SyncReceiptInput};
 
     let source_url = "https://user:secret@fyi.org.nz/api?key=1#frag";
     let projection = canonical_json_bytes(&json!({"pulled": 3})).unwrap();
-    let succeeded = build_sync_command_receipt(SyncReceiptInput {
-        command: "sync-pull",
-        source_url,
-        request_bounds: json!({"interval_seconds": 60, "has_feed_url": false}),
-        started_at: "2026-11-16T00:00:00Z",
-        completed_at: "2026-11-16T00:00:01Z",
-        result_projection: &projection,
-        failure_type: None,
-    })
-    .unwrap();
-    verify_receipt(&succeeded).unwrap();
-    verify_receipt_result_bytes(&succeeded, &projection).unwrap();
-    assert_eq!(
-        succeeded["source"]["url"],
-        "https://fyi.org.nz/api?REDACTED"
-    );
-    assert_eq!(succeeded["status"], "succeeded");
-
-    let failed_projection = canonical_json_bytes(&json!({"status": "failed"})).unwrap();
-    let failed = build_sync_command_receipt(SyncReceiptInput {
-        command: "sync-push",
-        source_url,
-        request_bounds: json!({"max_retries": 3}),
-        started_at: "2026-11-16T00:00:00Z",
-        completed_at: "2026-11-16T00:00:02Z",
-        result_projection: &failed_projection,
-        failure_type: Some("SyncPushError"),
-    })
-    .unwrap();
-    verify_receipt(&failed).unwrap();
-    assert_eq!(failed["status"], "failed");
-    assert_eq!(failed["failure"]["type"], "SyncPushError");
+    for (command, failure_type) in [("sync-pull", None), ("sync-push", Some("SyncPushError"))] {
+        let error = build_sync_command_receipt(SyncReceiptInput {
+            command,
+            source_url,
+            request_bounds: json!({}),
+            started_at: "2026-11-16T00:00:00Z",
+            completed_at: "2026-11-16T00:00:01Z",
+            result_projection: &projection,
+            failure_type,
+        })
+        .unwrap_err()
+        .to_string();
+        assert!(error.contains("sync receipt transport evidence"));
+        assert!(!error.contains("secret"));
+    }
 }

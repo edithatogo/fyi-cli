@@ -158,7 +158,7 @@ pub fn verify_receipt(receipt: &Value) -> Result<()> {
         "unsupported receipt schema version"
     );
     hash(receipt, "receipt_sha256")?;
-    string(receipt, "command")?;
+    let command = string(receipt, "command")?;
     let adapter = object_field(receipt, "adapter")?;
     restrict_fields(adapter, &["id", "version"], "adapter")?;
     let adapter_id = string(adapter, "id")?;
@@ -235,6 +235,16 @@ pub fn verify_receipt(receipt: &Value) -> Result<()> {
         .get("responses")
         .and_then(Value::as_array)
         .context("missing response array")?;
+    // PR #477 emitted empty response lists even when sync used the network.
+    // Such receipts cannot distinguish a no-response failure from omitted
+    // observations. Reject the ambiguous sync-specific shape until a new
+    // transport-backed contract can express those cases honestly.
+    if adapter_id == "alaveteli-sync" && matches!(command, "sync-pull" | "sync-push") {
+        ensure!(
+            !responses.is_empty(),
+            "sync receipt transport evidence is unavailable"
+        );
+    }
     let mut bytes = 0_u64;
     let mut retries = 0_u64;
     for response in responses {
@@ -533,7 +543,7 @@ pub fn build_single_get_receipt_with_rate_limit(
     Ok(receipt)
 }
 
-/// Inputs required to construct a v1 receipt for `sync pull` or `sync push`.
+/// Legacy sync receipt inputs; they do not include observed transport evidence.
 pub struct SyncReceiptInput<'a> {
     pub command: &'a str,
     pub source_url: &'a str,
@@ -544,62 +554,12 @@ pub struct SyncReceiptInput<'a> {
     pub failure_type: Option<&'a str>,
 }
 
-/// Build and self-verify a Python-compatible v1 receipt for a `sync` command.
-pub fn build_sync_command_receipt(input: SyncReceiptInput<'_>) -> Result<Value> {
-    ensure!(
-        input.command == "sync-pull" || input.command == "sync-push",
-        "unsupported sync receipt command"
-    );
-    let parsed_source = reqwest::Url::parse(input.source_url)
-        .context("acquisition receipt source URL is invalid")?;
-    let sanitized_source = sanitize_for_receipt(&parsed_source)?;
-    let status = if input.failure_type.is_some() {
-        "failed"
-    } else {
-        "succeeded"
-    };
-    let mut receipt = serde_json::json!({
-        "schema": "urn:fyi-cli:acquisition-receipt",
-        "schema_version": "1.0.0",
-        "command": input.command,
-        "adapter": {
-            "id": "alaveteli-sync",
-            "version": env!("CARGO_PKG_VERSION"),
-        },
-        "source": {"url": sanitized_source},
-        "request_bounds": input.request_bounds,
-        "started_at": input.started_at,
-        "completed_at": input.completed_at,
-        "status": status,
-        "responses": [],
-        "totals": {
-            "requests": 0,
-            "bytes": 0,
-            "retries": 0,
-        },
-        "rate_limit": {
-            "name": null,
-            "minimum_interval_seconds": null,
-        },
-        "checkpoint": {
-            "before_sha256": null,
-            "after_sha256": null,
-        },
-        "result": {
-            "representation": "canonical_result_projection",
-            "media_type": "application/json",
-            "bytes": input.result_projection.len(),
-            "sha256": sha256_hex(input.result_projection),
-        },
-    });
-    if let Some(failure_type) = input.failure_type {
-        receipt["failure"] = serde_json::json!({"type": failure_type});
-    }
-    let canonical = canonical_json_bytes(&receipt)?;
-    receipt["receipt_sha256"] = Value::String(sha256_hex(&canonical));
-    verify_receipt(&receipt)?;
-    verify_receipt_result_bytes(&receipt, input.result_projection)?;
-    Ok(receipt)
+/// Refuse the legacy sync receipt input, which contains no transport evidence.
+///
+/// Retained for source compatibility. It always returns an error until a
+/// transport-backed contract can account for observed responses and failures.
+pub fn build_sync_command_receipt(_input: SyncReceiptInput<'_>) -> Result<Value> {
+    bail!("sync receipt transport evidence is unavailable")
 }
 
 /// Preserve the host and path while redacting credential-bearing URL fields.
