@@ -518,7 +518,7 @@ pub enum SyncCommand {
         interval_seconds: u64,
         #[arg(long, default_value = "fyi_system.db")]
         db: String,
-        /// Optional path for an immutable v1 acquisition receipt.
+        /// Receipt output is unavailable until sync transport evidence is supported.
         #[arg(long)]
         receipt: Option<String>,
     },
@@ -530,7 +530,7 @@ pub enum SyncCommand {
         max_retries: u32,
         #[arg(long, default_value = "fyi_system.db")]
         db: String,
-        /// Optional path for an immutable v1 acquisition receipt.
+        /// Receipt output is unavailable until sync transport evidence is supported.
         #[arg(long)]
         receipt: Option<String>,
     },
@@ -1108,6 +1108,18 @@ fn handle_sync_command(
     command: &SyncCommand,
     output_format: OutputFormat,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    if matches!(
+        command,
+        SyncCommand::Pull {
+            receipt: Some(_),
+            ..
+        } | SyncCommand::Push {
+            receipt: Some(_),
+            ..
+        }
+    ) {
+        return Err("sync receipt transport evidence is unavailable".into());
+    }
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()?;
@@ -1132,14 +1144,8 @@ fn handle_sync_command(
             feed_url,
             interval_seconds,
             db,
-            receipt,
+            receipt: _,
         } => runtime.block_on(async {
-            if let Some(receipt_path) = receipt.as_deref() {
-                if Path::new(receipt_path) == Path::new(db) {
-                    return Err("receipt and database paths must be distinct".into());
-                }
-            }
-            let started_at = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
             let pool = DbPool::new(&sqlite_url(db)).await?;
             pool.run_migrations().await?;
             let client = SyncClient::new(base_url)?;
@@ -1148,56 +1154,10 @@ fn handle_sync_command(
                 ..SyncConfig::default()
             };
 
-            let pull_outcome = async {
-                let mut reports = vec![client.pull_incremental(&pool).await?];
-                if let Some(feed_url) = feed_url {
-                    reports.push(client.pull_feed(&pool, feed_url).await?);
-                }
-                Ok::<Vec<PullReport>, Box<dyn std::error::Error>>(reports)
+            let mut reports = vec![client.pull_incremental(&pool).await?];
+            if let Some(feed_url) = feed_url {
+                reports.push(client.pull_feed(&pool, feed_url).await?);
             }
-            .await;
-
-            if let Some(receipt_path) = receipt.as_deref() {
-                let completed_at =
-                    chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
-                let projection_value = match &pull_outcome {
-                    Ok(reports) => serde_json::Value::Array(
-                        reports
-                            .iter()
-                            .map(|report| {
-                                serde_json::json!({
-                                    "source": report.source,
-                                    "fetched": report.fetched,
-                                    "applied": report.applied,
-                                })
-                            })
-                            .collect(),
-                    ),
-                    Err(_) => serde_json::json!({"status": "failed"}),
-                };
-                let projection =
-                    fyi_core::acquisition_receipts::canonical_json_bytes(&projection_value)?;
-                let receipt_doc = fyi_core::acquisition_receipts::build_sync_command_receipt(
-                    fyi_core::acquisition_receipts::SyncReceiptInput {
-                        command: "sync-pull",
-                        source_url: base_url,
-                        request_bounds: serde_json::json!({
-                            "interval_seconds": (*interval_seconds).max(1),
-                            "has_feed_url": feed_url.is_some(),
-                        }),
-                        started_at: &started_at,
-                        completed_at: &completed_at,
-                        result_projection: &projection,
-                        failure_type: pull_outcome.as_ref().err().map(|_| "SyncPullError"),
-                    },
-                )?;
-                fyi_core::acquisition_receipts::write_receipt_atomic(
-                    Path::new(receipt_path),
-                    &receipt_doc,
-                )?;
-            }
-
-            let reports = pull_outcome?;
             print_pull_reports(&reports, &config, output_format)?;
 
             Ok(())
@@ -1206,14 +1166,8 @@ fn handle_sync_command(
             base_url,
             max_retries,
             db,
-            receipt,
+            receipt: _,
         } => runtime.block_on(async {
-            if let Some(receipt_path) = receipt.as_deref() {
-                if Path::new(receipt_path) == Path::new(db) {
-                    return Err("receipt and database paths must be distinct".into());
-                }
-            }
-            let started_at = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
             let pool = DbPool::new(&sqlite_url(db)).await?;
             pool.run_migrations().await?;
             let client = SyncClient::new(base_url)?;
@@ -1221,41 +1175,7 @@ fn handle_sync_command(
                 push_max_retries: (*max_retries).max(1),
                 ..SyncConfig::default()
             };
-            let push_outcome = client.push_dirty_with_config(&pool, &config).await;
-
-            if let Some(receipt_path) = receipt.as_deref() {
-                let completed_at =
-                    chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
-                let projection_value = match &push_outcome {
-                    Ok(report) => serde_json::json!({
-                        "queued": report.queued,
-                        "submitted": report.submitted,
-                        "failed": report.failed,
-                    }),
-                    Err(_) => serde_json::json!({"status": "failed"}),
-                };
-                let projection =
-                    fyi_core::acquisition_receipts::canonical_json_bytes(&projection_value)?;
-                let receipt_doc = fyi_core::acquisition_receipts::build_sync_command_receipt(
-                    fyi_core::acquisition_receipts::SyncReceiptInput {
-                        command: "sync-push",
-                        source_url: base_url,
-                        request_bounds: serde_json::json!({
-                            "max_retries": (*max_retries).max(1),
-                        }),
-                        started_at: &started_at,
-                        completed_at: &completed_at,
-                        result_projection: &projection,
-                        failure_type: push_outcome.as_ref().err().map(|_| "SyncPushError"),
-                    },
-                )?;
-                fyi_core::acquisition_receipts::write_receipt_atomic(
-                    Path::new(receipt_path),
-                    &receipt_doc,
-                )?;
-            }
-
-            let report = push_outcome?;
+            let report = client.push_dirty_with_config(&pool, &config).await?;
             let queue_depth = pool.get_outgoing_queue_depth().await?;
             print_push_report(&report, &queue_depth, output_format)?;
 
