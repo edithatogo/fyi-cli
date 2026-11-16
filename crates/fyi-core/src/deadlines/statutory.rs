@@ -7,7 +7,7 @@
 
 use chrono::{Datelike, Days, Months, NaiveDate};
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use thiserror::Error;
 
 /// Unit of the specified legal period. Months are never approximated as 30 days.
@@ -297,4 +297,84 @@ pub fn calculate_explicit_deadline(
         extension_applied: extension.is_some(),
         validation_status: ValidationStatus::Unvalidated,
     })
+}
+
+/// Maximum size for an in-memory holiday-calendar JSON payload (256 KiB).
+pub const MAX_CALENDAR_CATALOG_BYTES: usize = 256 * 1024;
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawHolidayCalendarCatalog {
+    schema_version: u32,
+    calendars: Vec<HolidayCalendar>,
+}
+
+/// Versioned, caller-extensible catalog of [`HolidayCalendar`] definitions.
+///
+/// Embedded entries (`NZ`, `AU`, `GB` national starter dates) and caller-supplied
+/// JSON catalogs remain unvalidated until reviewed against authoritative statutes
+/// and applicable state/regional exclusions.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HolidayCalendarCatalog {
+    calendars: BTreeMap<String, HolidayCalendar>,
+}
+
+impl HolidayCalendar {
+    /// Parse and validate a single [`HolidayCalendar`] from JSON without I/O.
+    pub fn from_json(input: &str) -> Result<Self, DeadlineRuleError> {
+        if input.len() > MAX_CALENDAR_CATALOG_BYTES {
+            return Err(DeadlineRuleError::InvalidCalendar);
+        }
+        let calendar: Self =
+            serde_json::from_str(input).map_err(|_| DeadlineRuleError::InvalidCalendar)?;
+        validate_calendar(&calendar)?;
+        Ok(calendar)
+    }
+}
+
+impl HolidayCalendarCatalog {
+    /// Load the embedded unvalidated starter catalog (`NZ`, `AU`, `GB`).
+    #[must_use]
+    pub fn embedded() -> Self {
+        Self::from_json(include_str!("../../locales/calendars/v1/catalog.json"))
+            .expect("embedded holiday calendar catalog must be valid")
+    }
+
+    /// Parse and validate a version-1 holiday-calendar JSON catalog in memory.
+    ///
+    /// Rejects payloads larger than 256 KiB, unknown fields, unsupported
+    /// `schema_version`, empty catalogs, duplicate `jurisdiction` keys, and any
+    /// invalid [`HolidayCalendar`] entry.
+    pub fn from_json(input: &str) -> Result<Self, DeadlineRuleError> {
+        if input.len() > MAX_CALENDAR_CATALOG_BYTES {
+            return Err(DeadlineRuleError::InvalidCalendar);
+        }
+        let raw: RawHolidayCalendarCatalog =
+            serde_json::from_str(input).map_err(|_| DeadlineRuleError::InvalidCalendar)?;
+        if raw.schema_version != 1 || raw.calendars.is_empty() {
+            return Err(DeadlineRuleError::InvalidCalendar);
+        }
+        let mut calendars = BTreeMap::new();
+        for calendar in raw.calendars {
+            validate_calendar(&calendar)?;
+            if calendars
+                .insert(calendar.jurisdiction.clone(), calendar)
+                .is_some()
+            {
+                return Err(DeadlineRuleError::InvalidCalendar);
+            }
+        }
+        Ok(Self { calendars })
+    }
+
+    /// Look up a calendar by exact jurisdiction key (`"NZ"`, `"AU"`, `"GB"`, etc.).
+    #[must_use]
+    pub fn get(&self, jurisdiction: &str) -> Option<&HolidayCalendar> {
+        self.calendars.get(jurisdiction)
+    }
+
+    /// Iterate over all jurisdiction keys in deterministic sorted order.
+    pub fn jurisdictions(&self) -> impl Iterator<Item = &str> {
+        self.calendars.keys().map(String::as_str)
+    }
 }
