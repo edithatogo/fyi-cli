@@ -317,3 +317,105 @@ async fn attachment_path_checks_reject_escape_and_in_root_symlinks() {
     }
     tokio::fs::remove_dir_all(directory).await.unwrap();
 }
+
+#[tokio::test]
+async fn attachment_validation_enforces_count_limit_and_string_items() {
+    let directory = std::env::temp_dir().join(format!(
+        "fyi-mcp-attach-bounds-{}-{}",
+        std::process::id(),
+        next_correlation_id()
+    ));
+    tokio::fs::create_dir_all(&directory).await.unwrap();
+    let root = tokio::fs::canonicalize(&directory).await.unwrap();
+
+    let too_many: Vec<Value> = (0..9).map(|i| json!(format!("file-{i}.txt"))).collect();
+    assert_eq!(
+        validated_attachment_paths(&json!({"attachments": too_many}))
+            .await
+            .unwrap_err(),
+        "attachments exceed the 8 file limit"
+    );
+    assert_eq!(
+        attachment_paths_under_root(&root, &[json!(123)])
+            .await
+            .unwrap_err(),
+        "attachment paths must be strings"
+    );
+    assert_eq!(
+        validated_attachment_paths(&json!({"attachments": "not-an-array"}))
+            .await
+            .unwrap_err(),
+        "attachments must be an array"
+    );
+
+    tokio::fs::remove_dir_all(directory).await.unwrap();
+}
+
+#[tokio::test]
+async fn write_argument_validation_fails_closed_before_network_io() {
+    let policy = policy(true, true, 1024);
+    let gate = RemoteWriteGate::default();
+
+    let prepared_state = gate
+        .prepare(
+            &policy,
+            "synthetic",
+            "remote_update_state",
+            &json!({"idempotency_key": "missing-expected", "request_id": 42, "state": "successful"}),
+        )
+        .unwrap();
+    let state_commit = json!({
+        "instance_id": "synthetic",
+        "phase": "commit",
+        "idempotency_key": "missing-expected",
+        "confirmation_token": prepared_state["confirmation_token"],
+    });
+    assert_eq!(
+        remote_commit_write(
+            &policy,
+            &gate,
+            "synthetic",
+            "remote_update_state",
+            &state_commit
+        )
+        .await
+        .unwrap_err(),
+        "remote operation failed; see operator audit telemetry"
+    );
+
+    let prepared_corr = gate
+        .prepare(
+            &policy,
+            "synthetic",
+            "remote_add_correspondence",
+            &json!({
+                "idempotency_key": "bad-direction",
+                "request_id": 42,
+                "direction": "sideways",
+                "body": "synthetic body",
+                "sent_at": "2026-11-16T00:00:00Z"
+            }),
+        )
+        .unwrap();
+    let corr_commit = json!({
+        "instance_id": "synthetic",
+        "phase": "commit",
+        "idempotency_key": "bad-direction",
+        "confirmation_token": prepared_corr["confirmation_token"],
+    });
+    assert_eq!(
+        remote_commit_write(
+            &policy,
+            &gate,
+            "synthetic",
+            "remote_add_correspondence",
+            &corr_commit
+        )
+        .await
+        .unwrap_err(),
+        "remote operation failed; see operator audit telemetry"
+    );
+    let status = policy.status();
+    assert_eq!(status.instances[0].bytes_used, 0);
+    assert!(!status.circuit_open);
+}
