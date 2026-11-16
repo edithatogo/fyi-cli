@@ -1,5 +1,9 @@
 # Internet Archive replay
 
+The command shown below is the existing Python implementation. The Rust core
+also contains an offline replay engine, described after the command contract;
+the Rust CLI does not yet expose an equivalent network command.
+
 `internet-archive-replay` is the network-owning boundary for bounded retrieval
 of raw Wayback payloads. It accepts only a versioned, self-digested approval
 selection and writes verified payload objects, a resumable checkpoint, a
@@ -43,3 +47,18 @@ deterministic projection of the downstream `fyi-archive` Wayback replay
 contract. Hosted live smoke, old/new downstream parity, pinned release
 integration, NZ shadow parity, and archive cutover remain separate acceptance
 gates.
+
+## Rust offline replay engine
+
+`fyi_core::internet_archive_replay` validates self-digested selections, enforces
+the approved target and archive redirect rules, checks status, media type and
+decoded payload length/digest, and verifies checkpoint recovery. Selection and
+checkpoint inputs are each capped at 16 MiB. Its callback receives the request
+URL, timeout and encoded-byte cap and must provide a fresh redirect-free response
+from a guarded transport; the engine does not make an HTTP request by itself.
+
+An observation callback sees each raw encoded response before a verified payload
+or checkpoint is published. This callback is an integration boundary, not yet an
+atomic acquisition receipt or a persisted raw response. The frozen synthetic
+fixtures cover approval, malformed data, redirects, compressed responses,
+deadlines and recovery; they do not establish live-source or downstream parity.

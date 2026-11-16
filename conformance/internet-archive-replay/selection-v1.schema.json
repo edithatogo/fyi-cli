@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/edithatogo/fyi-cli/schemas/internet-archive-replay-selection-v1.schema.json",
+  "title": "fyi-cli approved Internet Archive replay selection v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "selection_sha256", "source_cdx_sha256", "rows"],
+  "properties": {
+    "schema": {"const": "urn:fyi-cli:internet-archive-replay-selection:1"},
+    "selection_sha256": {"$ref": "#/$defs/sha256"},
+    "source_cdx_sha256": {"$ref": "#/$defs/sha256"},
+    "rows": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "row_index", "original", "timestamp", "cdx_digest", "cdx_statuscode",
+          "cdx_length", "expected_status", "expected_payload_bytes",
+          "expected_payload_sha256"
+        ],
+        "properties": {
+          "row_index": {"type": "integer", "minimum": 0},
+          "original": {"type": "string", "format": "uri", "pattern": "^https://"},
+          "timestamp": {"type": "string", "pattern": "^[0-9]{14}$"},
+          "cdx_digest": {"type": "string", "minLength": 1, "maxLength": 256},
+          "cdx_statuscode": {"type": "integer", "minimum": 100, "maximum": 599},
+          "cdx_length": {"type": "integer", "minimum": 0},
+          "expected_status": {"type": "integer", "minimum": 100, "maximum": 599},
+          "expected_payload_bytes": {"type": "integer", "minimum": 0},
+          "expected_payload_sha256": {"$ref": "#/$defs/sha256"},
+          "expected_media_type": {"type": "string", "pattern": "^[a-z0-9.+-]+/[a-z0-9.+-]+$"}
+        }
+      }
+    }
+  },
+  "$defs": {"sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}
+}

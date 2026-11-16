@@ -10,6 +10,7 @@ pub mod endorsed_route;
 pub mod features;
 pub mod federation;
 pub mod i18n;
+pub mod internet_archive_replay;
 pub mod jurisdiction;
 pub mod notifications;
 pub mod process_events;

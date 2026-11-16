@@ -1,5 +1,25 @@
 # Plan
 
+## Bounded Rust replay work — 2026-11-16
+
+- [~] Chat `01a1e3da-9d35-7a01-8723-b07a2749f7bd` owns #312 replay in managed
+  worktree `/Users/doughnut/.codex/worktrees/fyi-replay-312/fyi-cli`, branch
+  `codex/fyi-wayback-replay-312`; its frozen source is the read-only managed
+  checkout `/Users/doughnut/.codex/worktrees/fyi-replay-frozen-312/fyi-cli`
+  at `5885469`. No live source, native object or authentication scope is assigned.
+- [x] Reuse the frozen approval, bounded replay and offline recovery contracts;
+  establish their dependencies and perform receiving-head preflight before
+  integrating source files. Twelve focused offline replay tests pass, including
+  the frozen synthetic oracle, input-size bounds and an object-name preflight.
+  The independently
+  owned #310 receipt-integrity work has priority
+  over shared receipt and CLI paths; replay must consume its pinned contract.
+- [~] Integrate a guarded, bounded transport, actual response receipts and the
+  Rust CLI after the receipt-integrity packet reaches a stable receiving head.
+- [ ] Verify the source/CLI integration, immutable byte receipts, and existing
+  cross-platform and downstream gates before treating #312 as complete. Hosted
+  live smoke still requires separate exact operator authorization.
+
 ## Independent workstreams
 
 - [ ] #310: define the acquisition-receipt schema and atomic writer, then add it
