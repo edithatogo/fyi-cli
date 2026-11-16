@@ -552,9 +552,13 @@ pub enum SyncCommand {
         interval_seconds: u64,
         #[arg(long, default_value = "fyi_system.db")]
         db: String,
-        /// Receipt output is unavailable until sync transport evidence is supported.
+        /// Receipt for a single incremental API pull; requires raw and result files.
         #[arg(long)]
         receipt: Option<String>,
+        #[arg(long)]
+        raw_file: Option<String>,
+        #[arg(long)]
+        result_file: Option<String>,
     },
     #[command(about = "Push dirty local requests to FYI")]
     Push {
@@ -1193,17 +1197,43 @@ fn handle_sync_command(
     command: &SyncCommand,
     output_format: OutputFormat,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    if matches!(
-        command,
-        SyncCommand::Pull {
-            receipt: Some(_),
-            ..
-        } | SyncCommand::Push {
-            receipt: Some(_),
-            ..
+    match command {
+        SyncCommand::Push {
+            receipt: Some(_), ..
+        } => {
+            return Err("sync receipt transport evidence is unavailable for push".into());
         }
-    ) {
-        return Err("sync receipt transport evidence is unavailable".into());
+        SyncCommand::Pull {
+            receipt,
+            raw_file,
+            result_file,
+            feed_url,
+            db,
+            ..
+        } => {
+            let count = [receipt, raw_file, result_file]
+                .iter()
+                .filter(|value| value.is_some())
+                .count();
+            if count != 0 && count != 3 {
+                return Err("sync receipt transport evidence requires --receipt, --raw-file and --result-file together".into());
+            }
+            if let (Some(receipt), Some(raw), Some(result)) = (receipt, raw_file, result_file) {
+                if feed_url.is_some() {
+                    return Err("sync feed receipt transport evidence is unavailable".into());
+                }
+                if db.starts_with("sqlite:") {
+                    return Err("sync pull evidence requires a filesystem database path".into());
+                }
+                let paths = fyi_core::sync::SyncPullEvidencePaths {
+                    raw: Path::new(raw),
+                    result: Path::new(result),
+                    receipt: Path::new(receipt),
+                };
+                fyi_core::sync::preflight_sync_pull_evidence(&paths, Some(Path::new(db)))?;
+            }
+        }
+        _ => {}
     }
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
@@ -1229,16 +1259,34 @@ fn handle_sync_command(
             feed_url,
             interval_seconds,
             db,
-            receipt: _,
+            receipt,
+            raw_file,
+            result_file,
         } => runtime.block_on(async {
+            let evidence_client = if receipt.is_some() {
+                Some(fyi_core::sync::SyncPullEvidenceClient::new(base_url)?)
+            } else {
+                None
+            };
             let pool = DbPool::new(&sqlite_url(db)).await?;
             pool.run_migrations().await?;
-            let client = SyncClient::new(base_url)?;
             let config = SyncConfig {
                 pull_interval: std::time::Duration::from_secs((*interval_seconds).max(1)),
                 ..SyncConfig::default()
             };
 
+            if let (Some(receipt), Some(raw), Some(result)) = (receipt, raw_file, result_file) {
+                let client = evidence_client.expect("receipt options were preflighted");
+                let paths = fyi_core::sync::SyncPullEvidencePaths {
+                    raw: Path::new(raw), result: Path::new(result), receipt: Path::new(receipt),
+                };
+                let report = client.pull(&pool, &paths).await.map_err(|_| {
+                    "sync pull failed; database may be partially updated; inspect any saved evidence"
+                })?;
+                print_pull_reports(&[report], &config, output_format)?;
+                return Ok(());
+            }
+            let client = SyncClient::new(base_url)?;
             let mut reports = vec![client.pull_incremental(&pool).await?];
             if let Some(feed_url) = feed_url {
                 reports.push(client.pull_feed(&pool, feed_url).await?);
@@ -1658,6 +1706,8 @@ mod tests {
                     interval_seconds: 60,
                     db: "test.db".to_string(),
                     receipt: None,
+                    raw_file: None,
+                    result_file: None,
                 }
             }
         );
@@ -1710,6 +1760,8 @@ mod tests {
                     interval_seconds: 300,
                     db: "fyi_system.db".to_string(),
                     receipt: Some("evidence/pull-receipt.json".to_string()),
+                    raw_file: None,
+                    result_file: None,
                 }
             }
         );

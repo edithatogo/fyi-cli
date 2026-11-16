@@ -14,11 +14,13 @@ impl Workspace {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let path = std::env::temp_dir().join(format!(
-            "fyi-sync-receipt-gate-{}-{nonce}-{}",
-            std::process::id(),
-            NEXT_ID.fetch_add(1, Ordering::Relaxed)
-        ));
+        let path = fs::canonicalize(std::env::temp_dir())
+            .unwrap()
+            .join(format!(
+                "fyi-sync-receipt-gate-{}-{nonce}-{}",
+                std::process::id(),
+                NEXT_ID.fetch_add(1, Ordering::Relaxed)
+            ));
         fs::create_dir(&path).unwrap();
         Self(path)
     }
@@ -70,6 +72,41 @@ fn sync_without_receipt_reaches_existing_validation() {
             "{operation}: {output:?}"
         );
     }
+}
+
+#[test]
+fn receipt_pull_rejects_feed_and_database_alias_before_database_io() {
+    let workspace = Workspace::new();
+    let db = workspace.0.join("sync.db");
+    let raw = workspace.0.join("response.raw");
+    let receipt = workspace.0.join("receipt.json");
+    let result = workspace.0.join("result.json");
+    let invoke = |raw_path: &std::path::Path, extra: &[&str]| {
+        Command::new(env!("CARGO_BIN_EXE_fyi-cli"))
+            .args(["sync", "pull", "--base-url", "not a URL", "--db"])
+            .arg(&db)
+            .arg("--receipt")
+            .arg(&receipt)
+            .arg("--raw-file")
+            .arg(raw_path)
+            .arg("--result-file")
+            .arg(&result)
+            .args(extra)
+            .output()
+            .unwrap()
+    };
+    let feed = invoke(&raw, &["--feed-url", "https://example.invalid/feed"]);
+    assert!(!feed.status.success());
+    assert!(String::from_utf8_lossy(&feed.stderr).contains("feed receipt transport evidence"));
+    let alias = invoke(&db, &[]);
+    assert!(!alias.status.success());
+    assert!(String::from_utf8_lossy(&alias.stderr).contains("paths must be distinct"));
+    let invalid_source = invoke(&raw, &[]);
+    assert!(!invalid_source.status.success());
+    assert!(!db.exists());
+    assert!(!raw.exists());
+    assert!(!result.exists());
+    assert!(!receipt.exists());
 }
 
 #[test]

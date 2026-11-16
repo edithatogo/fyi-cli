@@ -28,6 +28,17 @@
   Focused offline tests cover redirects, compressed entities, response and
   result tampering, path collisions, checkpoints and runtime limits. [source
   checkpoint: e6e1052]
+- [~] Chat `01a1e3da-9d35-7a01-8723-b07a2749f7bd` owns a bounded #310 sync
+  pull receipt follow-up in managed worktree
+  `/Users/doughnut/.codex/worktrees/fyi-post-replay-receiving-312/fyi-cli`,
+  branch `codex/fyi-sync-pull-receipt-310`, initially based on replay PR #483.
+  Its scope is Rust sync pull evidence, CLI preflight and offline tests. No live
+  authority, native object or authentication scope is assigned. Next: integrate
+  after replay, then run hosted checks on the receiving head.
+- [x] Implement a fresh, redirect-free single-list sync pull with immutable raw,
+  result and receipt files. Offline tests cover a successful pull, HTTP failure,
+  redirect, incomplete response and evidence-path preflight. Feed and push
+  receipts remain gated. [source checkpoint: 868a334]
 - [ ] Verify the source/CLI integration, immutable byte receipts, and existing
   cross-platform and downstream gates before treating #312 as complete. Hosted
   live smoke still requires separate exact operator authorization.
