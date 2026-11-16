@@ -86,6 +86,146 @@ impl DispatchOutcome {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum RemoteErrorKind {
+    Auth,
+    Forbidden,
+    NotFound,
+    RateLimited,
+    UpstreamUnavailable,
+    UpstreamServer,
+    Timeout,
+    Validation,
+    UpstreamUnknown,
+}
+
+impl RemoteErrorKind {
+    pub(crate) fn as_str(self) -> &'static str {
+        match self {
+            Self::Auth => "auth",
+            Self::Forbidden => "forbidden",
+            Self::NotFound => "not_found",
+            Self::RateLimited => "rate_limited",
+            Self::UpstreamUnavailable => "upstream_unavailable",
+            Self::UpstreamServer => "upstream_server",
+            Self::Timeout => "timeout",
+            Self::Validation => "validation",
+            Self::UpstreamUnknown => "upstream_unknown",
+        }
+    }
+}
+
+/// Fixed-vocabulary, non-secret classification of a remote operation error.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+pub(crate) struct RemoteErrorClassification {
+    pub(crate) kind: RemoteErrorKind,
+    pub(crate) operation: RemoteOperation,
+    pub(crate) retryable: bool,
+    pub(crate) status: Option<u16>,
+    pub(crate) safe_message: &'static str,
+}
+
+impl RemoteErrorClassification {
+    pub(crate) fn classify(operation: RemoteOperation, raw_message: &str) -> Self {
+        let lower = raw_message.to_ascii_lowercase();
+        if lower.contains("401") || lower.contains("authentication failed") {
+            return Self {
+                kind: RemoteErrorKind::Auth,
+                operation,
+                retryable: false,
+                status: Some(401),
+                safe_message: "remote authentication failed",
+            };
+        }
+        if lower.contains("403") || lower.contains("permission denied") {
+            return Self {
+                kind: RemoteErrorKind::Forbidden,
+                operation,
+                retryable: false,
+                status: Some(403),
+                safe_message: "remote permission denied",
+            };
+        }
+        if lower.contains("404") || lower.contains("not found") {
+            return Self {
+                kind: RemoteErrorKind::NotFound,
+                operation,
+                retryable: false,
+                status: Some(404),
+                safe_message: "remote resource not found",
+            };
+        }
+        if lower.contains("429") || lower.contains("rate limited") {
+            return Self {
+                kind: RemoteErrorKind::RateLimited,
+                operation,
+                retryable: true,
+                status: Some(429),
+                safe_message: "remote endpoint rate limited request",
+            };
+        }
+        if lower.contains("503") || lower.contains("service unavailable") {
+            return Self {
+                kind: RemoteErrorKind::UpstreamUnavailable,
+                operation,
+                retryable: true,
+                status: Some(503),
+                safe_message: "remote endpoint temporarily unavailable",
+            };
+        }
+        if lower.contains("500")
+            || lower.contains("502")
+            || lower.contains("504")
+            || lower.contains("server error")
+        {
+            let status = if lower.contains("502") {
+                Some(502)
+            } else if lower.contains("504") {
+                Some(504)
+            } else {
+                Some(500)
+            };
+            return Self {
+                kind: RemoteErrorKind::UpstreamServer,
+                operation,
+                retryable: true,
+                status,
+                safe_message: "remote endpoint returned server error",
+            };
+        }
+        if lower.contains("timed out") || lower.contains("timeout") {
+            return Self {
+                kind: RemoteErrorKind::Timeout,
+                operation,
+                retryable: true,
+                status: None,
+                safe_message: "remote operation timed out",
+            };
+        }
+        if lower.contains("stale")
+            || lower.contains("expected_current_state")
+            || lower.contains("invalid")
+            || lower.contains("required")
+        {
+            return Self {
+                kind: RemoteErrorKind::Validation,
+                operation,
+                retryable: false,
+                status: None,
+                safe_message: "remote operation arguments or state rejected",
+            };
+        }
+        Self {
+            kind: RemoteErrorKind::UpstreamUnknown,
+            operation,
+            retryable: false,
+            status: None,
+            safe_message: "remote operation failed",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, Serialize)]
 struct Outcomes {
     success: u64,

@@ -351,3 +351,85 @@ async fn invalid_or_disallowed_calls_cannot_allocate_metric_dimensions() {
     .is_err());
     assert_eq!(original, status(&policy).await);
 }
+
+#[test]
+fn remote_error_classification_maps_status_and_redacts_upstream_secrets() {
+    use telemetry::{RemoteErrorClassification, RemoteErrorKind};
+
+    let cases = [
+        (
+            "HTTP 401 authentication failed bearer=secret-token-value",
+            RemoteErrorKind::Auth,
+            false,
+            Some(401),
+            "remote authentication failed",
+        ),
+        (
+            "HTTP 403 permission denied for private-user@example.org",
+            RemoteErrorKind::Forbidden,
+            false,
+            Some(403),
+            "remote permission denied",
+        ),
+        (
+            "HTTP 404 not found",
+            RemoteErrorKind::NotFound,
+            false,
+            Some(404),
+            "remote resource not found",
+        ),
+        (
+            "HTTP 429 rate limited; retry after 30 seconds",
+            RemoteErrorKind::RateLimited,
+            true,
+            Some(429),
+            "remote endpoint rate limited request",
+        ),
+        (
+            "HTTP 503 service unavailable",
+            RemoteErrorKind::UpstreamUnavailable,
+            true,
+            Some(503),
+            "remote endpoint temporarily unavailable",
+        ),
+        (
+            "HTTP 502 bad gateway",
+            RemoteErrorKind::UpstreamServer,
+            true,
+            Some(502),
+            "remote endpoint returned server error",
+        ),
+        (
+            "request timed out waiting for headers",
+            RemoteErrorKind::Timeout,
+            true,
+            None,
+            "remote operation timed out",
+        ),
+        (
+            "stale expected_current_state mismatch",
+            RemoteErrorKind::Validation,
+            false,
+            None,
+            "remote operation arguments or state rejected",
+        ),
+        (
+            "unexpected secret=my-api-key-123 failure",
+            RemoteErrorKind::UpstreamUnknown,
+            false,
+            None,
+            "remote operation failed",
+        ),
+    ];
+
+    for (raw, expected_kind, expected_retryable, expected_status, expected_msg) in cases {
+        let classified = RemoteErrorClassification::classify(RemoteOperation::GetRequest, raw);
+        assert_eq!(classified.kind, expected_kind);
+        assert_eq!(classified.operation, RemoteOperation::GetRequest);
+        assert_eq!(classified.retryable, expected_retryable);
+        assert_eq!(classified.status, expected_status);
+        assert_eq!(classified.safe_message, expected_msg);
+        assert!(!classified.safe_message.contains("secret"));
+        assert!(!classified.safe_message.contains("private-user"));
+    }
+}

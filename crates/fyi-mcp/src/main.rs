@@ -2835,7 +2835,7 @@ async fn remote_read(
                 .get_api_version()
                 .await
                 .map(|version| json!({"instance_id": instance_id, "version": version}))
-                .map_err(|_| "remote operation failed".to_string()),
+                .map_err(|error| error.to_string()),
             "remote_search_requests" => {
                 let limit = arguments
                     .get("limit")
@@ -2846,20 +2846,20 @@ async fn remote_read(
                 .search_requests_with_options(&SearchOptions { query: Some(query.into()), per_page: Some(limit as u32), ..Default::default() })
                 .await
                 .map(|requests| json!({"instance_id": instance_id, "query": query, "requests": requests.into_iter().take(limit).collect::<Vec<_>>() }))
-                .map_err(|_| "remote operation failed".to_string())
+                .map_err(|error| error.to_string())
             }
             "remote_get_request" => client
                 .fetch_request(request_id.expect("request ID validated before admission"))
                 .await
                 .map(|request| json!({"instance_id": instance_id, "request": request}))
-                .map_err(|_| "remote operation failed".to_string()),
+                .map_err(|error| error.to_string()),
             "remote_list_authorities" => {
                 let limit = arguments
                     .get("limit")
                     .and_then(Value::as_u64)
                     .unwrap_or(50)
                     .clamp(1, 200) as usize;
-                client.list_authorities_matching(filter).await.map(|authorities| json!({"instance_id": instance_id, "authorities": authorities.into_iter().take(limit).collect::<Vec<_>>() })).map_err(|_| "remote operation failed".to_string())
+                client.list_authorities_matching(filter).await.map(|authorities| json!({"instance_id": instance_id, "authorities": authorities.into_iter().take(limit).collect::<Vec<_>>() })).map_err(|error| error.to_string())
             }
             _ => Err("unsupported remote read operation".to_string()),
         }
@@ -2909,7 +2909,17 @@ async fn execute_remote_operation(
             policy.record_success();
             Ok(payload)
         }
-        Ok(Err(_)) => {
+        Ok(Err(error)) => {
+            let classified =
+                telemetry::RemoteErrorClassification::classify(observed_operation, &error);
+            tracing::warn!(
+                parent: observation.span(),
+                error_kind = classified.kind.as_str(),
+                retryable = classified.retryable,
+                http_status = classified.status,
+                safe_message = classified.safe_message,
+                "remote MCP operation classified failure"
+            );
             observation.finish(DispatchOutcome::Failed, 0)?;
             policy.record_failure();
             Err("remote operation failed; see operator audit telemetry".into())
