@@ -294,13 +294,14 @@ Explicit statutory deadline calculations in `fyi_core::deadlines::statutory` use
 a versioned JSON holiday-calendar catalog (`HolidayCalendarCatalog`):
 
 - **Embedded starter catalog (`HolidayCalendarCatalog::embedded()`):** Includes
-  2026 national public-holiday starter entries for `NZ`, `AU`, and `GB`
-  (`crates/fyi-core/locales/calendars/v1/catalog.json`). These entries are
-  explicitly marked `unvalidated-*` and produce `ValidationStatus::Unvalidated`;
-  regional, state/provincial, and observed holidays (such as NZ provincial
-  anniversary days, Australian state/territory holidays, or Scotland/Northern
-  Ireland bank holidays) must be supplied for the target subdivision and reviewed
-  against authoritative statutory sources before operational reliance.
+  2026 unvalidated starter entries for `NZ` (`NZ`, `NZ-AUK`, `NZ-WGN`),
+  `AU` (`AU`, `AU-ACT`, `AU-NSW`, `AU-VIC`), `GB` (`GB`, `GB-NIR`, `GB-SCT`),
+  `DE`, `FR`, and `ES` (`crates/fyi-core/locales/calendars/v1/catalog.json`,
+  validated against `crates/fyi-core/locales/calendars/v1/catalog.schema.json`).
+  These entries are explicitly marked `unvalidated-*` and produce
+  `ValidationStatus::Unvalidated`; additional subdivisions, observed/proclaimed
+  holidays, and statutory rules must be reviewed against authoritative statutory
+  sources before operational reliance.
 - **Community / caller-supplied catalogs (`HolidayCalendarCatalog::from_json` and
   `HolidayCalendar::from_json`):** Parse and validate in-memory JSON without
   filesystem or network I/O. Payloads are bounded to 256 KiB (`MAX_CALENDAR_CATALOG_BYTES`)
