@@ -4,6 +4,7 @@ use fyi_core::security::{
     decrypt, encrypt, generate_totp_code, verify_totp_code, EncryptionKey, SecurityError,
     ZeroizedBytes, ZeroizedString,
 };
+use fyi_core::sync::SyncClient;
 use proptest::prelude::*;
 
 // Helper to sanitize arbitrary generated strings to prevent SQLite null byte issues.
@@ -206,4 +207,45 @@ proptest! {
             }
         });
     }
+}
+
+#[test]
+fn test_sync_client_new_rejects_unsafe_schemes_credentials_and_private_ips() {
+    proptest!(|(
+        scheme in prop_oneof![Just("http"), Just("ftp"), Just("file")],
+        host in "[a-z]{3,10}\\.example",
+        user in "[a-z]{3,8}",
+        pass in "[a-z0-9]{3,8}",
+        oct_a in any::<u8>(),
+        oct_b in any::<u8>(),
+        oct_c in any::<u8>(),
+    )| {
+        let non_https = format!("{scheme}://{host}");
+        prop_assert!(SyncClient::new(&non_https).is_err());
+
+        let with_creds = format!("https://{user}:{pass}@{host}");
+        prop_assert!(SyncClient::new(&with_creds).is_err());
+
+        let loopback = format!("https://127.{oct_a}.{oct_b}.{oct_c}");
+        prop_assert!(SyncClient::new(&loopback).is_err());
+
+        let rfc1918_10 = format!("https://10.{oct_a}.{oct_b}.{oct_c}");
+        prop_assert!(SyncClient::new(&rfc1918_10).is_err());
+
+        let rfc1918_192 = format!("https://192.168.{oct_b}.{oct_c}");
+        prop_assert!(SyncClient::new(&rfc1918_192).is_err());
+    });
+}
+
+#[test]
+fn test_sync_client_new_normalizes_valid_public_https_hosts() {
+    proptest!(|(
+        label in "[a-z][a-z0-9]{2,10}",
+        tld in prop_oneof![Just("org.nz"), Just("org.au"), Just("org.uk")],
+        slashes in 0usize..4,
+    )| {
+        let trailing = "/".repeat(slashes);
+        let input = format!("https://{}.{tld}{trailing}", label.to_ascii_uppercase());
+        prop_assert!(SyncClient::new(&input).is_ok(), "expected valid URL: {input}");
+    });
 }
