@@ -225,7 +225,6 @@ jobs:
       - name: Reject new or expired RustSec suppressions
         run: python scripts/verify_security_exceptions.py --require-python 3.15.1
 
-      - name: Install cargo-audit
       # Use checksummed, prebuilt binaries rather than recompiling these
       # tools on every ephemeral runner. Versions match the previous
       # cargo-install results (verified in the 2026-11-14 audit logs).
