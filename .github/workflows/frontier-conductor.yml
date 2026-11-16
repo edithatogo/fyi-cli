@@ -42,7 +42,7 @@ jobs:
         with:
           python-version: "3.15.2"
 
-      - name: Establish repository-local Python 3.15.1
+      - name: Establish repository-local Python 3.15.2
         run: |
           python -m venv .venv
           .venv/bin/python scripts/verify_python315_runtime.py

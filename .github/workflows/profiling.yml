@@ -53,8 +53,8 @@ jobs:
     - name: Install dependencies
       run: |
         set -o pipefail
-        uv sync --python 3.15.1 --extra dev --frozen 2>&1 | tee artifacts/profiling/install.log
-        uv run --no-sync --python 3.15.1 python scripts/verify_python315_runtime.py
+        uv sync --python 3.15.2 --extra dev --frozen 2>&1 | tee artifacts/profiling/install.log
+        uv run --no-sync --python 3.15.2 python scripts/verify_python315_runtime.py
         {
           uv --version
           uv run python --version

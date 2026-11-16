@@ -35,7 +35,7 @@ jobs:
         channels: conda-forge,defaults
         channel-priority: strict
 
-    - name: Verify repository-local Python 3.15.1
+    - name: Verify repository-local Python 3.15.2
       run: |
         python -m venv .venv
         .venv/bin/python scripts/verify_python315_runtime.py

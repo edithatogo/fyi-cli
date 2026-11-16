@@ -40,8 +40,8 @@ jobs:
         uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
       - name: Install locked dependencies
         run: |
-          uv sync --python 3.15.1 --extra dev --frozen
-          uv run --no-sync --python 3.15.1 python scripts/verify_python315_runtime.py
+          uv sync --python 3.15.2 --extra dev --frozen
+          uv run --no-sync --python 3.15.2 python scripts/verify_python315_runtime.py
       - name: Run explicit Hypothesis gate
         run: uv run pytest -q tests/test_hypothesis.py tests/test_fuzz.py
 
@@ -61,8 +61,8 @@ jobs:
         uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
       - name: Install locked dependencies
         run: |
-          uv sync --python 3.15.1 --extra dev --frozen
-          uv run --no-sync --python 3.15.1 python scripts/verify_python315_runtime.py
+          uv sync --python 3.15.2 --extra dev --frozen
+          uv run --no-sync --python 3.15.2 python scripts/verify_python315_runtime.py
       - name: Check Python quality
         run: |
           uv run ruff check \
@@ -112,8 +112,8 @@ jobs:
         uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
       - name: Install locked fuzz dependencies
         run: |
-          uv sync --python 3.15.1 --extra dev --frozen
-          uv run --no-sync --python 3.15.1 python scripts/verify_python315_runtime.py
+          uv sync --python 3.15.2 --extra dev --frozen
+          uv run --no-sync --python 3.15.2 python scripts/verify_python315_runtime.py
           uv pip install --python .venv/bin/python --requirement fuzzing/requirements.txt
       - name: Qualify Atheris on the selected interpreter
         run: |
