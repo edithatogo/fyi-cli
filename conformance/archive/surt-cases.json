@@ -1,0 +1,12 @@
+[
+  {"url":"https://www.Example.invalid:443/Path?B=2&a=1","key":"invalid,example)/path?a=1&b=2"},
+  {"url":"http://example.invalid:8080/Path","key":"invalid,example:8080)/path"},
+  {"url":"https://example.invalid/a%20b","key":"invalid,example)/a%20b"},
+  {"url":"https://example.invalid/a%0Ab","key":"invalid,example)/a%0ab"},
+  {"url":"http://127.0.0.1:8080/a","key":"1,0,0,127:8080)/a"},
+  {"url":"https://[2001:db8::1]/a","key":"2001:db8::1)/a"},
+  {"url":"https://example.invalid/Gr%C3%BC%C3%9Fe?q=%E2%98%83","key":"invalid,example)/gr%c3%bc%c3%9fe?q=%e2%98%83"},
+  {"url":"https://example.invalid/a%09b","key":"invalid,example)/a%09b"},
+  {"url":"https://example.invalid/p?b=%26&a=2","key":"invalid,example)/p?&a=2&b="},
+  {"url":"https://example.invalid/p?z=%26%26&a=2","key":"invalid,example)/p?&&a=2&z="}
+]

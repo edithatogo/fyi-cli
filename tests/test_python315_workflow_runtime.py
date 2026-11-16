@@ -23,13 +23,13 @@ WORKFLOWS = (
 
 
 def test_repo_python_pin_is_exact() -> None:
-    assert (ROOT / ".python-version").read_text(encoding="utf-8").strip() == "3.15.1"
+    assert (ROOT / ".python-version").read_text(encoding="utf-8").strip() == "3.15.2"
 
 
 def test_all_active_python_workflows_verify_repo_local_runtime() -> None:
     for name in WORKFLOWS:
         text = (ROOT / ".github" / "workflows" / name).read_text(encoding="utf-8")
-        assert "3.15.1" in text, name
+        assert "3.15.2" in text, name
         assert "scripts/verify_python315_runtime.py" in text, name
         assert 'python-version: "3.11"' not in text, name
         assert 'python-version: "3.12"' not in text, name
@@ -38,6 +38,6 @@ def test_all_active_python_workflows_verify_repo_local_runtime() -> None:
 
 def test_runtime_verifier_is_fail_closed_and_virtualenv_scoped() -> None:
     text = (ROOT / "scripts" / "verify_python315_runtime.py").read_text(encoding="utf-8")
-    assert "REQUIRED_VERSION = (3, 15, 1)" in text
+    assert "REQUIRED_VERSION = (3, 15, 2)" in text
     assert "sys.prefix == sys.base_prefix" in text
     assert 'repository / ".venv"' in text
