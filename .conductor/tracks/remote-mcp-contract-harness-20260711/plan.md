@@ -17,14 +17,16 @@ write operations and observability remain in their #170, #171 and #172 tracks.
 - [x] Add an isolated Linux/Windows/macOS current-Rust/MSRV compatibility workflow
   using the existing locked official SDK and portable stdio contracts. Require
   exact test evidence without skips; retain platform/source qualification limits.
-- [~] Review the integrated change, run its executable sensors and record exact
+- [x] Review the integrated change, run its executable sensors and record exact
   results in the existing acceptance evidence. Keep incomplete source/runtime
   acceptance open; do not infer track closure from a configured matrix.
 
-Implementation is published in PR #493. These four completed implementation
-tasks do not qualify runtime acceptance: actual source/property, mutation and
-platform execution remains the final task and is recorded on that PR's exact
-tested head. The existing track remains in progress.
+Verified implementation checkpoint: `cfa72e7e47458e2656142a8ab00a39b31b81f4bd`
+in PR #493. Actual execution passed all six platform/compiler cells, 63 Linux
+source/property/privacy cases and all 15 targeted mutations after 11 baselines.
+The retained artifacts and exact identities are recorded in acceptance evidence.
+Required checks for the final publication head are recorded on PR #493. The
+broader source/cache/platform qualification gates below keep this track in progress.
 
 ## Error-classification regression increment — 2026-11-16
 

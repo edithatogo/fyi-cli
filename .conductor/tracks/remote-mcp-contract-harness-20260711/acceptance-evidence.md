@@ -2,6 +2,53 @@
 
 ## Reproducible harness increment (2026-11-17)
 
+### Verified implementation checkpoint
+
+The implementation is verified at source head
+`cfa72e7e47458e2656142a8ab00a39b31b81f4bd`, tested merge
+`5e3629d02cc13e5954b095de6e6126454d6894a6`, with identical tree
+`64701a568c5e30ad78e31ab7cb9331aa6af8ebc5`.
+[Compatibility/mutation run 44061120141](https://github.com/edithatogo/fyi-cli/actions/runs/44061120141)
+contains these actual, independently inspected results:
+
+| Gate | Observed result |
+| --- | --- |
+| Linux/Windows/macOS × Rust 1.100.0/1.99.1 | All six cells passed; each ran six wire, three journal and exactly 16 official SDK cases without skips, failures or filtered tests |
+| Linux source/fixture/property/privacy suite | 63 passed, zero skipped: 54 corpus cases including 12 source replays, five generated properties and four privacy negative controls |
+| Generated source scenarios | 66 generated examples passed, plus four explicit examples; source-suite execution took 30.40 seconds |
+| Targeted security mutations | 11 exact baselines passed; 15 caught; zero survivors, unviable edits or timeouts |
+| Mutation evidence retention | All 26 log hashes, original source-file hashes, exact selectors and single-test outcomes verified |
+
+All six compatibility artifacts identify the recorded source/merge, clean scoped
+inputs, locked MCP SDK 1.30.0 and matching retained binaries. Ubuntu used CPython
+3.12.16; Windows/macOS used 3.12.10. Architectures were Linux x86_64, Windows
+x86_64 MSVC and macOS aarch64. These receipts qualify the documented stdio and
+local journal scope; the actual source TLS replay remains Linux-specific.
+
+The successful mutation artifact is `14317928476`, ZIP SHA-256
+`5b5990141d8c6af06bae0a4c51b9a6f190e9cc8e795a554ecf9c9df50948885f`.
+Its committed manifest blob is `880fa2c9e5cc153e8543bcfd00db0a72918426d8`,
+SHA-256 `e5669e6939d51818fa667d2fb1cce3916e8bcc065a64e993194d93c51581acb7`.
+The degraded mutation fails first at its write-denial assertion; the retry
+mutation fails first at its declared uncertain-write assertion. The earlier
+failed report below is preserved; this is a fresh complete execution.
+
+[Repository CI at this checkpoint](https://github.com/edithatogo/fyi-cli/actions/runs/44061120028)
+passed 1,808 Python tests with only two opt-in live-site skips. All 22 SDK, 38
+upstream, 54 corpus, five generated, four privacy-sensor and 28 mutation-runner
+cases ran without skips or failures. Current Rust and the separate MSRV job each
+passed 811 workspace tests with one existing ignored subprocess entry point.
+Configured line coverage passed at 93.83% (17,648 of 18,809 lines), retaining the
+90% gate. The Python evidence artifact is `14319306124`, ZIP SHA-256
+`ab32ef9c319739caa90b5b44a2cddcdee48dcaa868d985de919a2d122a73c743`.
+
+This completes the reproducible harness increment. Required checks for the
+final publication head are retained on [PR #493](https://github.com/edithatogo/fyi-cli/pull/493).
+The broader issue and track remain open for the source/cache/raw-transfer,
+attachment/state, platform qualification and genuine migration gates below.
+
+### Implementation and earlier candidate evidence
+
 Starting source is `1f0ae6d0b00663d52ccb65904152ca4e933b3486`.
 [PR #493](https://github.com/edithatogo/fyi-cli/pull/493) implements the existing
 #173 assignment with the following independently reviewable sensors:

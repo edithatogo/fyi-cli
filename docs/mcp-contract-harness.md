@@ -124,6 +124,15 @@ contracts. Successful source exchanges use the existing non-forwarding local
 TLS fixture and remain qualified on Linux only. A configured workflow or a
 fixture-verifier pass alone does not establish a platform or source runtime pass.
 
+The implementation checkpoint `cfa72e7e47458e2656142a8ab00a39b31b81f4bd` in
+[PR #493](https://github.com/edithatogo/fyi-cli/pull/493) has actual passing
+receipts for all six cells, 63 Linux source/property/privacy cases and all 15
+security mutations after 11 exact baselines. The
+[verified run](https://github.com/edithatogo/fyi-cli/actions/runs/44061120141)
+retains binary, source, compiler, client, JUnit and mutation-log identities.
+The existing track evidence records earlier failed candidates and their fixes;
+required checks for the final publication head are recorded on the PR.
+
 ### Degraded stdio startup and recovery
 
 `FYI_MCP_REMOTE_DEGRADED=true` or `1` activates the existing degraded policy at
@@ -227,9 +236,9 @@ still GET followed by PUT; these tests do not establish server compare-and-set
 or attachment immutability under filesystem races.
 
 The 1 MiB and 64-message input limits are deterministic input bounds. They do
-not independently establish a process memory limit. Cross-platform evidence,
-source fault injection and shared source fixture versioning remain explicit
-track dependencies.
+not independently establish a process memory limit. Six stdio platform/compiler
+cells and shared v1 source variants now have runtime receipts; broader platform
+ACL/power-loss and source-transfer/cache guarantees remain explicit dependencies.
 
 ## Remote admission and confirmation contract
 
@@ -420,7 +429,7 @@ separate source URL/path/pagination, state or transport-budget acceptance gates.
 | Kill switch, cooldown and skew | Deterministic injected policy/gate/future tests | Passed internally; no external live-control channel claimed |
 | Workspace stable/MSRV on Linux | Existing CI and Frontier Conductor/MSRV jobs | Record checks for each PR's final head |
 | Dependency-lock MCP SDK version | Existing Python CI resolves `uv.lock` | SDK 1.30.0 passed locally; full locked-environment final-head CI is recorded separately |
-| Linux/Windows/macOS, Rust 1.100.0 and MSRV 1.99.1, CPython 3.12, locked SDK | Six explicit `MCP compatibility` cells with exact Rust/SDK receipt verification | Execution must pass on the PR's actual head; workflow configuration is not a platform receipt |
+| Linux/Windows/macOS, Rust 1.100.0 and MSRV 1.99.1, CPython 3.12, locked SDK | Six explicit `MCP compatibility` cells with exact Rust/SDK receipt verification | All six passed at `cfa72e7`: nine Rust and 16 SDK contracts per cell, no skips; later publication heads retain their own required checks |
 | Supported source JSON/RSS/Atom variants | Existing source tests plus shared v1 manifest and 12 SDK/source replay cases | Production malformed-feed conformance and broader live-source certification remain separate |
 | Source transfer/cache faults | Merged #459 establishes synthetic Linux disconnect, malformed chunk/header, truncation and production header/body timeout cases | Corrupt/reused cache and complete raw-transfer/peak-memory guarantees remain open |
 | Full layered release gate | Current verifier, Rust tests and SDK suites reuse existing jobs | Track remains open pending the remaining rows |
