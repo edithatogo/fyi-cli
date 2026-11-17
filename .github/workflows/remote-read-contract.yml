@@ -1,0 +1,210 @@
+name: Remote read contracts
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "crates/fyi-core/**"
+      - "crates/fyi-mcp/**"
+      - "tests/fixtures/remote_mcp/**"
+      - "tests/fixtures/api_contracts/**"
+      - "tests/test_mcp_*.py"
+      - "tests/mcp_upstream_fixture.py"
+      - "scripts/verify_remote_mcp_contract.py"
+      - "docs/mcp-*.md"
+      - "docs/remote-mcp-security.md"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "rust-toolchain.toml"
+      - ".github/workflows/remote-read-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: remote-read-contract-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: never
+  CARGO_BUILD_JOBS: "2"
+  CARGO_INCREMENTAL: "0"
+  CARGO_PROFILE_DEV_DEBUG: "0"
+  CARGO_PROFILE_TEST_DEBUG: "0"
+  PYTHONUTF8: "1"
+  PYTHON_KEYRING_BACKEND: keyrings.alt.file.PlaintextKeyring
+
+jobs:
+  read-contract:
+    name: Remote read contracts (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-15]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        with:
+          egress-policy: audit
+
+      - name: Checkout sources
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.15.2"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+
+      - name: Record exact source and runtime provenance
+        env:
+          SOURCE_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -o pipefail
+          mkdir -p artifacts/remote-read-contract
+          {
+            printf 'event_sha=%s\nsource_head_sha=%s\n' "$GITHUB_SHA" "$SOURCE_HEAD_SHA"
+            printf 'checkout_sha=%s\n' "$(git rev-parse HEAD)"
+            printf 'checkout_tree=%s\n' "$(git rev-parse 'HEAD^{tree}')"
+            printf 'runner_os=%s\nrunner_arch=%s\n' "$RUNNER_OS" "$RUNNER_ARCH"
+            printf 'run_id=%s\nrun_attempt=%s\nevent=%s\n' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$GITHUB_EVENT_NAME"
+            printf 'run_url=%s/%s/actions/runs/%s\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
+            rustc --version --verbose
+            cargo --version
+            python --version
+            uv --version
+          } | tee artifacts/remote-read-contract/environment.txt
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: remote-read-contract-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml', '.github/workflows/remote-read-contract.yml') }}
+
+      - name: Install locked Python dependencies
+        run: |
+          set -o pipefail
+          printf '%s\n' 'uv sync --python 3.15.2 --extra dev --frozen' >> artifacts/remote-read-contract/commands.txt
+          uv sync --python 3.15.2 --extra dev --frozen 2>&1 | tee artifacts/remote-read-contract/install.log
+          uv run --no-sync --python 3.15.2 python scripts/verify_python315_runtime.py
+          uv run --no-sync --python 3.15.2 python -c 'import importlib.metadata, platform; print(platform.platform()); print("mcp=" + importlib.metadata.version("mcp")); print("pytest=" + importlib.metadata.version("pytest"))' >> artifacts/remote-read-contract/environment.txt
+
+      - name: Build actual MCP executable and verify Rust read contracts
+        run: |
+          set -o pipefail
+          printf '%s\n' \
+            'cargo build --locked --package fyi-mcp --bin fyi-mcp' \
+            'cargo test --locked --package fyi-core --lib sync::read_contract::tests -- --list' \
+            'cargo test --locked --package fyi-core --lib sync::read_contract::tests' \
+            'cargo test --locked --package fyi-mcp' >> artifacts/remote-read-contract/commands.txt
+          cargo build --locked --package fyi-mcp --bin fyi-mcp 2>&1 | tee artifacts/remote-read-contract/build.log
+          cargo test --locked --package fyi-core --lib sync::read_contract::tests -- --list 2>&1 | tee artifacts/remote-read-contract/source-test-list.txt
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          evidence = Path("artifacts/remote-read-contract")
+          names = [line for line in (evidence / "source-test-list.txt").read_text(encoding="utf-8").splitlines()
+                   if line.startswith("sync::read_contract::tests::") and line.endswith(": test")]
+          if not names:
+              raise SystemExit("No source read contract tests were collected")
+          binary = (Path("target/debug") / ("fyi-mcp.exe" if os.name == "nt" else "fyi-mcp")).resolve(strict=True)
+          (evidence / "binary.json").write_text(json.dumps({"path": str(binary), "sha256": hashlib.sha256(binary.read_bytes()).hexdigest()}, indent=2), encoding="utf-8")
+          with Path(os.environ["GITHUB_ENV"]).open("a", encoding="utf-8") as environment:
+              environment.write(f"FYI_MCP_TEST_BINARY={binary}\n")
+          PY
+          cargo test --locked --package fyi-core --lib sync::read_contract::tests 2>&1 | tee artifacts/remote-read-contract/source-tests.log
+          cargo test --locked --package fyi-mcp 2>&1 | tee artifacts/remote-read-contract/mcp-tests.log
+
+      - name: Execute actual SDK read contracts without live endpoints
+        run: |
+          uv run --no-sync --python 3.15.2 python - <<'PY'
+          import json
+          import shlex
+          import subprocess
+          import sys
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          evidence = Path("artifacts/remote-read-contract")
+          upstream = "tests/test_mcp_upstream_contract.py::"
+          nodes = [
+              "tests/test_mcp_client_interop.py::test_official_sdk_read_only_registration",
+              upstream + "test_actual_sdk_feed_discovery_never_contacts_source",
+          ]
+          expected_minimum = 4
+          # SSL_CERT_FILE qualifies the existing local TLS fixture on Linux.
+          # Native macOS/Windows TLS trust is a separate, unclaimed acceptance gate.
+          if sys.platform == "linux":
+              fixture = json.loads(Path("tests/fixtures/remote_mcp/upstream-v2.json").read_text(encoding="utf-8"))
+              reads = [case for case in fixture["cases"] if not case.get("write", False)]
+              nodes += [upstream + f"test_actual_sdk_to_source_success_contract[{case['id']}]" for case in reads]
+              nodes += [upstream + name for name in (
+                  "test_actual_source_failure_is_private_and_never_retried",
+                  "test_source_conditional_read_preserves_cached_retrieval_provenance",
+                  "test_mismatched_source_cache_validator_cannot_return_stale_content",
+                  "test_malformed_authority_feed_is_private_and_does_not_fetch_request_details",
+                  "test_source_response_byte_guard_rejects_oversize_before_result_delivery",
+                  "test_authority_slug_rejection_never_admits_remote_io_or_discloses_input",
+                  "test_production_timeout_closes_a_stalled_source_connection",
+                  "test_generated_query_encoding_and_result_limit_match_the_wire",
+              )]
+              expected_minimum = 47
+          scope = {
+              "rust": ["source read contracts", "MCP crate tests"],
+              "sdk": "portable read discovery and policy denial",
+              "local_tls_sdk": sys.platform == "linux",
+              "native_macos_windows_tls_qualified": False,
+              "selected_nodes": nodes,
+              "minimum_executed_cases": expected_minimum,
+          }
+          (evidence / "scope.json").write_text(json.dumps(scope, indent=2), encoding="utf-8")
+          junit = evidence / "sdk-junit.xml"
+          command = [sys.executable, "-m", "pytest", "-q", *nodes, f"--junitxml={junit}"]
+          display = shlex.join(command)
+          print(display, flush=True)
+          with (evidence / "commands.txt").open("a", encoding="utf-8") as commands:
+              commands.write(display + "\n")
+          with (evidence / "sdk-tests.log").open("w", encoding="utf-8") as log:
+              process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8")
+              for line in process.stdout:
+                  print(line, end="", flush=True)
+                  log.write(line)
+              result = process.wait()
+          if result:
+              raise SystemExit(result)
+          cases = ET.parse(junit).getroot().findall(".//testcase")
+          if len(cases) < expected_minimum or any(case.find(tag) is not None for case in cases for tag in ("skipped", "failure", "error")):
+              raise SystemExit("Selected read contract cases must all execute and pass; skips cannot qualify a platform")
+          print(f"Verified {len(cases)} executed read-contract SDK cases with no skips")
+          PY
+
+      - name: Retain source, runtime and test evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: remote-read-contract-${{ matrix.os }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/remote-read-contract/
+          if-no-files-found: error
+          retention-days: 14

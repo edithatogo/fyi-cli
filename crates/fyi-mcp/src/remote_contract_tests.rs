@@ -18,6 +18,201 @@ fn policy(read: bool, write: bool, bytes: u64) -> RemoteMcpPolicy {
     .unwrap()
 }
 
+#[test]
+fn read_catalogue_includes_bounded_authority_feed_contracts() {
+    let enabled = policy(true, false, 4096);
+    let catalogue = registered_tool_catalogue(&enabled);
+    for name in [
+        "remote_discover_authority_feeds",
+        "remote_plan_authority_feed",
+    ] {
+        let tool = catalogue["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|tool| tool["name"] == name)
+            .expect("the complete read surface must include authority feeds");
+        assert_eq!(tool["annotations"]["readOnlyHint"], true);
+        assert_eq!(tool["annotations"]["destructiveHint"], false);
+        assert_eq!(
+            tool["inputSchema"]["properties"]["authority_slug"]["maxLength"],
+            128
+        );
+        assert_eq!(tool["inputSchema"]["additionalProperties"], false);
+    }
+    let disabled = registered_tool_catalogue(&RemoteMcpPolicy::default());
+    assert!(disabled["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|tool| !tool["name"].as_str().unwrap().starts_with("remote_")));
+}
+
+#[tokio::test]
+async fn denied_read_has_a_versioned_safe_error_before_source_io() {
+    let db = DbPool::new_in_memory().await.unwrap();
+    let disabled = policy(false, false, 4096);
+    let response = handle_jsonrpc_request_with_policy(
+        &db,
+        JsonRpcRequest {
+            jsonrpc: "2.0".into(),
+            id: Some(json!(170)),
+            method: "tools/call".into(),
+            params: Some(json!({"name":"remote_version","arguments":{"instance_id":"synthetic"}})),
+        },
+        &disabled,
+    )
+    .await
+    .unwrap();
+    assert!(response.error.is_none());
+    let result = response.result.unwrap();
+    assert_eq!(result["isError"], true);
+    let error = &result["structuredContent"]["error"];
+    assert_eq!(error["schema_version"], 1);
+    assert_eq!(error["kind"], "disabled");
+    assert_eq!(error["operation"], "remote_version");
+    assert_eq!(error["retryable"], false);
+    assert!(error["status"].is_null());
+    assert!(error["correlation_id"].is_null());
+    assert_eq!(disabled.status().instances[0].requests_used, 0);
+}
+
+#[test]
+fn configured_instances_do_not_advertise_ungranted_read_capability() {
+    for (read, write) in [(false, false), (false, true)] {
+        let catalogue = registered_tool_catalogue(&policy(read, write, 4096));
+        let remote = catalogue["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|tool| tool["name"].as_str())
+            .filter(|name| name.starts_with("remote_"))
+            .collect::<Vec<_>>();
+        assert_eq!(remote.len(), if write { 3 } else { 0 });
+        assert!(remote.into_iter().all(is_remote_write));
+    }
+}
+
+#[tokio::test]
+async fn unsafe_authority_slugs_are_rejected_without_admission() {
+    let policy = policy(true, false, 4096);
+    for slug in [
+        "",
+        "../secret",
+        "body/authority",
+        "https://private.example",
+        "authority?token=secret",
+        "authority#fragment",
+        "é",
+        "a%2Fb",
+    ] {
+        for operation in [
+            "remote_discover_authority_feeds",
+            "remote_plan_authority_feed",
+        ] {
+            let error = remote_read(
+                &policy,
+                "synthetic",
+                operation,
+                &json!({"authority_slug":slug}),
+            )
+            .await
+            .unwrap_err();
+            assert_eq!(serde_json::to_value(&error).unwrap()["kind"], "validation");
+            assert!(error.correlation_id.is_none());
+            assert!(!error.to_string().contains("secret"));
+        }
+    }
+    assert_eq!(policy.status().instances[0].requests_used, 0);
+    assert!(!policy.status().circuit_open);
+}
+
+#[tokio::test]
+async fn feed_discovery_and_read_contract_are_offline_and_leave_database_empty() {
+    let db = DbPool::new_in_memory().await.unwrap();
+    db.run_migrations().await.unwrap();
+    let policy = policy(true, false, 8192);
+    let payload = remote_read(
+        &policy,
+        "synthetic",
+        "remote_discover_authority_feeds",
+        &json!({"authority_slug":"synthetic-authority"}),
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        payload["feeds"],
+        json!([{
+            "url":"https://foi-repository.example/body/synthetic-authority/feed",
+            "availability":"not_checked"
+        }])
+    );
+    assert_eq!(payload["provenance"]["cache_status"], "not_applicable");
+    assert_eq!(payload["provenance"]["response_bytes"], 0);
+    assert!(payload["provenance"]["source_status"].is_null());
+    assert!(payload["provenance"]["correlation_id"]
+        .as_str()
+        .unwrap()
+        .starts_with("mcp-"));
+    assert!(chrono::DateTime::parse_from_rfc3339(
+        payload["provenance"]["retrieved_at"].as_str().unwrap()
+    )
+    .is_ok());
+    let mut result = payload.clone();
+    assert_eq!(
+        arguments::validate_arguments(
+            &remote_output_schema("remote_discover_authority_feeds"),
+            &mut result
+        ),
+        Ok(())
+    );
+    assert_eq!(
+        policy.status().instances[0].bytes_used,
+        serialized_payload_bytes(&payload).unwrap()
+    );
+    let before = policy.status();
+    let resource = read_mcp_resource(&db, "fyi://remote/read-contract")
+        .await
+        .unwrap();
+    let contract: Value = serde_json::from_str(resource[0]["text"].as_str().unwrap()).unwrap();
+    assert_eq!(contract["disabled_by_default"], true);
+    assert_eq!(contract["tools"].as_array().unwrap().len(), 7);
+    assert_eq!(policy.status(), before);
+    assert!(db.list_requests(10).await.unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn typed_source_failure_retains_status_but_never_private_diagnostics() {
+    let policy = policy(true, false, 4096);
+    let permit = policy
+        .begin_request("synthetic", RemoteCapability::Read)
+        .unwrap();
+    let error = execute_remote_operation_typed(&policy, permit, RemoteOperation::Version, async {
+        Err(
+            anyhow::Error::new(fyi_core::sync::SourceHttpError::new(429))
+                .context("synthetic-private-token=/private/path body=secret"),
+        )
+    })
+    .await
+    .unwrap_err();
+    let response = tool_read_error(Some(json!(170)), error);
+    let mut structured = response.result.as_ref().unwrap()["structuredContent"].clone();
+    assert_eq!(
+        arguments::validate_arguments(&remote_output_schema("remote_version"), &mut structured),
+        Ok(())
+    );
+    assert_eq!(structured["error"]["status"], 429);
+    assert_eq!(structured["error"]["retryable"], true);
+    assert!(structured["error"]["correlation_id"]
+        .as_str()
+        .unwrap()
+        .starts_with("mcp-"));
+    assert!(!serde_json::to_string(&response).unwrap().contains("secret"));
+    assert!(!serde_json::to_string(&response)
+        .unwrap()
+        .contains("/private/path"));
+}
+
 #[tokio::test]
 async fn invalid_read_arguments_never_spend_allowance_or_open_the_circuit() {
     let policy = policy(true, true, 1024);

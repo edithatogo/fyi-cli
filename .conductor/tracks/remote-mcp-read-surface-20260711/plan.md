@@ -1,5 +1,25 @@
 # Plan: Remote MCP read surface
 
+## Original-acceptance remainder — issue #170, 2026-11-17
+
+The five read tools shipped in #176; the original checklist below did not record
+their evidence and the registry incorrectly claimed completion. This increment
+starts from `1f0ae6d0b00663d52ccb65904152ca4e933b3486` and implements the remaining
+read contract using the existing SyncClient, MCP policy, telemetry, and offline
+TLS harness. Existing source and write interfaces remain compatible.
+
+- [~] Define and test versioned read errors, result provenance, and the two feed tools.
+- [~] Retain one guarded source client per instance, propagate bounded read allowances,
+  and implement source read/provenance plus feed discovery/pull planning without database writes.
+- [~] Extend current MCP discovery/resources and offline compatibility fixtures while retaining historical fixtures.
+- [ ] Run focused and workspace tests, lint, offline SDK contracts, and independent Conductor review.
+- [ ] Record exact commit and hosted CI evidence, reconcile original acceptance, and update registry/metadata.
+
+No live endpoint or authority submission is part of this increment. Feed discovery
+returns an explicitly unverified canonical route; pull planning fetches and parses
+one feed without fetching request details or mutating application data. Broader
+Windows/macOS runtime qualification stays explicit until executed evidence exists.
+
 ## Phase 1: Contract and configuration
 
 - [ ] Task: Define remote tool names, annotations, input/output schemas, and error envelope

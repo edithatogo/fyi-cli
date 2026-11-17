@@ -27,12 +27,12 @@ from tests.mcp_upstream_fixture import (
     upstream_session,
 )
 from tests.test_mcp_client_interop import _cargo_executable, _server_environment
-from tests.test_mcp_upstream_contract import FIXTURE, LINUX_TLS, REMOTE_TOOLS
+from tests.test_mcp_upstream_contract import LINUX_TLS, REMOTE_TOOLS, _fixture
 
 mcp_binary = test_mcp_client_interop.mcp_binary
 STATUS_URI = "fyi://remote/status"
-SCHEMA = Path(__file__).parent / "fixtures/remote_mcp/status-v1.schema.json"
-CONTRACT = json.loads(FIXTURE.read_text(encoding="utf-8"))
+SCHEMA = Path(__file__).parent / "fixtures/remote_mcp/status-v2.schema.json"
+CONTRACT = _fixture()
 CASES = list({case["tool"]: case for case in CONTRACT["cases"]}.values())
 pytestmark = [pytest.mark.integration, pytest.mark.compatibility]
 

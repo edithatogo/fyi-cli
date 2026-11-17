@@ -23,6 +23,10 @@ mod pull_evidence;
 pub use pull_evidence::{
     preflight_sync_pull_evidence, SyncPullEvidenceClient, SyncPullEvidencePaths,
 };
+mod read_contract;
+pub use read_contract::{
+    AuthorityFeedPlan, CacheStatus, ReadLimits, ReadProvenance, SourceRead, SourceReadError,
+};
 
 /// An HTTP status observed by the guarded source client.
 ///
@@ -53,19 +57,49 @@ pub enum SourceFailureKind {
     HttpStatus(u16),
     /// The HTTP transport reported a timeout.
     Timeout,
+    /// Invalid caller input or source configuration, rejected before I/O.
+    Validation,
+    /// A successful response did not satisfy the expected source schema.
+    MalformedPayload,
+    /// A source request, byte, concurrency or duration guard rejected work.
+    Guardrail,
+    /// A non-timeout transport failure, without a disclosed URL or body.
+    Transport,
+    /// A conditional response could not be tied to a valid cached body.
+    Cache,
 }
 
 /// Inspect typed source failures without inferring facts from their messages.
 pub fn source_failure_kind(error: &anyhow::Error) -> Option<SourceFailureKind> {
+    if let Some(error) = error.downcast_ref::<SourceReadError>() {
+        return Some(error.kind());
+    }
     if let Some(status) = error.downcast_ref::<SourceHttpError>() {
         return Some(SourceFailureKind::HttpStatus(status.status()));
     }
-    if error.chain().any(|cause| {
-        cause
-            .downcast_ref::<reqwest::Error>()
-            .is_some_and(|e| e.is_timeout())
-    }) {
-        return Some(SourceFailureKind::Timeout);
+    for cause in error.chain() {
+        if let Some(error) = cause.downcast_ref::<reqwest::Error>() {
+            return Some(if error.is_timeout() {
+                SourceFailureKind::Timeout
+            } else {
+                SourceFailureKind::Transport
+            });
+        }
+        if cause.is::<serde_json::Error>() {
+            return Some(SourceFailureKind::MalformedPayload);
+        }
+        if let Some(error) = cause.downcast_ref::<crate::agent_runtime::AgentRuntimeError>() {
+            use crate::agent_runtime::AgentRuntimeError;
+            return Some(match error {
+                AgentRuntimeError::Guardrail(_) | AgentRuntimeError::PlanRejected(_) => {
+                    SourceFailureKind::Guardrail
+                }
+                AgentRuntimeError::InvalidIdentity(_) => SourceFailureKind::Validation,
+                AgentRuntimeError::Cache(_) => SourceFailureKind::Cache,
+                AgentRuntimeError::RateLimited(_) => SourceFailureKind::Guardrail,
+                AgentRuntimeError::Trace(_) => SourceFailureKind::Transport,
+            });
+        }
     }
     None
 }
@@ -84,7 +118,7 @@ pub struct PushReport {
     pub failed: usize,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize)]
 pub struct SyncHealth {
     pub network_reachable: bool,
     pub api_reachable: bool,
@@ -285,6 +319,7 @@ struct ValidatorCacheEntry {
     etag: Option<String>,
     last_modified: Option<String>,
     body: Vec<u8>,
+    retrieved_at: String,
 }
 
 /// Limits for the opt-in `/api/v1/bulk_export` route.
@@ -314,6 +349,8 @@ struct GuardedResponse {
     final_url: Url,
     headers: reqwest::header::HeaderMap,
     body: Vec<u8>,
+    retrieved_at: String,
+    response_bytes: u64,
     _permit: OwnedSemaphorePermit,
 }
 
@@ -358,6 +395,15 @@ impl SyncClient {
         identity: crate::agent_runtime::ClientIdentity,
     ) -> Result<Self> {
         let guardrails = crate::agent_runtime::GuardrailConfig::default();
+        Self::with_http_client_identity_and_guardrails(base_url, http, identity, guardrails)
+    }
+
+    fn with_http_client_identity_and_guardrails(
+        base_url: &str,
+        http: Client,
+        identity: crate::agent_runtime::ClientIdentity,
+        guardrails: crate::agent_runtime::GuardrailConfig,
+    ) -> Result<Self> {
         let concurrency = Arc::new(Semaphore::new(guardrails.max_concurrency as usize));
         let middleware = crate::agent_runtime::AgentNetworkMiddleware::new(
             identity,
@@ -539,9 +585,7 @@ impl SyncClient {
             .build()
             .context("failed to build outbound request")?;
         if request.url().origin() != self.base_url.origin() {
-            return Err(anyhow!(
-                "outbound request violates configured source origin policy"
-            ));
+            return Err(SourceReadError::new(SourceFailureKind::Validation).into());
         }
         let cache_key = request.url().to_string();
         let cacheable_get = allow_cache
@@ -554,22 +598,27 @@ impl SyncClient {
                 .headers_mut()
                 .insert(header::HeaderName::from_static("x-fyi-bot-token"), value);
         }
-        if cacheable_get {
-            if let Some(cached) = self.validator_cache.lock().await.get(&cache_key).cloned() {
-                if let Some(etag) = cached.etag {
-                    request.headers_mut().insert(
-                        header::IF_NONE_MATCH,
-                        header::HeaderValue::from_str(&etag)
-                            .context("cached ETag was not a valid header value")?,
-                    );
-                }
-                if let Some(last_modified) = cached.last_modified {
-                    request.headers_mut().insert(
-                        header::IF_MODIFIED_SINCE,
-                        header::HeaderValue::from_str(&last_modified)
-                            .context("cached Last-Modified was not a valid header value")?,
-                    );
-                }
+        // Keep the representation that supplied these validators. A concurrent
+        // refresh must not substitute a different body for this request's 304.
+        let cached_response = if cacheable_get {
+            self.validator_cache.lock().await.get(&cache_key).cloned()
+        } else {
+            None
+        };
+        if let Some(cached) = &cached_response {
+            if let Some(etag) = &cached.etag {
+                request.headers_mut().insert(
+                    header::IF_NONE_MATCH,
+                    header::HeaderValue::from_str(etag)
+                        .context("cached ETag was not a valid header value")?,
+                );
+            }
+            if let Some(last_modified) = &cached.last_modified {
+                request.headers_mut().insert(
+                    header::IF_MODIFIED_SINCE,
+                    header::HeaderValue::from_str(last_modified)
+                        .context("cached Last-Modified was not a valid header value")?,
+                );
             }
         }
         let meta = crate::agent_runtime::OutboundRequestMeta {
@@ -582,7 +631,7 @@ impl SyncClient {
             let mut middleware = self.middleware.lock().await;
             middleware
                 .before_request(&meta)
-                .map_err(|error| anyhow!("outbound request blocked: {error}"))?
+                .context("outbound request blocked")?
         };
         if !wait.wait.is_zero() {
             tokio::time::sleep(wait.wait).await;
@@ -638,10 +687,12 @@ impl SyncClient {
             .min(response_byte_limit.unwrap_or(u64::MAX));
         if response_byte_limit.is_some() {
             if let Some(length) = response.content_length() {
-                anyhow::ensure!(
-                    length <= max_response_bytes,
-                    "outbound response exceeds the byte limit"
-                );
+                if length > max_response_bytes {
+                    return Err(anyhow::Error::new(SourceReadError::new(
+                        SourceFailureKind::Guardrail,
+                    ))
+                    .context("outbound response exceeds the byte limit"));
+                }
             }
         }
         let mut body = Vec::new();
@@ -657,25 +708,41 @@ impl SyncClient {
                     .lock()
                     .await
                     .record_response_chunk(chunk.len() as u64);
-                let error = anyhow!(
-                    "outbound response blocked: maximum response bytes exceeded ({next_size} > {max_response_bytes})"
-                );
+                let error = anyhow::Error::new(SourceReadError::new(SourceFailureKind::Guardrail))
+                    .context(format!("outbound response blocked: maximum response bytes exceeded ({next_size} > {max_response_bytes})"));
                 return Err(error);
             }
             self.middleware
                 .lock()
                 .await
                 .record_response_chunk(chunk.len() as u64)
-                .map_err(|error| anyhow!("outbound response blocked: {error}"))?;
+                .context("outbound response blocked")?;
             body.extend_from_slice(&chunk);
         }
+        let response_bytes = body.len() as u64;
+        let mut retrieved_at = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true);
         if status == StatusCode::NOT_MODIFIED && allow_cache {
-            let cached = self.validator_cache.lock().await.get(&cache_key).cloned();
-            let Some(cached) = cached else {
-                return Err(anyhow!(
-                    "validator response returned HTTP 304 without a cached representation"
-                ));
+            let Some(cached) = cached_response else {
+                return Err(
+                    anyhow::Error::new(SourceReadError::new(SourceFailureKind::Cache)).context(
+                        "validator response returned HTTP 304 without a cached representation",
+                    ),
+                );
             };
+            if cached.body.len() as u64 > max_response_bytes {
+                return Err(SourceReadError::new(SourceFailureKind::Guardrail).into());
+            }
+            if let (Some(sent), Some(returned)) = (
+                cached.etag.as_deref(),
+                headers
+                    .get(header::ETAG)
+                    .and_then(|value| value.to_str().ok()),
+            ) {
+                if sent.trim_start_matches("W/") != returned.trim_start_matches("W/") {
+                    return Err(SourceReadError::new(SourceFailureKind::Cache).into());
+                }
+            }
+            retrieved_at = cached.retrieved_at;
             body = cached.body;
         }
 
@@ -695,6 +762,7 @@ impl SyncClient {
                         etag,
                         last_modified,
                         body: body.clone(),
+                        retrieved_at: retrieved_at.clone(),
                     },
                 );
             }
@@ -714,7 +782,7 @@ impl SyncClient {
                     crate::agent_runtime::AgentRuntimeError::RateLimited(_)
                 ))
             {
-                return Err(anyhow!("outbound response blocked: {error}"));
+                return Err(anyhow::Error::new(error).context("outbound response blocked"));
             }
         }
 
@@ -729,6 +797,8 @@ impl SyncClient {
             final_url,
             headers,
             body,
+            retrieved_at,
+            response_bytes,
             _permit: permit,
         })
     }
@@ -964,6 +1034,22 @@ impl SyncClient {
         &self,
         options: &SearchOptions,
     ) -> Result<Vec<AlaveteliRequest>> {
+        let url = self.search_url(options)?;
+
+        let response = self
+            .send_guarded(self.http.get(url))
+            .await
+            .context("failed to search requests")?;
+        let value = ensure_success(response, "search endpoint")
+            .await?
+            .json::<Value>()
+            .await
+            .context("failed to parse search results")?;
+
+        parse_search_response(value)
+    }
+
+    fn search_url(&self, options: &SearchOptions) -> Result<Url> {
         let mut url = self
             .base_url
             .join("search.json")
@@ -997,17 +1083,7 @@ impl SyncClient {
             url.query_pairs_mut().append_pair("filter", filter);
         }
 
-        let response = self
-            .send_guarded(self.http.get(url))
-            .await
-            .context("failed to search requests")?;
-        let value = ensure_success(response, "search endpoint")
-            .await?
-            .json::<Value>()
-            .await
-            .context("failed to parse search results")?;
-
-        parse_search_response(value)
+        Ok(url)
     }
 
     pub async fn create_request(
@@ -1299,15 +1375,7 @@ impl SyncClient {
             .await
             .context("failed to parse API version response")?;
 
-        match value {
-            Value::String(version) => Ok(version),
-            Value::Object(map) => map
-                .get("version")
-                .and_then(Value::as_str)
-                .map(str::to_owned)
-                .ok_or_else(|| anyhow!("version endpoint did not include a version string")),
-            _ => Err(anyhow!("version endpoint returned an unsupported payload")),
-        }
+        parse_api_version(value)
     }
 
     /// Exercise the real version-response path with an in-process synthetic HTTP
@@ -1744,6 +1812,12 @@ fn validate_instance_url(url: &Url, allow_loopback: bool) -> Result<()> {
     let Some(host) = url.host_str() else {
         return Err(anyhow!("instance URL must include a host"));
     };
+    // `Url::host_str` retains IPv6 brackets and DNS names may have a final
+    // root-label dot. Normalize both before applying the existing SSRF rules.
+    let host = host
+        .trim_start_matches('[')
+        .trim_end_matches(']')
+        .trim_end_matches('.');
 
     if url.username().is_empty() && url.password().is_none() {
     } else {
@@ -1833,6 +1907,9 @@ fn is_public_ipv4(ip: Ipv4Addr) -> bool {
 }
 
 fn is_public_ipv6(ip: Ipv6Addr) -> bool {
+    if let Some(mapped) = ip.to_ipv4_mapped() {
+        return is_public_ipv4(mapped);
+    }
     let octets = ip.octets();
     let [a, b, ..] = octets;
 
@@ -1905,6 +1982,18 @@ fn parse_authorities(value: Value) -> Result<Vec<Authority>> {
     ))
 }
 
+fn parse_api_version(value: Value) -> Result<String> {
+    match value {
+        Value::String(version) => Ok(version),
+        Value::Object(map) => map
+            .get("version")
+            .and_then(Value::as_str)
+            .map(str::to_owned)
+            .ok_or_else(|| anyhow!("version endpoint did not include a version string")),
+        _ => Err(anyhow!("version endpoint returned an unsupported payload")),
+    }
+}
+
 fn validate_request_state(state: &str) -> Result<()> {
     match state {
         "waiting_response" | "rejected" | "successful" | "partially_successful" => Ok(()),
@@ -1951,7 +2040,10 @@ fn api_status_error(endpoint: &str, status: StatusCode, retry_after: Option<&str
     };
 
     let retry_hint = retry_after
-        .filter(|value| !value.trim().is_empty())
+        .and_then(|value| {
+            crate::agent_runtime::RateLimitSnapshot::from_headers([("retry-after", value)])
+                .retry_after_seconds
+        })
         .map(|value| format!("; retry after {value} seconds"))
         .unwrap_or_default();
 

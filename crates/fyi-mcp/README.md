@@ -23,7 +23,12 @@ cargo run --package fyi-mcp
 Remote capabilities are disabled by default. See
 [`docs/remote-mcp-security.md`](../../docs/remote-mcp-security.md) before
 enabling an explicit instance allowlist. Read and write enablement are
-independent. A write-enabled instance exposes a prepare/commit confirmation
+independent. The seven guarded read tools include canonical authority-feed
+discovery and bounded RSS/Atom pull planning. They return retrieval/cache
+provenance and versioned safe errors without mutating the application database.
+Read the local `fyi://remote/read-contract` resource and
+[remote read contract](../../docs/remote-mcp-read-contract.md) for bounds, schemas,
+and compatibility changes. A write-enabled instance exposes a prepare/commit confirmation
 flow with process-local replay protection; enabling read does not enable writes.
 
 ## Optional HTTP transport

@@ -1,4 +1,4 @@
-# Remote MCP dispatch observability, version 1
+# Remote MCP dispatch observability, status version 2
 
 This is the MCP-owned portion of [#172](https://github.com/edithatogo/fyi-cli/issues/172)
 and [#169](https://github.com/edithatogo/fyi-cli/issues/169). It uses the existing
@@ -12,9 +12,9 @@ journal and the actual shared-process/restart contracts from merged
 ## Local status resource
 
 `resources/list` advertises `fyi://remote/status`. Reading it returns one
-`application/json` content item with `schema_version: 1`, `policy` and `metrics`.
+`application/json` content item with `schema_version: 2`, `policy` (version 1) and `metrics` (version 2).
 The offline contract is
-[`status-v1.schema.json`](../tests/fixtures/remote_mcp/status-v1.schema.json).
+[`status-v2.schema.json`](../tests/fixtures/remote_mcp/status-v2.schema.json).
 The resource is available in local-only, degraded, kill-switch, circuit-open and
 exhausted-budget states. Reading does not contact an upstream, consume an
 allowance, reset counters or grant capabilities. HTTP transport retains its
@@ -25,7 +25,7 @@ read/write enablement, control flags, budgets and recorded usage. It excludes
 base URLs and protected credentials. Use opaque operator-chosen instance IDs;
 the status resource is not intended to store personal information in identifiers.
 
-`metrics` is a consistent snapshot of a fixed eight-row in-memory array, one row
+`metrics` is a consistent snapshot of a fixed ten-row in-memory array, one row
 for each current remote tool. Its scope is `process` and its measurement is
 `mcp_admitted_operations`. Policy and metrics are sampled under separate locks;
 their two snapshots are not an atomic cross-component transaction during
@@ -37,7 +37,7 @@ is queried or changed by this resource.
 
 | Field | Meaning |
 | --- | --- |
-| `operation` | One of the eight fixed remote tool names; never caller-created. |
+| `operation` | One of the ten fixed remote tool names; never caller-created. |
 | `started` | Operations entering the existing admitted dispatch wrapper after policy/confirmation admission. |
 | `in_flight` | Such operations that have not reached a terminal outcome. |
 | `outcomes.success` | An operation returned a payload that passed the existing publication checks. It does not assert that a health payload says the upstream is healthy. |
@@ -61,10 +61,13 @@ gate/journal failure before the wrapper is entered: the existing policy allowanc
 is not refunded, and the dispatch counters need not equal all policy reservations.
 The separate write journal owns durable prepare/commit/reject/replay events.
 
-These values **do not measure** raw HTTP attempts, retries, downloaded bytes,
-peak memory, cache hits, pacing/throttling or source guardrail trips. One admitted
-MCP operation can perform several HTTP exchanges. The existing source transport
-continues to enforce its separate limits. Successful MCP dispatch also precedes
+These aggregate metrics **do not measure** raw HTTP attempts, retries, downloaded
+bytes, peak memory, cache hits or pacing/throttling. The current read result
+provenance reports its actual source status, downloaded bytes and cache behavior;
+read source errors classify guardrail trips. Bounded reads disable automatic
+redirects/retries; feed-route discovery performs no HTTP request. Existing write
+operations can still perform several HTTP exchanges and retain their separate
+source limits. Successful MCP dispatch also precedes
 any later write-result journal completion; journal failure still prevents a
 successful tool response and leaves the durable safety boundary intact.
 
@@ -86,14 +89,14 @@ must explicitly propagate context if a future source implementation needs them.
 | `schema_version` | `1` |
 | `event` | `started` or `completed` |
 | `correlation_id` | Server-generated `mcp-<integer>`, process-scoped; never the JSON-RPC caller ID. |
-| `operation` | One of the eight fixed tool names. |
+| `operation` | One of the ten fixed tool names. |
 | `outcome` | Completion only: `success`, `failed`, `timed_out`, `result_rejected`, `cancelled`. |
 | `duration_ms` | Completion only: monotonic elapsed milliseconds. |
 | `serialized_result_bytes` | Completion only: measured MCP payload bytes. |
 
 No instance ID, URL, request ID, query, body, attachment path/content, token,
 idempotency key, raw exception or response text is passed to these events or
-spans. Metric dimensions are limited to the eight operations and five outcome
+spans. Metric dimensions are limited to the ten operations and five outcome
 counters. Correlation IDs are event fields, **never metric labels**. The legacy
 policy `audit_event` token-normalizer is not used to sanitize dispatch events;
 excluding private data and using enums provides this boundary.
@@ -104,7 +107,9 @@ The source preserves typed HTTP status and transport timeout causes through the
 MCP boundary; arbitrary error text is never parsed for those fields. Failures
 without typed source evidence use `upstream_unknown` and have no inferred status.
 Only read operations can be marked retryable for a rate limit, server failure or
-transport timeout. A write may already have reached the source, so its audit
+transport timeout. Read failures also expose the same fixed safe classification
+in a versioned MCP error envelope. Source validation, malformed payload, cache,
+guardrail and transport causes are typed. A write may already have reached the source, so its audit
 event never suggests an automatic retry; the durable reservation and recovery
 procedures continue to govern it. These fields contain no source message,
 response body, URL, credential or `Retry-After` value.

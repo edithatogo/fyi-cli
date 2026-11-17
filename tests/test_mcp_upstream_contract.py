@@ -6,6 +6,7 @@ import json
 import socket
 import sys
 import time
+from datetime import UTC, datetime
 from email import policy
 from email.parser import BytesParser
 from pathlib import Path
@@ -17,6 +18,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
+from scripts import verify_remote_mcp_contract as contract
 from tests import test_mcp_client_interop
 from tests.mcp_upstream_fixture import (
     PRIVATE_MARKER,
@@ -32,16 +34,28 @@ if TYPE_CHECKING:
 # Register the existing fixture; Cargo remains the single executable builder.
 mcp_binary = test_mcp_client_interop.mcp_binary
 
-FIXTURE = Path(__file__).parent / "fixtures/remote_mcp/upstream-v1.json"
-REMOTE_TOOLS = {
-    "remote_health",
-    "remote_version",
-    "remote_get_request",
-    "remote_search_requests",
-    "remote_list_authorities",
-    "remote_create_request",
-    "remote_add_correspondence",
-    "remote_update_state",
+FIXTURE = Path(__file__).parent / "fixtures/remote_mcp/upstream-v2.json"
+REMOTE_TOOLS = contract.REQUIRED_READ_TOOLS | contract.REQUIRED_WRITE_TOOLS
+HTTP_ERRORS = {
+    401: ("auth", False, "remote authentication failed"),
+    403: ("forbidden", False, "remote permission denied"),
+    404: ("not_found", False, "remote resource not found"),
+    429: ("rate_limited", True, "remote endpoint rate limited request"),
+    500: ("upstream_server", True, "remote endpoint returned server error"),
+    503: ("upstream_unavailable", True, "remote endpoint temporarily unavailable"),
+    700: ("upstream_unknown", False, "remote operation failed"),
+}
+SOURCE_ERRORS = {
+    "malformed_json": ("malformed_payload", False),
+    "missing_version": ("malformed_payload", False),
+    "uncached_304": ("cache", False),
+    "disconnect": ("transport", True),
+    "truncated": ("transport", True),
+    "malformed_chunk": ("transport", True),
+    "malformed_headers": ("transport", True),
+    "same_origin_redirect": ("guardrail", False),
+    "foreign_redirect": ("guardrail", False),
+    "loopback_redirect": ("guardrail", False),
 }
 LINUX_TLS = pytest.mark.skipif(
     sys.platform != "linux",
@@ -50,7 +64,97 @@ LINUX_TLS = pytest.mark.skipif(
 
 
 def _fixture() -> dict:
-    return json.loads(FIXTURE.read_text(encoding="utf-8"))
+    fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    for case in fixture["cases"]:
+        for exchange in case["exchanges"]:
+            name = exchange.get("body_fixture")
+            if name is not None:
+                assert name in {"feed-rss-v1.xml", "feed-atom-v1.xml"}
+                body = (FIXTURE.parent.parent / "api_contracts" / name).read_text(encoding="utf-8")
+                exchange["body"] = body.replace("foi-repository.example", "mcp-fixture.invalid")
+    return fixture
+
+
+def _assert_read_provenance(
+    payload: dict,
+    *,
+    cache_status: str,
+    source_status: int | None,
+    response_bytes: int,
+) -> dict:
+    """Assert source evidence separately from the stable operation result."""
+    provenance = payload["provenance"]
+    assert set(provenance) == {
+        "instance_id",
+        "retrieved_at",
+        "cache_status",
+        "correlation_id",
+        "source_status",
+        "response_bytes",
+    }
+    assert provenance["instance_id"] == payload["instance_id"] == "synthetic"
+    assert provenance["cache_status"] == cache_status
+    assert provenance["source_status"] == source_status
+    assert provenance["response_bytes"] == response_bytes
+    assert isinstance(provenance["response_bytes"], int)
+    assert not isinstance(provenance["response_bytes"], bool)
+    retrieved = datetime.fromisoformat(provenance["retrieved_at"])
+    assert retrieved.tzinfo is not None
+    assert abs((datetime.now(UTC) - retrieved).total_seconds()) < 60
+    correlation_id = provenance["correlation_id"]
+    assert isinstance(correlation_id, str)
+    assert 0 < len(correlation_id) <= 128
+    assert PRIVATE_MARKER not in json.dumps(provenance)
+    return provenance
+
+
+def _assert_read_error(
+    result: CallToolResult,
+    *,
+    operation: str,
+    kind: str,
+    retryable: bool,
+    status: int | None = None,
+    safe_message: str | None = None,
+    admitted: bool = True,
+) -> dict:
+    """Require a typed private read error, without interpreting arbitrary text."""
+    assert result.isError
+    assert set(result.structuredContent) == {"error"}
+    error = result.structuredContent["error"]
+    assert set(error) == {
+        "schema_version",
+        "kind",
+        "operation",
+        "retryable",
+        "status",
+        "safe_message",
+        "correlation_id",
+    }
+    assert error["schema_version"] == 1
+    assert type(error["schema_version"]) is int
+    assert error["kind"] == kind
+    assert error["operation"] == operation
+    assert error["retryable"] is retryable
+    assert error["status"] == status
+    assert isinstance(error["safe_message"], str)
+    assert error["safe_message"]
+    if safe_message is not None:
+        assert error["safe_message"] == safe_message
+    if admitted:
+        assert isinstance(error["correlation_id"], str)
+        assert error["correlation_id"]
+    else:
+        assert error["correlation_id"] is None
+    assert PRIVATE_MARKER not in result.model_dump_json()
+    assert SYNTHETIC_HEADER_VALUE not in result.model_dump_json()
+    return error
+
+
+def _body_length(exchange: dict) -> int:
+    if "json" in exchange:
+        return len(json.dumps(exchange["json"], ensure_ascii=False, separators=(",", ":")).encode())
+    return len(exchange.get("body", "").encode())
 
 
 def _diagnostics_are_private(directory: Path) -> None:
@@ -68,8 +172,8 @@ def _diagnostics_are_private(directory: Path) -> None:
 @pytest.mark.compatibility
 def test_versioned_upstream_fixture_covers_every_current_remote_tool() -> None:
     assert FIXTURE.is_file(), "versioned actual MCP-to-source exchange fixtures are missing"
-    fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
-    assert fixture["schema_version"] == 1
+    fixture = _fixture()
+    assert fixture["schema_version"] == 2
     assert fixture["origin"] == "https://mcp-fixture.invalid"
     assert fixture["provenance"] == "synthetic; not live-platform certification"
     cases = fixture["cases"]
@@ -77,7 +181,10 @@ def test_versioned_upstream_fixture_covers_every_current_remote_tool() -> None:
     assert len({case["id"] for case in cases}) == len(cases)
     for case in cases:
         assert case["arguments"]["instance_id"] == "synthetic"
-        assert case["exchanges"], "a source contract must observe real wire traffic"
+        if case["tool"] == "remote_discover_authority_feeds":
+            assert case["exchanges"] == [], "feed discovery must not imply availability was checked"
+        else:
+            assert case["exchanges"], "a source contract must observe real wire traffic"
         for exchange in case["exchanges"]:
             assert exchange["method"] in {"GET", "POST", "PUT"}
             assert exchange["path"].startswith("/")
@@ -96,6 +203,94 @@ def test_local_fixture_refuses_other_destinations_without_forwarding(tmp_path: P
         assert response.startswith(b"HTTP/1.1 403 Forbidden")
         assert upstream.observed == []
         assert upstream.errors == ["proxy rejected an unexpected destination"]
+
+
+@pytest.mark.integration
+@pytest.mark.e2e
+@pytest.mark.compatibility
+@pytest.mark.security
+def test_actual_sdk_feed_discovery_never_contacts_source(
+    mcp_binary: Path,
+    tmp_path: Path,
+) -> None:
+    """Portable stdio reads require no TLS trust and cannot forward remote traffic."""
+
+    async def scenario() -> None:
+        with upstream_server(tmp_path, []) as upstream:
+            async with upstream_session(mcp_binary, tmp_path, upstream) as session:
+                names = {tool.name for tool in (await session.list_tools()).tools}
+                assert {name for name in names if name.startswith("remote_")} == (
+                    contract.REQUIRED_READ_TOOLS
+                )
+                resource = await session.read_resource("fyi://remote/read-contract")
+                description = json.loads(resource.contents[0].text)
+                assert description["schema_version"] == 1
+                assert description["disabled_by_default"] is True
+                assert {tool["name"] for tool in description["tools"]} == (
+                    contract.REQUIRED_READ_TOOLS
+                )
+                before = await session.read_resource("fyi://remote/status")
+                assert (
+                    json.loads(before.contents[0].text)["policy"]["instances"][0]["requests_used"]
+                    == 0
+                )
+                correlations = set()
+                for _ in range(2):
+                    result = await session.call_tool(
+                        "remote_discover_authority_feeds",
+                        {"instance_id": "synthetic", "authority_slug": "synthetic-authority"},
+                    )
+                    assert not result.isError
+                    assert result.structuredContent["feeds"] == [
+                        {
+                            "url": "https://mcp-fixture.invalid/body/synthetic-authority/feed",
+                            "availability": "not_checked",
+                        },
+                    ]
+                    provenance = _assert_read_provenance(
+                        result.structuredContent,
+                        cache_status="not_applicable",
+                        source_status=None,
+                        response_bytes=0,
+                    )
+                    correlations.add(provenance["correlation_id"])
+                assert len(correlations) == 2
+                denied = await session.call_tool(
+                    "remote_plan_authority_feed",
+                    {"instance_id": "unconfigured", "authority_slug": "synthetic-authority"},
+                )
+                _assert_read_error(
+                    denied,
+                    operation="remote_plan_authority_feed",
+                    kind="disabled",
+                    retryable=False,
+                    admitted=False,
+                )
+                invalid = await session.call_tool(
+                    "remote_discover_authority_feeds",
+                    {"instance_id": "synthetic", "authority_slug": f"../{PRIVATE_MARKER}"},
+                )
+                _assert_read_error(
+                    invalid,
+                    operation="remote_discover_authority_feeds",
+                    kind="validation",
+                    retryable=False,
+                    admitted=False,
+                )
+                after = await session.read_resource("fyi://remote/status")
+                assert (
+                    json.loads(after.contents[0].text)["policy"]["instances"][0]["requests_used"]
+                    == 2
+                )
+                assert (await session.call_tool("list_requests", {})).structuredContent == {
+                    "requests": [],
+                }
+                await session.send_ping()
+            upstream.assert_complete()
+            assert upstream.observed == []
+
+    anyio.run(scenario)
+    _diagnostics_are_private(tmp_path)
 
 
 @LINUX_TLS
@@ -137,7 +332,23 @@ def test_actual_sdk_to_source_success_contract(
                 else:
                     result = await session.call_tool(case["tool"], case["arguments"])
                 assert not result.isError, result
-                assert result.structuredContent == case["expected"]
+                payload = result.structuredContent
+                if writes:
+                    assert payload == case["expected"]
+                else:
+                    exchange = case["exchanges"][-1] if case["exchanges"] else None
+                    _assert_read_provenance(
+                        payload,
+                        cache_status="miss" if exchange else "not_applicable",
+                        source_status=exchange["status"] if exchange else None,
+                        response_bytes=_body_length(exchange) if exchange else 0,
+                    )
+                    content = {key: value for key, value in payload.items() if key != "provenance"}
+                    assert content == case["expected"]
+                    local = await session.call_tool("list_requests", {})
+                    assert local.structuredContent == {"requests": []}, (
+                        "remote read modified SQLite"
+                    )
                 if writes:
                     cached = await session.call_tool(case["tool"], case["arguments"])
                     assert not cached.isError
@@ -285,7 +496,24 @@ def test_actual_source_failure_is_private_and_never_retried(
         with upstream_server(tmp_path, [exchange]) as upstream:
             async with upstream_session(mcp_binary, tmp_path, upstream) as session:
                 result = await session.call_tool("remote_version", {"instance_id": "synthetic"})
-                assert result.isError
+                if exchange["status"] in HTTP_ERRORS:
+                    kind, retryable, message = HTTP_ERRORS[exchange["status"]]
+                    _assert_read_error(
+                        result,
+                        operation="remote_version",
+                        kind=kind,
+                        retryable=retryable,
+                        status=exchange["status"],
+                        safe_message=message,
+                    )
+                else:
+                    kind, retryable = SOURCE_ERRORS[exchange["id"]]
+                    _assert_read_error(
+                        result,
+                        operation="remote_version",
+                        kind=kind,
+                        retryable=retryable,
+                    )
                 assert result.content[0].text == (
                     "remote operation failed; see operator audit telemetry"
                 )
@@ -293,6 +521,236 @@ def test_actual_source_failure_is_private_and_never_retried(
                 await session.send_ping()
             upstream.assert_complete()
             assert len(upstream.observed) == 1, "failure silently retried a source request"
+
+    anyio.run(scenario)
+    _diagnostics_are_private(tmp_path)
+
+
+@LINUX_TLS
+@pytest.mark.integration
+@pytest.mark.compatibility
+def test_source_conditional_read_preserves_cached_retrieval_provenance(
+    mcp_binary: Path,
+    tmp_path: Path,
+) -> None:
+    original = {
+        "method": "GET",
+        "path": "/api/v2/version.json",
+        "status": 200,
+        "json": {"version": "synthetic-cached-version"},
+        "headers": {"ETag": '"synthetic-etag"'},
+    }
+    revalidated = {
+        "method": "GET",
+        "path": "/api/v2/version.json",
+        "status": 304,
+        "headers": {"ETag": '"synthetic-etag"'},
+    }
+
+    async def scenario() -> None:
+        with upstream_server(tmp_path, [original, revalidated]) as upstream:
+            async with upstream_session(mcp_binary, tmp_path, upstream) as session:
+                first = await session.call_tool("remote_version", {"instance_id": "synthetic"})
+                assert not first.isError
+                first_provenance = _assert_read_provenance(
+                    first.structuredContent,
+                    cache_status="miss",
+                    source_status=200,
+                    response_bytes=_body_length(original),
+                )
+                second = await session.call_tool("remote_version", {"instance_id": "synthetic"})
+                assert not second.isError
+                second_provenance = _assert_read_provenance(
+                    second.structuredContent,
+                    cache_status="revalidated",
+                    source_status=304,
+                    response_bytes=0,
+                )
+                assert second.structuredContent["version"] == first.structuredContent["version"]
+                assert second_provenance["retrieved_at"] == first_provenance["retrieved_at"]
+                assert second_provenance["correlation_id"] != first_provenance["correlation_id"]
+                await session.send_ping()
+            upstream.assert_complete()
+            assert len(upstream.observed) == 2
+            assert "if-none-match" not in upstream.observed[0].headers
+            assert upstream.observed[1].headers["if-none-match"] == '"synthetic-etag"'
+
+    anyio.run(scenario)
+    _diagnostics_are_private(tmp_path)
+
+
+@LINUX_TLS
+@pytest.mark.integration
+@pytest.mark.security
+def test_mismatched_source_cache_validator_cannot_return_stale_content(
+    mcp_binary: Path,
+    tmp_path: Path,
+) -> None:
+    exchanges = [
+        {
+            "method": "GET",
+            "path": "/api/v2/version.json",
+            "status": 200,
+            "json": {"version": "synthetic-cached-version"},
+            "headers": {"ETag": '"synthetic-etag"'},
+        },
+        {
+            "method": "GET",
+            "path": "/api/v2/version.json",
+            "status": 304,
+            "headers": {"ETag": f'"{PRIVATE_MARKER}"'},
+        },
+    ]
+
+    async def scenario() -> None:
+        with upstream_server(tmp_path, exchanges) as upstream:
+            async with upstream_session(mcp_binary, tmp_path, upstream) as session:
+                first = await session.call_tool("remote_version", {"instance_id": "synthetic"})
+                assert not first.isError
+                second = await session.call_tool("remote_version", {"instance_id": "synthetic"})
+                _assert_read_error(
+                    second,
+                    operation="remote_version",
+                    kind="cache",
+                    retryable=False,
+                )
+                assert "synthetic-cached-version" not in second.model_dump_json()
+                await session.send_ping()
+            upstream.assert_complete()
+            assert len(upstream.observed) == 2
+
+    anyio.run(scenario)
+    _diagnostics_are_private(tmp_path)
+
+
+@LINUX_TLS
+@pytest.mark.integration
+@pytest.mark.security
+@pytest.mark.parametrize(
+    "body",
+    [
+        f"<rss><channel><item><link>https://mcp-fixture.invalid/request/7001/{PRIVATE_MARKER}",
+        f"<html><body>{PRIVATE_MARKER}</body></html>",
+        f"not XML {PRIVATE_MARKER}",
+    ],
+    ids=["unclosed-feed", "not-a-feed", "invalid-xml"],
+)
+def test_malformed_authority_feed_is_private_and_does_not_fetch_request_details(
+    mcp_binary: Path,
+    tmp_path: Path,
+    body: str,
+) -> None:
+    exchange = {
+        "method": "GET",
+        "path": "/body/synthetic-authority/feed",
+        "status": 200,
+        "body": body,
+    }
+
+    async def scenario() -> None:
+        with upstream_server(tmp_path, [exchange]) as upstream:
+            async with upstream_session(mcp_binary, tmp_path, upstream) as session:
+                result = await session.call_tool(
+                    "remote_plan_authority_feed",
+                    {"instance_id": "synthetic", "authority_slug": "synthetic-authority"},
+                )
+                _assert_read_error(
+                    result,
+                    operation="remote_plan_authority_feed",
+                    kind="malformed_payload",
+                    retryable=False,
+                )
+                local = await session.call_tool("list_requests", {})
+                assert local.structuredContent == {"requests": []}
+                await session.send_ping()
+            upstream.assert_complete()
+            assert len(upstream.observed) == 1
+
+    anyio.run(scenario)
+    _diagnostics_are_private(tmp_path)
+
+
+@LINUX_TLS
+@pytest.mark.integration
+@pytest.mark.security
+@pytest.mark.parametrize("chunked", [False, True], ids=["content-length", "streamed-chunks"])
+def test_source_response_byte_guard_rejects_oversize_before_result_delivery(
+    mcp_binary: Path,
+    tmp_path: Path,
+    *,
+    chunked: bool,
+) -> None:
+    exchange = {
+        "method": "GET",
+        "path": "/api/v2/version.json",
+        "status": 200,
+        "body": "x" * (4 * 1024 * 1024 + 1),
+        "chunked": chunked,
+        "chunk_size": 64 * 1024,
+    }
+
+    async def scenario() -> None:
+        with upstream_server(tmp_path, [exchange]) as upstream:
+            async with upstream_session(mcp_binary, tmp_path, upstream) as session:
+                result = await session.call_tool("remote_version", {"instance_id": "synthetic"})
+                _assert_read_error(
+                    result,
+                    operation="remote_version",
+                    kind="guardrail",
+                    retryable=False,
+                    safe_message="remote source guardrail rejected the operation",
+                )
+                assert len(result.model_dump_json()) < 2048
+                await session.send_ping()
+            upstream.assert_complete()
+            assert len(upstream.observed) == 1
+
+    anyio.run(scenario)
+    _diagnostics_are_private(tmp_path)
+
+
+@LINUX_TLS
+@pytest.mark.integration
+@pytest.mark.security
+@pytest.mark.parametrize("tool", ["remote_discover_authority_feeds", "remote_plan_authority_feed"])
+def test_authority_slug_rejection_never_admits_remote_io_or_discloses_input(
+    mcp_binary: Path,
+    tmp_path: Path,
+    tool: str,
+) -> None:
+    invalid_slugs = [
+        f"../{PRIVATE_MARKER}",
+        f"synthetic?token={PRIVATE_MARKER}",
+        f"https://{PRIVATE_MARKER}.invalid",
+        "%2e%2e",
+        "Café",
+    ]
+
+    async def scenario() -> None:
+        with upstream_server(tmp_path, []) as upstream:
+            async with upstream_session(mcp_binary, tmp_path, upstream) as session:
+                for slug in invalid_slugs:
+                    result = await session.call_tool(
+                        tool,
+                        {"instance_id": "synthetic", "authority_slug": slug},
+                    )
+                    _assert_read_error(
+                        result,
+                        operation=tool,
+                        kind="validation",
+                        retryable=False,
+                        admitted=False,
+                    )
+                status_resource = await session.read_resource("fyi://remote/status")
+                status = json.loads(status_resource.contents[0].text)
+                assert status["policy"]["instances"][0]["requests_used"] == 0
+                assert sum(row["started"] for row in status["metrics"]["operations"]) == 0
+                assert (await session.call_tool("list_requests", {})).structuredContent == {
+                    "requests": [],
+                }
+                await session.send_ping()
+            upstream.assert_complete()
+            assert upstream.observed == []
 
     anyio.run(scenario)
     _diagnostics_are_private(tmp_path)
@@ -321,7 +779,13 @@ def test_production_timeout_closes_a_stalled_source_connection(
                 started = time.monotonic()
                 result = await session.call_tool("remote_version", {"instance_id": "synthetic"})
                 elapsed = time.monotonic() - started
-                assert result.isError, "the source fixture did not enforce its requested stall"
+                _assert_read_error(
+                    result,
+                    operation="remote_version",
+                    kind="timeout",
+                    retryable=True,
+                    safe_message="remote operation timed out",
+                )
                 assert result.content[0].text == (
                     "remote operation failed; see operator audit telemetry"
                 )
