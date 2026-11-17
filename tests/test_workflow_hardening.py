@@ -52,6 +52,25 @@ def test_all_remote_actions_and_reusable_workflows_are_commit_pinned(path: Path)
         assert re.fullmatch(r"[^@]+@[0-9a-f]{40}", reference), (path.name, reference)
 
 
+@pytest.mark.parametrize("path", WORKFLOW_PATHS, ids=lambda path: path.name)
+def test_harden_runner_precedes_other_steps_when_enabled(path: Path) -> None:
+    for job in workflow(path)["jobs"].values():
+        steps = job.get("steps", [])
+        hardening = [
+            (index, step)
+            for index, step in enumerate(steps)
+            if step.get("uses", "").startswith("step-security/harden-runner@")
+        ]
+        if not hardening:
+            continue
+        assert len(hardening) == 1, path.name
+        index, step = hardening[0]
+        assert index == 0, path.name
+        assert "if" not in step
+        assert not step.get("continue-on-error", False)
+        assert step.get("with", {}).get("egress-policy") in {"audit", "block"}
+
+
 @pytest.mark.parametrize("path", MANAGED_PATHS, ids=lambda path: path.name)
 def test_managed_workflows_serialize_runs_and_bound_jobs(path: Path) -> None:
     definition = workflow(path)
