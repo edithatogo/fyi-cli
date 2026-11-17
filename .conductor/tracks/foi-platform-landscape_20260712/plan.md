@@ -21,7 +21,7 @@
 
 - [x] Store source URLs, review dates, confidence, per-platform cadence and deterministic
   reviewed-contract projection fingerprints in `conformance/providers/foi-platform-landscape-v1.json`.
-- [ ] Capture raw primary schema/documentation snapshots with retrieval evidence and
+- [~] Capture raw primary schema/documentation snapshots with retrieval evidence and
   byte fingerprints. Indexed-only material is not a substitute for a retrieved snapshot.
 - [x] Implement a network-free completeness/freshness check and supplied-observation
   drift sensor; malformed, incomplete, unavailable and deprecated observations fail closed.
@@ -29,9 +29,21 @@
   collection failed as expected. Implementation: 40 tests passed on Python 3.13.5/Linux.
 - [ ] Verify final PR-head hosted checks before merge. No local full-repository suite
   is claimed: this environment could not resolve GitHub for a full clone.
-- [ ] Connect authorised documentation/schema observations through the source-adapter
+- [~] Connect authorised documentation/schema observations through the source-adapter
   boundary to the offline drift comparator. A contract projection hash is not a raw
   schema fingerprint. This remains an outstanding #195 phase-3 requirement.
+
+### 2026-11-17 implementation scope
+
+Use a fixed, six-source Rust documentation adapter through the existing guarded
+source transport, with explicit live consent, one GET, no redirects/credentials,
+bounded response/time, an acquisition receipt and a final observation marker.
+Keep original source bytes in operator-controlled capture bundles: source rights,
+page tokens and identity-shaped documentation examples prevent blanket public
+redistribution. Commit only reviewed metadata and digests. An offline verifier
+must distinguish metadata validation from verified local bytes and fail closed on
+incomplete/tampered/stale observations. A byte change requires human review; it is
+not proof of a semantic API change or permission to promote a provider.
 
 ## Completion boundary
 
