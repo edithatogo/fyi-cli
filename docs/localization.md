@@ -290,80 +290,54 @@ the low-level data-only bundle parser does not imply an override-loading facilit
 
 ## Holiday calendars
 
-Explicit statutory deadline calculations in `fyi_core::deadlines::statutory` use
-a versioned JSON holiday-calendar catalog (`HolidayCalendarCatalog`):
+`fyi_core::deadlines::statutory::HolidayCalendarCatalog` provides an offline,
+versioned JSON catalog for explicit deadline arithmetic. The **2026** dataset now
+contains 37 source-checked NZ/AU/UK calendars, plus the three unchanged, unreviewed
+DE/FR/ES starters. Every source-checked date has a named event and authoritative
+source reference in `crates/fyi-core/locales/calendars/v1/provenance.json`.
 
-- **Embedded starter catalog (`HolidayCalendarCatalog::embedded()`):** Includes
-  2026 unvalidated starter entries for `NZ` (`NZ`, `NZ-AUK`, `NZ-WGN`),
-  `AU` (`AU`, `AU-ACT`, `AU-NSW`, `AU-VIC`), `GB` (`GB`, `GB-NIR`, `GB-SCT`),
-  `DE`, `FR`, and `ES` (`crates/fyi-core/locales/calendars/v1/catalog.json`,
-  validated against `crates/fyi-core/locales/calendars/v1/catalog.schema.json`).
-  These entries are explicitly marked `unvalidated-*` and produce
-  `ValidationStatus::Unvalidated`; additional subdivisions, observed/proclaimed
-  holidays, and statutory rules must be reviewed against authoritative statutory
-  sources before operational reliance.
-- **Community / caller-supplied catalogs (`HolidayCalendarCatalog::from_json` and
-  `HolidayCalendar::from_json`):** Parse and validate in-memory JSON without
-  filesystem or network I/O. Payloads are bounded to 256 KiB (`MAX_CALENDAR_CATALOG_BYTES`)
-  and use `#[serde(deny_unknown_fields)]`.
-- **Schema v1 format:**
-  ```json
-  {
-    "schema_version": 1,
-    "calendars": [
-      {
-        "jurisdiction": "NZ-WGN",
-        "revision": "community-2026-v1",
-        "valid_from": "2026-01-01",
-        "valid_to": "2026-12-31",
-        "weekend_days": [5, 6],
-        "excluded_dates": ["2026-01-19"]
-      }
-    ]
-  }
-  ```
-  `weekend_days` uses `0 = Monday .. 6 = Sunday`, and every date in
-  `excluded_dates` must lie within `valid_from..=valid_to`. Duplicate
-  `jurisdiction` keys, empty catalogs, and unknown fields are rejected.
+See the [holiday calendar guide](holiday-calendars.md) for the complete scope table,
+source-review boundaries, local profiles, contribution process and commands.
 
-### Extending holiday calendars for a new jurisdiction
+- **Select the exact scope.** `NZ` and `AU` are national/common-date bases. They
+  do not select an anniversary, state, local show day or statutory regime.
+  `GB-ENG`, `GB-WLS`, `GB-SCT` and `GB-NIR` identify the four UK constituents.
+  The old ambiguous embedded `GB` key has been removed; `get("GB")` returns `None`.
+- **Check coverage and applicability.** Embedded dates cover 1 January through
+  31 December 2026 only. Source checking establishes published holiday dates;
+  every arithmetic result still has `ValidationStatus::Unvalidated`. The caller
+  must supply an applicable, reviewed `LegalClockRule` and a complete calendar for
+  that rule. Partial-day holidays and law-specific closures are not inferred.
+- **Load contributions explicitly.** `HolidayCalendarCatalog::from_json` and
+  `HolidayCalendar::from_json` accept caller-owned JSON without filesystem or
+  network I/O. Existing valid v1 inputs and the public `HolidayCalendar` fields
+  remain supported. Payloads are bounded to 256 KiB. Unknown fields, duplicate
+  keys/dates/weekend codes, invalid scope identifiers and invalid coverage fail.
+- **No fallback.** Display locale cannot select a legal calendar. An unknown local
+  key returns `None`; a rule/calendar jurisdiction mismatch or a calculation
+  beyond coverage returns an error.
 
-1. **Runtime / caller-supplied extension (no library recompilation):** Load a
-   custom catalog JSON string with `HolidayCalendarCatalog::from_json` (or a
-   single entry with `HolidayCalendar::from_json`) and pass the matching
-   `HolidayCalendar` to `calculate_explicit_deadline`:
-   ```rust
-   use chrono::NaiveDate;
-   use fyi_core::deadlines::statutory::{
-       calculate_explicit_deadline, HolidayCalendarCatalog, LegalClockRule,
-   };
+Contribution keys begin with an uppercase two-letter country code and may have
+hyphen-separated uppercase alphanumeric scope components of one to eight
+characters, such as `AU-QLD-CAIRNS` or `NZ-CAN-SOUTH`. These local suffixes are
+project identifiers, not automatic geocoding or a claim of ISO standardisation.
+`weekend_days` uses `0 = Monday .. 6 = Sunday`. Each regional entry contains its
+full date set; local replacements remove the superseded date before adding the
+replacement. Merely unioning calendars can produce an incorrect result.
 
-   let catalog = HolidayCalendarCatalog::from_json(custom_json)?;
-   let calendar = catalog.get("NZ-WGN").expect("calendar present");
-   let deadline = calculate_explicit_deadline(
-       NaiveDate::from_ymd_opt(2026, 1, 16).unwrap(),
-       &rule,
-       calendar,
-       None,
-   )?;
-   ```
-   The calendar `jurisdiction` must exactly match `rule.jurisdiction`; there is
-   no automatic fallback from a regional subdivision (such as `NZ-WGN` or
-   `GB-SCT`) to a national entry (`NZ` or `GB`). Mismatched jurisdictions or
-   dates outside `valid_from..=valid_to` fail closed with
-   `DeadlineRuleError::JurisdictionMismatch` or
-   `DeadlineRuleError::CalendarCoverage`.
+For a contributed embedded calendar, update the catalog, matching provenance and
+regression tests, then run:
 
-2. **Contributing an embedded jurisdiction or subdivision:**
-   - Add the entry to `crates/fyi-core/locales/calendars/v1/catalog.json`
-     with a `revision` prefixed `unvalidated-` and complete `valid_from..=valid_to`
-     coverage including all national, regional/state, observed/substitute, and
-     one-off proclaimed holidays for the covered period.
-   - Validate the catalog against the Draft 2020-12 JSON Schema
-     (`crates/fyi-core/locales/calendars/v1/catalog.schema.json`) and run
-     `cargo test -p fyi-core --test statutory_deadline_contract --locked`.
-   - Keep `ValidationStatus::Unvalidated` until an authoritative statutory and
-     legal calendar review signs off on the source citations and effective dates.
+```bash
+python scripts/verify_holiday_calendars.py
+python -m pytest tests/test_holiday_calendar_catalog_schema.py tests/test_holiday_calendar_provenance.py
+cargo test -p fyi-core --test holiday_calendar_data --test statutory_deadline_contract --locked
+```
+
+The offline evidence validator runs automatically through the existing Python
+Tests job. It verifies schemas and cross-file consistency; it does not fetch a
+source or confer legal approval. Community contributions must be checked against
+current authoritative sources before their new revision is accepted.
 
 ## Remaining acceptance work
 

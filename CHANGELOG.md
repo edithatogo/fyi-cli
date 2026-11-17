@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- Source-checked 2026 NZ/AU/UK holiday calendars, including named anniversary,
+  state/territory and local profiles; per-date source provenance, offline
+  contribution validation and a calendar contribution guide (#66).
+
+### Fixed
+
+- Include ACT/NSW's additional Anzac Day, Victoria's AFL Grand Final eve and
+  Scotland's exceptional World Cup bank holiday in the 2026 date sets.
+- Reject duplicate calendar dates/weekend codes and invalid contributed scope
+  identifiers instead of silently normalizing malformed JSON.
+
+### Changed
+
+- Replace the ambiguous embedded `GB` calendar with explicit `GB-ENG` and
+  `GB-WLS`; regional lookup has no fallback. Runtime v1 inputs remain supported.
+  All deadline results remain unvalidated for statutory applicability.
+
+---
+
 ## [1.2.1] - 2026-07-15
 
 ### Fixed

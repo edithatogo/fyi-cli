@@ -98,11 +98,16 @@ combined localization line coverage. Human review remains unchecked.
 ## Phase 4: Working-Day/Deadline Engine
 
 ### 4.1 Holiday Calendar System
-- [ ] Task: Design holiday calendar data format
-- [ ] Task: Create NZ public holiday calendar (including regional)
-- [ ] Task: Create AU holiday calendars (federal + states)
-- [ ] Task: Create UK holiday calendars (England/Scotland/Wales/NI)
-- [ ] Task: Write tests for holiday lookup
+- [~] Task: Design holiday calendar data format — #66: reconcile the merged v1
+  contract with auditable source provenance and strict contribution validation.
+- [~] Task: Create NZ public holiday calendar (including regional) — source-check
+  2026 dates and explicit anniversary scope.
+- [~] Task: Create AU holiday calendars (federal + states) — source-check 2026
+  state/territory dates, observed days and locality/part-day boundaries.
+- [~] Task: Create UK holiday calendars (England/Scotland/Wales/NI) — source-check
+  2026 constituent calendars, including exceptional proclamations.
+- [~] Task: Write tests for holiday lookup — exact-source regressions, malformed
+  contributions, missing scope and coverage boundaries.
 - [ ] Task: Conductor - User Manual Verification 'Phase 4.1: Holidays' (Protocol in workflow.md)
 
 ### 4.2 Working-Day Calculator

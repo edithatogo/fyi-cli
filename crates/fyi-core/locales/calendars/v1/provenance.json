@@ -1,0 +1,4790 @@
+{
+  "schema_version": 1,
+  "sources_checked_on": "2026-11-17",
+  "legal_validation": "unvalidated",
+  "sources": [
+    {
+      "id": "au-act-2026",
+      "url": "https://www.act.gov.au/living-in-the-act/public-holidays-school-terms-and-daylight-saving",
+      "title": "ACT Government — Public holidays, school terms and daylight saving",
+      "publisher": "ACT Government",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "id": "au-fairwork-2026",
+      "url": "https://www.fairwork.gov.au/employment-conditions/public-holidays/2026-public-holidays",
+      "title": "Fair Work Ombudsman — 2026 public holidays",
+      "publisher": "Fair Work Ombudsman",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "id": "au-nsw-2026",
+      "url": "https://www.nsw.gov.au/about-nsw/public-holidays",
+      "title": "NSW Government — NSW public holidays",
+      "publisher": "NSW Government",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "id": "au-nsw-local-2026",
+      "url": "https://www.nsw.gov.au/about-nsw/public-holidays/local-public-holidays",
+      "title": "NSW Government — Local public holidays",
+      "publisher": "NSW Government",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "id": "au-nt-2026",
+      "url": "https://nt.gov.au/nt-public-holidays",
+      "title": "NT Government — NT public and regional holidays",
+      "publisher": "NT Government",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "id": "au-qld-2026",
+      "url": "https://www.qld.gov.au/recreation/travel/holidays/public",
+      "title": "Queensland Government — Public holidays",
+      "publisher": "Queensland Government",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "id": "au-qld-show-2026",
+      "url": "https://www.qld.gov.au/recreation/travel/holidays/show",
+      "title": "Queensland Government — Show holiday dates (2026 table)",
+      "publisher": "Queensland Government",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "id": "au-sa-2026",
+      "url": "https://www.safework.sa.gov.au/resources/public-holidays",
+      "title": "SafeWork SA — Public holidays",
+      "publisher": "SafeWork SA",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "id": "au-tas-2026",
+      "url": "https://worksafe.tas.gov.au/topics/laws-and-compliance/public-holidays",
+      "title": "WorkSafe Tasmania — Public holidays",
+      "publisher": "WorkSafe Tasmania",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "id": "au-vic-2026",
+      "url": "https://business.vic.gov.au/business-information/public-holidays/victorian-public-holidays-2026",
+      "title": "Business Victoria — Victorian public holidays 2026",
+      "publisher": "Business Victoria",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "id": "au-vic-local-2026",
+      "url": "https://business.vic.gov.au/business-information/public-holidays/victorian-non-metropolitan-public-holidays-2026",
+      "title": "Business Victoria — Victorian non-metropolitan public holidays 2026",
+      "publisher": "Business Victoria",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "id": "au-wa-2026",
+      "url": "https://www.wa.gov.au/service/employment/workplace-arrangements/public-holidays-western-australia",
+      "title": "WA Government — Public holidays in Western Australia",
+      "publisher": "WA Government",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "id": "nz-auckland-council-2026",
+      "url": "https://ourauckland.aucklandcouncil.govt.nz/news/2022/12/auckland-council-summer-opening-hours/",
+      "title": "Auckland Council summer opening hours",
+      "publisher": "Auckland Council",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "id": "nz-canterbury-council-2026",
+      "url": "https://www.waimakariri.govt.nz/council/news-and-information/2026/11/canterbury-anniversary-2026-services-and-opening-hours",
+      "title": "Canterbury Anniversary 2026 - Council Services and Opening Hours",
+      "publisher": "Waimakariri District Council",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "id": "nz-employment-2026",
+      "url": "https://www.employment.govt.nz/leave-and-holidays/public-holidays/public-holidays-and-anniversary-dates",
+      "title": "Public holidays and anniversary dates",
+      "publisher": "Employment New Zealand (MBIE)",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "id": "nz-government-2026",
+      "url": "https://www.govt.nz/browse/work-and-tax/public-holidays-and-work/dates-for-public-holidays-and-anniversary-days/",
+      "title": "Dates for public holidays and anniversary days",
+      "publisher": "New Zealand Government",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "id": "nz-hawkes-bay-council-2026",
+      "url": "https://www.hastingsdc.govt.nz/our-council/news/archive/article/3252/hawkes-bay-anniversary-and-labour-weekend-hours",
+      "title": "Hawke's Bay Anniversary and Labour Weekend hours",
+      "publisher": "Hastings District Council",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "id": "nz-marlborough-council-2026",
+      "url": "https://www.marlborough.govt.nz/your-council/latest-news-notices-and-media-releases/all-news-notices-and-media-releases?item=id%3A3006wkmb81cxbyfbq68w",
+      "title": "Council services on Marlborough Anniversary Day",
+      "publisher": "Marlborough District Council",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "id": "nz-nelson-tasman-council-2026",
+      "url": "https://www.tasman.govt.nz/document/serve/Newsline%20Issue%20610%2023%20January%202026%20WEB.pdf?DocID=36949",
+      "title": "Newsline issue 610, 23 January 2026",
+      "publisher": "Tasman District Council",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "id": "nz-otago-central-council-2026",
+      "url": "https://www.codc.govt.nz/repository/libraries/id%3A2apsqkk8g1cxbyoqohn0/hierarchy/Publications/Noticeboard/Monthly%20Snapshots/CODC%20Monthly%20Snapshot%20March%202026.pdf",
+      "title": "Monthly Snapshot March 2026",
+      "publisher": "Central Otago District Council",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "id": "nz-otago-dunedin-council-2026",
+      "url": "https://www.dunedin.govt.nz/__data/assets/pdf_file/0004/1272676/2026-Meeting-schedule.pdf",
+      "title": "Meeting schedule for 2026",
+      "publisher": "Dunedin City Council",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "id": "nz-south-canterbury-council-2026",
+      "url": "https://www.mackenzie.govt.nz/pages/events/2026/south-canterbury-anniversary-day",
+      "title": "South Canterbury Anniversary Day",
+      "publisher": "Mackenzie District Council",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "id": "nz-southland-council-2026",
+      "url": "https://www.ilibrary.co.nz/1-visit/1-hours-and-locations",
+      "title": "Hours and locations: Public holidays 2026",
+      "publisher": "Invercargill City Libraries and Archives",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "id": "nz-taranaki-council-2026",
+      "url": "https://www.southtaranaki.com/repository/libraries/id%3A27mlbegko1cxbyf94es5/hierarchy/Documents/Agendas%20and%20minutes/Council/Extraordinary%20Council%20Full%20Agenda%202025-10-29.pdf",
+      "title": "Extraordinary Council agenda, 29 October 2025: 2026 Master Meeting Schedule",
+      "publisher": "South Taranaki District Council",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "id": "nz-wellington-metlink-2026",
+      "url": "https://www.metlink.org.nz/planning-tools/public-holidays",
+      "title": "Public holidays",
+      "publisher": "Metlink, Greater Wellington Regional Council public transport",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "id": "nz-westland-grey-council-rule",
+      "url": "https://www.greydc.govt.nz/05our-district/about-district/anniversary-day",
+      "title": "Westland Anniversary Day",
+      "publisher": "Grey District Council",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "id": "scotland-bank-holidays-2026",
+      "url": "https://www.gov.scot/publications/bank-holidays/pages/current-year/",
+      "title": "Scottish bank holiday dates",
+      "publisher": "Scottish Government",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "id": "scotland-world-cup-proclamation-2026",
+      "url": "https://privycouncil.independent.gov.uk/wp-content/uploads/2026/02/Scotland-Bank-Holiday-Proclamation.pdf",
+      "title": "Scotland Bank Holiday Proclamation",
+      "publisher": "Privy Council / Royal Proclamation",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "id": "uk-bank-holidays-2026",
+      "url": "https://www.gov.uk/bank-holidays",
+      "title": "UK bank holidays",
+      "publisher": "GOV.UK",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "id": "uk-bank-holidays-json-2026",
+      "url": "https://www.gov.uk/bank-holidays.json",
+      "title": "UK bank holiday data",
+      "publisher": "GOV.UK",
+      "accessed_on": "2026-11-17",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31"
+    }
+  ],
+  "calendars": [
+    {
+      "jurisdiction": "AU",
+      "revision": "unvalidated-au-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "national_base",
+      "scope": "Common full-day public-holiday dates across the eight Australian states and mainland territories in 2026",
+      "limitations": [
+        "Common-date baseline only, not a complete Commonwealth FOI, state, territory or local calendar.",
+        "State/territory and local dates must be selected explicitly; external territories are not covered.",
+        "Public-holiday source checking does not establish statutory applicability."
+      ],
+      "source_ids": [
+        "au-fairwork-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "au-fairwork-2026"
+          ]
+        },
+        {
+          "date": "2026-01-26",
+          "name": "Australia Day",
+          "kind": "national",
+          "source_ids": [
+            "au-fairwork-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "au-fairwork-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "au-fairwork-2026"
+          ]
+        },
+        {
+          "date": "2026-04-25",
+          "name": "Anzac Day",
+          "kind": "national",
+          "source_ids": [
+            "au-fairwork-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "au-fairwork-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day / Proclamation Day (observed)",
+          "kind": "observed",
+          "source_ids": [
+            "au-fairwork-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "AU-ACT",
+      "revision": "unvalidated-au-act-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "regional_base",
+      "scope": "Australian Capital Territory: published full-day calendar",
+      "limitations": [
+        "Territory-wide full-day public holidays.",
+        "Does not include the bank-only holiday on 3 August.",
+        "Public-holiday data only; verify the relevant statute, authority and location before using a deadline."
+      ],
+      "source_ids": [
+        "au-act-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "au-act-2026"
+          ]
+        },
+        {
+          "date": "2026-01-26",
+          "name": "Australia Day",
+          "kind": "national",
+          "source_ids": [
+            "au-act-2026"
+          ]
+        },
+        {
+          "date": "2026-03-09",
+          "name": "Canberra Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-act-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "au-act-2026"
+          ]
+        },
+        {
+          "date": "2026-04-04",
+          "name": "Easter Saturday",
+          "kind": "regional",
+          "source_ids": [
+            "au-act-2026"
+          ]
+        },
+        {
+          "date": "2026-04-05",
+          "name": "Easter Sunday",
+          "kind": "regional",
+          "source_ids": [
+            "au-act-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "au-act-2026"
+          ]
+        },
+        {
+          "date": "2026-04-25",
+          "name": "Anzac Day",
+          "kind": "national",
+          "source_ids": [
+            "au-act-2026"
+          ]
+        },
+        {
+          "date": "2026-04-27",
+          "name": "Anzac Day (additional public holiday)",
+          "kind": "observed",
+          "source_ids": [
+            "au-act-2026"
+          ],
+          "observed_for": "2026-04-25"
+        },
+        {
+          "date": "2026-06-01",
+          "name": "Reconciliation Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-act-2026"
+          ]
+        },
+        {
+          "date": "2026-06-08",
+          "name": "King's Birthday",
+          "kind": "regional",
+          "source_ids": [
+            "au-act-2026"
+          ]
+        },
+        {
+          "date": "2026-10-05",
+          "name": "Labour Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-act-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "au-act-2026"
+          ]
+        },
+        {
+          "date": "2026-12-26",
+          "name": "Boxing Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-act-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (additional public holiday)",
+          "kind": "observed",
+          "source_ids": [
+            "au-act-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "AU-NSW",
+      "revision": "unvalidated-au-nsw-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "regional_base",
+      "scope": "New South Wales: published full-day calendar",
+      "limitations": [
+        "Statewide full-day dates only; declared local public holidays and part-day holidays require separate location-specific data.",
+        "The 3 August bank holiday is NOT a declared NSW public holiday. Local event days are also not public holidays.",
+        "Public-holiday data only; verify the relevant statute, authority and location before using a deadline."
+      ],
+      "source_ids": [
+        "au-nsw-2026",
+        "au-nsw-local-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "au-nsw-2026"
+          ]
+        },
+        {
+          "date": "2026-01-26",
+          "name": "Australia Day",
+          "kind": "national",
+          "source_ids": [
+            "au-nsw-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "au-nsw-2026"
+          ]
+        },
+        {
+          "date": "2026-04-04",
+          "name": "Easter Saturday",
+          "kind": "regional",
+          "source_ids": [
+            "au-nsw-2026"
+          ]
+        },
+        {
+          "date": "2026-04-05",
+          "name": "Easter Sunday",
+          "kind": "regional",
+          "source_ids": [
+            "au-nsw-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "au-nsw-2026"
+          ]
+        },
+        {
+          "date": "2026-04-25",
+          "name": "Anzac Day",
+          "kind": "national",
+          "source_ids": [
+            "au-nsw-2026"
+          ]
+        },
+        {
+          "date": "2026-04-27",
+          "name": "Anzac Day (additional public holiday)",
+          "kind": "observed",
+          "source_ids": [
+            "au-nsw-2026"
+          ],
+          "observed_for": "2026-04-25"
+        },
+        {
+          "date": "2026-06-08",
+          "name": "King's Birthday",
+          "kind": "regional",
+          "source_ids": [
+            "au-nsw-2026"
+          ]
+        },
+        {
+          "date": "2026-10-05",
+          "name": "Labour Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-nsw-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "au-nsw-2026"
+          ]
+        },
+        {
+          "date": "2026-12-26",
+          "name": "Boxing Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-nsw-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (additional public holiday)",
+          "kind": "observed",
+          "source_ids": [
+            "au-nsw-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "AU-NT",
+      "revision": "unvalidated-au-nt-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "regional_base",
+      "scope": "Northern Territory: published full-day calendar",
+      "limitations": [
+        "Territory-wide full-day dates only; regional show days require separate location-specific data.",
+        "24 and 31 December are part-day public holidays (19:00 to midnight), not full-day exclusions.",
+        "No substitute Anzac Day on 27 April.",
+        "Public-holiday data only; verify the relevant statute, authority and location before using a deadline."
+      ],
+      "source_ids": [
+        "au-nt-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-01-26",
+          "name": "Australia Day",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-04",
+          "name": "Easter Saturday",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-05",
+          "name": "Easter Sunday",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-25",
+          "name": "Anzac Day",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-05-04",
+          "name": "May Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-06-08",
+          "name": "King's Birthday",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-08-03",
+          "name": "Picnic Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-12-26",
+          "name": "Boxing Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (additional public holiday)",
+          "kind": "observed",
+          "source_ids": [
+            "au-nt-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "AU-NT-ALICE",
+      "revision": "unvalidated-au-nt-alice-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "local",
+      "scope": "Alice Springs show-day region (as official map)",
+      "limitations": [
+        "Applies only to the explicitly named locality or official show-day region; no regional fallback or geocoding is performed.",
+        "Full-day public holidays only; statutory applicability remains unvalidated.",
+        "Christmas Eve and New Year's Eve are 19:00-midnight only and are not whole-day exclusions; check the official show-region map."
+      ],
+      "source_ids": [
+        "au-nt-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-01-26",
+          "name": "Australia Day",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-04",
+          "name": "Easter Saturday",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-05",
+          "name": "Easter Sunday",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-25",
+          "name": "Anzac Day",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-05-04",
+          "name": "May Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-06-08",
+          "name": "King's Birthday",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-07-03",
+          "name": "Alice Springs Show Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-08-03",
+          "name": "Picnic Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-12-26",
+          "name": "Boxing Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (additional public holiday)",
+          "kind": "observed",
+          "source_ids": [
+            "au-nt-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "AU-NT-BORRO",
+      "revision": "unvalidated-au-nt-borro-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "local",
+      "scope": "Borroloola show-day region (as official map)",
+      "limitations": [
+        "Applies only to the explicitly named locality or official show-day region; no regional fallback or geocoding is performed.",
+        "Full-day public holidays only; statutory applicability remains unvalidated.",
+        "Christmas Eve and New Year's Eve are 19:00-midnight only and are not whole-day exclusions; check the official show-region map."
+      ],
+      "source_ids": [
+        "au-nt-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-01-26",
+          "name": "Australia Day",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-04",
+          "name": "Easter Saturday",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-05",
+          "name": "Easter Sunday",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-25",
+          "name": "Anzac Day",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-05-04",
+          "name": "May Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-06-08",
+          "name": "King's Birthday",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-08-03",
+          "name": "Picnic Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-08-14",
+          "name": "Borroloola Show Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-12-26",
+          "name": "Boxing Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (additional public holiday)",
+          "kind": "observed",
+          "source_ids": [
+            "au-nt-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "AU-NT-DARWIN",
+      "revision": "unvalidated-au-nt-darwin-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "local",
+      "scope": "Darwin show-day region (as official map)",
+      "limitations": [
+        "Applies only to the explicitly named locality or official show-day region; no regional fallback or geocoding is performed.",
+        "Full-day public holidays only; statutory applicability remains unvalidated.",
+        "Christmas Eve and New Year's Eve are 19:00-midnight only and are not whole-day exclusions; check the official show-region map."
+      ],
+      "source_ids": [
+        "au-nt-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-01-26",
+          "name": "Australia Day",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-04",
+          "name": "Easter Saturday",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-05",
+          "name": "Easter Sunday",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-25",
+          "name": "Anzac Day",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-05-04",
+          "name": "May Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-06-08",
+          "name": "King's Birthday",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-07-24",
+          "name": "Darwin Show Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-08-03",
+          "name": "Picnic Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-12-26",
+          "name": "Boxing Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (additional public holiday)",
+          "kind": "observed",
+          "source_ids": [
+            "au-nt-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "AU-NT-KATH",
+      "revision": "unvalidated-au-nt-kath-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "local",
+      "scope": "Katherine show-day region (as official map)",
+      "limitations": [
+        "Applies only to the explicitly named locality or official show-day region; no regional fallback or geocoding is performed.",
+        "Full-day public holidays only; statutory applicability remains unvalidated.",
+        "Christmas Eve and New Year's Eve are 19:00-midnight only and are not whole-day exclusions; check the official show-region map."
+      ],
+      "source_ids": [
+        "au-nt-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-01-26",
+          "name": "Australia Day",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-04",
+          "name": "Easter Saturday",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-05",
+          "name": "Easter Sunday",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-25",
+          "name": "Anzac Day",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-05-04",
+          "name": "May Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-06-08",
+          "name": "King's Birthday",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-07-17",
+          "name": "Katherine Show Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-08-03",
+          "name": "Picnic Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-12-26",
+          "name": "Boxing Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (additional public holiday)",
+          "kind": "observed",
+          "source_ids": [
+            "au-nt-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "AU-NT-TENNANT",
+      "revision": "unvalidated-au-nt-tennant-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "local",
+      "scope": "Tennant Creek show-day region (as official map)",
+      "limitations": [
+        "Applies only to the explicitly named locality or official show-day region; no regional fallback or geocoding is performed.",
+        "Full-day public holidays only; statutory applicability remains unvalidated.",
+        "Christmas Eve and New Year's Eve are 19:00-midnight only and are not whole-day exclusions; check the official show-region map."
+      ],
+      "source_ids": [
+        "au-nt-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-01-26",
+          "name": "Australia Day",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-04",
+          "name": "Easter Saturday",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-05",
+          "name": "Easter Sunday",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-04-25",
+          "name": "Anzac Day",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-05-04",
+          "name": "May Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-06-08",
+          "name": "King's Birthday",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-07-10",
+          "name": "Tennant Creek Show Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-08-03",
+          "name": "Picnic Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-12-26",
+          "name": "Boxing Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-nt-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (additional public holiday)",
+          "kind": "observed",
+          "source_ids": [
+            "au-nt-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "AU-QLD",
+      "revision": "unvalidated-au-qld-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "regional_base",
+      "scope": "Queensland: published full-day calendar",
+      "limitations": [
+        "Statewide full-day dates only; local show holidays must be selected separately.",
+        "Christmas Eve 24 December is a part-day holiday (18:00 to midnight), not a full-day exclusion.",
+        "No substitute Anzac Day on 27 April.",
+        "Public-holiday data only; verify the relevant statute, authority and location before using a deadline."
+      ],
+      "source_ids": [
+        "au-qld-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-01-26",
+          "name": "Australia Day",
+          "kind": "national",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-04-04",
+          "name": "The day after Good Friday",
+          "kind": "regional",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-04-05",
+          "name": "Easter Sunday",
+          "kind": "regional",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-04-25",
+          "name": "Anzac Day",
+          "kind": "national",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-05-04",
+          "name": "Labour Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-10-05",
+          "name": "King's Birthday",
+          "kind": "regional",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-12-26",
+          "name": "Boxing Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (additional public holiday)",
+          "kind": "observed",
+          "source_ids": [
+            "au-qld-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "AU-QLD-BRISBANE",
+      "revision": "unvalidated-au-qld-brisbane-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "local",
+      "scope": "City of Brisbane",
+      "limitations": [
+        "Applies only to the explicitly named locality or official show-day region; no regional fallback or geocoding is performed.",
+        "Full-day public holidays only; statutory applicability remains unvalidated.",
+        "Christmas Eve 24 December is 18:00-midnight only and is not a whole-day exclusion."
+      ],
+      "source_ids": [
+        "au-qld-2026",
+        "au-qld-show-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-01-26",
+          "name": "Australia Day",
+          "kind": "national",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-04-04",
+          "name": "The day after Good Friday",
+          "kind": "regional",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-04-05",
+          "name": "Easter Sunday",
+          "kind": "regional",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-04-25",
+          "name": "Anzac Day",
+          "kind": "national",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-05-04",
+          "name": "Labour Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-08-12",
+          "name": "Royal Queensland Show",
+          "kind": "regional",
+          "source_ids": [
+            "au-qld-2026",
+            "au-qld-show-2026"
+          ]
+        },
+        {
+          "date": "2026-10-05",
+          "name": "King's Birthday",
+          "kind": "regional",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-12-26",
+          "name": "Boxing Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (additional public holiday)",
+          "kind": "observed",
+          "source_ids": [
+            "au-qld-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "AU-QLD-CAIRNS",
+      "revision": "unvalidated-au-qld-cairns-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "local",
+      "scope": "Cairns region (Cairns Regional Council, not the whole Far North Queensland health service)",
+      "limitations": [
+        "Applies only to the explicitly named locality or official show-day region; no regional fallback or geocoding is performed.",
+        "Full-day public holidays only; statutory applicability remains unvalidated.",
+        "Christmas Eve 24 December is 18:00-midnight only and is not a whole-day exclusion."
+      ],
+      "source_ids": [
+        "au-qld-2026",
+        "au-qld-show-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-01-26",
+          "name": "Australia Day",
+          "kind": "national",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-04-04",
+          "name": "The day after Good Friday",
+          "kind": "regional",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-04-05",
+          "name": "Easter Sunday",
+          "kind": "regional",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-04-25",
+          "name": "Anzac Day",
+          "kind": "national",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-05-04",
+          "name": "Labour Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-07-17",
+          "name": "Cairns Annual Show",
+          "kind": "regional",
+          "source_ids": [
+            "au-qld-show-2026"
+          ]
+        },
+        {
+          "date": "2026-10-05",
+          "name": "King's Birthday",
+          "kind": "regional",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-12-26",
+          "name": "Boxing Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-qld-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (additional public holiday)",
+          "kind": "observed",
+          "source_ids": [
+            "au-qld-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "AU-SA",
+      "revision": "unvalidated-au-sa-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "regional_base",
+      "scope": "South Australia: published full-day calendar",
+      "limitations": [
+        "Statewide full-day public holidays.",
+        "24 and 31 December are part-day public holidays (19:00 to midnight), not full-day exclusions.",
+        "No substitute Anzac Day on 27 April.",
+        "Public-holiday data only; verify the relevant statute, authority and location before using a deadline."
+      ],
+      "source_ids": [
+        "au-sa-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "au-sa-2026"
+          ]
+        },
+        {
+          "date": "2026-01-26",
+          "name": "Australia Day",
+          "kind": "national",
+          "source_ids": [
+            "au-sa-2026"
+          ]
+        },
+        {
+          "date": "2026-03-09",
+          "name": "Adelaide Cup Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-sa-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "au-sa-2026"
+          ]
+        },
+        {
+          "date": "2026-04-04",
+          "name": "Easter Saturday",
+          "kind": "regional",
+          "source_ids": [
+            "au-sa-2026"
+          ]
+        },
+        {
+          "date": "2026-04-05",
+          "name": "Easter Sunday",
+          "kind": "regional",
+          "source_ids": [
+            "au-sa-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "au-sa-2026"
+          ]
+        },
+        {
+          "date": "2026-04-25",
+          "name": "Anzac Day",
+          "kind": "national",
+          "source_ids": [
+            "au-sa-2026"
+          ]
+        },
+        {
+          "date": "2026-06-08",
+          "name": "King's Birthday",
+          "kind": "regional",
+          "source_ids": [
+            "au-sa-2026"
+          ]
+        },
+        {
+          "date": "2026-10-05",
+          "name": "Labour Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-sa-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "au-sa-2026"
+          ]
+        },
+        {
+          "date": "2026-12-26",
+          "name": "Proclamation Day holiday",
+          "kind": "regional",
+          "source_ids": [
+            "au-sa-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Proclamation Day (additional public holiday)",
+          "kind": "observed",
+          "source_ids": [
+            "au-sa-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "AU-TAS",
+      "revision": "unvalidated-au-tas-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "regional_base",
+      "scope": "Tasmania general public holidays: published full-day calendar",
+      "limitations": [
+        "Statewide general full-day holidays only.",
+        "Easter Tuesday 7 April generally applies to the Tasmanian Public Service and is not included in the general calendar.",
+        "Regional holidays differ by municipal and locality boundaries; a simple north/south split is insufficient.",
+        "Boxing Day is substituted to 28 December; 26 December is not a second public holiday in 2026.",
+        "Neither Easter Saturday nor Easter Sunday is a Tasmanian public holiday in 2026; no substitute Anzac Day.",
+        "Public-holiday data only; verify the relevant statute, authority and location before using a deadline."
+      ],
+      "source_ids": [
+        "au-tas-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "au-tas-2026"
+          ]
+        },
+        {
+          "date": "2026-01-26",
+          "name": "Australia Day",
+          "kind": "national",
+          "source_ids": [
+            "au-tas-2026"
+          ]
+        },
+        {
+          "date": "2026-03-09",
+          "name": "Eight Hours Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-tas-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "au-tas-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "au-tas-2026"
+          ]
+        },
+        {
+          "date": "2026-04-25",
+          "name": "Anzac Day",
+          "kind": "national",
+          "source_ids": [
+            "au-tas-2026"
+          ]
+        },
+        {
+          "date": "2026-06-08",
+          "name": "King's Birthday",
+          "kind": "regional",
+          "source_ids": [
+            "au-tas-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "au-tas-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (substitute holiday)",
+          "kind": "observed",
+          "source_ids": [
+            "au-tas-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "AU-TAS-HOBART",
+      "revision": "unvalidated-au-tas-hobart-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "local",
+      "scope": "Hobart city general calendar; public-service-only Easter Tuesday excluded",
+      "limitations": [
+        "Applies only to the explicitly named locality or official show-day region; no regional fallback or geocoding is performed.",
+        "Full-day public holidays only; statutory applicability remains unvalidated.",
+        "Public-service-only Easter Tuesday and, where applicable, Launceston Cup are excluded; neighbouring municipalities can have different holidays."
+      ],
+      "source_ids": [
+        "au-tas-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "au-tas-2026"
+          ]
+        },
+        {
+          "date": "2026-01-26",
+          "name": "Australia Day",
+          "kind": "national",
+          "source_ids": [
+            "au-tas-2026"
+          ]
+        },
+        {
+          "date": "2026-02-09",
+          "name": "Royal Hobart Regatta",
+          "kind": "regional",
+          "source_ids": [
+            "au-tas-2026"
+          ]
+        },
+        {
+          "date": "2026-03-09",
+          "name": "Eight Hours Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-tas-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "au-tas-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "au-tas-2026"
+          ]
+        },
+        {
+          "date": "2026-04-25",
+          "name": "Anzac Day",
+          "kind": "national",
+          "source_ids": [
+            "au-tas-2026"
+          ]
+        },
+        {
+          "date": "2026-06-08",
+          "name": "King's Birthday",
+          "kind": "regional",
+          "source_ids": [
+            "au-tas-2026"
+          ]
+        },
+        {
+          "date": "2026-10-22",
+          "name": "Royal Hobart Show",
+          "kind": "regional",
+          "source_ids": [
+            "au-tas-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "au-tas-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (substitute holiday)",
+          "kind": "observed",
+          "source_ids": [
+            "au-tas-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "AU-TAS-LAUN",
+      "revision": "unvalidated-au-tas-laun-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "local",
+      "scope": "Launceston city general calendar; public-service-only Cup and Easter Tuesday excluded",
+      "limitations": [
+        "Applies only to the explicitly named locality or official show-day region; no regional fallback or geocoding is performed.",
+        "Full-day public holidays only; statutory applicability remains unvalidated.",
+        "Public-service-only Easter Tuesday and, where applicable, Launceston Cup are excluded; neighbouring municipalities can have different holidays."
+      ],
+      "source_ids": [
+        "au-tas-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "au-tas-2026"
+          ]
+        },
+        {
+          "date": "2026-01-26",
+          "name": "Australia Day",
+          "kind": "national",
+          "source_ids": [
+            "au-tas-2026"
+          ]
+        },
+        {
+          "date": "2026-03-09",
+          "name": "Eight Hours Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-tas-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "au-tas-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "au-tas-2026"
+          ]
+        },
+        {
+          "date": "2026-04-25",
+          "name": "Anzac Day",
+          "kind": "national",
+          "source_ids": [
+            "au-tas-2026"
+          ]
+        },
+        {
+          "date": "2026-06-08",
+          "name": "King's Birthday",
+          "kind": "regional",
+          "source_ids": [
+            "au-tas-2026"
+          ]
+        },
+        {
+          "date": "2026-10-08",
+          "name": "Royal Launceston Show",
+          "kind": "regional",
+          "source_ids": [
+            "au-tas-2026"
+          ]
+        },
+        {
+          "date": "2026-11-02",
+          "name": "Recreation Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-tas-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "au-tas-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (substitute holiday)",
+          "kind": "observed",
+          "source_ids": [
+            "au-tas-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "AU-VIC",
+      "revision": "unvalidated-au-vic-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "regional_base",
+      "scope": "Victoria default Melbourne Cup observance: published full-day calendar",
+      "limitations": [
+        "Published default Victorian full-day calendar, including Melbourne Cup on 3 November.",
+        "Some non-metropolitan localities REPLACE Melbourne Cup with another date; this entry is not valid for those localities.",
+        "No substitute Anzac Day on 27 April.",
+        "Public-holiday data only; verify the relevant statute, authority and location before using a deadline."
+      ],
+      "source_ids": [
+        "au-vic-2026",
+        "au-vic-local-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "au-vic-2026"
+          ]
+        },
+        {
+          "date": "2026-01-26",
+          "name": "Australia Day",
+          "kind": "national",
+          "source_ids": [
+            "au-vic-2026"
+          ]
+        },
+        {
+          "date": "2026-03-09",
+          "name": "Labour Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-vic-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "au-vic-2026"
+          ]
+        },
+        {
+          "date": "2026-04-04",
+          "name": "Saturday before Easter Sunday",
+          "kind": "regional",
+          "source_ids": [
+            "au-vic-2026"
+          ]
+        },
+        {
+          "date": "2026-04-05",
+          "name": "Easter Sunday",
+          "kind": "regional",
+          "source_ids": [
+            "au-vic-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "au-vic-2026"
+          ]
+        },
+        {
+          "date": "2026-04-25",
+          "name": "Anzac Day",
+          "kind": "national",
+          "source_ids": [
+            "au-vic-2026"
+          ]
+        },
+        {
+          "date": "2026-06-08",
+          "name": "King's Birthday",
+          "kind": "regional",
+          "source_ids": [
+            "au-vic-2026"
+          ]
+        },
+        {
+          "date": "2026-09-25",
+          "name": "Friday before the AFL Grand Final",
+          "kind": "regional",
+          "source_ids": [
+            "au-vic-2026"
+          ]
+        },
+        {
+          "date": "2026-11-03",
+          "name": "Melbourne Cup",
+          "kind": "regional",
+          "source_ids": [
+            "au-vic-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "au-vic-2026"
+          ]
+        },
+        {
+          "date": "2026-12-26",
+          "name": "Boxing Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-vic-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (additional public holiday)",
+          "kind": "observed",
+          "source_ids": [
+            "au-vic-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "AU-WA",
+      "revision": "unvalidated-au-wa-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "regional_base",
+      "scope": "Western Australia default King's Birthday observance: published full-day calendar",
+      "limitations": [
+        "Published default WA full-day calendar.",
+        "Karratha and Port Hedland local government districts observe the 2026 King's Birthday on 3 August INSTEAD OF 28 September.",
+        "Easter Saturday is not a WA public holiday in 2026.",
+        "Public-holiday data only; verify the relevant statute, authority and location before using a deadline."
+      ],
+      "source_ids": [
+        "au-wa-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-01-26",
+          "name": "Australia Day",
+          "kind": "national",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-03-02",
+          "name": "Labour Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-04-05",
+          "name": "Easter Sunday",
+          "kind": "regional",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-04-25",
+          "name": "Anzac Day",
+          "kind": "national",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-04-27",
+          "name": "Anzac Day (additional public holiday)",
+          "kind": "observed",
+          "source_ids": [
+            "au-wa-2026"
+          ],
+          "observed_for": "2026-04-25"
+        },
+        {
+          "date": "2026-06-01",
+          "name": "Western Australia Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-09-28",
+          "name": "King's Birthday",
+          "kind": "regional",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-12-26",
+          "name": "Boxing Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (additional public holiday)",
+          "kind": "observed",
+          "source_ids": [
+            "au-wa-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "AU-WA-HEDLAND",
+      "revision": "unvalidated-au-wa-hedland-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "local",
+      "scope": "Port Hedland local government district",
+      "limitations": [
+        "Applies only to the explicitly named locality or official show-day region; no regional fallback or geocoding is performed.",
+        "Full-day public holidays only; statutory applicability remains unvalidated.",
+        "Replaces 28 September with 3 August for King's Birthday; it does not add both dates."
+      ],
+      "source_ids": [
+        "au-wa-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-01-26",
+          "name": "Australia Day",
+          "kind": "national",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-03-02",
+          "name": "Labour Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-04-05",
+          "name": "Easter Sunday",
+          "kind": "regional",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-04-25",
+          "name": "Anzac Day",
+          "kind": "national",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-04-27",
+          "name": "Anzac Day (additional public holiday)",
+          "kind": "observed",
+          "source_ids": [
+            "au-wa-2026"
+          ],
+          "observed_for": "2026-04-25"
+        },
+        {
+          "date": "2026-06-01",
+          "name": "Western Australia Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-08-03",
+          "name": "King's Birthday (regional alternative)",
+          "kind": "regional",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-12-26",
+          "name": "Boxing Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (additional public holiday)",
+          "kind": "observed",
+          "source_ids": [
+            "au-wa-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "AU-WA-KARRATHA",
+      "revision": "unvalidated-au-wa-karratha-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "local",
+      "scope": "Karratha local government district",
+      "limitations": [
+        "Applies only to the explicitly named locality or official show-day region; no regional fallback or geocoding is performed.",
+        "Full-day public holidays only; statutory applicability remains unvalidated.",
+        "Replaces 28 September with 3 August for King's Birthday; it does not add both dates."
+      ],
+      "source_ids": [
+        "au-wa-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-01-26",
+          "name": "Australia Day",
+          "kind": "national",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-03-02",
+          "name": "Labour Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-04-05",
+          "name": "Easter Sunday",
+          "kind": "regional",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-04-25",
+          "name": "Anzac Day",
+          "kind": "national",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-04-27",
+          "name": "Anzac Day (additional public holiday)",
+          "kind": "observed",
+          "source_ids": [
+            "au-wa-2026"
+          ],
+          "observed_for": "2026-04-25"
+        },
+        {
+          "date": "2026-06-01",
+          "name": "Western Australia Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-08-03",
+          "name": "King's Birthday (regional alternative)",
+          "kind": "regional",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-12-26",
+          "name": "Boxing Day",
+          "kind": "regional",
+          "source_ids": [
+            "au-wa-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (additional public holiday)",
+          "kind": "observed",
+          "source_ids": [
+            "au-wa-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "GB-ENG",
+      "revision": "unvalidated-gb-eng-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "bank_holidays",
+      "scope": "England bank holidays",
+      "limitations": [
+        "Public/bank holiday data only; statutory clock rules and legal applicability remain unvalidated.",
+        "Coverage is limited to 2026; later years and later proclamations require a new revision.",
+        "Bank holidays only: employer closures and council-local public holidays are outside this scope."
+      ],
+      "source_ids": [
+        "uk-bank-holidays-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-05-04",
+          "name": "Early May bank holiday",
+          "kind": "national",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-05-25",
+          "name": "Spring bank holiday",
+          "kind": "national",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-08-31",
+          "name": "Summer bank holiday",
+          "kind": "national",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (substitute day)",
+          "kind": "observed",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "GB-NIR",
+      "revision": "unvalidated-gb-nir-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "bank_holidays",
+      "scope": "Northern Ireland bank holidays",
+      "limitations": [
+        "Public/bank holiday data only; statutory clock rules and legal applicability remain unvalidated.",
+        "Coverage is limited to 2026; later years and later proclamations require a new revision.",
+        "Bank holidays only: employer closures and council-local public holidays are outside this scope."
+      ],
+      "source_ids": [
+        "uk-bank-holidays-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-03-17",
+          "name": "St Patrick's Day",
+          "kind": "regional",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-05-04",
+          "name": "Early May bank holiday",
+          "kind": "national",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-05-25",
+          "name": "Spring bank holiday",
+          "kind": "national",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-07-13",
+          "name": "Battle of the Boyne (Orangemen's Day) (substitute day)",
+          "kind": "observed",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ],
+          "observed_for": "2026-07-12"
+        },
+        {
+          "date": "2026-08-31",
+          "name": "Summer bank holiday",
+          "kind": "national",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (substitute day)",
+          "kind": "observed",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "GB-SCT",
+      "revision": "unvalidated-gb-sct-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "bank_holidays",
+      "scope": "Scotland-wide bank holidays; local public holidays excluded",
+      "limitations": [
+        "Public/bank holiday data only; statutory clock rules and legal applicability remain unvalidated.",
+        "Coverage is limited to 2026; later years and later proclamations require a new revision.",
+        "Bank holidays only: employer closures and council-local public holidays are outside this scope."
+      ],
+      "source_ids": [
+        "scotland-world-cup-proclamation-2026",
+        "uk-bank-holidays-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-01-02",
+          "name": "2nd January",
+          "kind": "regional",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-05-04",
+          "name": "Early May bank holiday",
+          "kind": "national",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-05-25",
+          "name": "Spring bank holiday",
+          "kind": "national",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-06-15",
+          "name": "World Cup bank holiday",
+          "kind": "exceptional",
+          "source_ids": [
+            "scotland-world-cup-proclamation-2026"
+          ]
+        },
+        {
+          "date": "2026-08-03",
+          "name": "Summer bank holiday",
+          "kind": "regional",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-11-30",
+          "name": "St Andrew's Day",
+          "kind": "regional",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (substitute day)",
+          "kind": "observed",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "GB-WLS",
+      "revision": "unvalidated-gb-wls-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "bank_holidays",
+      "scope": "Wales bank holidays",
+      "limitations": [
+        "Public/bank holiday data only; statutory clock rules and legal applicability remain unvalidated.",
+        "Coverage is limited to 2026; later years and later proclamations require a new revision.",
+        "Bank holidays only: employer closures and council-local public holidays are outside this scope."
+      ],
+      "source_ids": [
+        "uk-bank-holidays-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-05-04",
+          "name": "Early May bank holiday",
+          "kind": "national",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-05-25",
+          "name": "Spring bank holiday",
+          "kind": "national",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-08-31",
+          "name": "Summer bank holiday",
+          "kind": "national",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (substitute day)",
+          "kind": "observed",
+          "source_ids": [
+            "uk-bank-holidays-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "NZ",
+      "revision": "unvalidated-nz-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "national_base",
+      "scope": "New Zealand national weekday-observed public holidays only; regional anniversaries not included",
+      "limitations": [
+        "Public/bank holiday data only; statutory clock rules and legal applicability remain unvalidated.",
+        "Coverage is limited to 2026; later years and later proclamations require a new revision.",
+        "Monday-Friday observance calendar: actual Anzac Day (25 April) and Boxing Day (26 December) are already excluded as Saturdays.",
+        "Provincial anniversary observances follow local custom and historical provinces, not automatic administrative-region or language mapping.",
+        "National base only: select an explicit anniversary profile or supply a complete local calendar."
+      ],
+      "source_ids": [
+        "nz-employment-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-01-02",
+          "name": "Day after New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-02-06",
+          "name": "Waitangi Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-27",
+          "name": "Anzac Day (observed)",
+          "kind": "observed",
+          "source_ids": [
+            "nz-employment-2026"
+          ],
+          "observed_for": "2026-04-25"
+        },
+        {
+          "date": "2026-06-01",
+          "name": "King's Birthday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-07-10",
+          "name": "Matariki",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-10-26",
+          "name": "Labour Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (observed)",
+          "kind": "observed",
+          "source_ids": [
+            "nz-employment-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "NZ-AUK",
+      "revision": "unvalidated-nz-auk-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "anniversary_area",
+      "scope": "Auckland Anniversary observance area; use only where local anniversary is Auckland Anniversary",
+      "limitations": [
+        "Public/bank holiday data only; statutory clock rules and legal applicability remain unvalidated.",
+        "Coverage is limited to 2026; later years and later proclamations require a new revision.",
+        "Monday-Friday observance calendar: actual Anzac Day (25 April) and Boxing Day (26 December) are already excluded as Saturdays.",
+        "Provincial anniversary observances follow local custom and historical provinces, not automatic administrative-region or language mapping.",
+        "The named anniversary applies only where this observance is selected and locally applicable; identifiers are project-specific scope keys, not geocoding."
+      ],
+      "source_ids": [
+        "nz-auckland-council-2026",
+        "nz-employment-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-01-02",
+          "name": "Day after New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-01-26",
+          "name": "Auckland Anniversary",
+          "kind": "regional",
+          "source_ids": [
+            "nz-auckland-council-2026"
+          ]
+        },
+        {
+          "date": "2026-02-06",
+          "name": "Waitangi Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-27",
+          "name": "Anzac Day (observed)",
+          "kind": "observed",
+          "source_ids": [
+            "nz-employment-2026"
+          ],
+          "observed_for": "2026-04-25"
+        },
+        {
+          "date": "2026-06-01",
+          "name": "King's Birthday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-07-10",
+          "name": "Matariki",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-10-26",
+          "name": "Labour Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (observed)",
+          "kind": "observed",
+          "source_ids": [
+            "nz-employment-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "NZ-CAN-NORTH",
+      "revision": "unvalidated-nz-can-north-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "anniversary_area",
+      "scope": "Northern and central Canterbury Show Day observance; corroborated in Waimakariri; South Canterbury deliberately separate",
+      "limitations": [
+        "Public/bank holiday data only; statutory clock rules and legal applicability remain unvalidated.",
+        "Coverage is limited to 2026; later years and later proclamations require a new revision.",
+        "Monday-Friday observance calendar: actual Anzac Day (25 April) and Boxing Day (26 December) are already excluded as Saturdays.",
+        "Provincial anniversary observances follow local custom and historical provinces, not automatic administrative-region or language mapping.",
+        "The named anniversary applies only where this observance is selected and locally applicable; identifiers are project-specific scope keys, not geocoding.",
+        "Explicit 13 November closure on Canterbury Anniversary; matches national north/central Canterbury profile."
+      ],
+      "source_ids": [
+        "nz-canterbury-council-2026",
+        "nz-employment-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-01-02",
+          "name": "Day after New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-02-06",
+          "name": "Waitangi Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-27",
+          "name": "Anzac Day (observed)",
+          "kind": "observed",
+          "source_ids": [
+            "nz-employment-2026"
+          ],
+          "observed_for": "2026-04-25"
+        },
+        {
+          "date": "2026-06-01",
+          "name": "King's Birthday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-07-10",
+          "name": "Matariki",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-10-26",
+          "name": "Labour Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-11-13",
+          "name": "Canterbury Anniversary (north and central)",
+          "kind": "regional",
+          "source_ids": [
+            "nz-employment-2026",
+            "nz-canterbury-council-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (observed)",
+          "kind": "observed",
+          "source_ids": [
+            "nz-employment-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "NZ-CAN-SOUTH",
+      "revision": "unvalidated-nz-can-south-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "anniversary_area",
+      "scope": "South Canterbury Anniversary observance; corroborated in Mackenzie district",
+      "limitations": [
+        "Public/bank holiday data only; statutory clock rules and legal applicability remain unvalidated.",
+        "Coverage is limited to 2026; later years and later proclamations require a new revision.",
+        "Monday-Friday observance calendar: actual Anzac Day (25 April) and Boxing Day (26 December) are already excluded as Saturdays.",
+        "Provincial anniversary observances follow local custom and historical provinces, not automatic administrative-region or language mapping.",
+        "The named anniversary applies only where this observance is selected and locally applicable; identifiers are project-specific scope keys, not geocoding.",
+        "Official search-index result explicitly dates Monday 28 September 2026. Direct open returns HTTP 403; do not claim full page retrieval."
+      ],
+      "source_ids": [
+        "nz-employment-2026",
+        "nz-south-canterbury-council-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-01-02",
+          "name": "Day after New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-02-06",
+          "name": "Waitangi Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-27",
+          "name": "Anzac Day (observed)",
+          "kind": "observed",
+          "source_ids": [
+            "nz-employment-2026"
+          ],
+          "observed_for": "2026-04-25"
+        },
+        {
+          "date": "2026-06-01",
+          "name": "King's Birthday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-07-10",
+          "name": "Matariki",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-09-28",
+          "name": "South Canterbury Anniversary",
+          "kind": "regional",
+          "source_ids": [
+            "nz-employment-2026",
+            "nz-south-canterbury-council-2026"
+          ]
+        },
+        {
+          "date": "2026-10-26",
+          "name": "Labour Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (observed)",
+          "kind": "observed",
+          "source_ids": [
+            "nz-employment-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "NZ-HKB",
+      "revision": "unvalidated-nz-hkb-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "anniversary_area",
+      "scope": "Hawke's Bay Anniversary observance; corroborated in Hastings district",
+      "limitations": [
+        "Public/bank holiday data only; statutory clock rules and legal applicability remain unvalidated.",
+        "Coverage is limited to 2026; later years and later proclamations require a new revision.",
+        "Monday-Friday observance calendar: actual Anzac Day (25 April) and Boxing Day (26 December) are already excluded as Saturdays.",
+        "Provincial anniversary observances follow local custom and historical provinces, not automatic administrative-region or language mapping.",
+        "The named anniversary applies only where this observance is selected and locally applicable; identifiers are project-specific scope keys, not geocoding.",
+        "Published 21 October 2026; anniversary Friday 23 October and Labour Day Monday 26 October."
+      ],
+      "source_ids": [
+        "nz-employment-2026",
+        "nz-hawkes-bay-council-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-01-02",
+          "name": "Day after New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-02-06",
+          "name": "Waitangi Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-27",
+          "name": "Anzac Day (observed)",
+          "kind": "observed",
+          "source_ids": [
+            "nz-employment-2026"
+          ],
+          "observed_for": "2026-04-25"
+        },
+        {
+          "date": "2026-06-01",
+          "name": "King's Birthday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-07-10",
+          "name": "Matariki",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-10-23",
+          "name": "Hawke's Bay Anniversary",
+          "kind": "regional",
+          "source_ids": [
+            "nz-employment-2026",
+            "nz-hawkes-bay-council-2026"
+          ]
+        },
+        {
+          "date": "2026-10-26",
+          "name": "Labour Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (observed)",
+          "kind": "observed",
+          "source_ids": [
+            "nz-employment-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "NZ-MBH",
+      "revision": "unvalidated-nz-mbh-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "anniversary_area",
+      "scope": "Marlborough Anniversary observance; corroborated by Marlborough District Council",
+      "limitations": [
+        "Public/bank holiday data only; statutory clock rules and legal applicability remain unvalidated.",
+        "Coverage is limited to 2026; later years and later proclamations require a new revision.",
+        "Monday-Friday observance calendar: actual Anzac Day (25 April) and Boxing Day (26 December) are already excluded as Saturdays.",
+        "Provincial anniversary observances follow local custom and historical provinces, not automatic administrative-region or language mapping.",
+        "The named anniversary applies only where this observance is selected and locally applicable; identifiers are project-specific scope keys, not geocoding.",
+        "Explicitly calls Monday 2 November Marlborough Anniversary Day."
+      ],
+      "source_ids": [
+        "nz-employment-2026",
+        "nz-marlborough-council-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-01-02",
+          "name": "Day after New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-02-06",
+          "name": "Waitangi Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-27",
+          "name": "Anzac Day (observed)",
+          "kind": "observed",
+          "source_ids": [
+            "nz-employment-2026"
+          ],
+          "observed_for": "2026-04-25"
+        },
+        {
+          "date": "2026-06-01",
+          "name": "King's Birthday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-07-10",
+          "name": "Matariki",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-10-26",
+          "name": "Labour Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-11-02",
+          "name": "Marlborough Anniversary",
+          "kind": "regional",
+          "source_ids": [
+            "nz-employment-2026",
+            "nz-marlborough-council-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (observed)",
+          "kind": "observed",
+          "source_ids": [
+            "nz-employment-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "NZ-NSN",
+      "revision": "unvalidated-nz-nsn-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "anniversary_area",
+      "scope": "Nelson Anniversary observance, including Tasman where confirmed; verify local observance in other boundary areas",
+      "limitations": [
+        "Public/bank holiday data only; statutory clock rules and legal applicability remain unvalidated.",
+        "Coverage is limited to 2026; later years and later proclamations require a new revision.",
+        "Monday-Friday observance calendar: actual Anzac Day (25 April) and Boxing Day (26 December) are already excluded as Saturdays.",
+        "Provincial anniversary observances follow local custom and historical provinces, not automatic administrative-region or language mapping.",
+        "The named anniversary applies only where this observance is selected and locally applicable; identifiers are project-specific scope keys, not geocoding.",
+        "Page 4: Public holiday hours and services explicitly gives Nelson Anniversary Monday 2 February."
+      ],
+      "source_ids": [
+        "nz-employment-2026",
+        "nz-nelson-tasman-council-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-01-02",
+          "name": "Day after New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-02-02",
+          "name": "Nelson Anniversary",
+          "kind": "regional",
+          "source_ids": [
+            "nz-employment-2026",
+            "nz-nelson-tasman-council-2026"
+          ]
+        },
+        {
+          "date": "2026-02-06",
+          "name": "Waitangi Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-27",
+          "name": "Anzac Day (observed)",
+          "kind": "observed",
+          "source_ids": [
+            "nz-employment-2026"
+          ],
+          "observed_for": "2026-04-25"
+        },
+        {
+          "date": "2026-06-01",
+          "name": "King's Birthday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-07-10",
+          "name": "Matariki",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-10-26",
+          "name": "Labour Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (observed)",
+          "kind": "observed",
+          "source_ids": [
+            "nz-employment-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "NZ-OTA-COD",
+      "revision": "unvalidated-nz-ota-cod-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "anniversary_area",
+      "scope": "Central Otago council locality observance, corroborated for Alexandra, Cromwell, Ranfurly and Roxburgh; not a whole-Otago default",
+      "limitations": [
+        "Public/bank holiday data only; statutory clock rules and legal applicability remain unvalidated.",
+        "Coverage is limited to 2026; later years and later proclamations require a new revision.",
+        "Monday-Friday observance calendar: actual Anzac Day (25 April) and Boxing Day (26 December) are already excluded as Saturdays.",
+        "Provincial anniversary observances follow local custom and historical provinces, not automatic administrative-region or language mapping.",
+        "The named anniversary applies only where this observance is selected and locally applicable; identifiers are project-specific scope keys, not geocoding.",
+        "One-page March 2026 notice states Otago Anniversary Monday 23 March and service centre closures in Alexandra, Cromwell, Ranfurly and Roxburgh."
+      ],
+      "source_ids": [
+        "nz-employment-2026",
+        "nz-otago-central-council-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-01-02",
+          "name": "Day after New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-02-06",
+          "name": "Waitangi Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-03-23",
+          "name": "Otago Anniversary (Central Otago)",
+          "kind": "regional",
+          "source_ids": [
+            "nz-employment-2026",
+            "nz-otago-central-council-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-27",
+          "name": "Anzac Day (observed)",
+          "kind": "observed",
+          "source_ids": [
+            "nz-employment-2026"
+          ],
+          "observed_for": "2026-04-25"
+        },
+        {
+          "date": "2026-06-01",
+          "name": "King's Birthday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-07-10",
+          "name": "Matariki",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-10-26",
+          "name": "Labour Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (observed)",
+          "kind": "observed",
+          "source_ids": [
+            "nz-employment-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "NZ-OTA-DUN",
+      "revision": "unvalidated-nz-ota-dun-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "anniversary_area",
+      "scope": "Dunedin Otago Anniversary observance only; not a whole-Otago default",
+      "limitations": [
+        "Public/bank holiday data only; statutory clock rules and legal applicability remain unvalidated.",
+        "Coverage is limited to 2026; later years and later proclamations require a new revision.",
+        "Monday-Friday observance calendar: actual Anzac Day (25 April) and Boxing Day (26 December) are already excluded as Saturdays.",
+        "Provincial anniversary observances follow local custom and historical provinces, not automatic administrative-region or language mapping.",
+        "The named anniversary applies only where this observance is selected and locally applicable; identifiers are project-specific scope keys, not geocoding.",
+        "Page 1 March table explicitly lists Otago Anniversary Monday 23 March."
+      ],
+      "source_ids": [
+        "nz-employment-2026",
+        "nz-otago-dunedin-council-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-01-02",
+          "name": "Day after New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-02-06",
+          "name": "Waitangi Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-03-23",
+          "name": "Otago Anniversary (Dunedin)",
+          "kind": "regional",
+          "source_ids": [
+            "nz-employment-2026",
+            "nz-otago-dunedin-council-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-27",
+          "name": "Anzac Day (observed)",
+          "kind": "observed",
+          "source_ids": [
+            "nz-employment-2026"
+          ],
+          "observed_for": "2026-04-25"
+        },
+        {
+          "date": "2026-06-01",
+          "name": "King's Birthday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-07-10",
+          "name": "Matariki",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-10-26",
+          "name": "Labour Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (observed)",
+          "kind": "observed",
+          "source_ids": [
+            "nz-employment-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "NZ-STL",
+      "revision": "unvalidated-nz-stl-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "anniversary_area",
+      "scope": "Southland Anniversary observance; corroborated in Invercargill and Bluff; other nearby areas must confirm local custom",
+      "limitations": [
+        "Public/bank holiday data only; statutory clock rules and legal applicability remain unvalidated.",
+        "Coverage is limited to 2026; later years and later proclamations require a new revision.",
+        "Monday-Friday observance calendar: actual Anzac Day (25 April) and Boxing Day (26 December) are already excluded as Saturdays.",
+        "Provincial anniversary observances follow local custom and historical provinces, not automatic administrative-region or language mapping.",
+        "The named anniversary applies only where this observance is selected and locally applicable; identifiers are project-specific scope keys, not geocoding.",
+        "Explicit 2026 table: Tuesday 7 April Southland Anniversary Day. Library service represents Invercargill and Bluff. Easter Sunday closure is not imported as a national holiday."
+      ],
+      "source_ids": [
+        "nz-employment-2026",
+        "nz-southland-council-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-01-02",
+          "name": "Day after New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-02-06",
+          "name": "Waitangi Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-07",
+          "name": "Southland Anniversary",
+          "kind": "regional",
+          "source_ids": [
+            "nz-employment-2026",
+            "nz-southland-council-2026"
+          ]
+        },
+        {
+          "date": "2026-04-27",
+          "name": "Anzac Day (observed)",
+          "kind": "observed",
+          "source_ids": [
+            "nz-employment-2026"
+          ],
+          "observed_for": "2026-04-25"
+        },
+        {
+          "date": "2026-06-01",
+          "name": "King's Birthday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-07-10",
+          "name": "Matariki",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-10-26",
+          "name": "Labour Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (observed)",
+          "kind": "observed",
+          "source_ids": [
+            "nz-employment-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "NZ-TKI",
+      "revision": "unvalidated-nz-tki-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "anniversary_area",
+      "scope": "Taranaki Anniversary observance; caller must select this named provincial holiday, not infer from current administrative boundaries",
+      "limitations": [
+        "Public/bank holiday data only; statutory clock rules and legal applicability remain unvalidated.",
+        "Coverage is limited to 2026; later years and later proclamations require a new revision.",
+        "Monday-Friday observance calendar: actual Anzac Day (25 April) and Boxing Day (26 December) are already excluded as Saturdays.",
+        "Provincial anniversary observances follow local custom and historical provinces, not automatic administrative-region or language mapping.",
+        "The named anniversary applies only where this observance is selected and locally applicable; identifiers are project-specific scope keys, not geocoding.",
+        "Page 159 (PDF index 158), March row 9, Taranaki Anniversary; verified visually using PDF screenshot."
+      ],
+      "source_ids": [
+        "nz-employment-2026",
+        "nz-taranaki-council-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-01-02",
+          "name": "Day after New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-02-06",
+          "name": "Waitangi Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-03-09",
+          "name": "Taranaki Anniversary",
+          "kind": "regional",
+          "source_ids": [
+            "nz-employment-2026",
+            "nz-taranaki-council-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-27",
+          "name": "Anzac Day (observed)",
+          "kind": "observed",
+          "source_ids": [
+            "nz-employment-2026"
+          ],
+          "observed_for": "2026-04-25"
+        },
+        {
+          "date": "2026-06-01",
+          "name": "King's Birthday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-07-10",
+          "name": "Matariki",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-10-26",
+          "name": "Labour Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (observed)",
+          "kind": "observed",
+          "source_ids": [
+            "nz-employment-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "NZ-WGN",
+      "revision": "unvalidated-nz-wgn-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "anniversary_area",
+      "scope": "Wellington Anniversary observance area; use only where local anniversary is Wellington Anniversary",
+      "limitations": [
+        "Public/bank holiday data only; statutory clock rules and legal applicability remain unvalidated.",
+        "Coverage is limited to 2026; later years and later proclamations require a new revision.",
+        "Monday-Friday observance calendar: actual Anzac Day (25 April) and Boxing Day (26 December) are already excluded as Saturdays.",
+        "Provincial anniversary observances follow local custom and historical provinces, not automatic administrative-region or language mapping.",
+        "The named anniversary applies only where this observance is selected and locally applicable; identifiers are project-specific scope keys, not geocoding."
+      ],
+      "source_ids": [
+        "nz-employment-2026",
+        "nz-wellington-metlink-2026"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-01-02",
+          "name": "Day after New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-01-19",
+          "name": "Wellington Anniversary",
+          "kind": "regional",
+          "source_ids": [
+            "nz-wellington-metlink-2026"
+          ]
+        },
+        {
+          "date": "2026-02-06",
+          "name": "Waitangi Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-27",
+          "name": "Anzac Day (observed)",
+          "kind": "observed",
+          "source_ids": [
+            "nz-employment-2026"
+          ],
+          "observed_for": "2026-04-25"
+        },
+        {
+          "date": "2026-06-01",
+          "name": "King's Birthday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-07-10",
+          "name": "Matariki",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-10-26",
+          "name": "Labour Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (observed)",
+          "kind": "observed",
+          "source_ids": [
+            "nz-employment-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    },
+    {
+      "jurisdiction": "NZ-WTC-GREY",
+      "revision": "unvalidated-nz-wtc-grey-2026-v2",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-12-31",
+      "weekend_days": [
+        5,
+        6
+      ],
+      "coverage_kind": "anniversary_area",
+      "scope": "Greymouth local observance only; not a whole-Westland/West Coast default",
+      "limitations": [
+        "Public/bank holiday data only; statutory clock rules and legal applicability remain unvalidated.",
+        "Coverage is limited to 2026; later years and later proclamations require a new revision.",
+        "Monday-Friday observance calendar: actual Anzac Day (25 April) and Boxing Day (26 December) are already excluded as Saturdays.",
+        "Provincial anniversary observances follow local custom and historical provinces, not automatic administrative-region or language mapping.",
+        "The named anniversary applies only where this observance is selected and locally applicable; identifiers are project-specific scope keys, not geocoding.",
+        "Council states Greymouth/Hokitika observe Monday nearest 1 December, with only a 2024 example. 2026-11-30 is explicit in Employment NZ and independently follows that rule; this is rule corroboration, not a council 2026 date announcement."
+      ],
+      "source_ids": [
+        "nz-employment-2026",
+        "nz-westland-grey-council-rule"
+      ],
+      "events": [
+        {
+          "date": "2026-01-01",
+          "name": "New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-01-02",
+          "name": "Day after New Year's Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-02-06",
+          "name": "Waitangi Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-03",
+          "name": "Good Friday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-06",
+          "name": "Easter Monday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-04-27",
+          "name": "Anzac Day (observed)",
+          "kind": "observed",
+          "source_ids": [
+            "nz-employment-2026"
+          ],
+          "observed_for": "2026-04-25"
+        },
+        {
+          "date": "2026-06-01",
+          "name": "King's Birthday",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-07-10",
+          "name": "Matariki",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-10-26",
+          "name": "Labour Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-11-30",
+          "name": "Westland Anniversary (Greymouth)",
+          "kind": "regional",
+          "source_ids": [
+            "nz-employment-2026",
+            "nz-westland-grey-council-rule"
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "name": "Christmas Day",
+          "kind": "national",
+          "source_ids": [
+            "nz-employment-2026"
+          ]
+        },
+        {
+          "date": "2026-12-28",
+          "name": "Boxing Day (observed)",
+          "kind": "observed",
+          "source_ids": [
+            "nz-employment-2026"
+          ],
+          "observed_for": "2026-12-26"
+        }
+      ]
+    }
+  ],
+  "unreviewed_calendars": [
+    {
+      "jurisdiction": "DE",
+      "revision": "unvalidated-de-national-2026-v1",
+      "reason": "Legacy 2026 starter retained for compatibility; national/regional/observed source review remains outside issue #66 and open under epic #39."
+    },
+    {
+      "jurisdiction": "FR",
+      "revision": "unvalidated-fr-national-2026-v1",
+      "reason": "Legacy 2026 starter retained for compatibility; national/regional/observed source review remains outside issue #66 and open under epic #39."
+    },
+    {
+      "jurisdiction": "ES",
+      "revision": "unvalidated-es-national-2026-v1",
+      "reason": "Legacy 2026 starter retained for compatibility; national/regional/observed source review remains outside issue #66 and open under epic #39."
+    }
+  ]
+}
