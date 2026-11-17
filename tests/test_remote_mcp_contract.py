@@ -161,7 +161,7 @@ def test_tool_snapshot_rejects_non_object_roots(value: object) -> None:
     assert contract.validate_tool_snapshot(value)
 
 
-@pytest.mark.parametrize("version", [None, 0, 2, True, "1", 1.5])
+@pytest.mark.parametrize("version", [None, 0, 3, True, "1", 1.5])
 def test_tool_snapshot_rejects_unknown_or_ambiguous_version(
     snapshot: dict,
     version: object,
@@ -299,11 +299,26 @@ def test_command_fails_closed_when_snapshot_is_missing(tmp_path: Path) -> None:
 
 @pytest.fixture
 def exchanges() -> dict:
-    return json.loads((contract.FIXTURE_DIR / "v2.json").read_text(encoding="utf-8"))
+    return json.loads(contract.CURRENT_FIXTURE.read_text(encoding="utf-8"))
 
 
 def test_current_exchange_contract_is_valid() -> None:
     assert contract.validate_current_contract() == []
+
+
+def test_historical_exchanges_remain_valid_against_their_original_snapshot() -> None:
+    assert contract.validate_historical_contract() == []
+
+
+def test_historical_contract_is_not_treated_as_current(tmp_path: Path) -> None:
+    historical = json.loads(contract.HISTORICAL_FIXTURE.read_text(encoding="utf-8"))
+    assert contract.validate_current_contract(write_json(tmp_path, historical))
+
+
+@pytest.mark.parametrize("version", [1, 2])
+def test_tool_snapshot_versions_are_validated_explicitly(snapshot: dict, version: int) -> None:
+    snapshot["schema_version"] = version
+    assert contract.validate_tool_snapshot(snapshot) == []
 
 
 def test_current_examples_match_executable_tool_schema_snapshot(exchanges: dict) -> None:
@@ -317,7 +332,7 @@ def test_current_contract_rejects_non_object_roots(tmp_path: Path, value: object
     assert contract.validate_current_contract(write_json(tmp_path, value))
 
 
-@pytest.mark.parametrize("version", [None, 1, 3, True, "2", 2.0])
+@pytest.mark.parametrize("version", [None, 1, 2, 4, True, "3", 3.0])
 def test_current_contract_rejects_unsupported_versions(
     tmp_path: Path,
     exchanges: dict,
@@ -397,6 +412,110 @@ def test_current_error_messages_cannot_drift_or_echo_private_input(
     assert "synthetic-sensitive-value" not in str(errors)
 
 
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("schema_version", True),
+        ("kind", "synthetic-sensitive-value"),
+        ("operation", "remote_create_request"),
+        ("retryable", "false"),
+        ("retryable", True),
+        ("status", 200),
+        ("safe_message", "synthetic-sensitive-value"),
+        ("correlation_id", "synthetic-sensitive-value"),
+    ],
+)
+def test_typed_read_error_fields_cannot_drift_or_echo_private_input(
+    tmp_path: Path,
+    exchanges: dict,
+    field: str,
+    value: object,
+) -> None:
+    case = next(case for case in exchanges["cases"] if case["name"] == "remote_read_denied")
+    case["response"]["result"]["structuredContent"]["error"][field] = value
+    errors = contract.validate_current_contract(write_json(tmp_path, exchanges))
+    assert errors
+    assert "synthetic-sensitive-value" not in str(errors)
+
+
+def test_current_read_error_requires_structured_classification(
+    tmp_path: Path,
+    exchanges: dict,
+) -> None:
+    case = next(case for case in exchanges["cases"] if case["name"] == "remote_read_denied")
+    del case["response"]["result"]["structuredContent"]
+    assert contract.validate_current_contract(write_json(tmp_path, exchanges))
+
+
+def test_current_read_success_requires_provenance(exchanges: dict) -> None:
+    snapshot, errors = contract.load_fixture(contract.TOOLS_FIXTURE)
+    assert errors == []
+    case = exchanges["cases"][0]
+    payload = case["response"]["result"]["structuredContent"]
+    del payload["provenance"]
+    case["response"]["result"]["content"][0]["text"] = json.dumps(payload)
+    assert contract.validate_case_schemas(exchanges, snapshot)
+
+
+@pytest.mark.parametrize(
+    "change",
+    ["missing-references", "event-request-id", "unknown-kind", "missing-url", "too-many"],
+)
+def test_current_feed_reference_contract_rejects_ambiguous_or_unbounded_plans(
+    tmp_path: Path,
+    exchanges: dict,
+    change: str,
+) -> None:
+    case = next(
+        case for case in exchanges["cases"] if case["name"] == "remote_plan_authority_feed_success"
+    )
+    result = case["response"]["result"]
+    plan = result["structuredContent"]["plan"]
+    if change == "missing-references":
+        del plan["references"]
+    elif change == "event-request-id":
+        plan["references"][0]["kind"] = "request_event"
+        plan["references"][0]["url"] = "https://foi-repository.example/request_event/1001"
+    elif change == "unknown-kind":
+        plan["references"][0]["kind"] = "synthetic-sensitive-value"
+    elif change == "missing-url":
+        del plan["references"][0]["url"]
+    else:
+        plan["references"] = [
+            {
+                "kind": "request_event",
+                "url": f"https://foi-repository.example/request_event/{index}",
+                "request_id": None,
+            }
+            for index in range(1, 202)
+        ]
+    result["content"][0]["text"] = json.dumps(result["structuredContent"])
+    errors = contract.validate_current_contract(write_json(tmp_path, exchanges))
+    assert errors
+    assert "synthetic-sensitive-value" not in str(errors)
+
+
+def test_current_feed_reference_keeps_event_identity_separate(
+    tmp_path: Path,
+    exchanges: dict,
+) -> None:
+    case = next(
+        case for case in exchanges["cases"] if case["name"] == "remote_plan_authority_feed_success"
+    )
+    result = case["response"]["result"]
+    plan = result["structuredContent"]["plan"]
+    plan["request_ids"] = []
+    plan["references"] = [
+        {
+            "kind": "request_event",
+            "url": "https://foi-repository.example/request_event/1001",
+            "request_id": None,
+        },
+    ]
+    result["content"][0]["text"] = json.dumps(result["structuredContent"])
+    assert contract.validate_current_contract(write_json(tmp_path, exchanges)) == []
+
+
 def test_current_success_response_id_must_match_request(tmp_path: Path, exchanges: dict) -> None:
     exchanges["cases"][0]["response"]["id"] = "different-request"
     assert contract.validate_current_contract(write_json(tmp_path, exchanges))
@@ -412,9 +531,9 @@ def test_current_contract_cannot_claim_synthetic_outputs_were_executed(
 
 def test_current_contract_rejects_duplicate_json_keys(tmp_path: Path) -> None:
     path = tmp_path / "duplicate-current.json"
-    text = (contract.FIXTURE_DIR / "v2.json").read_text(encoding="utf-8")
+    text = contract.CURRENT_FIXTURE.read_text(encoding="utf-8")
     path.write_text(
-        text.replace('"schema_version": 2', '"schema_version": 1, "schema_version": 2'),
+        text.replace('"schema_version": 3', '"schema_version": 1, "schema_version": 3'),
         encoding="utf-8",
     )
     assert contract.validate_current_contract(path)

@@ -250,7 +250,7 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Description: Default-deny capability policy, kill switch, circuit breaker, redacted audit/trace/metrics, and operator controls for remote MCP operations.*
   *Priority: critical*
 
-- [x] **Track: remote-mcp-read-surface** (IMPLEMENTED 2026-07-11, PR #176)
+- [~] **Track: remote-mcp-read-surface** (IN PROGRESS 2026-11-17; read contract implemented in PR #494 at `0f80180`; all required/platform checks passed; manual review checkpoint and merge pending)
   *GitHub parent: [#169](https://github.com/edithatogo/fyi-cli/issues/169)*
   *GitHub issue: [#170](https://github.com/edithatogo/fyi-cli/issues/170)*
   *Link: [./tracks/remote-mcp-read-surface-20260711/](./tracks/remote-mcp-read-surface-20260711/)*

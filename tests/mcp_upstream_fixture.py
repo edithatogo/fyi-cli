@@ -198,8 +198,13 @@ class _Api(BaseHTTPRequestHandler):
             self.wfile.write(b"not-hex\r\n" + body + b"\r\n0\r\n\r\n")
         elif response.get("chunked"):
             # Deliberately split UTF-8 sequences across raw wire chunks.
-            for start in range(0, len(body), 7):
-                chunk = body[start : start + 7]
+            # Explicit large chunks exercise streaming bounds without hundreds
+            # of thousands of tiny TLS writes in the oversized-body fixture.
+            chunk_size = response.get("chunk_size", 7)
+            assert isinstance(chunk_size, int)
+            assert 1 <= chunk_size <= 64 * 1024
+            for start in range(0, len(body), chunk_size):
+                chunk = body[start : start + chunk_size]
                 self.wfile.write(f"{len(chunk):x}\r\n".encode() + chunk + b"\r\n")
                 self.wfile.flush()
             self.wfile.write(b"0\r\n\r\n")

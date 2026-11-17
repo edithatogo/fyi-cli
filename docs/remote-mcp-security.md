@@ -32,11 +32,21 @@ allowlist/read/write settings and protected credential names, then restart.
 MCP callers must use those exact configured IDs; ID matching is still case
 sensitive. No token value is accepted as an MCP argument.
 
-The MCP request counter measures admitted tool operations, including failures;
-raw HTTP retries within an operation belong to the source transport's separate
-limits. One operation may be active per instance. The response budget measures
-serialized MCP result bytes before publication, and does not establish a raw
-download or heap allocation bound.
+The MCP request counter measures admitted tool operations, including failures
+and local feed-route discovery. One operation may be active per instance. Each
+read-enabled instance now retains one source client, so its cache, pacing and
+raw request/byte allowances survive between calls and cloned policies. The read
+client disables automatic redirects/retries and receives the configured request
+and byte maxima. Per-operation timeouts cover pacing and source work; the source
+also retains a one-hour lifetime ceiling from configuration.
+
+The result budget separately measures serialized MCP payload bytes, including
+provenance, before publication. A bounded source response must fit the remaining
+read allowance; cached bodies are checked before reuse. These are separate raw
+and serialized byte limits, not a whole-process peak-memory measurement. Existing
+write transport behavior remains separately governed. See the
+[read contract](remote-mcp-read-contract.md) for feed non-mutation, typed failure
+fields, cache semantics, and the current versioned fixtures.
 
 ## Operator controls
 

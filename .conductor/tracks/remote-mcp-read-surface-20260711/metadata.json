@@ -1,13 +1,16 @@
 {
   "track_id": "remote-mcp-read-surface-20260711",
   "type": "feature",
-  "status": "pending",
+  "status": "in_progress",
   "created_at": "2026-07-11T08:34:24Z",
-  "updated_at": "2026-11-13T05:45:41Z",
+  "updated_at": "2026-11-17T10:06:58Z",
   "description": "Guarded opt-in read-only MCP tools backed by SyncClient",
   "github_parent_issue": 169,
   "github_issue": 170,
   "dependencies": [
     "remote-mcp-observability-security-20260711"
-  ]
+  ],
+  "github_pr": 494,
+  "implementation_commit": "0f80180abbc4a3d83f1a183f04611e7308ce2e52",
+  "verification_evidence": "acceptance-evidence.md"
 }
