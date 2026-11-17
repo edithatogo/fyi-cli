@@ -1,5 +1,25 @@
 # Actual MCP-to-source offline contracts
 
+## Current read coverage — 2026-11-17
+
+The #170 increment uses `upstream-v2.json` and the current tools-v2/v3 schema
+fixtures. Actual production-binary SDK scenarios now assert typed read errors,
+retrieval/cache/correlation metadata, conditional 304 revalidation, malformed
+feeds, one-GET RSS/Atom planning, zero-I/O route discovery, private failures,
+Content-Length/chunk bounds, and unchanged empty application data. Redirects
+are refused with an exact single-request assertion on the bounded read client.
+Historical fixture bytes and the earlier execution receipts below are retained.
+
+The [read contract](remote-mcp-read-contract.md) explains the new shared source
+client and propagated raw request/byte/time limits. Earlier observations below
+about reconstructed read clients or missing typed errors refer to the older
+implementation; they no longer describe current read code. Broader #169/#171/#173
+requirements such as write attachment atomicity, filesystem-cache corruption,
+whole-process peak RSS and exhaustive source/platform qualification still require
+their own evidence. Current executed checks are recorded in the existing #170
+Conductor track; added tests alone are not proof of a passing run.
+
+
 Issue #169 / #173 originally required successful remote-tool calls and source
 faults through the actual executable. Schema snapshots and synthetic MCP results
 alone do not establish that integration. `tests/test_mcp_upstream_contract.py`

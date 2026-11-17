@@ -13,16 +13,24 @@ from referencing.exceptions import Unresolvable
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE_DIR = ROOT / "tests/fixtures/remote_mcp"
 FIXTURE = FIXTURE_DIR / "v1.json"
-CURRENT_FIXTURE = FIXTURE_DIR / "v2.json"
-CURRENT_SCHEMA = FIXTURE_DIR / "v2.schema.json"
-TOOLS_FIXTURE = FIXTURE_DIR / "tools-v1.json"
-TOOLS_SCHEMA = FIXTURE_DIR / "tools-v1.schema.json"
-REQUIRED_READ_TOOLS = {
+HISTORICAL_FIXTURE = FIXTURE_DIR / "v2.json"
+HISTORICAL_SCHEMA = FIXTURE_DIR / "v2.schema.json"
+HISTORICAL_TOOLS_FIXTURE = FIXTURE_DIR / "tools-v1.json"
+HISTORICAL_TOOLS_SCHEMA = FIXTURE_DIR / "tools-v1.schema.json"
+CURRENT_FIXTURE = FIXTURE_DIR / "v3.json"
+CURRENT_SCHEMA = FIXTURE_DIR / "v3.schema.json"
+TOOLS_FIXTURE = FIXTURE_DIR / "tools-v2.json"
+TOOLS_SCHEMA = FIXTURE_DIR / "tools-v2.schema.json"
+HISTORICAL_READ_TOOLS = {
     "remote_health",
     "remote_version",
     "remote_search_requests",
     "remote_get_request",
     "remote_list_authorities",
+}
+REQUIRED_READ_TOOLS = HISTORICAL_READ_TOOLS | {
+    "remote_discover_authority_feeds",
+    "remote_plan_authority_feed",
 }
 REQUIRED_WRITE_TOOLS = {
     "remote_create_request",
@@ -60,6 +68,11 @@ SUCCESS_CASE_TO_TOOL = {
         for phase in ("prepared", "replayed", "committed")
     },
 }
+HISTORICAL_SUCCESS_CASE_TO_TOOL = {
+    case: tool
+    for case, tool in SUCCESS_CASE_TO_TOOL.items()
+    if tool in HISTORICAL_READ_TOOLS | REQUIRED_WRITE_TOOLS
+}
 TOOL_ERROR_CASES = {
     "remote_read_denied": (
         "remote_health",
@@ -81,6 +94,46 @@ TOOL_ERROR_CASES = {
         "remote operation failed; see operator audit telemetry",
         "synthetic_output",
     ),
+}
+CURRENT_TOOL_ERROR_CASES = TOOL_ERROR_CASES | {
+    f"{tool}_denied": (
+        tool,
+        "remote read capability is disabled for instance",
+        "handler",
+    )
+    for tool in REQUIRED_READ_TOOLS - {"remote_health"}
+}
+READ_ERROR_CASES = {
+    "remote_read_denied": {
+        "schema_version": 1,
+        "kind": "disabled",
+        "operation": "remote_health",
+        "retryable": False,
+        "status": None,
+        "safe_message": "remote read capability is disabled for instance",
+        "correlation_id": None,
+    },
+    "remote_operation_failed": {
+        "schema_version": 1,
+        "kind": "upstream_unknown",
+        "operation": "remote_version",
+        "retryable": False,
+        "status": None,
+        "safe_message": "remote operation failed",
+        "correlation_id": "fixture-remote-0001",
+    },
+    **{
+        f"{tool}_denied": {
+            "schema_version": 1,
+            "kind": "disabled",
+            "operation": tool,
+            "retryable": False,
+            "status": None,
+            "safe_message": "remote read capability is disabled for instance",
+            "correlation_id": None,
+        }
+        for tool in REQUIRED_READ_TOOLS - {"remote_health"}
+    },
 }
 PROTOCOL_ERROR_CASES = {
     "malformed_json": (-32700, "Parse error"),
@@ -166,7 +219,7 @@ def validate_contract(path: Path = FIXTURE) -> list[str]:
     tools = contract["tools"]
     if set(tools) != {"read_only", "write"}:
         errors.append("tool groups do not match the v1 contract")
-    if not _exact_string_set(tools.get("read_only"), REQUIRED_READ_TOOLS):
+    if not _exact_string_set(tools.get("read_only"), HISTORICAL_READ_TOOLS):
         errors.append("read-only tool set does not match the v1 contract")
     if not _exact_string_set(tools.get("write"), REQUIRED_WRITE_TOOLS):
         errors.append("governed write tool set does not match the v1 contract")
@@ -197,9 +250,10 @@ def _has_external_reference(value: object) -> bool:
 
 def validate_tool_snapshot(snapshot: object) -> list[str]:
     """Check a complete catalogue fixture, including every nested input/output schema."""
-    if not _versioned_object(snapshot):
+    if not (_versioned_object(snapshot, 1) or _versioned_object(snapshot, 2)):
         return ["unsupported or missing tool snapshot schema_version"]
-    schema, errors = load_fixture(TOOLS_SCHEMA)
+    path = HISTORICAL_TOOLS_SCHEMA if snapshot["schema_version"] == 1 else TOOLS_SCHEMA
+    schema, errors = load_fixture(path)
     if errors:
         return ["tool snapshot schema is missing or malformed"]
     try:
@@ -229,7 +283,7 @@ def compare_tool_catalogue(actual_tools: object, snapshot: object) -> list[str]:
     errors = validate_tool_snapshot(snapshot)
     if errors:
         return errors
-    actual = {"schema_version": 1, "tools": actual_tools}
+    actual = {"schema_version": snapshot["schema_version"], "tools": actual_tools}
     errors = validate_tool_snapshot(actual)
     if errors:
         return ["live tool catalogue is malformed or has duplicate tool names"]
@@ -260,20 +314,23 @@ def _json_equal(left: object, right: object) -> bool:
     return json.dumps(left, sort_keys=True) == json.dumps(right, sort_keys=True)
 
 
-def _validate_current_shape(current: object) -> list[str]:
-    if not _versioned_object(current, 2):
+def _validate_current_shape(current: object, version: int) -> list[str]:
+    if version not in {2, 3} or not _versioned_object(current, version):
         return ["unsupported or missing current contract schema_version"]
-    schema, errors = load_fixture(CURRENT_SCHEMA)
+    path = HISTORICAL_SCHEMA if version == 2 else CURRENT_SCHEMA
+    schema, errors = load_fixture(path)
     if errors:
         return ["current exchange schema is missing or malformed"]
     try:
         Draft202012Validator.check_schema(schema)
         if not Draft202012Validator(schema).is_valid(current):
-            return ["current exchanges do not satisfy the v2 schema"]
+            return ["current exchanges do not satisfy the versioned schema"]
     except (SchemaError, RecursionError, Unresolvable):
         return ["current exchange schema is invalid"]
     names = [case["name"] for case in current["cases"]]
-    expected = set(SUCCESS_CASE_TO_TOOL) | set(TOOL_ERROR_CASES) | set(PROTOCOL_ERROR_CASES)
+    success = HISTORICAL_SUCCESS_CASE_TO_TOOL if version == 2 else SUCCESS_CASE_TO_TOOL
+    tool_errors = TOOL_ERROR_CASES if version == 2 else CURRENT_TOOL_ERROR_CASES
+    expected = set(success) | set(tool_errors) | set(PROTOCOL_ERROR_CASES)
     if len(names) != len(expected) or set(names) != expected:
         return ["current exchanges require every distinct versioned success and error case"]
     return []
@@ -305,14 +362,14 @@ def _validate_case_request(case: dict) -> list[str]:
     ):
         return ["tool fixture requires a structured tools/call request"]
     expected_tool = SUCCESS_CASE_TO_TOOL.get(name)
-    if name in TOOL_ERROR_CASES:
-        expected_tool = TOOL_ERROR_CASES[name][0]
+    if name in CURRENT_TOOL_ERROR_CASES:
+        expected_tool = CURRENT_TOOL_ERROR_CASES[name][0]
     if expected_tool is not None and params["name"] != expected_tool:
         return ["fixture case does not exercise its specified tool"]
     return []
 
 
-def _validate_case_response(case: dict) -> list[str]:
+def _validate_case_response(case: dict, version: int) -> list[str]:
     name = case["name"]
     response = case["response"]
     if name in PROTOCOL_ERROR_CASES:
@@ -325,14 +382,24 @@ def _validate_case_response(case: dict) -> list[str]:
         ):
             return ["protocol error fixture differs from the v2 contract"]
         return []
-    if name in TOOL_ERROR_CASES:
-        _, message, verification = TOOL_ERROR_CASES[name]
+    tool_errors = TOOL_ERROR_CASES if version == 2 else CURRENT_TOOL_ERROR_CASES
+    if name in tool_errors:
+        _, message, verification = tool_errors[name]
         if (
             case["kind"] != "tool_error"
             or case["verification"] != verification
             or response["result"]["content"][0]["text"] != message
         ):
-            return ["runtime tool error fixture differs from the v2 contract"]
+            return ["runtime tool error fixture differs from its versioned contract"]
+        if (
+            version == 3
+            and name in READ_ERROR_CASES
+            and not _json_equal(
+                response["result"].get("structuredContent"),
+                {"error": READ_ERROR_CASES[name]},
+            )
+        ):
+            return ["typed read error fixture differs from its versioned contract"]
         return []
     if case["kind"] != "tool_success" or case["verification"] != "synthetic_output":
         return ["synthetic success outputs must not claim executed handler coverage"]
@@ -350,14 +417,14 @@ def _validate_case_response(case: dict) -> list[str]:
     return []
 
 
-def validate_exchange_contract(current: object) -> list[str]:
+def validate_exchange_contract(current: object, *, version: int = 3) -> list[str]:
     """Validate current synthetic examples without claiming their network paths executed."""
-    errors = _validate_current_shape(current)
+    errors = _validate_current_shape(current, version)
     if errors:
         return errors
     for case in current["cases"]:
         errors.extend(_validate_case_request(case))
-        errors.extend(_validate_case_response(case))
+        errors.extend(_validate_case_response(case, version))
     return errors
 
 
@@ -383,20 +450,18 @@ def _validate_case_schema(case: dict, by_name: dict) -> list[str]:
             )
         if not valid_input:
             return ["success or runtime-error fixture has invalid tool arguments"]
-        if case["kind"] == "tool_success" and not Draft202012Validator(
-            tool["outputSchema"],
-        ).is_valid(
-            case["response"]["result"]["structuredContent"],
-        ):
-            return ["success fixture does not satisfy its executable output schema"]
+        result = case["response"].get("result", {})
+        validator = Draft202012Validator(tool["outputSchema"])
+        if "structuredContent" in result and not validator.is_valid(result["structuredContent"]):
+            return ["structured fixture does not satisfy its executable output schema"]
     except (SchemaError, RecursionError, Unresolvable):
         return ["fixture tool schema could not be resolved offline"]
     return []
 
 
-def validate_case_schemas(current: object, snapshot: object) -> list[str]:
+def validate_case_schemas(current: object, snapshot: object, *, version: int = 3) -> list[str]:
     """Validate examples against captured schemas; negative parameters must remain invalid."""
-    errors = validate_exchange_contract(current) + validate_tool_snapshot(snapshot)
+    errors = validate_exchange_contract(current, version=version) + validate_tool_snapshot(snapshot)
     if errors:
         return errors
     by_name = {tool["name"]: tool for tool in snapshot["tools"]}
@@ -406,12 +471,20 @@ def validate_case_schemas(current: object, snapshot: object) -> list[str]:
     return errors
 
 
+def validate_historical_contract() -> list[str]:
+    """Keep the previous exact exchanges and catalogue independently verifiable."""
+    exchanges, exchange_errors = load_fixture(HISTORICAL_FIXTURE)
+    snapshot, snapshot_errors = load_fixture(HISTORICAL_TOOLS_FIXTURE)
+    errors = exchange_errors + snapshot_errors
+    return errors or validate_case_schemas(exchanges, snapshot, version=2)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--snapshot", type=Path, default=TOOLS_FIXTURE)
     parser.add_argument("--tools-result", type=Path, help="Captured JSON-RPC tools/list response")
     arguments = parser.parse_args(argv)
-    errors = validate_contract()
+    errors = validate_contract() + validate_historical_contract()
     current, current_errors = load_fixture(CURRENT_FIXTURE)
     errors.extend(current_errors or validate_exchange_contract(current))
     snapshot, snapshot_errors = load_fixture(arguments.snapshot)
@@ -425,7 +498,7 @@ def main(argv: list[str] | None = None) -> int:
         for error in errors:
             print(f"ERROR: {error}")  # noqa: T201 - command-line verification output
         return 1
-    print("remote MCP v2 exchanges, historical v1 inventory and tool schemas valid")  # noqa: T201
+    print("remote MCP v3 exchanges, historical v1/v2 contracts and tool schemas valid")  # noqa: T201
     return 0
 
 

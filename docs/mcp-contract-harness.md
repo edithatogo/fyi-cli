@@ -1,5 +1,21 @@
 # MCP product and contract harness
 
+## Current read-contract increment — 2026-11-17
+
+Issue #170 adds two read tools, typed safe read failures, shared source clients,
+feed plans and retrieval/cache/correlation provenance. Current snapshots are
+`tools-v2.json`, exchanges `v3.json`, upstream cases `upstream-v2.json`, and
+`status-v2.schema.json`. Historical v1/v2 exchanges and catalogue/status fixtures
+remain byte-for-byte regression inputs; the verifier checks their own schemas.
+The actual Rust catalogue and official SDK still compare the full current
+snapshot, and all current success/error payloads must fit advertised schemas.
+
+The [remote read contract](remote-mcp-read-contract.md) describes the current behavior.
+See the existing read track for execution evidence; historical test counts and
+merge receipts below describe their stated commits and are not new-run evidence.
+MCP protocol profiles and local/write payload schemas are unchanged.
+
+
 This document records executable evidence for the existing
 `remote-mcp-contract-harness-20260711` track. All examples and tests use
 synthetic local state. No CI probe sends a request to a live authority.
@@ -106,16 +122,16 @@ hot switching within a running subprocess.
 | Artifact | Contract and evidence |
 | --- | --- |
 | `tests/fixtures/remote_mcp/v1.json` | Unchanged historical inventory and old custom error envelopes; not the current wire contract |
-| `tests/fixtures/remote_mcp/tools-v1.json` | Full 23-tool executable catalogue, including descriptions, input/output schemas and annotations |
-| `tests/fixtures/remote_mcp/tools-v1.schema.json` | Snapshot structure and version contract |
-| `tests/fixtures/remote_mcp/v2.json` | 23 current success/error exchanges; each labels executed-handler or synthetic-output evidence |
+| `tests/fixtures/remote_mcp/tools-v2.json` | Current 25-tool catalogue, including seven read tools, descriptions, input/output schemas and annotations |
+| `tests/fixtures/remote_mcp/tools-v2.schema.json` | Current snapshot structure and version contract |
+| `tests/fixtures/remote_mcp/v3.json` | Current success/error exchanges; each labels executed-handler or synthetic-output evidence |
 | `tests/fixtures/remote_mcp/v2.schema.json` | Current exchange structure and version contract |
 
 The existing verifier checks strict JSON, duplicate keys/names, versions,
 complete case coverage, input/output schemas, error classification and matching
 text/structured content. It rejects unsupported versions, external schema
-references and invalid fixtures. The eight handler examples are replayed
-through actual JSON-RPC dispatch; all eight remote tools have synthetic success
+references and invalid fixtures. The current handler examples are replayed
+through actual JSON-RPC dispatch; all ten remote tools have synthetic success
 examples checked against output schemas. Synthetic read/commit outputs do not
 claim source-network success.
 
