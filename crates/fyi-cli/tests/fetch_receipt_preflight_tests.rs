@@ -21,11 +21,15 @@ impl Workspace {
     }
 
     fn run(&self, raw: &Path, result: &Path, receipt: &Path) -> Output {
+        self.run_with_db(&self.0.join("pacing.db"), raw, result, receipt)
+    }
+
+    fn run_with_db(&self, db: &Path, raw: &Path, result: &Path, receipt: &Path) -> Output {
         // Deliberately malformed: even the regression baseline cannot send HTTP.
         Command::new(env!("CARGO_BIN_EXE_fyi-cli"))
             .args(["fetch-request-page", "42", "--base-url", "not a URL"])
             .arg("--shared-rate-limit-db")
-            .arg(self.0.join("pacing.db"))
+            .arg(db)
             .arg("--raw-file")
             .arg(raw)
             .arg("--result-file")
@@ -49,6 +53,22 @@ impl Workspace {
 impl Drop for Workspace {
     fn drop(&mut self) {
         fs::remove_dir_all(&self.0).unwrap();
+    }
+}
+
+#[test]
+fn fetch_rejects_sqlite_urls_before_filesystem_path_preflight() {
+    let workspace = Workspace::new();
+    for database in ["sqlite::memory:", "sqlite://pacing.db?mode=rwc"] {
+        let output = workspace.run_with_db(
+            Path::new(database),
+            &workspace.0.join("response.raw"),
+            &workspace.0.join("result.json"),
+            &workspace.0.join("receipt.json"),
+        );
+        workspace.assert_preflight_error(&output, "filesystem pacing database path");
+        assert_eq!(output.status.code(), Some(2));
+        assert!(fs::read_dir(&workspace.0).unwrap().next().is_none());
     }
 }
 

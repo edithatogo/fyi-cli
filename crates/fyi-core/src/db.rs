@@ -3,7 +3,11 @@ pub mod local;
 use crate::api::{AlaveteliCorrespondence, AlaveteliRequest, CorrespondenceDirection};
 use chrono::Utc;
 use serde::Serialize;
-use sqlx::{sqlite::SqlitePool, sqlite::SqlitePoolOptions, Connection, Row};
+use sqlx::{
+    sqlite::{SqliteConnectOptions, SqlitePool, SqlitePoolOptions},
+    Connection, Row,
+};
+use std::path::Path;
 use std::time::Duration;
 
 /// Request-level sync status persisted in `sync_metadata`.
@@ -102,6 +106,25 @@ impl DbPool {
             .acquire_timeout(Duration::from_secs(3)) // Fail fast if DB is locked
             .idle_timeout(Duration::from_secs(10))
             .connect(database_url)
+            .await?;
+        Ok(Self { pool })
+    }
+
+    /// Open or create the literal filesystem path, without parsing a SQLite URL.
+    ///
+    /// Percent escapes, query characters and platform-valid path characters are
+    /// retained. Making the path absolute also prevents bare `:memory:` or
+    /// `file:` names from selecting SQLite's special memory/URI modes. Callers
+    /// remain responsible for path admission, parent directories and schema setup.
+    pub async fn new_file(path: &Path) -> Result<Self, sqlx::Error> {
+        let options = SqliteConnectOptions::new()
+            .filename(std::path::absolute(path)?)
+            .create_if_missing(true);
+        let pool = SqlitePoolOptions::new()
+            .max_connections(4)
+            .acquire_timeout(Duration::from_secs(3))
+            .idle_timeout(Duration::from_secs(10))
+            .connect_with(options)
             .await?;
         Ok(Self { pool })
     }

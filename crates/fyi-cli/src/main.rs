@@ -794,6 +794,15 @@ fn main() {
                     eprintln!("shared pacing database and evidence output paths must be distinct");
                     std::process::exit(2);
                 }
+                if shared_rate_limit_db
+                    .as_deref()
+                    .is_some_and(|db| db.starts_with("sqlite:"))
+                {
+                    eprintln!(
+                        "request receipt evidence requires a filesystem pacing database path"
+                    );
+                    std::process::exit(2);
+                }
                 let evidence_paths = fyi_core::sync::SyncPullEvidencePaths {
                     raw: Path::new(raw),
                     result: Path::new(result),
@@ -812,7 +821,11 @@ fn main() {
                 let mut client = fyi_core::sync::RequestEvidenceClient::new(base_url)?;
                 if let Some(db_path) = shared_rate_limit_db {
                     create_database_file(db_path)?;
-                    let pool = runtime.block_on(DbPool::new(&sqlite_url(db_path)))?;
+                    let pool = if receipt.is_some() {
+                        runtime.block_on(DbPool::new_file(Path::new(db_path)))?
+                    } else {
+                        runtime.block_on(DbPool::new(&sqlite_url(db_path)))?
+                    };
                     client = client.with_shared_pacing(
                         pool,
                         rate_limit_name.as_deref().unwrap_or("archive-discovery"),
@@ -1277,7 +1290,11 @@ fn handle_sync_command(
             } else {
                 None
             };
-            let pool = DbPool::new(&sqlite_url(db)).await?;
+            let pool = if receipt.is_some() {
+                DbPool::new_file(Path::new(db)).await?
+            } else {
+                DbPool::new(&sqlite_url(db)).await?
+            };
             pool.run_migrations().await?;
             let config = SyncConfig {
                 pull_interval: std::time::Duration::from_secs((*interval_seconds).max(1)),

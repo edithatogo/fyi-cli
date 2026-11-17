@@ -8,6 +8,10 @@ must be specified as a filesystem path for this mode. The command rejects
 symlinked paths, nested evidence paths and collisions before opening the
 database or contacting the source.
 
+Receipt mode opens the database as the same literal filesystem path that was
+checked. Percent signs, query-like text and Unix backslashes in a filename are
+not interpreted as SQLite URL syntax. `sqlite:` URLs are rejected in this mode.
+
 The dedicated client makes one read-only GET, does not follow redirects, retry
 (including reqwest's protocol-level retries),
 reuse a cache or decompress the HTTP body, and bounds that body to 16 MiB. It

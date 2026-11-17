@@ -56,6 +56,11 @@ source. Paths are checked again after the source exchange. Use an operator-owned
 directory tree that other processes cannot rename or modify; these checks do not
 provide a directory-handle guarantee against every hostile filesystem race.
 
+With receipt output, `--shared-rate-limit-db` must be a filesystem path, not a
+`sqlite:` URL. The database is opened through literal filename options so URL
+escaping, query-like text and Unix backslashes cannot change the path checked
+by preflight.
+
 Writes create private same-directory temporary files, flush them and atomically
 publish without replacing existing evidence. The raw and normalized files are
 published **before** the receipt. The low-level writers retain byte-identical
