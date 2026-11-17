@@ -585,7 +585,10 @@ impl SyncClient {
             .build()
             .context("failed to build outbound request")?;
         if request.url().origin() != self.base_url.origin() {
-            return Err(SourceReadError::new(SourceFailureKind::Validation).into());
+            return Err(
+                anyhow::Error::new(SourceReadError::new(SourceFailureKind::Validation))
+                    .context("outbound request violates configured source origin policy"),
+            );
         }
         let cache_key = request.url().to_string();
         let cacheable_get = allow_cache
