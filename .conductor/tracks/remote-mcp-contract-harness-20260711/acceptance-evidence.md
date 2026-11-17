@@ -1,5 +1,66 @@
 # Acceptance evidence
 
+## Reproducible harness increment (2026-11-17)
+
+Starting source is `1f0ae6d0b00663d52ccb65904152ca4e933b3486`. The existing
+#173 assignment now includes the following independently reviewable sensors:
+
+- Shared v1 corpus: 17 synthetic JSON/RSS/Atom/error cases, exact file hashes,
+  strict schemas, private verifier failures and negative controls. Existing
+  root fixtures are reused unchanged. Twelve JSON/error variants have actual
+  SDK/source replay cases using the existing non-forwarding Linux TLS fixture.
+- Five generated source-contract families: result pagination/order/query
+  encoding across collection variants, matched/stale state preconditions and
+  immutable confirmation scope/replay, confined path normalization with exact
+  multipart bytes, invalid path rejection before I/O, and source-error privacy.
+  Negative controls cover escaped strings in responses and diagnostic logs.
+- Current-source mutation manifest: 15 exact targets and 11 distinct baseline
+  selectors across capability, confirmation scope/expiry/replay, SSRF, source
+  and MCP guardrails, typed errors/retryability and nested redaction. The runner
+  exports committed HEAD and its manifest, uses offline/locked Cargo and one
+  build job, cancels output/time overruns, retains bounded per-test logs, and
+  fails on survivors, unviable edits, missing selectors or stale source.
+- Six explicit platform/compiler cells: Ubuntu 24.04, Windows 2025 and macOS 15
+  against repository-pinned current Rust 1.100.0 and MSRV 1.99.1. Each cell uses
+  an additional CPython 3.12 / lock-pinned MCP client environment, verifies the
+  Rust wire/journal targets and exactly 16 portable stdio SDK cases without
+  skips, and retains compiler/source/client/executable identities. The existing
+  required Python 3.15.2 Linux suite remains separate and unchanged.
+
+### Verification at implementation time
+
+The new runner imports and missing shared manifest produced the intended RED
+failures before implementation. Fixture and runner negative controls pass on
+Linux CPython 3.12.14 with the frozen MCP SDK 1.30.0 test environment. The
+standalone shared corpus verifies 17 cases. The combined existing contract and
+new harness regression run passed **214 tests**, with the 12 new source replays
+deselected pending a compiled binary (4.42 seconds). Ruff, formatting, Rustfmt,
+the existing remote-MCP verifier and the Conductor verifier pass. The 15 mutation
+source selectors validate, without claiming mutation execution. Runtime receipts
+remain pending the candidate execution.
+
+Local Rust builds were killed with SIGKILL in dependency compilation, including
+after reducing to one build job, no debug information and serial code generation.
+Those attempts do not establish executable test success. Full local Python
+3.15.2 environment preparation also stopped on missing CFFI development
+headers; the successful local frozen test environment uses Python 3.12.14.
+Hosted dependency preparation and runtime checks remain required. No Rust
+version, source dependency, runtime lock or existing required gate was changed
+to conceal either environment limitation.
+
+### Acceptance boundary
+
+The fixture verifier establishes syntax/schema/identity expectations. It does
+not prove the production feed helper rejects malformed XML; that helper still
+extracts link text and the deliberately truncated feeds preserve complete
+links. Feed implementation remains with #170. Raw transfer and filesystem-cache
+qualification, immutable attachment content, atomic upstream state transitions,
+platform ACL/power-loss behavior and genuine future profile migration remain
+separate gates. New matrix and mutation configuration requires actual passing
+execution before it counts as acceptance evidence. The track remains open and
+unarchived; no complete-workspace mutation score or live-platform certification
+is claimed.
+
 ## Reconciled baseline (2026-11-14)
 
 Commit `a816dcd` had a pending plan and metadata despite the registry's

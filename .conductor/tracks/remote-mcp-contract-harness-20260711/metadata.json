@@ -3,7 +3,7 @@
   "type": "quality",
   "status": "in_progress",
   "created_at": "2026-07-11T08:34:24Z",
-  "updated_at": "2026-11-14T15:25:47Z",
+  "updated_at": "2026-11-17T09:11:32Z",
   "description": "Compatibility contracts and aggressive harness engineering for remote MCP tools",
   "github_parent_issue": 169,
   "github_issue": 173,
@@ -20,41 +20,13 @@
     458,
     459
   ],
-  "active_increment": {
-    "issue": 169,
-    "branch": "test/mcp-upstream-contracts-169-20261114",
-    "dependency_pull_request": 458,
-    "dependency_head": "d42a78f1e941b39ddf82df8eba77c3a6cab0a4db",
-    "original_local_test_first_commit": "bb2951b076a86c02ba6b728069a5e2ca8decf98a",
-    "test_first_commit": "0883e4cf6702bc5167e464e2d2253c5484c9c877",
-    "implementation_commit": "95631aa29f55185932f1e76d913b98eb8b77039b",
-    "implementation_tree": "2f0af0e2475748915637306f65f27be6974c962b",
-    "status": "implemented",
-    "merge_window": "explicit_user_merge_instruction_sequential_integration",
-    "actual_upstream_tests_passed": 37,
-    "deterministic_query_examples": 12,
-    "targeted_mutations_caught": 3,
-    "runtime_scope": "Linux x86_64, Rust 1.99.1, Python 3.12.14, locked MCP SDK 1.30.0",
-    "guarded_python_tests_passed": 1552,
-    "guarded_python_tests_skipped": 2,
-    "external_python_network_attempts": 0,
-    "pull_request_base": "master",
-    "dependency_integration": "458_and_457_merged_before_final_459_verification",
-    "pull_request": 459,
-    "dependency_merge_commit": "393241da3dd3124c969e2d3f4304b27a2cf8fd22",
-    "integration_upstream_test_count": 38,
-    "integration_subprocess_contract": "test_shared_journal_allows_one_subprocess_write_and_blocks_restart_replay",
-    "integration_verification": "https://github.com/edithatogo/fyi-cli/pull/459",
-    "journal_dependency_pull_request": 457,
-    "journal_dependency_merge_commit": "103844052210104666e01d4994d9e2f77986851d"
-  },
   "acceptance_evidence": "acceptance-evidence.md",
   "closure_status": "not_archived_acceptance_evidence_incomplete",
   "remaining_blockers": [
-    "Versioned RSS/Atom and malformed-feed fixtures; read-only authority-feed and full supported-source variant acceptance",
+    "Production malformed-feed and read-only authority-feed acceptance beyond the shared v1 synthetic JSON/RSS/Atom/error corpus",
     "Reused-cache corruption and raw multi-chunk cancellation, peak-memory and shared source request/byte/time allowance evidence",
-    "Supported Windows/macOS client/runtime runs and complete declared Rust/MSRV matrix",
-    "Broader state/pagination/URL/path properties and SSRF/source guardrail/error-classification mutation coverage",
+    "Actual exact-head execution of the six supported platform/compiler cells and retained client receipts; platform ACL qualification remains separate",
+    "Actual exact-head execution of generated state/pagination/path/privacy contracts and all 15 security mutations; broader source behavior depends on its owner",
     "Immutable attachment content and atomic upstream state guarantees remain open",
     "Genuine profile-withdrawal and contract-migration behavior; neither advertised profile is currently deprecated"
   ],
@@ -105,5 +77,66 @@
       "hosted_python_tests_passed": 1515,
       "hosted_python_tests_skipped": 2
     }
-  ]
+  ],
+  "previous_increments": [
+    {
+      "issue": 169,
+      "branch": "test/mcp-upstream-contracts-169-20261114",
+      "dependency_pull_request": 458,
+      "dependency_head": "d42a78f1e941b39ddf82df8eba77c3a6cab0a4db",
+      "original_local_test_first_commit": "bb2951b076a86c02ba6b728069a5e2ca8decf98a",
+      "test_first_commit": "0883e4cf6702bc5167e464e2d2253c5484c9c877",
+      "implementation_commit": "95631aa29f55185932f1e76d913b98eb8b77039b",
+      "implementation_tree": "2f0af0e2475748915637306f65f27be6974c962b",
+      "status": "implemented",
+      "merge_window": "explicit_user_merge_instruction_sequential_integration",
+      "actual_upstream_tests_passed": 37,
+      "deterministic_query_examples": 12,
+      "targeted_mutations_caught": 3,
+      "runtime_scope": "Linux x86_64, Rust 1.99.1, Python 3.12.14, locked MCP SDK 1.30.0",
+      "guarded_python_tests_passed": 1552,
+      "guarded_python_tests_skipped": 2,
+      "external_python_network_attempts": 0,
+      "pull_request_base": "master",
+      "dependency_integration": "458_and_457_merged_before_final_459_verification",
+      "pull_request": 459,
+      "dependency_merge_commit": "393241da3dd3124c969e2d3f4304b27a2cf8fd22",
+      "integration_upstream_test_count": 38,
+      "integration_subprocess_contract": "test_shared_journal_allows_one_subprocess_write_and_blocks_restart_replay",
+      "integration_verification": "https://github.com/edithatogo/fyi-cli/pull/459",
+      "journal_dependency_pull_request": 457,
+      "journal_dependency_merge_commit": "103844052210104666e01d4994d9e2f77986851d"
+    }
+  ],
+  "active_increment": {
+    "issue": 173,
+    "branch": "test/mcp-harness-173-20261117",
+    "starting_source": "1f0ae6d0b00663d52ccb65904152ca4e933b3486",
+    "status": "implemented_pending_runtime_verification",
+    "shared_fixture_cases": 17,
+    "source_replay_cases": 12,
+    "generated_contract_families": 5,
+    "security_mutation_targets": 15,
+    "mutation_baseline_selectors": 11,
+    "compatibility_platforms": [
+      "ubuntu-24.04",
+      "windows-2025",
+      "macos-15"
+    ],
+    "compatibility_compilers": [
+      "1.100.0",
+      "1.99.1"
+    ],
+    "compatibility_python": "3.12",
+    "compatibility_sdk": "uv.lock",
+    "portable_sdk_cases_per_cell": 16,
+    "runtime_evidence": "pending_actual_execution",
+    "local_environment_limitations": [
+      "Rust dependency builds terminated with SIGKILL",
+      "CPython 3.15.2 CFFI headers unavailable"
+    ],
+    "production_source_changed": false,
+    "local_harness_tests_passed": 214,
+    "source_replays_not_yet_executed": 12
+  }
 }

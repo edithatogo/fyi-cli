@@ -1,0 +1,228 @@
+name: MCP compatibility
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "crates/fyi-core/**"
+      - "crates/fyi-mcp/**"
+      - "crates/fyi-cli/Cargo.toml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "tests/test_mcp_client_interop.py"
+      - "tests/test_mcp_compatibility.py"
+      - "tests/test_mcp_fixture_corpus.py"
+      - "tests/test_mcp_generated_contracts.py"
+      - "tests/test_mcp_generated_privacy_sensor.py"
+      - "tests/test_mcp_security_mutation_runner.py"
+      - "tests/fixtures/api_contracts/**"
+      - "tests/fixtures/remote_mcp/**"
+      - "conformance/mcp/**"
+      - "scripts/run_mcp_security_mutations.py"
+      - "scripts/verify_mcp_fixture_corpus.py"
+      - "scripts/verify_remote_mcp_contract.py"
+      - "scripts/verify_mcp_compatibility.py"
+      - ".github/workflows/mcp-compatibility.yml"
+  push:
+    branches: [master]
+    paths:
+      - "crates/fyi-core/**"
+      - "crates/fyi-mcp/**"
+      - "crates/fyi-cli/Cargo.toml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "tests/test_mcp_client_interop.py"
+      - "tests/test_mcp_compatibility.py"
+      - "tests/test_mcp_fixture_corpus.py"
+      - "tests/test_mcp_generated_contracts.py"
+      - "tests/test_mcp_generated_privacy_sensor.py"
+      - "tests/test_mcp_security_mutation_runner.py"
+      - "tests/fixtures/api_contracts/**"
+      - "tests/fixtures/remote_mcp/**"
+      - "conformance/mcp/**"
+      - "scripts/run_mcp_security_mutations.py"
+      - "scripts/verify_mcp_fixture_corpus.py"
+      - "scripts/verify_remote_mcp_contract.py"
+      - "scripts/verify_mcp_compatibility.py"
+      - ".github/workflows/mcp-compatibility.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mcp-compatibility-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: never
+  CARGO_BUILD_JOBS: "2"
+  CARGO_INCREMENTAL: "0"
+  CARGO_PROFILE_DEV_DEBUG: "0"
+  CARGO_PROFILE_TEST_DEBUG: "0"
+
+jobs:
+  stdio:
+    name: MCP stdio (${{ matrix.os }}, ${{ matrix.compiler }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-15]
+        compiler: [current, msrv]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Audit Linux runner network access
+        if: runner.os == 'Linux'
+        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        with:
+          egress-policy: audit
+
+      - name: Checkout sources
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      # This additional cross-platform client cell complements the unchanged
+      # required Python 3.15.2 Linux suite. Python 3.12 has portable locked wheels.
+      - name: Set up the compatibility client runtime
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+
+      - name: Resolve declared compiler and locked client roots
+        id: configuration
+        env:
+          COMPILER_CELL: ${{ matrix.compiler }}
+        run: |
+          mkdir -p artifacts/mcp-compatibility
+          compiler="$(python scripts/verify_mcp_compatibility.py --toolchain "$COMPILER_CELL" --print-toolchain)"
+          printf 'toolchain=%s\n' "$compiler" >> "$GITHUB_OUTPUT"
+          python scripts/verify_mcp_compatibility.py --print-client-requirements > artifacts/mcp-compatibility/client-roots.txt
+
+      - name: Install selected Rust compiler
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+        with:
+          toolchain: ${{ steps.configuration.outputs.toolchain }}
+
+      - name: Cache compiler-specific Cargo artifacts
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: mcp-compatibility-${{ runner.os }}-${{ runner.arch }}-${{ steps.configuration.outputs.toolchain }}-${{ hashFiles('Cargo.lock', '.github/workflows/mcp-compatibility.yml') }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+
+      - name: Prepare frozen client and Cargo dependencies
+        env:
+          MCP_COMPILER: ${{ steps.configuration.outputs.toolchain }}
+        run: |
+          uv export --frozen --extra dev --no-emit-project --output-file artifacts/mcp-compatibility/locked-constraints.txt > /dev/null
+          uv venv --python 3.12 .venv-mcp-client
+          client_python=".venv-mcp-client/bin/python"
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            client_python=".venv-mcp-client/Scripts/python.exe"
+          fi
+          uv pip install --python "$client_python" --require-hashes --constraints artifacts/mcp-compatibility/locked-constraints.txt --requirements artifacts/mcp-compatibility/client-roots.txt
+          printf 'MCP_CLIENT_PYTHON=%s\n' "$client_python" >> "$GITHUB_ENV"
+          cargo +"$MCP_COMPILER" fetch --locked
+
+      - name: Execute offline Rust and official SDK stdio contracts
+        env:
+          COMPILER_CELL: ${{ matrix.compiler }}
+          SOURCE_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          "$MCP_CLIENT_PYTHON" scripts/verify_mcp_compatibility.py --toolchain "$COMPILER_CELL" --output artifacts/mcp-compatibility
+
+      - name: Replay shared source and generated contracts on Linux
+        if: runner.os == 'Linux' && matrix.compiler == 'current'
+        run: |
+          FYI_MCP_TEST_BINARY="$PWD/target/debug/fyi-mcp" "$MCP_CLIENT_PYTHON" -m pytest -q -o addopts= \
+            tests/test_mcp_fixture_corpus.py tests/test_mcp_generated_contracts.py \
+            tests/test_mcp_generated_privacy_sensor.py \
+            --junitxml=artifacts/mcp-compatibility/source-junit.xml \
+            --hypothesis-show-statistics
+
+      - name: Retain executable for receipt reproduction
+        if: always()
+        run: |
+          if [ -f target/debug/fyi-mcp ]; then
+            cp target/debug/fyi-mcp artifacts/mcp-compatibility/fyi-mcp
+          elif [ -f target/debug/fyi-mcp.exe ]; then
+            cp target/debug/fyi-mcp.exe artifacts/mcp-compatibility/fyi-mcp.exe
+          fi
+
+      - name: Retain exact compatibility evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: mcp-compatibility-${{ matrix.os }}-${{ matrix.compiler }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/mcp-compatibility/
+          if-no-files-found: error
+          retention-days: 14
+
+  security-mutations:
+    name: MCP security mutations
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Audit runner network access
+        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        with:
+          egress-policy: audit
+
+      - name: Checkout source snapshot
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Install pinned Rust compiler
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+
+      - name: Set up the harness runtime
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+
+      - name: Cache isolated mutation dependencies and build artifacts
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/mcp-security-mutations/build/
+          key: mcp-security-mutations-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml', '.github/workflows/mcp-compatibility.yml') }}
+
+      - name: Prepare locked dependencies
+        run: cargo fetch --locked
+
+      - name: Execute all versioned security mutations offline
+        run: >-
+          python scripts/run_mcp_security_mutations.py
+          --report artifacts/mcp-security-mutations/report.json
+          --timeout-seconds 600 --total-seconds 2400
+
+      - name: Retain mutation execution evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: mcp-security-mutations-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/mcp-security-mutations/
+          if-no-files-found: error
+          retention-days: 14

@@ -1,5 +1,26 @@
 # Plan: Remote MCP contract harness
 
+## Reproducible harness increment — 2026-11-17
+
+Starting source: `1f0ae6d0b00663d52ccb65904152ca4e933b3486`. Issue #173
+authorizes the remaining contract harness work. Source adapter implementation,
+write operations and observability remain in their #170, #171 and #172 tracks.
+
+- [~] Version the existing shared source fixtures with an integrity manifest,
+  explicit synthetic provenance and fail-closed negative controls; distinguish
+  fixture validation from an actually exercised production parser.
+- [~] Extend generated SDK/source contracts for state preconditions, bounded
+  result pagination, attachment normalization and private error responses.
+- [~] Commit a bounded, reproducible mutation manifest and runner for capability,
+  confirmation/replay, SSRF, source guardrail and error-classification assertions.
+  Survivors, stale mutations, compilation failures and missing tests must fail.
+- [~] Add an isolated Linux/Windows/macOS current-Rust/MSRV compatibility workflow
+  using the existing locked official SDK and portable stdio contracts. Require
+  exact test evidence without skips; retain platform/source qualification limits.
+- [ ] Review the integrated change, run its executable sensors and record exact
+  results in the existing acceptance evidence. Keep incomplete source/runtime
+  acceptance open; do not infer track closure from a configured matrix.
+
 ## Error-classification regression increment — 2026-11-16
 
 - [x] For #170/#172/#173, exercise typed source HTTP failures and private MCP

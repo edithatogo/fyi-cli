@@ -257,11 +257,11 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Dependencies: remote-mcp-observability-security*
   *Priority: high*
 
-- [~] **Track: remote-mcp-contract-harness** (IN PROGRESS 2026-11-14; protocol PR #438, confirmation/budget PR #441, schema/SDK PR #443, degraded-startup PR #449 and credential-namespace PR #452 merged; original acceptance incomplete)
+- [~] **Track: remote-mcp-contract-harness** (IN PROGRESS 2026-11-17; existing MCP/source contracts merged; reproducible fixture, mutation and platform harness increment under verification)
   *GitHub parent: [#169](https://github.com/edithatogo/fyi-cli/issues/169)*
   *GitHub issue: [#173](https://github.com/edithatogo/fyi-cli/issues/173)*
   *Link: [./tracks/remote-mcp-contract-harness-20260711/](./tracks/remote-mcp-contract-harness-20260711/)*
-  *Description: Executable MCP catalogue/exchange fixtures, official SDK stdio/HTTP and synthetic upstream contracts, private errors, bounded confirmations and measured local budgets. RSS/Atom, source cache/transfer, broader mutation/property and Windows/macOS evidence remain open; see acceptance-evidence.md in the existing track.*
+  *Description: Executable MCP catalogue/exchange fixtures, official SDK stdio/HTTP and synthetic upstream contracts, private errors, bounded confirmations and measured local budgets. Versioned shared corpus, generated state/pagination/path/privacy contracts, committed security mutations and a six-cell platform/compiler workflow extend the harness. Production malformed-feed/cache/transfer guarantees and exact runtime/mutation/platform receipts remain explicit gates; see acceptance-evidence.md in the existing track.*
   *Dependencies: remote-mcp-observability-security, remote-mcp-read-surface*
   *Priority: high*
 

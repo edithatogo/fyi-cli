@@ -83,8 +83,46 @@ When Cargo is available the SDK fixture builds current source once. An explicit
 cannot silently skip. Outside GitHub Actions the test can skip only when both
 Cargo and a binary are absent; GitHub Actions fails on that missing prerequisite.
 The existing unfiltered Python Tests job invokes the SDK suite without a new
-workflow. The Layered Harness Contract job validates fixtures separately and
+workflow requirement. The additional `MCP compatibility` workflow now executes
+the portable stdio subset across the declared compiler/platform cells below.
+The Layered Harness Contract job validates fixtures separately and
 does not itself establish client interoperability.
+
+### Reproducible remaining harness gates
+
+The #173 increment adds three independently inspectable gates:
+
+```bash
+python scripts/verify_mcp_fixture_corpus.py
+python -m pytest -q tests/test_mcp_fixture_corpus.py tests/test_mcp_generated_contracts.py
+python scripts/verify_mcp_compatibility.py --toolchain current --output target/mcp-compatibility
+python scripts/run_mcp_security_mutations.py --report target/mcp-mutations/report.json
+```
+
+Use the lock-pinned MCP SDK. The compatibility workflow exports hashed frozen
+constraints and installs only the SDK/test dependency closure. Its additional
+CPython 3.12 cells complement the existing required CPython 3.15.2 Linux suite.
+Dependency acquisition precedes execution; Cargo invocations inside both
+execution runners use `--offline --locked`.
+
+The compatibility runner builds current source and executes the existing Rust
+wire/journal process contracts plus all 16 selected official SDK stdio cases.
+It rejects missing, duplicated, filtered, failed or skipped cases and records
+the checkout, compiler, client, platform, lock and executable identities. A
+stale success receipt is cleared before starting. The workflow retains receipts
+and logs for each Linux/Windows/macOS × current/MSRV cell.
+
+The mutation runner exports exactly the committed `HEAD` into a disposable
+directory. A complete run requires every manifest target; diagnostic `--only`
+runs are explicitly incomplete. Source drift, failed baselines, missing exact
+selectors, compilation failure, timeout or surviving mutations fail the gate.
+The original checkout is never mutated. These targeted results are distinct
+from a whole-workspace mutation score.
+
+The existing full Python job also collects the new shared-source and generated
+contracts. Successful source exchanges use the existing non-forwarding local
+TLS fixture and remain qualified on Linux only. A configured workflow or a
+fixture-verifier pass alone does not establish a platform or source runtime pass.
 
 ### Degraded stdio startup and recovery
 
@@ -126,6 +164,15 @@ hot switching within a running subprocess.
 | `tests/fixtures/remote_mcp/tools-v2.schema.json` | Current snapshot structure and version contract |
 | `tests/fixtures/remote_mcp/v3.json` | Current success/error exchanges; each labels executed-handler or synthetic-output evidence |
 | `tests/fixtures/remote_mcp/v2.schema.json` | Current exchange structure and version contract |
+| `tests/fixtures/api_contracts/v1/manifest.json` | 17 synthetic shared JSON/RSS/Atom/error cases, immutable file hashes, expected syntax/schema outcomes and explicit source-replay scope |
+
+`verify_mcp_fixture_corpus.py` refuses corpus drift, unsupported versions,
+duplicate identities/keys, nonfinite JSON, external schema references, unsafe
+paths, entity declarations and oversized fixtures. Twelve shared JSON/error
+cases replay through the actual SDK and source client. Existing Rust tests
+consume the original feed fixtures. Truncated RSS/Atom include complete links
+inside malformed XML: strict fixture validation rejects them, but production
+feed rejection is not claimed because its current helper extracts link text.
 
 The existing verifier checks strict JSON, duplicate keys/names, versions,
 complete case coverage, input/output schemas, error classification and matching
@@ -169,6 +216,15 @@ counts and capability scope
 lists have explicit computation bounds. A 20-example Hypothesis test sends
 generated invalid arguments through the real SDK and verifies unchanged local
 state and subsequent ping responsiveness.
+
+`tests/test_mcp_generated_contracts.py` extends these generated contracts to
+array/requests/results pagination variants, exact query encoding, unchanged
+local state, state-precondition match/mismatch, payload/scope binding and replay
+denial, confined attachment path separators and exact multipart bytes, explicit
+unsafe path classes, and private typed source errors. Every example uses fresh
+synthetic state and asserts exact source request counts. A state preflight is
+still GET followed by PUT; these tests do not establish server compare-and-set
+or attachment immutability under filesystem races.
 
 The 1 MiB and 64-message input limits are deterministic input bounds. They do
 not independently establish a process memory limit. Cross-platform evidence,
@@ -256,6 +312,19 @@ latency and explicitly report unavailable `/proc` memory evidence.
 
 ## Targeted mutation execution
 
+The current-source manifest is
+`conformance/mcp/security-mutations-v1.json`. Its 15 reviewed mutations target
+write capability and degraded mode, all three confirmation scope fields,
+expiry and single use, private/credential-bearing source URLs, source request
+and byte limits, MCP request allowances, typed error identity, write retry
+denial and recursive redaction. The `MCP security mutations` job executes this
+complete catalogue against the PR checkout and retains its exact evidence.
+Only a compiled, executed assertion failure in the selected test counts as a
+caught mutation. The manifest and runner are versioned together; acceptance
+requires actual execution on the intended commit.
+
+The following results remain historical evidence for the earlier policy slice:
+
 `cargo-mutants 27.1.0` tested the PR #441 policy/confirmation implementation at
 `2b4edb2eb060c31a24f9ebe65cc30bcde18ddc8e` with Rust 1.99.1. The unmutated
 baseline passed 51 selected tests. Of 40 selected mutations, 39 were caught,
@@ -299,8 +368,8 @@ the track evidence. No second source harness or source changes were introduced.
 
 | Existing sensor family | What passed | What is still not established |
 | --- | --- | --- |
-| JSON parsing and persistence | Shared response fixtures, optional fields, malformed/missing-field rejection without local mutation | Explicit source fixture version manifest |
-| RSS/Atom links and feed retrieval | Link extraction, deduplication and watched-request fetch | Shared versioned feeds, malformed XML, full parser conformance |
+| JSON parsing and persistence | Shared response fixtures, optional fields, malformed/missing-field rejection without local mutation; v1 fixture manifest and source-replay sensors added | Record actual new replay results for each PR head; synthetic coverage is not live certification |
+| RSS/Atom links and feed retrieval | Link extraction, deduplication and watched-request fetch; shared v1 feed identities | Production malformed-XML rejection and full parser conformance |
 | SSRF and redirects | Private/credential target rejection, rejected cross-port redirect, accepted same-origin relative redirect | Rebinding, redirect-chain exhaustion and other untested redirect variants |
 | Source request/byte guardrails | Oversized small response and blocked next request; exact one-request allowance | Multi-chunk cancellation/peak memory and MCP-to-source budget propagation |
 | HTTP cache | Reuse on 304, error responses do not replace a valid entry | Corrupt cache metadata/body or filesystem cache injection |
@@ -344,9 +413,9 @@ separate source URL/path/pagination, state or transport-budget acceptance gates.
 | Kill switch, cooldown and skew | Deterministic injected policy/gate/future tests | Passed internally; no external live-control channel claimed |
 | Workspace stable/MSRV on Linux | Existing CI and Frontier Conductor/MSRV jobs | Record checks for each PR's final head |
 | Dependency-lock MCP SDK version | Existing Python CI resolves `uv.lock` | SDK 1.30.0 passed locally; full locked-environment final-head CI is recorded separately |
-| Windows and macOS runtime/SDK pairs | Tests are portable; no new platform workflow introduced | Not executed in this workstream |
-| Supported source JSON/RSS/Atom variants | Existing source tests reused | Shared versioned feed fixtures and full MCP-to-source success matrix incomplete |
-| Source transfer/cache faults | Existing source unit tests plus MCP future timeout/circuit tests | Disconnect, malformed transfer and corrupt cache integration not established |
+| Linux/Windows/macOS, Rust 1.100.0 and MSRV 1.99.1, CPython 3.12, locked SDK | Six explicit `MCP compatibility` cells with exact Rust/SDK receipt verification | Execution must pass on the PR's actual head; workflow configuration is not a platform receipt |
+| Supported source JSON/RSS/Atom variants | Existing source tests plus shared v1 manifest and 12 SDK/source replay cases | Production malformed-feed conformance and broader live-source certification remain separate |
+| Source transfer/cache faults | Merged #459 establishes synthetic Linux disconnect, malformed chunk/header, truncation and production header/body timeout cases | Corrupt/reused cache and complete raw-transfer/peak-memory guarantees remain open |
 | Full layered release gate | Current verifier, Rust tests and SDK suites reuse existing jobs | Track remains open pending the remaining rows |
 
 The acceptance checklist and exact closure dependencies are maintained in the
