@@ -9,11 +9,13 @@ struct Workspace(PathBuf);
 impl Workspace {
     fn new() -> Self {
         static NEXT_ID: AtomicU64 = AtomicU64::new(0);
-        let directory = fs::canonicalize(std::env::temp_dir()).unwrap().join(format!(
-            "fyi-fetch-preflight-{}-{}",
-            std::process::id(),
-            NEXT_ID.fetch_add(1, Ordering::Relaxed)
-        ));
+        let directory = fs::canonicalize(std::env::temp_dir())
+            .unwrap()
+            .join(format!(
+                "fyi-fetch-preflight-{}-{}",
+                std::process::id(),
+                NEXT_ID.fetch_add(1, Ordering::Relaxed)
+            ));
         fs::create_dir(&directory).unwrap();
         Self(directory)
     }

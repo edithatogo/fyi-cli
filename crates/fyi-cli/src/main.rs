@@ -201,7 +201,7 @@ pub enum Commands {
         #[arg(long, default_value = "30.0")]
         request_timeout_seconds: String,
     },
-    #[command(about = "Fetch request HTML page and parse info")]
+    #[command(about = "Acquire a public request JSON response with optional evidence")]
     FetchRequestPage {
         request_id: i32,
         #[arg(long, default_value = "https://fyi.org.nz")]
@@ -765,6 +765,10 @@ fn main() {
             rate_limit_name,
             minimum_interval_seconds,
         } => {
+            if *request_id <= 0 {
+                eprintln!("request ID must be positive");
+                std::process::exit(2);
+            }
             let provided = [receipt, result_file, raw_file]
                 .iter()
                 .filter(|item| item.is_some())
@@ -790,10 +794,22 @@ fn main() {
                     eprintln!("shared pacing database and evidence output paths must be distinct");
                     std::process::exit(2);
                 }
+                let evidence_paths = fyi_core::sync::SyncPullEvidencePaths {
+                    raw: Path::new(raw),
+                    result: Path::new(result),
+                    receipt: Path::new(receipt),
+                };
+                if let Err(error) = fyi_core::sync::preflight_sync_pull_evidence(
+                    &evidence_paths,
+                    shared_rate_limit_db.as_deref().map(Path::new),
+                ) {
+                    eprintln!("Invalid acquisition evidence paths: {error}");
+                    std::process::exit(2);
+                }
             }
             let result = (|| -> Result<(), Box<dyn std::error::Error>> {
                 let runtime = Runtime::new()?;
-                let mut client = SyncClient::new(base_url)?;
+                let mut client = fyi_core::sync::RequestEvidenceClient::new(base_url)?;
                 if let Some(db_path) = shared_rate_limit_db {
                     create_database_file(db_path)?;
                     let pool = runtime.block_on(DbPool::new(&sqlite_url(db_path)))?;
@@ -803,30 +819,23 @@ fn main() {
                         minimum_interval_seconds.unwrap_or(std::time::Duration::from_secs(2)),
                     );
                 }
-                let evidence =
-                    runtime.block_on(client.fetch_request_evidence(i64::from(*request_id)))?;
-                if let (Some(receipt), Some(result), Some(raw)) = (
+                let request = if let (Some(receipt), Some(result), Some(raw)) = (
                     receipt.as_deref(),
                     result_file.as_deref(),
                     raw_file.as_deref(),
                 ) {
-                    // Raw and projection blobs are committed before the receipt.
-                    // A failed partial acquisition cannot publish a false
-                    // completed receipt; retrying is byte-identical and safe.
-                    fyi_core::acquisition_receipts::write_evidence_bytes_atomic(
-                        Path::new(raw),
-                        &evidence.raw_body,
-                    )?;
-                    fyi_core::acquisition_receipts::write_evidence_bytes_atomic(
-                        Path::new(result),
-                        &evidence.result_projection,
-                    )?;
-                    fyi_core::acquisition_receipts::write_receipt_atomic(
-                        Path::new(receipt),
-                        &evidence.receipt,
-                    )?;
-                }
-                println!("{}", serde_json::to_string_pretty(&evidence.request)?);
+                    let paths = fyi_core::sync::SyncPullEvidencePaths {
+                        raw: Path::new(raw),
+                        result: Path::new(result),
+                        receipt: Path::new(receipt),
+                    };
+                    runtime.block_on(client.fetch(i64::from(*request_id), &paths))?
+                } else {
+                    runtime
+                        .block_on(client.fetch_evidence(i64::from(*request_id)))?
+                        .request
+                };
+                println!("{}", serde_json::to_string_pretty(&request)?);
                 Ok(())
             })();
             if let Err(error) = result {

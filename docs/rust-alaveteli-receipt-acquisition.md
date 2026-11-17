@@ -1,18 +1,34 @@
 # Guarded Rust Alaveteli acquisition with v1 receipts
 
-Status: incremental read-only integration, 13 November 2026. Canonical Conductor owner: `.conductor/tracks/source-adapter-boundary-20260812/` (#309, #310). **Not a fyi-archive cutover contract.**
+Status: read-only acquisition evidence updated 17 November 2026. Canonical Conductor owner: `.conductor/tracks/source-adapter-boundary-20260812/` (#309, #310). **Not a fyi-archive cutover contract.**
 
 ## Behaviour
 
-The native Rust `fyi-cli fetch-request-page <id>` now uses `fyi-core::SyncClient::fetch_request_evidence` and the existing agent-aware guarded network client. It performs a single GET of `/api/v2/request/<id>.json`, validates a positive requested ID, the parsed request ID, the HTTP response status and the bounded source response. It produces both original network entity bytes and a normalized canonical JSON projection.
+The native Rust `fyi-cli fetch-request-page <id>` uses
+`fyi-core::sync::RequestEvidenceClient` and the existing agent-aware guarded
+execution boundary. It performs one GET of `/api/v2/request/<id>.json`, validates
+a positive requested ID, the parsed request ID, the HTTP response status and a
+16 MiB response limit. It produces both original network entity bytes and a
+normalized canonical JSON projection. The dedicated transport requests identity
+encoding and disables automatic redirects, content decoding, conditional-cache
+reuse and all reqwest retries, including protocol-level retries.
 
 The receipt v1 stores **two distinct digests**:
 - `responses[0].sha256`: SHA-256 of the exact returned HTTP entity bytes after HTTP transfer decoding, before JSON parsing
 - `result.sha256`: SHA-256 of the canonical typed `AlaveteliRequest` JSON projection with a trailing LF
 
-These bytes are **not a WARC HTTP exchange**; headers, redirect chain, original compressed wire encoding, attestation and signing are not yet captured. A 304 conditional response backed by local cache is rejected as fresh acquisition evidence.
+These bytes are **not a WARC HTTP exchange**; complete HTTP headers, redirect
+chains, attestation and signing are not captured. An unexpected encoded body is
+retained unchanged but rejected for parsing. A 3xx response is captured as a
+failed acquisition without following its location. HTTP 304 is likewise a failed
+acquisition, without substituting cached bytes.
 
-The response URL stored in receipts has any username, password, fragment and query parameter values removed or redacted. Authentication headers and response bodies are never included in error messages. The existing network guardrails constrain request concurrency, rate limits, bytes and time. The default Rust outbound HTTP client now enforces a bounded same-origin redirect policy: redirects to another scheme, hostname or effective port are not followed. This reduces the risk of redirect-based SSRF after initial instance URL validation; it does not by itself prevent DNS rebinding and is not a substitute for upstream rate limits or access rules.
+The response URL stored in receipts has query values redacted and no credentials
+or fragment. Authentication headers and response bodies are never included in
+error messages. Existing network guardrails constrain request concurrency, rate
+limits, bytes and time. This command does not follow any redirect; ordinary
+non-evidence `SyncClient` APIs retain their separate same-origin redirect policy.
+These controls do not by themselves establish DNS-rebinding protection.
 
 ## CLI
 
@@ -32,7 +48,36 @@ fyi-cli verify-acquisition-receipt evidence/42-receipt.json \
   --result-file evidence/42-result.json
 ```
 
-Evidence paths must be supplied together or not at all. Writes create private same-directory temporary files, flush them and atomically publish with no clobber; same-byte repeats are idempotent, conflicting files and symlinks fail closed. The raw and normalized files are published **before** the receipt, to avoid leaving a falsely complete receipt after a failed blob write. They are not a three-file transaction: interrupted operations may leave orphan blobs for operator reconciliation.
+Evidence paths must be supplied together or not at all. Each acquisition requires
+three fresh files. Preflight rejects lexical aliases, nested output paths,
+symlink ancestors, existing destinations and overlaps with the shared pacing
+database or its SQLite sidecars before opening that database or requesting the
+source. Paths are checked again after the source exchange. Use an operator-owned
+directory tree that other processes cannot rename or modify; these checks do not
+provide a directory-handle guarantee against every hostile filesystem race.
+
+Writes create private same-directory temporary files, flush them and atomically
+publish without replacing existing evidence. The raw and normalized files are
+published **before** the receipt. The low-level writers retain byte-identical
+idempotency, but the acquisition command itself requires fresh destinations.
+This is not a three-file transaction: interruptions and publication failures may
+leave orphan blobs for operator reconciliation.
+
+A complete HTTP error, malformed JSON, mismatched request ID or unsupported
+encoding produces a valid failed receipt when all three files can be published.
+The command still exits unsuccessfully. Failed result files contain a fixed
+failure projection, never the source's error text. Connection failures, truncated
+bodies and byte-limit failures cannot establish a complete v1 response and do
+not produce a receipt. Publication failure also returns an error and must not be
+treated as a successful acquisition.
+
+The compatibility method `SyncClient::fetch_request_evidence` returns successful
+evidence without writing files. Built-in `SyncClient` constructors provide a
+paired dedicated evidence transport. Clients supplied through `with_http_client`
+are opaque and cannot use that compatibility method: silently replacing their
+proxy, TLS or other transport policy would be unsafe. Their ordinary APIs remain
+available. Use `RequestEvidenceClient::new` only when its documented transport
+policy is appropriate.
 
 The `--db` option remains syntactically accepted in Rust. Request records are
 written only by the retained Python command. Python's `fetch-request-page` also
