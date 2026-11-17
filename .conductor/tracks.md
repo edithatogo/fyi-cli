@@ -185,7 +185,7 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Issue: [#39](https://github.com/edithatogo/fyi-cli/issues/39) (open)*
   *Link: [./tracks/i18n-localization-framework/](./tracks/i18n-localization-framework/)*
   *Description: fluent-rs i18n, locale-aware templates, terminology map, working-day/deadline engine + holiday calendars.*
-  *Status: Automated message/template/terminology contracts delivered; reviewed calendars/statutory rules, human translation/legal review, external overrides and measured performance remain open. See the existing track's acceptance-evidence.md; archive_allowed=false.*
+  *Status: Automated message/template/terminology contracts delivered; PR #491 adds 37 source-checked 2026 NZ/AU/UK calendars and strict contribution evidence. Statutory rules, broader calendar/human legal review, external overrides and measured performance remain open. See the existing track's acceptance-evidence.md; archive_allowed=false.*
 
 - [x] **Track: jurisdiction-au-righttoknow** (COMPLETED 2026-07-08, PR #126)
   *Issue: #40 (closed)*

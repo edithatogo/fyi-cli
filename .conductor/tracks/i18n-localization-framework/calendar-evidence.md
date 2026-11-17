@@ -2,6 +2,8 @@
 
 ## Scope and baseline
 
+PR: [#491](https://github.com/edithatogo/fyi-cli/pull/491).
+Implementation checkpoint: `4a4fbd7fc1e54a39a018ce249bf60fab9a4f414e`.
 Implementation branch: `codex/issue-66-holiday-calendars-20261117`.
 Baseline: `1f0ae6d0b00663d52ccb65904152ca4e933b3486` (`master`).
 This increment extends the existing v1 catalog introduced by #470/#473; it does
@@ -58,13 +60,17 @@ Executed locally with Python 3.15.2 / pytest 9.2.0 and Rust toolchain 1.100.0:
 | `cargo fmt --all -- --check` | PASS |
 | `python scripts/verify_frontier_conductor.py` | PASS |
 | `git diff --check` | PASS |
+| Bounded Rust source harness | 24/24 tests and Clippy with warnings denied passed; unmodified actual module/data and test copies; all 45 registry dependency versions/checksums match the repository lock |
 | Full-package Rust execution | Dependency compilation was terminated by SIGKILL in existing `serde_core`, including single-job/debug-disabled retry; no Rust execution pass is claimed here |
 
 The focused Rust file adds nine tests covering complete state/UK date sets,
 observed/exceptional-day arithmetic, regional replacements, all admitted NZ
 anniversaries, unknown scopes, year boundaries, duplicate JSON, key syntax and
-the 256 KiB boundary. Hosted execution and final PR checks must be recorded
-before marking the implementation fully verified.
+the 256 KiB boundary. Hosted execution and final PR checks must be recorded in PR #491 before merge.
+The source harness uses Rust 1.100.0, `CARGO_INCREMENTAL=0`, debug info disabled
+and one job only in its own environment; repository profiles/gates are unchanged.
+Its source SHA-256 is `e5712a33b1b8696c49c3b7d5ebd2693a44c5ae8308748706b80cb49964cf4776`;
+its embedded catalog SHA-256 is `bb229d26e607621ef35648f841f28a49b0b11d9efbc3ea65bcb625bc28e0a397`.
 
 ## Acceptance boundaries
 
