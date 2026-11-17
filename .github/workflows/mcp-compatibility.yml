@@ -84,8 +84,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - name: Audit Linux runner network access
-        if: runner.os == 'Linux'
+      - name: Audit runner network access
         uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
         with:
           egress-policy: audit

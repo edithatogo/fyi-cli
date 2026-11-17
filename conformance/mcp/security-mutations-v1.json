@@ -15,7 +15,7 @@
       "category": "capability",
       "path": "crates/fyi-mcp/src/policy.rs",
       "before": "if state.degraded && capability == RemoteCapability::Write {",
-      "after": "if state.degraded && capability == RemoteCapability::Read {",
+      "after": "if false && state.degraded && capability == RemoteCapability::Write {",
       "package": "fyi-mcp",
       "test": "policy::tests::kill_switch_and_degraded_mode_are_deterministic"
     },
@@ -123,7 +123,7 @@
       "category": "error_classification",
       "path": "crates/fyi-mcp/src/telemetry.rs",
       "before": "retryable: potentially_retryable && read_only,",
-      "after": "retryable: potentially_retryable || read_only,",
+      "after": "retryable: potentially_retryable,",
       "package": "fyi-mcp",
       "test": "observability_tests::remote_error_classification_maps_status_and_redacts_upstream_secrets"
     },

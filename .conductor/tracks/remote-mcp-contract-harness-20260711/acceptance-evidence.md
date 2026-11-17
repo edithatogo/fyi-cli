@@ -2,8 +2,9 @@
 
 ## Reproducible harness increment (2026-11-17)
 
-Starting source is `1f0ae6d0b00663d52ccb65904152ca4e933b3486`. The existing
-#173 assignment now includes the following independently reviewable sensors:
+Starting source is `1f0ae6d0b00663d52ccb65904152ca4e933b3486`.
+[PR #493](https://github.com/edithatogo/fyi-cli/pull/493) implements the existing
+#173 assignment with the following independently reviewable sensors:
 
 - Shared v1 corpus: 17 synthetic JSON/RSS/Atom/error cases, exact file hashes,
   strict schemas, private verifier failures and negative controls. Existing
@@ -41,8 +42,48 @@ remain pending the candidate execution.
 
 Independent review reproduced a real Windows-checkout defect: enabling Git's
 `core.autocrlf` changed the RSS fixture hash. The shared corpus now has an explicit
-`-text` attribute. The same checkout-filter command preserves the manifest's
-original hash after correction; no fixture bytes or hashes were replaced.
+`-text` attribute. The same checkout-filter command preserves all 17 manifest
+hashes after correction; no fixture bytes or hashes were replaced. Local and
+hosted Actionlint both passed the new workflow.
+
+Review also narrowed the write-retry mutation to remove only the `read_only`
+guard and the degraded mutation to disable only degraded write rejection.
+Reads remain unchanged, so the selected tests must reach their write-denial
+assertions. The earlier broader replacements failed read assertions and do not
+establish the narrower write-denial evidence. Runtime verification of the
+corrected manifest and final candidate head is recorded on PR #493.
+
+### First hosted candidate and corrections
+
+At source head `cebb3bf6fd5d5dabe206633d26ffce570c6aca0b`, tested merge
+`2e7f94f49d7baa1a54b1cfe0431472ecc0fef96d` has the same source tree
+`0dadbb9b069230f5606af3a829f224351105d449`. The
+[first compatibility run](https://github.com/edithatogo/fyi-cli/actions/runs/44054213740)
+executed all six platform/compiler stdio cells: each passed six wire tests,
+three journal tests and exactly 16 SDK cases without skips. All retained binary
+hashes match their receipts. All 11 mutation baselines and 15 original mutations
+executed; the two refinements above require fresh execution, and the other 13
+failed at the intended assertions.
+
+The Linux source replay passed 62 tests, including all 12 corpus replays, and
+failed the generated privacy case because its fixture expected `/version.json`
+instead of the existing production `/api/v2/version.json`. The fixture path is
+corrected. Full Python CI independently found that mismatch and a conditional
+hardening step disallowed by the repository's workflow contract. Hardening now
+uses the same unconditional first step as the existing portability workflow;
+all 133 workflow-hardening tests and local Actionlint pass after correction.
+The first candidate's full Rust workspace passed 811 tests with one ignored;
+configured line coverage passed at 93.83%. Full Python reported 1,797 passed,
+two failed and two unrelated skips; it is not counted as a passing candidate.
+
+Using the retained Linux/current binary, whose unchanged production source and
+SHA-256 were verified, the corrected five generated families passed 66 generated
+examples plus four explicit examples in 49.97 seconds. An earlier local privacy
+run had an intermittent timeout with a dispatch-start event but no completion;
+its unsuccessful receipt is retained. The exact example passed three diagnostic
+replays with unchanged bounds, followed by the complete five-family pass. No
+cause was established and no timeout was relaxed. Fresh hosted verification of
+all corrections remains required; the final-head receipts are linked from PR #493.
 
 Local Rust builds were killed with SIGKILL in dependency compilation, including
 after reducing to one build job, no debug information and serial code generation.

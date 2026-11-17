@@ -357,7 +357,7 @@ def test_generated_source_errors_keep_bodies_and_header_values_private(
     marker = PRIVATE + private
     exchange = {
         "method": "GET",
-        "path": "/version.json",
+        "path": "/api/v2/version.json",
         "status": status,
         "body": marker,
         "headers": {"X-Synthetic-Private": PRIVATE + "header"},

@@ -3,7 +3,7 @@
   "type": "quality",
   "status": "in_progress",
   "created_at": "2026-07-11T08:34:24Z",
-  "updated_at": "2026-11-17T09:11:32Z",
+  "updated_at": "2026-11-17T09:41:00Z",
   "description": "Compatibility contracts and aggressive harness engineering for remote MCP tools",
   "github_parent_issue": 169,
   "github_issue": 173,
@@ -18,7 +18,8 @@
     449,
     452,
     458,
-    459
+    459,
+    493
   ],
   "acceptance_evidence": "acceptance-evidence.md",
   "closure_status": "not_archived_acceptance_evidence_incomplete",
@@ -110,9 +111,10 @@
   ],
   "active_increment": {
     "issue": 173,
+    "pull_request": 493,
     "branch": "test/mcp-harness-173-20261117",
     "starting_source": "1f0ae6d0b00663d52ccb65904152ca4e933b3486",
-    "status": "implemented_pending_runtime_verification",
+    "status": "implemented_pending_final_runtime_verification",
     "shared_fixture_cases": 17,
     "source_replay_cases": 12,
     "generated_contract_families": 5,
@@ -130,13 +132,28 @@
     "compatibility_python": "3.12",
     "compatibility_sdk": "uv.lock",
     "portable_sdk_cases_per_cell": 16,
-    "runtime_evidence": "pending_actual_execution",
+    "runtime_evidence": "final_candidate_receipts_tracked_on_pull_request_493",
+    "first_hosted_candidate": {
+      "head": "cebb3bf6fd5d5dabe206633d26ffce570c6aca0b",
+      "run_id": 44054213740,
+      "stdio_cells_passed": 6,
+      "rust_process_tests_per_cell": 9,
+      "sdk_tests_per_cell": 16,
+      "source_replays_passed": 12,
+      "original_mutations_caught": 15,
+      "mutations_narrowed_after_log_review": 2,
+      "source_generated_result": "62_passed_1_failed_fixture_path_corrected",
+      "final_candidate_verification": "pending"
+    },
     "local_environment_limitations": [
       "Rust dependency builds terminated with SIGKILL",
       "CPython 3.15.2 CFFI headers unavailable"
     ],
     "production_source_changed": false,
     "local_harness_tests_passed": 214,
-    "source_replays_not_yet_executed": 12
+    "corrected_workflow_tests_passed": 133,
+    "corrected_generated_families_passed": 5,
+    "corrected_generated_examples_passed": 66,
+    "corrected_explicit_examples_passed": 4
   }
 }
