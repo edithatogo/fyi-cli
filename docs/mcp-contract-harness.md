@@ -323,6 +323,12 @@ Only a compiled, executed assertion failure in the selected test counts as a
 caught mutation. The manifest and runner are versioned together; acceptance
 requires actual execution on the intended commit.
 
+A target may declare a bounded, single-line `expected_assertion_message` for
+Rust's custom-message assertions. The message must immediately follow the exact
+test's unique panic frame; a copy elsewhere in the log cannot qualify. When
+declared, that exact message is mandatory even if another assertion in the same
+test fails. Missing tests, generic panics and compilation failures remain errors.
+
 The following results remain historical evidence for the earlier policy slice:
 
 `cargo-mutants 27.1.0` tested the PR #441 policy/confirmation implementation at
@@ -373,14 +379,15 @@ the track evidence. No second source harness or source changes were introduced.
 | SSRF and redirects | Private/credential target rejection, rejected cross-port redirect, accepted same-origin relative redirect | Rebinding, redirect-chain exhaustion and other untested redirect variants |
 | Source request/byte guardrails | Oversized small response and blocked next request; exact one-request allowance | Multi-chunk cancellation/peak memory and MCP-to-source budget propagation |
 | HTTP cache | Reuse on 304, error responses do not replace a valid entry | Corrupt cache metadata/body or filesystem cache injection |
-| Timeout and retry | Pacing wait rejected beyond runtime; exhausted retry queue/dirty-state outcomes | Stalled socket/header/body timeout and exact retry attempt counts |
+| Timeout and retry | Pacing wait rejected beyond runtime; exhausted retry queue/dirty-state outcomes; merged #459 exercises stalled header/body deadlines and connection closure | Complete retry-attempt accounting and shared raw-transfer/time allowances |
 | Remote state update | Invalid/stale state produces no PUT; matching preflight permits PUT | Atomic server-side comparison during a concurrent state change |
 | Error privacy | Status errors exclude response bodies | Privacy for the absent transfer/cache fault cases |
 
-No deterministic mid-body disconnect or malformed HTTP chunk test was found.
-These gaps are missing evidence, not demonstrated source defects. MCP timeout,
-clock, circuit, confirmation and returned-payload tests cover their own boundary
-and do not substitute for the missing source-transfer assertions.
+Merged #459 subsequently added deterministic mid-body disconnect, malformed
+HTTP chunk and measured header/body timeout cases through the actual source
+client. Corrupt-cache, complete raw-transfer and peak-memory guarantees remain
+missing evidence. MCP timeout, clock, circuit, confirmation and returned-payload
+tests cover their own boundary and do not substitute for those source assertions.
 
 ## Per-instance credential configuration (#169)
 

@@ -68,6 +68,7 @@ class Mutation:
     after: str
     package: str
     test: str
+    expected_assertion_message: str | None = None
 
 
 @dataclass(frozen=True)
@@ -109,7 +110,9 @@ def parse_manifest(value: object) -> list[Mutation]:
 
 
 def _parse_target(row: object) -> Mutation:
-    if not isinstance(row, dict) or set(row) != set(Mutation.__dataclass_fields__):
+    fields = set(Mutation.__dataclass_fields__)
+    required = fields - {"expected_assertion_message"}
+    if not isinstance(row, dict) or not required <= set(row) <= fields:
         fail("invalid mutation target fields")
     if any(not isinstance(item, str) or not item for item in row.values()):
         fail("mutation fields must be nonempty strings")
@@ -131,6 +134,11 @@ def _parse_target(row: object) -> Mutation:
         fail("mutation requires an exact Rust test selector")
     if row["before"] == row["after"] or max(len(row["before"]), len(row["after"])) > 8192:
         fail("mutation is a no-op or exceeds the source-edit bound")
+    message = row.get("expected_assertion_message")
+    if message is not None and (
+        len(message) > 256 or not message.isprintable() or message != message.strip()
+    ):
+        fail("custom assertion message must be a bounded, unpadded, printable line")
     return Mutation(**row)
 
 
@@ -167,36 +175,50 @@ def test_command(cargo: str, package: str, selector: str) -> list[str]:
     ]
 
 
-def classify_run(run: RunResult, selector: str) -> str:
+def classify_run(
+    run: RunResult,
+    selector: str,
+    expected_assertion_message: str | None = None,
+) -> str:
     """Count only the intended test's executed assertion/expectation failure."""
     if run.timed_out:
         return "timeout"
     if run.output_limit_exceeded:
         return "unviable"
-    tests = re.findall(r"^test ([\w:]+) \.\.\. (ok|FAILED|ignored)$", run.output, re.MULTILINE)
+    output = run.output.replace("\r\n", "\n")
+    tests = re.findall(r"^test ([\w:]+) \.\.\. (ok|FAILED|ignored)$", output, re.MULTILINE)
     summaries = re.findall(
         r"^test result: (ok|FAILED)\. (\d+) passed; (\d+) failed; (\d+) ignored; "
         r"(\d+) measured; \d+ filtered out; finished in",
-        run.output,
+        output,
         re.MULTILINE,
     )
     if len(summaries) != 1 or len(tests) != 1 or tests[0][0] != selector:
         return "unviable"
-    if "could not compile" in run.output:
+    if "could not compile" in output:
         return "unviable"
     if run.returncode == 0 and tests[0][1] == "ok" and summaries == [("ok", "1", "0", "0", "0")]:
         return "passed"
-    assertion = re.search(
-        r"assertion (?:failed|`[^\n]+` failed)|called `(?:Result|Option)::(?:unwrap|expect)[^\n]*`",
-        run.output,
-    )
     if (
-        run.returncode == 101
-        and tests[0][1] == "FAILED"
-        and summaries == [("FAILED", "0", "1", "0", "0")]
-        and f"thread '{selector}'" in run.output
-        and "panicked at" in run.output
-        and assertion
+        run.returncode != 101
+        or tests[0][1] != "FAILED"
+        or summaries != [("FAILED", "0", "1", "0", "0")]
+    ):
+        return "unviable"
+    messages = re.findall(
+        rf"^thread '{re.escape(selector)}'(?: \(\d+\))? panicked at [^\n]*:\n([^\n]*)",
+        output,
+        re.MULTILINE,
+    )
+    if len(messages) != 1:
+        return "unviable"
+    if expected_assertion_message is not None:
+        # An explicit message also prevents a different earlier assertion in
+        # the same test from satisfying this target's named security boundary.
+        return "caught" if messages[0] == expected_assertion_message else "unviable"
+    if re.match(
+        r"assertion (?:failed|`[^\n]+` failed)|called `(?:Result|Option)::(?:unwrap|expect)[^\n]*`",
+        messages[0],
     ):
         return "caught"
     return "unviable"
@@ -374,7 +396,7 @@ def execute_suite(
             run, command = invoke(target.package, target.test)
         finally:
             path.write_text(original, encoding="utf-8")
-        outcome = classify_run(run, target.test)
+        outcome = classify_run(run, target.test, target.expected_assertion_message)
         if outcome == "passed":
             outcome = "survived"
         report["counts"][outcome] += 1
@@ -383,6 +405,7 @@ def execute_suite(
                 "id": target.id,
                 "category": target.category,
                 "path": target.path,
+                "expected_assertion_message": target.expected_assertion_message,
                 "source_sha256": hashlib.sha256(original.encode()).hexdigest(),
                 **_execution_record(run, outcome, command, log_dir, f"mutation-{target.id}.log"),
             },

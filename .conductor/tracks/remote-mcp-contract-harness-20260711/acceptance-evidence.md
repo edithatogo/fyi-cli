@@ -85,6 +85,40 @@ replays with unchanged bounds, followed by the complete five-family pass. No
 cause was established and no timeout was relaxed. Fresh hosted verification of
 all corrections remains required; the final-head receipts are linked from PR #493.
 
+### Corrected source candidate and custom-assertion parser repair
+
+At source head `40bfe36c6c7fc1b83347ebba2c0ea523ab4635ab`, tested merge
+`924da1bdd62b9f592516dfddf6c151739312a7df` has the same source tree
+`02917b48fb2c8681eea0ea1ae2a21a6cb1bbe74e`. The
+[second compatibility run](https://github.com/edithatogo/fyi-cli/actions/runs/44057966689)
+passed all six stdio cells, with nine Rust and 16 SDK contracts per cell. The
+Linux source step passed all 63 cases without skips, including 12 source replays,
+five generated properties and four privacy negative controls. Hypothesis
+reported 66 passing generated examples; the source step took 26.71 seconds.
+
+[Full Python CI](https://github.com/edithatogo/fyi-cli/actions/runs/44057966812/job/133952097248)
+passed 1,799 tests with two opt-in live-site tests skipped. All 22 SDK, 38 upstream,
+54 shared-corpus, five generated and four privacy-sensor cases ran without skips.
+Rust 1.99.1 workspace verification passed 811 tests with one existing ignored
+subprocess entry point. Configured line coverage passed at 93.83% (17,649 of
+18,809 lines); the 90% gate is unchanged.
+
+The second mutation report is retained as failed: 11 baselines passed, 14 mutants
+were caught and one was classified unviable. The narrowed write-retry mutation
+actually reached its intended write assertion, but Rust printed its custom
+message without the generic `assertion failed` prefix. The parser incorrectly
+rejected that executed assertion. The corrected manifest declares the exact
+message, and the runner accepts it only immediately after the selected test's
+unique panic frame with one failed test and exit status 101. Other log copies,
+unrelated assertions, generic panics and compile failures remain rejected.
+
+The actual retained failure reproduced RED before this correction. The corrected
+parser passes 28 unit tests and classifies all 15 retained mutation logs as
+caught; it still rejects the earlier read-assertion failure for the write-specific
+target. This replay validates the parser, not a new mutation execution. The
+original 14/1 report remains unchanged, and fresh execution of the corrected
+runner is required before its full gate can pass.
+
 Local Rust builds were killed with SIGKILL in dependency compilation, including
 after reducing to one build job, no debug information and serial code generation.
 Those attempts do not establish executable test success. Full local Python

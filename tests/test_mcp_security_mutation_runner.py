@@ -9,6 +9,7 @@ import os
 import sys
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -90,6 +91,14 @@ class MutationManifestTests(unittest.TestCase):
         with pytest.raises(mutations.HarnessError):
             mutations.unique_object([("schema_version", 1), ("schema_version", 1)])
 
+    def test_optional_custom_assertion_message_is_bounded_and_unambiguous(self) -> None:
+        for message in (None, True, "", " ", " message", "message\ncopy", "x" * 257):
+            with self.subTest(message=message):
+                value = copy.deepcopy(self.raw)
+                value["mutations"][0]["expected_assertion_message"] = message
+                with pytest.raises(mutations.HarnessError):
+                    mutations.parse_manifest(value)
+
 
 class LibtestResultTests(unittest.TestCase):
     """Only the intended executed test can kill a mutation."""
@@ -123,6 +132,61 @@ class LibtestResultTests(unittest.TestCase):
     def test_timeout_never_counts_as_a_kill(self) -> None:
         run = mutations.RunResult(None, result(self.test, "FAILED").output, 5, timed_out=True)
         assert mutations.classify_run(run, self.test) == "timeout"
+
+
+CUSTOM_ASSERTION = "uncertain writes must not be retried automatically"
+CUSTOM_SELECTOR = (
+    "observability_tests::remote_error_classification_maps_status_and_redacts_upstream_secrets"
+)
+
+
+def custom_assertion_result() -> mutations.RunResult:
+    """Reproduce the panic frame observed in the retained 40bfe36 hosted log."""
+    output = result(CUSTOM_SELECTOR, "FAILED").output.replace(
+        f"thread '{CUSTOM_SELECTOR}' panicked at src/example.rs:10:9:\nassertion failed: denied",
+        f"thread '{CUSTOM_SELECTOR}' (13642) panicked at "
+        f"crates/fyi-mcp/src/observability_tests.rs:450:13:\n{CUSTOM_ASSERTION}",
+    )
+    return mutations.RunResult(101, output, 0.01)
+
+
+def test_declared_custom_assertion_matches_only_its_exact_panic_frame() -> None:
+    run = custom_assertion_result()
+    assert mutations.classify_run(run, CUSTOM_SELECTOR) == "unviable"
+    assert mutations.classify_run(run, CUSTOM_SELECTOR, CUSTOM_ASSERTION) == "caught"
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "",
+        "unrelated panic",
+        "assertion failed: unrelated earlier check",
+        f"prefix {CUSTOM_ASSERTION}",
+        f"{CUSTOM_ASSERTION} suffix",
+    ],
+)
+def test_custom_message_copies_elsewhere_do_not_authorize_an_unrelated_panic(message: str) -> None:
+    output = custom_assertion_result().output.replace(CUSTOM_ASSERTION, message)
+    output = f"compiler log: {CUSTOM_ASSERTION}\n{CUSTOM_ASSERTION}\n{output}\n{CUSTOM_ASSERTION}\n"
+    run = mutations.RunResult(101, output, 0.01)
+    assert mutations.classify_run(run, CUSTOM_SELECTOR, CUSTOM_ASSERTION) == "unviable"
+
+
+def test_custom_message_requires_exact_test_frame_failure_and_process_status() -> None:
+    output = custom_assertion_result().output
+    for invalid in (
+        output.replace(f"thread '{CUSTOM_SELECTOR}'", "thread 'unrelated::test'"),
+        output.replace("panicked at", "logged at"),
+        output + "error: could not compile fyi-mcp\n",
+        output.replace("0 passed; 1 failed", "0 passed; 2 failed"),
+    ):
+        run = mutations.RunResult(101, invalid, 0.01)
+        assert mutations.classify_run(run, CUSTOM_SELECTOR, CUSTOM_ASSERTION) == "unviable"
+    run = mutations.RunResult(0, output, 0.01)
+    assert mutations.classify_run(run, CUSTOM_SELECTOR, CUSTOM_ASSERTION) == "unviable"
+    run = mutations.RunResult(None, output, 1, timed_out=True)
+    assert mutations.classify_run(run, CUSTOM_SELECTOR, CUSTOM_ASSERTION) == "timeout"
 
 
 class MutationExecutionTests(unittest.TestCase):
@@ -189,6 +253,23 @@ class MutationExecutionTests(unittest.TestCase):
         assert report["mutations"] == []
         assert runner.call_count == 1
         assert self.path.read_bytes() == self.original
+
+    def test_runner_requires_the_declared_custom_assertion(self) -> None:
+        self.target = replace(
+            self.target,
+            test=CUSTOM_SELECTOR,
+            expected_assertion_message=CUSTOM_ASSERTION,
+        )
+        for failure, expected in (
+            (custom_assertion_result(), "caught"),
+            (result(CUSTOM_SELECTOR, "FAILED"), "unviable"),
+        ):
+            with self.subTest(expected=expected):
+                runner = Mock(side_effect=[result(CUSTOM_SELECTOR, "ok"), failure])
+                report = self.execute(runner)
+                assert report["mutations"][0]["outcome"] == expected
+                assert report["mutations"][0]["expected_assertion_message"] == CUSTOM_ASSERTION
+                assert self.path.read_bytes() == self.original
 
     def test_survivors_compile_failures_and_timeouts_fail_the_gate_and_restore_source(self) -> None:
         scenarios = (

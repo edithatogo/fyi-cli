@@ -125,7 +125,8 @@
       "before": "retryable: potentially_retryable && read_only,",
       "after": "retryable: potentially_retryable,",
       "package": "fyi-mcp",
-      "test": "observability_tests::remote_error_classification_maps_status_and_redacts_upstream_secrets"
+      "test": "observability_tests::remote_error_classification_maps_status_and_redacts_upstream_secrets",
+      "expected_assertion_message": "uncertain writes must not be retried automatically"
     },
     {
       "id": "nested-secret-redaction",
