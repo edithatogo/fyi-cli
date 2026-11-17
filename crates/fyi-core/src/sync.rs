@@ -260,17 +260,23 @@ impl WaybackTransport {
 }
 
 fn build_wayback_http_client(identity: &crate::agent_runtime::ClientIdentity) -> Result<Client> {
+    wayback_http_client_builder(identity)?
+        .build()
+        .context("failed to build Wayback HTTP client")
+}
+
+fn wayback_http_client_builder(
+    identity: &crate::agent_runtime::ClientIdentity,
+) -> Result<reqwest::ClientBuilder> {
     identity.validate()?;
-    Client::builder()
+    Ok(Client::builder()
         .user_agent(identity.user_agent())
         .timeout(Duration::from_secs(60))
         .redirect(reqwest::redirect::Policy::none())
         .no_gzip()
         .no_brotli()
         .no_deflate()
-        .no_zstd()
-        .build()
-        .context("failed to build Wayback HTTP client")
+        .no_zstd())
 }
 
 #[derive(Clone)]
@@ -2032,6 +2038,117 @@ mod tests {
     ) -> Result<(reqwest::Response, Url)> {
         let url = request.url().clone();
         Ok((response.into(), url))
+    }
+
+    #[tokio::test]
+    async fn replay_http_client_never_retries_protocol_nacks() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::task::{Context, Poll};
+
+        // Produce an actual remote REFUSED_STREAM over memory, not sockets.
+        // A bare h2::Reason converted into an error is not remotely initiated
+        // and would never exercise reqwest's default retry classifier.
+        let (client_io, server_io) = tokio::io::duplex(4096);
+        let nack = tokio::time::timeout(Duration::from_secs(2), async {
+            let client = async {
+                let (mut sender, connection) = h2::client::handshake(client_io).await.unwrap();
+                let request = http::Request::builder()
+                    .uri("https://example.test/")
+                    .body(())
+                    .unwrap();
+                let (response, _) = sender.send_request(request, true).unwrap();
+                tokio::select! {
+                    response = response => response.unwrap_err(),
+                    result = connection => panic!("connection ended before refusal: {result:?}"),
+                }
+            };
+            let server = async {
+                let mut connection = h2::server::handshake(server_io).await.unwrap();
+                let (_, mut respond) = connection.accept().await.unwrap().unwrap();
+                respond.send_reset(h2::Reason::REFUSED_STREAM);
+                // Drive the queued reset until the client receives it and closes.
+                let _ = connection.accept().await;
+            };
+            tokio::join!(client, server).0
+        })
+        .await
+        .expect("in-memory HTTP/2 refusal must complete");
+        assert!(nack.is_remote() && nack.is_reset());
+        assert_eq!(nack.reason(), Some(h2::Reason::REFUSED_STREAM));
+
+        type BoxError = Box<dyn std::error::Error + Send + Sync>;
+        #[derive(Debug)]
+        struct RefusedStream(Arc<h2::Error>);
+        impl std::fmt::Display for RefusedStream {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.write_str("synthetic remote stream refusal")
+            }
+        }
+        impl std::error::Error for RefusedStream {
+            fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                Some(self.0.as_ref())
+            }
+        }
+        #[derive(Clone)]
+        struct NackLayer {
+            nack: Arc<h2::Error>,
+            calls: Arc<AtomicUsize>,
+        }
+        #[derive(Clone)]
+        struct NackService<S> {
+            _inner: S,
+            layer: NackLayer,
+        }
+        impl<S> tower::Layer<S> for NackLayer {
+            type Service = NackService<S>;
+            fn layer(&self, inner: S) -> Self::Service {
+                NackService {
+                    _inner: inner,
+                    layer: self.clone(),
+                }
+            }
+        }
+        impl<S, Request> tower::Service<Request> for NackService<S>
+        where
+            S: tower::Service<Request>,
+            S::Response: Send + 'static,
+        {
+            type Response = S::Response;
+            type Error = BoxError;
+            type Future = std::future::Ready<Result<Self::Response, Self::Error>>;
+            fn poll_ready(&mut self, _context: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+                Poll::Ready(Ok(()))
+            }
+            fn call(&mut self, _request: Request) -> Self::Future {
+                // Never invoke the inner connector, DNS resolution or sockets.
+                self.layer.calls.fetch_add(1, Ordering::SeqCst);
+                std::future::ready(Err(Box::new(RefusedStream(self.layer.nack.clone()))))
+            }
+        }
+        let nack = Arc::new(nack);
+        let identity = crate::agent_runtime::ClientIdentity::default_identity(None).unwrap();
+        for (builder, expect_retries) in [
+            (Client::builder(), true),
+            (wayback_http_client_builder(&identity).unwrap(), false),
+        ] {
+            let calls = Arc::new(AtomicUsize::new(0));
+            let http = builder
+                .no_proxy()
+                .connector_layer(NackLayer {
+                    nack: nack.clone(),
+                    calls: calls.clone(),
+                })
+                .timeout(Duration::from_secs(2))
+                .build()
+                .unwrap();
+            http.get(replay_fixture_url()).send().await.unwrap_err();
+            let count = calls.load(Ordering::SeqCst);
+            if expect_retries {
+                assert!(count > 1, "control must exercise the default retry policy");
+            } else {
+                assert_eq!(count, 1, "Wayback must issue exactly one transport attempt");
+            }
+        }
     }
 
     #[tokio::test]

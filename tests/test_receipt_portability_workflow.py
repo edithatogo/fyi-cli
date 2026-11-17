@@ -31,8 +31,11 @@ def test_receipt_contracts_and_consumer_are_executed() -> None:
         "acquisition_receipts", "acquisition_receipt_numeric_conformance",
         "acquisition_receipt_midpoint_conformance", "receipt_wire",
         "receipt_persistence_portability", "receipt_numeric_tests", "receipt_wire_tests", "startup_tests",
+        "internet_archive_replay", "replay_evidence_gate_tests",
     ):
         assert re.search(rf"--test {target}(?:\s|$)", text), target
+    assert "--lib internet_archive_replay::" in text
+    assert "--lib sync::tests::replay_" in text
     assert "continue-on-error" not in text
     assert "|| true" not in text
 
@@ -66,6 +69,7 @@ def test_source_changes_and_workflow_changes_trigger_the_gate() -> None:
         "crates/fyi-core/**", "crates/fyi-cli/**", "conformance/acquisition/**",
         "Cargo.lock", "rust-toolchain.toml", ".github/workflows/receipt-portability.yml",
         ".gitattributes", "tests/test_receipt_fixture_checkout.py",
+        "conformance/internet-archive-replay/**", "tests/fixtures/internet_archive_replay/**",
     ):
         assert f'"{path}"' in text
     assert "workflow_dispatch:" in text
@@ -75,7 +79,9 @@ def test_source_changes_and_workflow_changes_trigger_the_gate() -> None:
 def test_runtime_acquisition_is_not_enabled_by_portability_checks() -> None:
     text = workflow()
     assert "FYI_RUN_LIVE" not in text
-    assert "internet-archive-replay" not in text
-    assert "fetch-request-page" not in text
+    assert not re.search(
+        r"(?:fyi(?:-cli)?|cargo run[^\n]* --)\s+(?:internet-archive-replay|fetch-request-page)\b",
+        text,
+    )
     assert "CARGO_BUILD_JOBS:" in text
     assert "CARGO_INCREMENTAL:" in text

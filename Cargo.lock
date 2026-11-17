@@ -2356,6 +2356,7 @@ dependencies = [
  "fluent-bundle",
  "futures-util",
  "getrandom 0.3.4",
+ "h2",
  "hmac 0.12.1",
  "http",
  "keyring",

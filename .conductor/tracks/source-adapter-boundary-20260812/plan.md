@@ -1,5 +1,24 @@
 # Plan
 
+## Replay qualification follow-up — 2026-11-17
+
+Baseline: `1f0ae6d`, including the Rust replay engine and transport from #481/#483.
+This #312 increment retains the existing #309/#310 contract and owners.
+
+- [~] Preserve the last resumable checkpoint when newly accumulated metadata
+  exceeds the reader's 16 MiB bound; prove rejection before atomic replacement.
+- [~] Disable the HTTP client's implicit protocol retries for Wayback so each
+  recorded exchange remains one physical attempt; verify without network I/O.
+- [~] Execute the frozen replay corpus against the Python reference as well as
+  Rust, explicitly retaining the two documented legacy divergences.
+- [ ] Protect replay fixture bytes across checkouts and run focused Rust replay
+  and CLI evidence cases in the existing Linux/macOS/Windows portability gate.
+- [ ] Reconcile the replay guide, record exact verification and independent
+  review, and open a focused implementation PR.
+
+Live source smoke, release pinning, downstream shadow parity and archive cutover
+remain separate gates; `archive_cutover_allowed=false`.
+
 ## Bounded Rust replay work — 2026-11-16
 
 - [x] Develop #312 replay from the frozen source checkpoint `5885469` on branch
