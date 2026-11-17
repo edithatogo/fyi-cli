@@ -117,7 +117,16 @@ def captured(tmp_path: Path) -> tuple[dict, Path]:
         "network_access": False,
         "writes_enabled": False,
         "retention": "operator_local",
-        "sources": entries,
+        "acquisition_method": "managed_proxy_https_review",
+        "sources": [
+            {
+                key: value
+                for key, value in entry.items()
+                if key
+                not in {"schema_version", "adapter", "adapter_version", "body_path", "receipt_path"}
+            }
+            for entry in entries
+        ],
     }, folder
 
 
@@ -129,9 +138,39 @@ def test_metadata_validation_explicitly_does_not_claim_byte_verification(capture
     assert report["source_count"] == 6
 
 
-def test_real_repository_baseline_has_six_successful_documentation_observations() -> None:
+def test_real_repository_baseline_records_the_actual_research_transport() -> None:
     data = checker.load_json(checker.DEFAULT_BASELINE)
     assert checker.validate_baseline(data)["source_count"] == 6
+    assert data["acquisition_method"] == "managed_proxy_https_review"
+    assert all("adapter" not in entry for entry in data["sources"])
+
+
+def test_baseline_bodies_are_verified_without_claiming_rust_receipt_verification(
+    captured: tuple,
+) -> None:
+    baseline, folder = captured
+    report = checker.verify_baseline_bodies(baseline, folder)
+    assert report["status"] == "baseline_bytes_verified"
+    assert report["byte_verification"] == "baseline_verified"
+    assert report["acquisition_method"] == "managed_proxy_https_review"
+    (folder / "india_faq" / "body.bin").write_bytes(b"tampered")
+    with pytest.raises(ValueError, match="raw response bytes"):
+        checker.verify_baseline_bodies(baseline, folder)
+
+
+def test_research_metadata_cannot_substitute_for_guarded_observation(captured: tuple) -> None:
+    baseline, folder = captured
+    path = folder / "muckrock_client" / "observation.json"
+    path.write_bytes(canonical(baseline["sources"][0]))
+    with pytest.raises(ValueError, match="observation fields"):
+        checker.compare_snapshots(baseline, folder)
+
+
+def test_unknown_baseline_acquisition_method_is_rejected(captured: tuple) -> None:
+    baseline, _ = captured
+    baseline["acquisition_method"] = "live_api_verified"
+    with pytest.raises(ValueError, match="acquisition method"):
+        checker.validate_baseline(baseline)
 
 
 def test_complete_local_bundle_binds_raw_bytes_receipt_and_source(captured: tuple) -> None:
@@ -197,12 +236,23 @@ def test_symlink_capture_directory_is_rejected(captured: tuple, tmp_path: Path) 
         checker.compare_snapshots(baseline, folder)
 
 
+def test_symlink_ancestor_of_capture_root_is_rejected(captured: tuple, tmp_path: Path) -> None:
+    baseline, folder = captured
+    alias = tmp_path / "alias"
+    alias.symlink_to(tmp_path, target_is_directory=True)
+    with pytest.raises(ValueError, match="symlink ancestor"):
+        checker.compare_snapshots(baseline, alias / folder.name)
+
+
 @pytest.mark.parametrize("path", ["../body.bin", "/etc/passwd", "extra/body.bin"])
 def test_snapshot_path_cannot_escape_source_bundle(captured: tuple, path: str) -> None:
-    baseline, _ = captured
-    baseline["sources"][0]["body_path"] = path
+    baseline, folder = captured
+    target = folder / "muckrock_client" / "observation.json"
+    source = json.loads(target.read_text())
+    source["body_path"] = path
+    target.write_bytes(canonical(source))
     with pytest.raises(ValueError, match="paths"):
-        checker.validate_baseline(baseline)
+        checker.compare_snapshots(baseline, folder)
 
 
 @pytest.mark.parametrize("mutation", ["missing", "duplicate", "unknown"])
@@ -260,7 +310,7 @@ def test_baseline_cannot_enable_runtime_capabilities(captured: tuple, field: str
 
 def test_stale_and_future_observations_fail(captured: tuple) -> None:
     baseline, folder = captured
-    source = copy.deepcopy(baseline["sources"][0])
+    source = json.loads((folder / "muckrock_client" / "observation.json").read_text())
     for timestamp in ["2026-11-17T08:59:59Z", "2026-11-18T00:00:00Z"]:
         source["retrieved_at"] = timestamp
         publish_capture(folder / source["source_id"], source)

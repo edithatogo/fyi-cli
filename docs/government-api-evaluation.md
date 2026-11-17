@@ -3,9 +3,10 @@
 FOIA.gov, USCIS, Canada and India documentation reviewed **2026-11-17**.
 The [landscape](foi-platform-landscape.md) records rankings, source confidence and
 refresh cadence; its [source-byte baseline](../conformance/providers/foi-source-baseline-v1.json)
-records exact documentation captures. This is documentation evidence, not
-production API qualification. The separate South Africa assessment below retains
-its 2026-07-13 review boundary.
+records exact research-documentation captures acquired through a managed HTTPS
+proxy with normal TLS verification. These are not guarded Rust-observer captures
+or production API qualification. The separate South Africa assessment below
+retains its 2026-07-13 review boundary.
 
 ## FOIA.gov
 
@@ -129,12 +130,24 @@ material; the monitoring record still publishes only reviewed metadata/digests.
 
 ## Documentation refresh boundary
 
-The [six-source monitor](foi-platform-landscape.md#six-source-byte-monitor)
-observes allowlisted public documents through the guarded source-adapter
-transport. The offline verifier requires complete raw bodies, receipts and
-observations to compare a new capture. Its default metadata-only check does not
-verify those raw bytes. A source hash change requires human review and cannot
-by itself establish deprecation, a semantic API break or safe provider rollout.
+The [six-source baseline](foi-platform-landscape.md#six-source-byte-monitor)
+contains reviewed metadata and hashes from credential-free documentation GETs
+through the workspace's managed HTTPS proxy, with normal TLS verification. Its
+`acquisition_method` is `managed_proxy_https_review`; raw bodies remain in the
+private research bundle. The verifier's default check validates metadata only.
+`--baseline-bodies /private/research-captures` verifies the retained body hashes
+without claiming Rust-observer receipt verification.
+
+Future `--observations /private/captures` comparisons strictly require each raw
+body, Rust-format observation and bound acquisition receipt from the guarded
+source-adapter workflow. Hosted Rust and MSRV checks passed, but actual `--live`
+captures were refused for all six sources here: direct public DNS resolution is
+unavailable, and the observer intentionally disables proxies. Those safeguards
+remain unchanged. Live observer qualification and issue #195 remain open; the
+research captures do not satisfy that separate requirement.
+
+A source hash change requires human review and cannot by itself establish
+deprecation, a semantic API break or safe provider rollout.
 
 ## South Africa PAIA guidance
 

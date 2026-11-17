@@ -309,7 +309,7 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Link: [./tracks/foi-platform-landscape_20260712/](./tracks/foi-platform-landscape_20260712/)*
   *GitHub issue: [#195](https://github.com/edithatogo/fyi-cli/issues/195); child [#199](https://github.com/edithatogo/fyi-cli/issues/199)*
   *Description: Map non-Alaveteli FOI request platforms and rank safe integration opportunities.*
-  *Reconciliation: #195 was reopened on 2026-11-13 because Phase 3 maintenance and drift monitoring remain open in the track plan; #199 is complete.*
+  *Reconciliation: PR #492 adds six raw research fingerprints, a guarded Rust documentation observer and offline receipt-bound drift checks. Live observer qualification remains open because direct DNS is unavailable in the execution environment; research captures explicitly record their managed-proxy provenance. #199 is complete.*
 
 - [x] **Track: foi-adapter-pilots_20260712** (COMPLETED 2026-07-28)
   *Link: [./tracks/foi-adapter-pilots_20260712/](./tracks/foi-adapter-pilots_20260712/)*

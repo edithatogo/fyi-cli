@@ -81,6 +81,13 @@ OBSERVATION_FIELDS = {
     "body_path",
     "receipt_path",
 }
+SOURCE_FIELDS = OBSERVATION_FIELDS - {
+    "schema_version",
+    "adapter",
+    "adapter_version",
+    "body_path",
+    "receipt_path",
+}
 
 
 def require(condition: bool, message: str) -> None:  # noqa: FBT001 - predicate, not an option
@@ -155,20 +162,14 @@ def _timestamp(value: object) -> datetime:
     return datetime.fromisoformat(value)
 
 
-def _observation(item: object, as_of: date) -> datetime:
+def _source_metadata(item: object, as_of: date) -> datetime:
     require(
-        isinstance(item, dict) and set(item) == OBSERVATION_FIELDS,
-        "observation fields are incomplete or unknown",
+        isinstance(item, dict) and set(item) == SOURCE_FIELDS,
+        "source fields are incomplete or unknown",
     )
     source_id = item["source_id"]
     require(isinstance(source_id, str) and source_id in SOURCES, "unknown source")
     platform, url, media_types = SOURCES[source_id]
-    require(
-        item["schema_version"] == "1.0.0"
-        and item["adapter"] == "platform-documentation"
-        and item["adapter_version"] == "1.0.0",
-        "unsupported observation contract",
-    )
     require(
         item["platform_id"] == platform and item["source_url"] == url,
         "observation source identity mismatch",
@@ -190,13 +191,27 @@ def _observation(item: object, as_of: date) -> datetime:
         and re.fullmatch(r"[0-9a-f]{64}", item["body_sha256"]) is not None,
         "invalid response byte fingerprint",
     )
+    retrieved = _timestamp(item["retrieved_at"])
+    require(retrieved.date() <= as_of, "observation is in the future")
+    return retrieved
+
+
+def _observation(item: object, as_of: date) -> datetime:
+    require(
+        isinstance(item, dict) and set(item) == OBSERVATION_FIELDS,
+        "observation fields are incomplete or unknown",
+    )
+    require(
+        item["schema_version"] == "1.0.0"
+        and item["adapter"] == "platform-documentation"
+        and item["adapter_version"] == "1.0.0",
+        "unsupported observation contract",
+    )
     require(
         item["body_path"] == "body.bin" and item["receipt_path"] == "receipt.json",
         "evidence paths must be fixed bundle-local names",
     )
-    retrieved = _timestamp(item["retrieved_at"])
-    require(retrieved.date() <= as_of, "observation is in the future")
-    return retrieved
+    return _source_metadata({key: item[key] for key in SOURCE_FIELDS}, as_of)
 
 
 def validate_baseline(data: dict) -> dict:
@@ -211,6 +226,7 @@ def validate_baseline(data: dict) -> dict:
             "network_access",
             "writes_enabled",
             "retention",
+            "acquisition_method",
             "sources",
         },
         "baseline fields are incomplete or unknown",
@@ -228,6 +244,10 @@ def validate_baseline(data: dict) -> dict:
         "research metadata must not enable runtime capabilities",
     )
     require(data["retention"] == "operator_local", "raw documentation is operator-local")
+    require(
+        data["acquisition_method"] in {"managed_proxy_https_review", "guarded_rust_observer"},
+        "unsupported baseline acquisition method",
+    )
     reviewed = _day(data["reviewed_on"])
     entries = data["sources"]
     require(
@@ -236,7 +256,7 @@ def validate_baseline(data: dict) -> dict:
     )
     seen = set()
     for item in entries:
-        _observation(item, reviewed)
+        _source_metadata(item, reviewed)
         require(item["source_id"] not in seen, "duplicate documentation source")
         seen.add(item["source_id"])
     require(seen == set(SOURCES), "baseline is incomplete")
@@ -245,6 +265,7 @@ def validate_baseline(data: dict) -> dict:
         "byte_verification": "not_performed",
         "source_count": len(entries),
         "reviewed_on": reviewed.isoformat(),
+        "acquisition_method": data["acquisition_method"],
         "drift": [],
     }
 
@@ -300,16 +321,44 @@ def _verify_receipt(receipt: dict, entry: dict, observation_bytes: bytes) -> Non
     require(canonical(receipt) == canonical(expected), "receipt does not bind this capture")
 
 
+def _capture_root(root: Path) -> None:
+    require(root.is_dir() and not root.is_symlink(), "capture root must be a real directory")
+    require(
+        not any(parent.is_symlink() for parent in root.absolute().parents),
+        "capture root has a symlink ancestor",
+    )
+    require(
+        {path.name for path in root.iterdir()} == set(SOURCES),
+        "captures must cover exactly the six approved documentation sources",
+    )
+
+
+def _verify_body(folder: Path, entry: dict) -> None:
+    require(folder.is_dir() and not folder.is_symlink(), "capture must be a real directory")
+    body = _read_file(folder / "body.bin", MAX_BODY_BYTES)
+    require(
+        len(body) == entry["body_bytes"]
+        and hashlib.sha256(body).hexdigest() == entry["body_sha256"],
+        "raw response bytes do not match observation",
+    )
+
+
+def verify_baseline_bodies(data: dict, root: Path) -> dict:
+    """Check retained research bytes without attributing them to the Rust observer."""
+    report = validate_baseline(data)
+    _capture_root(root)
+    for entry in data["sources"]:
+        _verify_body(root / entry["source_id"], entry)
+    report.update(status="baseline_bytes_verified", byte_verification="baseline_verified")
+    return report
+
+
 def compare_snapshots(data: dict, root: Path, *, as_of: date | None = None) -> dict:
     """Verify every supplied capture and report raw-byte/media drift, never refresh."""
     report = validate_baseline(data)
     effective = as_of if as_of is not None else datetime.now(UTC).date()
     require(effective >= _day(data["reviewed_on"]), "baseline is in the future")
-    require(root.is_dir() and not root.is_symlink(), "capture root must be a real directory")
-    require(
-        {path.name for path in root.iterdir()} == set(SOURCES),
-        "captures must cover exactly the six approved documentation sources",
-    )
+    _capture_root(root)
     baseline = {entry["source_id"]: entry for entry in data["sources"]}
     drift = []
     for source_id in SOURCES:
@@ -329,12 +378,7 @@ def compare_snapshots(data: dict, root: Path, *, as_of: date | None = None) -> d
             "observation predates reviewed baseline",
         )
         require(raw == canonical(entry), "observation must use canonical acquisition JSON")
-        body = _read_file(folder / "body.bin", MAX_BODY_BYTES)
-        require(
-            len(body) == entry["body_bytes"]
-            and hashlib.sha256(body).hexdigest() == entry["body_sha256"],
-            "raw response bytes do not match observation",
-        )
+        _verify_body(folder, entry)
         _verify_receipt(load_json(folder / "receipt.json"), entry, raw)
         if any(
             entry[key] != baseline[source_id][key]
@@ -354,10 +398,16 @@ def main(argv: list[str] | None = None) -> int:
     """Report bounded JSON and return nonzero for invalid or changed evidence."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--baseline", type=Path, default=DEFAULT_BASELINE)
-    parser.add_argument(
+    evidence = parser.add_mutually_exclusive_group()
+    evidence.add_argument(
         "--observations",
         type=Path,
         help="directory containing the six complete source capture directories",
+    )
+    evidence.add_argument(
+        "--baseline-bodies",
+        type=Path,
+        help="verify retained baseline body.bin files without claiming Rust receipt verification",
     )
     parser.add_argument(
         "--as-of",
@@ -367,11 +417,12 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         data = load_json(args.baseline)
-        report = (
-            compare_snapshots(data, args.observations, as_of=args.as_of)
-            if args.observations is not None
-            else validate_baseline(data)
-        )
+        if args.observations is not None:
+            report = compare_snapshots(data, args.observations, as_of=args.as_of)
+        elif args.baseline_bodies is not None:
+            report = verify_baseline_bodies(data, args.baseline_bodies)
+        else:
+            report = validate_baseline(data)
     except (OSError, ValueError, TypeError, KeyError, OverflowError, RecursionError):
         sys.stdout.write(
             json.dumps(

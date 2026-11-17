@@ -6,6 +6,7 @@
   "updated_at": "2026-11-17T00:00:00Z",
   "description": "Map non-Alaveteli FOI request platforms and rank safe integration opportunities.",
   "github_issue": 195,
+  "pull_request": 492,
   "child_issues": [
     199
   ]

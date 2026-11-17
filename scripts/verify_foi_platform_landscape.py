@@ -29,12 +29,16 @@ PLATFORMS = {
 # allowlist. These establish source-document evidence, not deployed API access.
 MAINTAINER_SOURCES = {
     "muckrock": {
-        "https://github.com/MuckRock/python-muckrock/blob/"
-        "ba065fb10240b0293c08d961e04406d6860c29f7/docs/requests.rst",
+        (
+            "https://github.com/MuckRock/python-muckrock/blob/"
+            "ba065fb10240b0293c08d961e04406d6860c29f7/docs/requests.rst"
+        ),
     },
     "fragdenstaat": {
-        "https://github.com/okfde/froide/blob/"
-        "b80fbe9269d3744b38a123363bbdd7d830d1bcf9/docs/api.rst",
+        (
+            "https://github.com/okfde/froide/blob/"
+            "b80fbe9269d3744b38a123363bbdd7d830d1bcf9/docs/api.rst"
+        ),
     },
 }
 CONTRACT_FIELDS = {"public_api", "read_surface", "authentication", "write_semantics",

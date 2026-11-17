@@ -5,7 +5,8 @@ provider enablement, legal advice, or evidence of a successful live API call**.
 The machine-readable semantic record is
 [`foi-platform-landscape-v1.json`](../conformance/providers/foi-platform-landscape-v1.json).
 The separate [source-byte baseline](../conformance/providers/foi-source-baseline-v1.json)
-records six public documentation captures without publishing their raw bodies.
+records six public documentation research captures without publishing their raw
+bodies. Qualification of the guarded Rust observer remains open.
 
 ## Ranked decisions
 
@@ -153,7 +154,12 @@ kind of plaintext hash is an authentic signature or independent proof of origin.
 
 The [source-byte baseline](../conformance/providers/foi-source-baseline-v1.json)
 records exact source URLs, capture timestamps, body sizes and SHA-256 fingerprints.
-It also preserves source type and retention limitations. The selected sources are:
+It also preserves source type and retention limitations. These six baseline
+captures were credential-free HTTPS GETs through the workspace's managed HTTPS
+proxy, with normal TLS certificate and hostname verification. Their
+`acquisition_method` is `managed_proxy_https_review`; they are research captures,
+not Rust-observer observations or acquisition receipts. No origin credentials or
+cookies were supplied. The selected sources are:
 
 | Source ID | Candidate | Observed surface | Qualification limit |
 |---|---|---|---|
@@ -180,9 +186,22 @@ python -m pytest -q tests/test_foi_source_snapshots.py
 ```
 
 The default result explicitly reports metadata-only validation. It cannot verify
-raw bytes or claim a new remote observation. To collect an operator-authorised
-documentation observation, choose a private directory outside the checkout and
-replace `<ID>` with one of the six source IDs:
+raw bytes or claim a new remote observation. To verify the retained research
+bodies against their committed hashes, arrange the six private source folders
+with their `body.bin` files and run:
+
+```sh
+python scripts/verify_foi_source_snapshots.py --baseline-bodies /private/research-captures
+```
+
+This mode verifies baseline body sizes and hashes only. It does not verify Rust
+acquisition receipts or promote the research captures into guarded-observer
+evidence. The public baseline holds metadata and hashes; the original bodies
+remain private.
+
+To collect a future operator-authorised observation through the Rust observer,
+choose a private directory outside the checkout and replace `<ID>` with one of
+the six source IDs:
 
 ```sh
 cargo run --locked -p fyi-core --example observe_platform_docs -- --source <ID> --output /private/captures/<ID> --live
@@ -200,14 +219,17 @@ the public-documentation GET. It does not register accounts, accept arbitrary
 URLs, acquire credentials, invoke a case API or enable provider writes. Tests
 use injected transports; live observations never run in CI.
 
-After capturing all six sources into separate folders, compare the raw bodies,
-receipts and observations offline:
+After the Rust observer successfully captures all six sources into separate
+folders, compare the raw bodies, acquisition receipts and observations offline:
 
 ```sh
 python scripts/verify_foi_source_snapshots.py --observations /private/captures
 ```
 
-Missing or inconsistent evidence fails closed. A changed byte digest requires
+The `--observations` path requires the Rust-format `observation.json`, `body.bin`
+and acquisition `receipt.json` in every source folder. It does not accept a
+research-body digest as a substitute for those records. Missing or inconsistent
+evidence fails closed. A changed byte digest requires
 review; it does not establish an API break, deprecation or a changed legal regime.
 Unchanged bytes prove only consistency with the selected captured document, not
 that its claims are correct or current. Adjacent Canada and India captures changed
@@ -218,6 +240,17 @@ and dates together, and run the offline checks before committing a new baseline.
 Byte verification is not a cadence check: also run the landscape checker with
 the current `--as-of` date and `--fail-on-overdue` when checking whether a new
 review is due.
+
+### Qualification status
+
+Hosted Rust and MSRV checks passed for this implementation, but the live observer
+has not been qualified. Its `--live` invocation refused all six targets in this
+workspace because direct public DNS resolution was unavailable and the observer
+intentionally disables ambient proxies. The managed-proxy research captures do
+not satisfy that separate transport boundary. The public-DNS and no-proxy guards
+remain unchanged; successful live captures with their bound receipts are still
+required in a suitable environment. Issue #195 and its Conductor track therefore
+remain open for live observer qualification.
 
 ### Raw-body retention and attribution
 
