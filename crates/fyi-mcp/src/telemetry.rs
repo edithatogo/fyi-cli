@@ -1,6 +1,6 @@
 //! Process-local MCP dispatch measurements, separate from source HTTP budgets.
 //!
-//! Storage has exactly eight rows and five terminal outcomes. No caller data is
+//! Storage has exactly ten rows and five terminal outcomes. No caller data is
 //! accepted as a label. Correlation IDs belong only to events/spans, never metrics.
 
 use fyi_core::sync::{source_failure_kind, SourceFailureKind};
@@ -25,6 +25,10 @@ pub(crate) enum RemoteOperation {
     GetRequest,
     #[serde(rename = "remote_list_authorities")]
     ListAuthorities,
+    #[serde(rename = "remote_discover_authority_feeds")]
+    DiscoverAuthorityFeeds,
+    #[serde(rename = "remote_plan_authority_feed")]
+    PlanAuthorityFeed,
     #[serde(rename = "remote_create_request")]
     CreateRequest,
     #[serde(rename = "remote_add_correspondence")]
@@ -34,12 +38,14 @@ pub(crate) enum RemoteOperation {
 }
 
 impl RemoteOperation {
-    const ALL: [Self; 8] = [
+    const ALL: [Self; 10] = [
         Self::Health,
         Self::Version,
         Self::SearchRequests,
         Self::GetRequest,
         Self::ListAuthorities,
+        Self::DiscoverAuthorityFeeds,
+        Self::PlanAuthorityFeed,
         Self::CreateRequest,
         Self::AddCorrespondence,
         Self::UpdateState,
@@ -51,17 +57,33 @@ impl RemoteOperation {
             .find(|operation| operation.as_str() == name)
     }
 
-    fn as_str(self) -> &'static str {
+    pub(crate) fn as_str(self) -> &'static str {
         match self {
             Self::Health => "remote_health",
             Self::Version => "remote_version",
             Self::SearchRequests => "remote_search_requests",
             Self::GetRequest => "remote_get_request",
             Self::ListAuthorities => "remote_list_authorities",
+            Self::DiscoverAuthorityFeeds => "remote_discover_authority_feeds",
+            Self::PlanAuthorityFeed => "remote_plan_authority_feed",
             Self::CreateRequest => "remote_create_request",
             Self::AddCorrespondence => "remote_add_correspondence",
             Self::UpdateState => "remote_update_state",
         }
+    }
+
+    /// Whether this operation can be retried without repeating a remote mutation.
+    pub(crate) fn is_read(self) -> bool {
+        matches!(
+            self,
+            Self::Health
+                | Self::Version
+                | Self::SearchRequests
+                | Self::GetRequest
+                | Self::ListAuthorities
+                | Self::DiscoverAuthorityFeeds
+                | Self::PlanAuthorityFeed
+        )
     }
 }
 
@@ -98,6 +120,13 @@ pub(crate) enum RemoteErrorKind {
     UpstreamServer,
     Timeout,
     UpstreamUnknown,
+    Disabled,
+    BudgetExceeded,
+    Validation,
+    MalformedPayload,
+    Guardrail,
+    Transport,
+    Cache,
 }
 
 impl RemoteErrorKind {
@@ -111,6 +140,13 @@ impl RemoteErrorKind {
             Self::UpstreamServer => "upstream_server",
             Self::Timeout => "timeout",
             Self::UpstreamUnknown => "upstream_unknown",
+            Self::Disabled => "disabled",
+            Self::BudgetExceeded => "budget_exceeded",
+            Self::Validation => "validation",
+            Self::MalformedPayload => "malformed_payload",
+            Self::Guardrail => "guardrail",
+            Self::Transport => "transport",
+            Self::Cache => "cache",
         }
     }
 }
@@ -176,6 +212,36 @@ impl RemoteErrorClassification {
                 true,
                 "remote operation timed out",
             ),
+            Some(SourceFailureKind::Validation) => (
+                RemoteErrorKind::Validation,
+                None,
+                false,
+                "remote source input was rejected",
+            ),
+            Some(SourceFailureKind::MalformedPayload) => (
+                RemoteErrorKind::MalformedPayload,
+                None,
+                false,
+                "remote response payload was malformed",
+            ),
+            Some(SourceFailureKind::Guardrail) => (
+                RemoteErrorKind::Guardrail,
+                None,
+                false,
+                "remote source guardrail rejected the operation",
+            ),
+            Some(SourceFailureKind::Transport) => (
+                RemoteErrorKind::Transport,
+                None,
+                true,
+                "remote source transport failed",
+            ),
+            Some(SourceFailureKind::Cache) => (
+                RemoteErrorKind::Cache,
+                None,
+                false,
+                "remote cached response could not be reused",
+            ),
             None => (
                 RemoteErrorKind::UpstreamUnknown,
                 None,
@@ -186,18 +252,10 @@ impl RemoteErrorClassification {
         // A failed write may already have reached the source. The durable
         // journal reserves that uncertain outcome; telemetry must not suggest
         // an automatic retry even when its HTTP status is transient.
-        let read_only = matches!(
-            operation,
-            RemoteOperation::Health
-                | RemoteOperation::Version
-                | RemoteOperation::SearchRequests
-                | RemoteOperation::GetRequest
-                | RemoteOperation::ListAuthorities
-        );
         Self {
             kind,
             operation,
-            retryable: potentially_retryable && read_only,
+            retryable: potentially_retryable && operation.is_read(),
             status,
             safe_message,
         }
@@ -272,7 +330,7 @@ pub(crate) struct MetricsSnapshot {
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct RemoteTelemetry {
-    counters: Arc<Mutex<[Counters; 8]>>,
+    counters: Arc<Mutex<[Counters; 10]>>,
 }
 
 impl RemoteTelemetry {
@@ -318,7 +376,7 @@ impl RemoteTelemetry {
     pub(crate) fn snapshot(&self) -> Result<MetricsSnapshot, &'static str> {
         let counters = self.counters.lock().map_err(|_| UNAVAILABLE)?;
         Ok(MetricsSnapshot {
-            schema_version: 1,
+            schema_version: 2,
             scope: "process",
             measurement: "mcp_admitted_operations",
             duration_bucket_upper_bounds_ms: DURATION_BOUNDS_MS,
@@ -345,6 +403,11 @@ pub(crate) struct DispatchObservation {
 }
 
 impl DispatchObservation {
+    /// Server-generated event identity, shared with the returned read provenance.
+    pub(crate) fn correlation_id(&self) -> &str {
+        &self.correlation_id
+    }
+
     pub(crate) fn span(&self) -> Span {
         self.span.clone()
     }
@@ -412,6 +475,39 @@ mod tests {
     use super::*;
 
     #[test]
+    fn feed_operations_have_fixed_names_and_independent_correlations() {
+        let telemetry = RemoteTelemetry::default();
+        let discovery = telemetry
+            .begin(RemoteOperation::DiscoverAuthorityFeeds)
+            .unwrap();
+        let planning = telemetry.begin(RemoteOperation::PlanAuthorityFeed).unwrap();
+        assert_ne!(discovery.correlation_id(), planning.correlation_id());
+        assert!(discovery.correlation_id().starts_with("mcp-"));
+        assert_eq!(
+            RemoteOperation::from_tool("remote_discover_authority_feeds"),
+            Some(RemoteOperation::DiscoverAuthorityFeeds)
+        );
+        assert_eq!(
+            RemoteOperation::from_tool("remote_plan_authority_feed"),
+            Some(RemoteOperation::PlanAuthorityFeed)
+        );
+        assert_eq!(RemoteOperation::from_tool("synthetic-private-name"), None);
+        discovery.finish(DispatchOutcome::Success, 31).unwrap();
+        planning.finish(DispatchOutcome::Failed, 0).unwrap();
+        let snapshot = telemetry.snapshot().unwrap();
+        assert_eq!(snapshot.operations.len(), 10);
+        let discovery = &snapshot.operations[RemoteOperation::DiscoverAuthorityFeeds as usize];
+        let planning = &snapshot.operations[RemoteOperation::PlanAuthorityFeed as usize];
+        assert_eq!(discovery.counters.outcomes.success, 1);
+        assert_eq!(discovery.counters.serialized_result_bytes, 31);
+        assert_eq!(planning.counters.outcomes.failed, 1);
+        assert_eq!(planning.counters.in_flight, 0);
+        assert!(!serde_json::to_string(&snapshot)
+            .unwrap()
+            .contains("correlation_id"));
+    }
+
+    #[test]
     fn duration_buckets_are_cumulative_and_include_boundary_values() {
         let mut counters = Counters::default();
         for duration in [
@@ -461,7 +557,7 @@ mod tests {
             }
         });
         let snapshot = telemetry.clone().snapshot().unwrap();
-        assert_eq!(snapshot.operations.len(), 8);
+        assert_eq!(snapshot.operations.len(), 10);
         for row in snapshot.operations {
             assert_eq!(row.counters.started, 100);
             assert_eq!(row.counters.outcomes.success, 100);

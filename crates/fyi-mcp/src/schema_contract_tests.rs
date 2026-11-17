@@ -102,10 +102,10 @@ fn every_tool_has_supported_input_output_schema_and_complete_annotations() {
 #[test]
 fn full_catalogue_matches_versioned_executable_snapshot() {
     let snapshot: Value = serde_json::from_str(include_str!(
-        "../../../tests/fixtures/remote_mcp/tools-v1.json"
+        "../../../tests/fixtures/remote_mcp/tools-v2.json"
     ))
     .unwrap();
-    assert_eq!(snapshot["schema_version"], 1);
+    assert_eq!(snapshot["schema_version"], 2);
     fn by_name(tools: &Value) -> BTreeMap<String, Value> {
         let rows = tools.as_array().unwrap();
         let indexed: BTreeMap<_, _> = rows
@@ -404,8 +404,8 @@ async fn disabled_remote_catalogue_entries_cannot_authorize_a_call() {
 #[tokio::test]
 async fn versioned_handler_exchanges_match_actual_wire_dispatch() {
     let fixture: Value =
-        serde_json::from_str(include_str!("../../../tests/fixtures/remote_mcp/v2.json")).unwrap();
-    assert_eq!(fixture["schema_version"], 2);
+        serde_json::from_str(include_str!("../../../tests/fixtures/remote_mcp/v3.json")).unwrap();
+    assert_eq!(fixture["schema_version"], 3);
     assert_eq!(fixture["protocol_version"], MCP_PROTOCOL_VERSION);
     let db = database().await;
     let mut exercised = 0;
@@ -460,7 +460,7 @@ async fn versioned_handler_exchanges_match_actual_wire_dispatch() {
 #[test]
 fn synthetic_output_fixtures_match_schemas_and_actual_mcp_envelopes() {
     let fixture: Value =
-        serde_json::from_str(include_str!("../../../tests/fixtures/remote_mcp/v2.json")).unwrap();
+        serde_json::from_str(include_str!("../../../tests/fixtures/remote_mcp/v3.json")).unwrap();
     let mut tools = BTreeSet::new();
     for case in fixture["cases"]
         .as_array()
@@ -478,10 +478,31 @@ fn synthetic_output_fixtures_match_schemas_and_actual_mcp_envelopes() {
             response
         } else {
             assert_eq!(case["kind"], "tool_error");
-            tool_error(
-                id,
-                expected["result"]["content"][0]["text"].as_str().unwrap(),
-            )
+            if expected["result"]["structuredContent"]["error"].is_object() {
+                let error = &expected["result"]["structuredContent"]["error"];
+                let response = tool_read_error(
+                    id,
+                    RemoteReadError::from_source(
+                        RemoteOperation::from_tool(tool).unwrap(),
+                        &anyhow::anyhow!("synthetic-private-source-error"),
+                        error["correlation_id"].as_str().map(str::to_string),
+                    ),
+                );
+                let mut structured = response.result.as_ref().unwrap()["structuredContent"].clone();
+                assert_eq!(
+                    arguments::validate_arguments(
+                        &definition(tool)["outputSchema"],
+                        &mut structured
+                    ),
+                    Ok(())
+                );
+                response
+            } else {
+                tool_error(
+                    id,
+                    expected["result"]["content"][0]["text"].as_str().unwrap(),
+                )
+            }
         };
         assert_eq!(
             serde_json::to_value(response).unwrap(),
@@ -492,7 +513,7 @@ fn synthetic_output_fixtures_match_schemas_and_actual_mcp_envelopes() {
     }
     assert_eq!(
         tools.len(),
-        8,
+        10,
         "every remote tool needs a synthetic success contract"
     );
 }
