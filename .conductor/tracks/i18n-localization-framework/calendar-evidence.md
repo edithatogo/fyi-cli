@@ -34,7 +34,7 @@ when deserialized into `BTreeSet`, contradicting `uniqueItems` in the schema.
 - Rust parsing rejects duplicate dates/weekend codes and malformed contributed
   scope identifiers. Unknown regions have no fallback. Bare embedded `GB` is
   replaced by `GB-ENG` and `GB-WLS` with a documented migration.
-- [Calendar guide](../../../../docs/holiday-calendars.md) documents all keys,
+- [Calendar guide](../../../docs/holiday-calendars.md) documents all keys,
   limitations, source qualifications, custom JSON, year rollover and contributions.
 
 ## Red/green evidence
