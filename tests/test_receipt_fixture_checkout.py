@@ -1,7 +1,9 @@
 """Byte evidence must survive Git check-in/out with Windows-style conversion."""
+
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -27,14 +29,19 @@ ROOT = Path(__file__).resolve().parents[1]
     ],
 )
 def test_git_preserves_acquisition_fixture_bytes(
-    tmp_path: Path, name: str, payload: bytes, fixture_directory: str
+    tmp_path: Path,
+    name: str,
+    payload: bytes,
+    fixture_directory: str,
 ) -> None:
     env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
     env.update(GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull)
+    executable = shutil.which("git")
+    assert executable is not None
 
     def git(*args: str) -> bytes:
-        return subprocess.run(
-            ["git", "-c", f"core.attributesFile={os.devnull}", *args],
+        return subprocess.run(  # noqa: S603 - Resolved Git, fixed test arguments, no shell.
+            [executable, "-c", f"core.attributesFile={os.devnull}", *args],
             cwd=tmp_path,
             env=env,
             capture_output=True,

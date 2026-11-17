@@ -3,7 +3,7 @@
   "type": "programme",
   "status": "in-progress",
   "created_at": "2026-08-12T00:00:00Z",
-  "updated_at": "2026-11-17T00:00:00Z",
+  "updated_at": "2026-11-17T09:11:19Z",
   "github_issue": "https://github.com/edithatogo/fyi-cli/issues/309",
   "upstream_consumer": "https://github.com/edithatogo/fyi-archive/issues/370",
   "downstream_consumer": "https://github.com/edithatogo/foi-process/issues/114",
@@ -14,5 +14,13 @@
     "https://github.com/edithatogo/fyi-cli/issues/313",
     "https://github.com/edithatogo/fyi-cli/issues/314"
   ],
-  "archive_cutover_allowed": false
+  "archive_cutover_allowed": false,
+  "replay_qualification_20261117": {
+    "github_pr": "https://github.com/edithatogo/fyi-cli/pull/489",
+    "baseline_commit": "1f0ae6d0b00663d52ccb65904152ca4e933b3486",
+    "tests_first_commit": "7805d42b0ccf986a55a21b97cfdeae0a5103a8a4",
+    "implementation_checkpoint": "d7b577efe25491ae1e7ccac0255ebdcd081384fe",
+    "evidence": "replay-qualification-20261117.md",
+    "receiving_gate": "https://github.com/edithatogo/fyi-cli/pull/489/checks"
+  }
 }

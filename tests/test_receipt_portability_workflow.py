@@ -1,4 +1,5 @@
 """Keep the receipt portability gate bounded, offline and fail-closed."""
+
 from __future__ import annotations
 
 import re
@@ -17,7 +18,9 @@ def test_portability_covers_three_explicit_operating_systems() -> None:
     matrix = re.search(r"os: \[([^\]]+)\]", text)
     assert matrix is not None
     assert {value.strip() for value in matrix[1].split(",")} == {
-        "ubuntu-24.04", "windows-2025", "macos-15"
+        "ubuntu-24.04",
+        "windows-2025",
+        "macos-15",
     }
     assert "fail-fast: false" in text
     assert "timeout-minutes: 45" in text
@@ -28,10 +31,16 @@ def test_receipt_contracts_and_consumer_are_executed() -> None:
     assert "cargo test --locked --package fyi-core" in text
     assert "cargo test --locked --package fyi-cli" in text
     for target in (
-        "acquisition_receipts", "acquisition_receipt_numeric_conformance",
-        "acquisition_receipt_midpoint_conformance", "receipt_wire",
-        "receipt_persistence_portability", "receipt_numeric_tests", "receipt_wire_tests", "startup_tests",
-        "internet_archive_replay", "replay_evidence_gate_tests",
+        "acquisition_receipts",
+        "acquisition_receipt_numeric_conformance",
+        "acquisition_receipt_midpoint_conformance",
+        "receipt_wire",
+        "receipt_persistence_portability",
+        "receipt_numeric_tests",
+        "receipt_wire_tests",
+        "startup_tests",
+        "internet_archive_replay",
+        "replay_evidence_gate_tests",
     ):
         assert re.search(rf"--test {target}(?:\s|$)", text), target
     assert "--lib internet_archive_replay::" in text
@@ -63,13 +72,20 @@ def test_artifacts_include_provenance_and_failures() -> None:
 
 def test_source_changes_and_workflow_changes_trigger_the_gate() -> None:
     text = workflow()
-    assert "pull_request:" in text and "push:" in text
+    assert "pull_request:" in text
+    assert "push:" in text
     assert "branches: [master]" in text
     for path in (
-        "crates/fyi-core/**", "crates/fyi-cli/**", "conformance/acquisition/**",
-        "Cargo.lock", "rust-toolchain.toml", ".github/workflows/receipt-portability.yml",
-        ".gitattributes", "tests/test_receipt_fixture_checkout.py",
-        "conformance/internet-archive-replay/**", "tests/fixtures/internet_archive_replay/**",
+        "crates/fyi-core/**",
+        "crates/fyi-cli/**",
+        "conformance/acquisition/**",
+        "Cargo.lock",
+        "rust-toolchain.toml",
+        ".github/workflows/receipt-portability.yml",
+        ".gitattributes",
+        "tests/test_receipt_fixture_checkout.py",
+        "conformance/internet-archive-replay/**",
+        "tests/fixtures/internet_archive_replay/**",
     ):
         assert f'"{path}"' in text
     assert "workflow_dispatch:" in text
