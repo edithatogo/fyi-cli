@@ -39,6 +39,11 @@ the existing remote-MCP verifier and the Conductor verifier pass. The 15 mutatio
 source selectors validate, without claiming mutation execution. Runtime receipts
 remain pending the candidate execution.
 
+Independent review reproduced a real Windows-checkout defect: enabling Git's
+`core.autocrlf` changed the RSS fixture hash. The shared corpus now has an explicit
+`-text` attribute. The same checkout-filter command preserves the manifest's
+original hash after correction; no fixture bytes or hashes were replaced.
+
 Local Rust builds were killed with SIGKILL in dependency compilation, including
 after reducing to one build job, no debug information and serial code generation.
 Those attempts do not establish executable test success. Full local Python

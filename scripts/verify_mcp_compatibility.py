@@ -32,6 +32,7 @@ SOURCE_INPUT_SCOPE = (
     "Cargo*",
     "rust-toolchain.toml",
     ".cargo",
+    ".gitattributes",
     "crates",
     "scripts",
     "tests",
