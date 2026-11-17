@@ -37,6 +37,7 @@ mcp_binary = test_mcp_client_interop.mcp_binary
 FIXTURE = Path(__file__).parent / "fixtures/remote_mcp/upstream-v2.json"
 REMOTE_TOOLS = contract.REQUIRED_READ_TOOLS | contract.REQUIRED_WRITE_TOOLS
 HTTP_ERRORS = {
+    302: ("upstream_unknown", False, "remote operation failed"),
     401: ("auth", False, "remote authentication failed"),
     403: ("forbidden", False, "remote permission denied"),
     404: ("not_found", False, "remote resource not found"),
@@ -53,9 +54,6 @@ SOURCE_ERRORS = {
     "truncated": ("transport", True),
     "malformed_chunk": ("transport", True),
     "malformed_headers": ("transport", True),
-    "same_origin_redirect": ("guardrail", False),
-    "foreign_redirect": ("guardrail", False),
-    "loopback_redirect": ("guardrail", False),
 }
 LINUX_TLS = pytest.mark.skipif(
     sys.platform != "linux",
@@ -157,6 +155,38 @@ def _body_length(exchange: dict) -> int:
     return len(exchange.get("body", "").encode())
 
 
+def _assert_feed_reference_ids(plan: dict, origin: str) -> None:
+    """Only an explicit request API URL establishes a numeric database ID."""
+    request_ids = []
+    for reference in plan["references"]:
+        assert set(reference) == {"kind", "url", "request_id"}
+        assert reference["kind"] in {"request", "request_event"}
+        assert "#" not in reference["url"]
+        assert "?" not in reference["url"]
+        if reference["url"].startswith(f"{origin}/api/v2/request/"):
+            request_id = reference["request_id"]
+            assert type(request_id) is int
+            assert 0 < request_id <= 9223372036854775807
+            assert reference["kind"] == "request"
+            assert reference["url"] == f"{origin}/api/v2/request/{request_id}.json"
+            request_ids.append(request_id)
+        else:
+            assert reference["request_id"] is None, (
+                "a slug or event URL does not establish a numeric request ID"
+            )
+    assert plan["request_ids"] == sorted(set(request_ids))
+
+
+def _assert_feed_result(case: dict, payload: dict) -> None:
+    if case["tool"] != "remote_plan_authority_feed":
+        return
+    _assert_feed_reference_ids(payload["plan"], "https://mcp-fixture.invalid")
+    if case["id"] in {"authority_feed_alaveteli_events", "authority_feed_reference_limit"}:
+        assert payload["plan"]["request_ids"] == [4001], (
+            "event identifiers or request slugs became numeric request IDs"
+        )
+
+
 def _diagnostics_are_private(directory: Path) -> None:
     diagnostics = (directory / "upstream-server.stderr").read_text(encoding="utf-8")
     for private in [
@@ -179,6 +209,13 @@ def test_versioned_upstream_fixture_covers_every_current_remote_tool() -> None:
     cases = fixture["cases"]
     assert {case["tool"] for case in cases} == REMOTE_TOOLS
     assert len({case["id"] for case in cases}) == len(cases)
+    assert {
+        "authority_feed_alaveteli_events",
+        "authority_feed_reference_limit",
+        "authority_feed_atom_empty",
+        "authority_feed_rss_empty",
+        "authority_feed_foreign_only",
+    } <= {case["id"] for case in cases}
     for case in cases:
         assert case["arguments"]["instance_id"] == "synthetic"
         if case["tool"] == "remote_discover_authority_feeds":
@@ -189,6 +226,18 @@ def test_versioned_upstream_fixture_covers_every_current_remote_tool() -> None:
             assert exchange["method"] in {"GET", "POST", "PUT"}
             assert exchange["path"].startswith("/")
             assert exchange["status"] in {200, 201, 302}
+        if case["tool"] == "remote_plan_authority_feed":
+            assert len(case["exchanges"]) == 1
+            assert case["exchanges"][0]["method"] == "GET"
+            assert case["exchanges"][0]["path"] == "/feed/body/synthetic-authority"
+            plan = case["expected"]["plan"]
+            assert set(plan) == {"feed_url", "request_ids", "references", "truncated"}
+            assert plan["feed_url"] == "https://mcp-fixture.invalid/feed/body/synthetic-authority"
+            references = plan["references"]
+            assert len(references) <= case["arguments"]["limit"]
+            urls = [reference["url"] for reference in references]
+            assert urls == sorted(set(urls))
+            _assert_feed_reference_ids(plan, fixture["origin"])
     errors = fixture["errors"]
     assert len({case["id"] for case in errors}) == len(errors)
     assert {401, 403, 404, 429, 500, 503} <= {case["status"] for case in errors}
@@ -243,7 +292,7 @@ def test_actual_sdk_feed_discovery_never_contacts_source(
                     assert not result.isError
                     assert result.structuredContent["feeds"] == [
                         {
-                            "url": "https://mcp-fixture.invalid/body/synthetic-authority/feed",
+                            "url": "https://mcp-fixture.invalid/feed/body/synthetic-authority",
                             "availability": "not_checked",
                         },
                     ]
@@ -345,6 +394,7 @@ def test_actual_sdk_to_source_success_contract(
                     )
                     content = {key: value for key, value in payload.items() if key != "provenance"}
                     assert content == case["expected"]
+                    _assert_feed_result(case, payload)
                     local = await session.call_tool("list_requests", {})
                     assert local.structuredContent == {"requests": []}, (
                         "remote read modified SQLite"
@@ -642,7 +692,7 @@ def test_malformed_authority_feed_is_private_and_does_not_fetch_request_details(
 ) -> None:
     exchange = {
         "method": "GET",
-        "path": "/body/synthetic-authority/feed",
+        "path": "/feed/body/synthetic-authority",
         "status": 200,
         "body": body,
     }

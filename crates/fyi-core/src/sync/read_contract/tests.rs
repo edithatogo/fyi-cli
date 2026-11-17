@@ -280,7 +280,7 @@ async fn authority_feed_discovery_validates_slug_without_source_io() {
     let client = client(&server).await;
     assert_eq!(
         client.authority_feed_url("health_A-7").unwrap(),
-        format!("{}/body/health_A-7/feed", server.uri())
+        format!("{}/feed/body/health_A-7", server.uri())
     );
     for slug in [
         "",
@@ -303,23 +303,76 @@ async fn authority_feed_discovery_validates_slug_without_source_io() {
     assert!(server.received_requests().await.unwrap().is_empty());
 }
 
+#[test]
+fn authority_feed_discovery_preserves_configured_subpath() {
+    for base in [
+        "https://source.example/portal",
+        "https://source.example/portal/",
+    ] {
+        let client = SyncClient::new(base).unwrap();
+        assert_eq!(
+            client.authority_feed_url("health").unwrap(),
+            "https://source.example/portal/feed/body/health"
+        );
+    }
+}
+
+fn request_reference(path: &str, request_id: Option<i64>) -> AuthorityFeedReference {
+    AuthorityFeedReference {
+        kind: AuthorityFeedReferenceKind::Request,
+        url: format!("https://source.example{path}"),
+        request_id,
+    }
+}
+
+fn event_reference(path: &str) -> AuthorityFeedReference {
+    AuthorityFeedReference {
+        kind: AuthorityFeedReferenceKind::RequestEvent,
+        url: format!("https://source.example{path}"),
+        request_id: None,
+    }
+}
+
+fn parse_fixture_references(
+    feed: &str,
+    limit: usize,
+) -> Result<(Vec<AuthorityFeedReference>, bool)> {
+    feed_references(
+        feed,
+        &Url::parse("https://source.example/").unwrap(),
+        &Url::parse("https://source.example/feed/body/health").unwrap(),
+        limit,
+    )
+}
+
 #[tokio::test]
 async fn rss_and_atom_feed_plans_use_one_get_and_never_pull_records() {
-    for (fixture, expected) in [
+    for (feed, expected_ids, reference_count) in [
         (
-            include_str!("../../../../../tests/fixtures/api_contracts/feed-rss-v1.xml"),
+            r#"<rss version="2.0"><channel><title>Synthetic authority feed</title>
+              <item><link>https://source.example/api/v2/request/1001.json</link></item>
+              <item><link>https://source.example/api/v2/request/1002.json</link></item>
+              <item><link>https://source.example/api/v2/request/1001.json#incoming-42</link></item>
+            </channel></rss>"#,
             vec![1001, 1002],
+            2,
         ),
         (
-            include_str!("../../../../../tests/fixtures/api_contracts/feed-atom-v1.xml"),
+            r#"<feed xmlns="http://www.w3.org/2005/Atom">
+              <entry><id>https://source.example/api/v2/request/2001.json</id>
+                <link rel="alternate" href="https://source.example/request/synthetic_one"/></entry>
+              <entry><id>https://source.example/api/v2/request/2002.json</id>
+                <link href="https://source.example/request/synthetic_two"/></entry>
+            </feed>"#,
             vec![2001, 2002],
+            4,
         ),
     ] {
         let server = MockServer::start().await;
         let client = client(&server).await;
-        let feed = fixture.replace("https://foi-repository.example", &server.uri());
+        let feed = feed.replace("https://source.example", &server.uri());
         Mock::given(method("GET"))
-            .and(path("/body/health/feed"))
+            .and(path("/feed/body/health"))
             .respond_with(ResponseTemplate::new(200).set_body_string(feed.clone()))
             .expect(1)
             .mount(&server)
@@ -328,11 +381,12 @@ async fn rss_and_atom_feed_plans_use_one_get_and_never_pull_records() {
             .plan_authority_feed("health", 200, &limits())
             .await
             .unwrap();
-        assert_eq!(result.value.request_ids, expected);
+        assert_eq!(result.value.request_ids, expected_ids);
+        assert_eq!(result.value.references.len(), reference_count);
         assert!(!result.value.truncated);
         assert_eq!(
             result.value.feed_url,
-            format!("{}/body/health/feed", server.uri())
+            format!("{}/feed/body/health", server.uri())
         );
         assert_eq!(result.provenance.response_bytes, feed.len() as u64);
         assert_eq!(server.received_requests().await.unwrap().len(), 1);
@@ -341,39 +395,288 @@ async fn rss_and_atom_feed_plans_use_one_get_and_never_pull_records() {
 
 #[test]
 fn feed_plan_filters_foreign_invalid_and_unrelated_links_and_deduplicates() {
-    let base = Url::parse("https://source.example/").unwrap();
     let feed = r#"<feed><entry><link href="https://foreign.example/request/2"/>
       <link href="https://synthetic-private@source.example/request/3"/>
       <link href="https://source.example/request/4?secret=synthetic-private"/>
       <link href="https://source.example/request/5#fragment"/>
-      <link href="https://source.example/request/0"/>
+      <link href="https://source.example/request/5#other-fragment"/>
+      <link href="https://source.example/api/v2/request/0.json"/>
       <link href="https://source.example/request/6oops"/>
-      <link href="https://source.example/request/9223372036854775808"/>
+      <link href="https://source.example/api/v2/request/9223372036854775808.json"/>
       <title>Unrelated /request/8 must not be admitted</title>
       <link href="/request/9/fixture/request/42"/>
-      <id>https://source.example/requests/9</id>
+      <id>https://source.example/api/v2/request/9.json</id>
       <link href="/body/authority"/></entry></feed>"#;
     assert_eq!(
-        feed_request_ids(feed, &base, 200).unwrap(),
-        (vec![9], false)
+        parse_fixture_references(feed, 200).unwrap(),
+        (
+            vec![
+                request_reference("/api/v2/request/9.json", Some(9)),
+                request_reference("/request/5", None),
+                request_reference("/request/6oops", None),
+            ],
+            false
+        )
     );
 }
 
 #[test]
-fn feed_plan_limit_is_deterministic_and_explicitly_truncated() {
-    let base = Url::parse("https://source.example/").unwrap();
-    let feed = "<rss><channel><item><link>/request/9</link><link>/request/2</link><link>/request/9</link><link>/request/1</link></item></channel></rss>";
+fn realistic_atom_keeps_request_slugs_and_unresolved_event_references() {
+    // Alaveteli Atom IDs identify InfoRequestEvent objects, while alternate
+    // links point to event redirect routes or request URL titles.
+    let feed = r#"<?xml version="1.0" encoding="UTF-8"?>
+      <feed xmlns="http://www.w3.org/2005/Atom">
+        <id>tag:source.example,2005:/track/body/health</id>
+        <title>Synthetic authority changes</title>
+        <link rel="self" href="/request/9991"/>
+        <entry><id>tag:source.example,2005:InfoRequestEvent/3001</id>
+          <title>Request event 3001, not request 3001</title>
+          <link href="../../request_event/3001" rel="alternate"/>
+          <link href="/request/9992" rel="self"/>
+          <link href="/request/9993" rel="enclosure"/>
+          <link href="/request/9994" rel="related"/>
+        </entry>
+        <entry><id>tag:source.example,2005:InfoRequestEvent/3002</id>
+          <link rel="alternate" href="/request/synthetic_statistics#incoming-42"/>
+          <link href="/request/synthetic_statistics#incoming-43"/>
+          <summary>Metadata references /request/9995 without a link.</summary>
+          <link rel="alternate" href="request/9996"/>
+          <link rel="alternate" href="/request/321"/>
+          <link rel="alternate" href="/api/v2/request/4001.json"/>
+        </entry>
+      </feed>"#;
+    let expected = vec![
+        request_reference("/api/v2/request/4001.json", Some(4001)),
+        request_reference("/request/321", None),
+        request_reference("/request/synthetic_statistics", None),
+        event_reference("/request_event/3001"),
+    ];
     assert_eq!(
-        feed_request_ids(feed, &base, 2).unwrap(),
-        (vec![1, 2], true)
+        parse_fixture_references(feed, 4).unwrap(),
+        (expected.clone(), false)
     );
     assert_eq!(
-        feed_request_ids(feed, &base, 3).unwrap(),
-        (vec![1, 2, 9], false)
+        parse_fixture_references(feed, 1).unwrap(),
+        (vec![expected[0].clone()], true)
     );
-    let base = Url::parse("https://source.example/portal/").unwrap();
-    let feed = "<feed><entry><link href=\"/portal/request/1\"/></entry></feed>";
-    assert_eq!(feed_request_ids(feed, &base, 3).unwrap(), (vec![1], false));
+}
+
+#[test]
+fn numeric_public_url_titles_are_unresolved_and_never_request_ids() {
+    let feed = r#"<feed>
+      <entry><link href="/request/123#incoming-9"/></entry>
+      <entry><link href="/request/0"/></entry>
+      <entry><link href="/request/9223372036854775808"/></entry>
+      <entry><link href="/request_event/456"/></entry>
+      <entry><id>tag:source.example,2005:InfoRequestEvent/789</id></entry>
+      <entry><link href="/requests/321"/></entry>
+      </feed>"#;
+    let (references, truncated) = parse_fixture_references(feed, 10).unwrap();
+    assert_eq!(
+        references,
+        vec![
+            request_reference("/request/0", None),
+            request_reference("/request/123", None),
+            request_reference("/request/9223372036854775808", None),
+            event_reference("/request_event/456"),
+        ]
+    );
+    assert!(references
+        .iter()
+        .all(|reference| reference.request_id.is_none()));
+    assert!(!truncated);
+}
+
+#[test]
+fn rss_guid_and_atom_ids_require_canonical_reference_urls() {
+    let rss = r#"<rss><channel>
+      <link>https://source.example/request/9991</link>
+      <item><guid>3001</guid><title>https://source.example/request/9992</title>
+        <description>https://source.example/request/9993</description>
+        <guid>https://source.example/request_event/31#event</guid>
+        <link>https://source.example/request/synthetic_slug#incoming-7</link>
+        <link href="https://source.example/request/9994"/>
+      </item></channel></rss>"#;
+    assert_eq!(
+        parse_fixture_references(rss, 10).unwrap(),
+        (
+            vec![
+                request_reference("/request/synthetic_slug", None),
+                event_reference("/request_event/31")
+            ],
+            false
+        )
+    );
+    let atom = r#"<feed><id>https://source.example/api/v2/request/9991.json</id>
+      <entry><id>https://source.example/api/v2/request/71.json#response</id></entry>
+      <entry><id>tag:source.example,2005:InfoRequestEvent/request/9992</id></entry>
+      <entry><id>3001</id><link>/request/9993</link></entry></feed>"#;
+    assert_eq!(
+        parse_fixture_references(atom, 10).unwrap(),
+        (
+            vec![request_reference("/api/v2/request/71.json", Some(71))],
+            false
+        )
+    );
+}
+
+#[test]
+fn feed_reference_limit_is_deterministic_and_shared_across_route_kinds() {
+    let feed = r#"<rss><channel><item>
+      <link>/request/9</link><link>/api/v2/request/2.json</link><guid>/request_event/3</guid>
+      <link>/request/synthetic_slug</link><link>/request/9#duplicate</link><link>/api/v2/request/1.json</link>
+      </item></channel></rss>"#;
+    assert_eq!(
+        parse_fixture_references(feed, 2).unwrap(),
+        (
+            vec![
+                request_reference("/api/v2/request/1.json", Some(1)),
+                request_reference("/api/v2/request/2.json", Some(2)),
+            ],
+            true
+        )
+    );
+    assert_eq!(
+        parse_fixture_references(feed, 5).unwrap(),
+        (
+            vec![
+                request_reference("/api/v2/request/1.json", Some(1)),
+                request_reference("/api/v2/request/2.json", Some(2)),
+                request_reference("/request/9", None),
+                request_reference("/request/synthetic_slug", None),
+                event_reference("/request_event/3"),
+            ],
+            false
+        )
+    );
+}
+
+#[tokio::test]
+async fn plan_request_ids_are_only_the_projection_of_retained_references() {
+    let server = MockServer::start().await;
+    let client = client(&server).await;
+    let feed = r#"<feed><entry><link href="/api/v2/request/7.json#first"/>
+      <link href="/api/v2/request/7.json#second"/><id>/api/v2/request/9.json</id></entry>
+      <entry><link href="/request/321"/></entry>
+      <entry><id>tag:example,2005:InfoRequestEvent/3</id><link href="/request_event/3"/></entry>
+      </feed>"#;
+    Mock::given(method("GET"))
+        .and(path("/feed/body/health"))
+        .respond_with(ResponseTemplate::new(200).set_body_string(feed))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let plan = client
+        .plan_authority_feed("health", 1, &limits())
+        .await
+        .unwrap()
+        .value;
+    assert_eq!(plan.request_ids, vec![7]);
+    assert_eq!(plan.references.len(), 1);
+    assert_eq!(plan.references[0].request_id, Some(7));
+    assert!(plan.truncated);
+    assert_eq!(server.received_requests().await.unwrap().len(), 1);
+}
+
+#[test]
+fn feed_relative_links_resolve_from_document_and_stay_within_base_path() {
+    let feed = r#"<feed><entry><link href="../../request/synthetic_slug#incoming-7"/>
+      <link href="../../request_event/8"/><link href="/portal/api/v2/request/9.json"/>
+      <link href="../../../request/9991"/><link href="/request/9992"/>
+      <link href="request/9993"/><link href="/portal-other/request/9994"/>
+      </entry></feed>"#;
+    for configured_base in [
+        "https://source.example/portal",
+        "https://source.example/portal/",
+    ] {
+        let base = Url::parse(configured_base).unwrap();
+        let document = Url::parse("https://source.example/portal/feed/body/health").unwrap();
+        assert_eq!(
+            feed_references(feed, &base, &document, 10).unwrap(),
+            (
+                vec![
+                    request_reference("/portal/api/v2/request/9.json", Some(9)),
+                    request_reference("/portal/request/synthetic_slug", None),
+                    event_reference("/portal/request_event/8"),
+                ],
+                false
+            )
+        );
+    }
+}
+
+#[test]
+fn feed_references_reject_extra_segments_and_unsafe_encodings() {
+    for link in [
+        "/request/1001/synthetic-first",
+        "/request/slug/",
+        "/request_event/1/extra",
+        "/requests/123",
+        "/requests/slug",
+        "/requests/-1",
+        "/request_event/0",
+        "/request_event/a_slug",
+        "/api/v2/request/0.json",
+        "/api/v2/request/-1.json",
+        "/api/v2/request/+1.json",
+        "/api/v2/request/7.json/extra",
+        "/api/v2/request/7",
+        "/api/v2/request/slug.json",
+        "/api/v2/request/9223372036854775808.json",
+        "/api/v2/request/00000000000000000001.json",
+        "/request_event/9223372036854775808",
+        "/request/unsafe%2fslug",
+        "/request/%2e%2e/request/4",
+        "/request/has%20space",
+        "/request/has space",
+        "/request/has.dot",
+        "/request/é",
+        "/request/has\\separator",
+        "/request/4?",
+        "/request/4?secret=synthetic-private",
+        "https://foreign.example/request/4",
+        "https://user:synthetic-private@source.example/request/4",
+    ] {
+        let feed = format!("<feed><entry><link href=\"{link}\"/></entry></feed>");
+        assert_eq!(
+            parse_fixture_references(&feed, 10).unwrap(),
+            (vec![], false),
+            "{link}"
+        );
+    }
+    let oversized = "a".repeat(129);
+    let feed = format!("<feed><entry><link href=\"/request/{oversized}\"/></entry></feed>");
+    assert_eq!(
+        parse_fixture_references(&feed, 10).unwrap(),
+        (vec![], false)
+    );
+}
+
+#[test]
+fn empty_and_all_foreign_feeds_have_an_empty_untruncated_plan() {
+    for feed in [
+        "<feed/>",
+        "<rss><channel/></rss>",
+        "<feed><entry><link href=\"https://foreign.example/request/8\"/></entry></feed>",
+    ] {
+        assert_eq!(parse_fixture_references(feed, 1).unwrap(), (vec![], false));
+    }
+}
+
+#[test]
+fn feed_parser_rejects_malformed_documents_entities_and_base_overrides() {
+    for feed in [
+        "<feed><entry></feed>",
+        "<feed/><feed/>",
+        "<feed>&unknown;</feed>",
+        "<!DOCTYPE feed [<!ENTITY ext SYSTEM 'https://foreign.example/'>]><feed>&ext;</feed>",
+        "<feed xml:base=\"https://foreign.example/\"><entry><link href=\"/request/a\"/></entry></feed>",
+        "<feed><entry><link href=\"/request/a\" href=\"/request/b\"/></entry></feed>",
+        "<feed><entry><id>/request/<x>a</x></id></entry></feed>",
+        "<feed>&#0;</feed>",
+    ] {
+        assert!(parse_fixture_references(feed, 10).is_err());
+    }
 }
 
 #[tokio::test]
@@ -385,13 +688,13 @@ async fn malformed_and_entity_feeds_return_private_typed_errors() {
         "<!DOCTYPE rss [<!ENTITY ext SYSTEM 'https://synthetic-private.invalid/'>]><rss><item>&ext;</item></rss>",
         "<feed><entry><link href=\"/request/1\" href=\"/request/2\"/></entry></feed>",
         "<feed xml:base=\"https://synthetic-private.invalid/\"><entry><link href=\"/request/1\"/></entry></feed>",
-        "<feed><entry><link>/request/<x>2</x>1</link></entry></feed>",
+        "<feed><entry><id>/request/<x>2</x>1</id></entry></feed>",
         "<feed>&#0;</feed>",
         "<feed>\0synthetic-private</feed>",
     ] {
         let server = MockServer::start().await;
         let client = client(&server).await;
-        Mock::given(method("GET")).and(path("/body/health/feed"))
+        Mock::given(method("GET")).and(path("/feed/body/health"))
             .respond_with(ResponseTemplate::new(200).set_body_string(feed))
             .expect(1).mount(&server).await;
         let error = client.plan_authority_feed("health", 10, &limits()).await.unwrap_err();
@@ -402,11 +705,10 @@ async fn malformed_and_entity_feeds_return_private_typed_errors() {
 
 #[test]
 fn feed_parser_accepts_cdata_and_predefined_references_and_bounds_depth() {
-    let base = Url::parse("https://source.example/").unwrap();
     for feed in [
         "<feed><entry><id><![CDATA[https://source.example/request/7]]></id></entry></feed>",
         "<rss><channel><item><link>https://source.example/request/&#55;</link><title>&amp;</title></item></channel></rss>",
-    ] { assert_eq!(feed_request_ids(feed,&base,10).unwrap(), (vec![7],false)); }
+    ] { assert_eq!(parse_fixture_references(feed, 10).unwrap(), (vec![request_reference("/request/7", None)],false)); }
     for feed in [
         format!("<rss>{}{}</rss>", "<x>".repeat(65), "</x>".repeat(65)),
         "<?xml version=\"1.1\"?><rss/>".into(),
@@ -415,7 +717,7 @@ fn feed_parser_accepts_cdata_and_predefined_references_and_bounds_depth() {
         "<![CDATA[synthetic-private]]><rss/>".into(),
         "<rss/><![CDATA[synthetic-private]]>".into(),
     ] {
-        assert!(feed_request_ids(&feed, &base, 10).is_err());
+        assert!(parse_fixture_references(&feed, 10).is_err());
     }
 }
 

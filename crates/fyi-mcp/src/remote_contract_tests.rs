@@ -40,7 +40,7 @@ fn read_catalogue_includes_bounded_authority_feed_contracts() {
         );
         assert_eq!(tool["inputSchema"]["additionalProperties"], false);
     }
-    let disabled = registered_tool_catalogue(&RemoteMcpPolicy::default());
+    let disabled = registered_tool_catalogue(&RemoteMcpPolicy::new(vec![]).unwrap());
     assert!(disabled["tools"]
         .as_array()
         .unwrap()
@@ -143,7 +143,7 @@ async fn feed_discovery_and_read_contract_are_offline_and_leave_database_empty()
     assert_eq!(
         payload["feeds"],
         json!([{
-            "url":"https://foi-repository.example/body/synthetic-authority/feed",
+            "url":"https://foi-repository.example/feed/body/synthetic-authority",
             "availability":"not_checked"
         }])
     );

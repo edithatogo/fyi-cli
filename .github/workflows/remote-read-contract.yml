@@ -13,6 +13,7 @@ on:
       - "scripts/verify_remote_mcp_contract.py"
       - "docs/mcp-*.md"
       - "docs/remote-mcp-security.md"
+      - "docs/remote-mcp-read-contract.md"
       - "Cargo.toml"
       - "Cargo.lock"
       - "pyproject.toml"
@@ -170,7 +171,7 @@ jobs:
                   "test_production_timeout_closes_a_stalled_source_connection",
                   "test_generated_query_encoding_and_result_limit_match_the_wire",
               )]
-              expected_minimum = 47
+              expected_minimum = 52
           scope = {
               "rust": ["source read contracts", "MCP crate tests"],
               "sdk": "portable read discovery and policy denial",

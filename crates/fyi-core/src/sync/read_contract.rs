@@ -2,15 +2,21 @@
 //!
 //! These methods use the existing source transport and validator cache. They
 //! never open an application database and never follow a feed's links.
+//! Construct the client with [`SyncClient::with_guardrails`] for exact wire
+//! request bounds: legacy constructors retain their existing redirect policy.
 
 use super::*;
 use serde::Serialize;
+use std::collections::BTreeMap;
 
 /// Per-operation transfer limits. Request counts and aggregate transfer bytes
 /// are additionally bounded by the client's shared `GuardrailConfig`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReadLimits {
     pub max_bytes: u64,
+    /// Guarded exchange time, including pacing, permit acquisition and body
+    /// transfer. Callers enforce their own end-to-end deadline for parsing and
+    /// result serialization after that exchange.
     pub max_duration: Duration,
 }
 
@@ -41,13 +47,34 @@ pub struct SourceRead<T> {
     pub provenance: ReadProvenance,
 }
 
-/// Request identifiers discovered in one authority feed. Planning never fetches
-/// these request records or applies them to a database.
+/// The public source route retained by a feed plan.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AuthorityFeedReferenceKind {
+    Request,
+    RequestEvent,
+}
+
+/// A source reference. Only the explicit API request route carries a request
+/// ID. Public request URL titles (including all-digit titles) and event IDs
+/// remain unresolved; this planner never guesses IDs or follows those links.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct AuthorityFeedReference {
+    pub kind: AuthorityFeedReferenceKind,
+    pub url: String,
+    pub request_id: Option<i64>,
+}
+
+/// References discovered in one authority feed. Planning never resolves these
+/// references, fetches request records, or applies them to a database.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct AuthorityFeedPlan {
     pub feed_url: String,
+    /// Unique normalized URLs in lexical order, subject to one shared item bound.
+    pub references: Vec<AuthorityFeedReference>,
+    /// Sorted, unique API request IDs from the retained references only.
     pub request_ids: Vec<i64>,
-    /// More unique, valid identifiers were present than the caller's item limit.
+    /// More unique, valid references were present than the caller's item limit.
     pub truncated: bool,
 }
 
@@ -160,8 +187,8 @@ impl SyncClient {
             .map_err(safe_source_error)
     }
 
-    /// Strict one-GET health probe. Unlike the legacy convenience health check,
-    /// source and transport failures retain their typed error classification.
+    /// Strict health probe retaining typed source and transport failures. It
+    /// performs one GET when the client was built with `with_guardrails`.
     pub async fn health_check_read(&self, limits: &ReadLimits) -> Result<SourceRead<SyncHealth>> {
         let url = self.base_url.join("api/v2/request.json")?;
         let response = self.read_response(self.http.get(url), limits).await?;
@@ -229,21 +256,22 @@ impl SyncClient {
     /// Discover the canonical Alaveteli authority-feed route without I/O.
     /// This declares a route convention, not its availability on the source.
     pub fn authority_feed_url(&self, authority_slug: &str) -> Result<String> {
-        if authority_slug.is_empty()
-            || authority_slug.len() > 128
-            || !authority_slug
-                .bytes()
-                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-'))
-        {
+        if !is_source_slug(authority_slug) {
             return Err(SourceReadError::new(SourceFailureKind::Validation).into());
         }
-        let url = self.base_url.join(&format!("body/{authority_slug}/feed"))?;
+        let mut url = self.base_url.clone();
+        url.set_path(&format!(
+            "{}/feed/body/{authority_slug}",
+            self.base_url.path().trim_end_matches('/')
+        ));
         Ok(url.to_string())
     }
 
     /// Fetch and validate one RSS/Atom feed, returning a bounded pull plan.
-    /// Only same-origin positive request IDs are admitted. There is no request
-    /// detail traversal, local database mutation, retry, or remote write.
+    /// Retain same-origin request and request-event URLs within the configured
+    /// base path. Descriptive slugs and event IDs remain unresolved. No links
+    /// are followed, no database is changed, and no remote write is sent.
+    /// Construct with `with_guardrails` for one GET without redirects or retries.
     pub async fn plan_authority_feed(
         &self,
         authority_slug: &str,
@@ -256,10 +284,18 @@ impl SyncClient {
         let feed_url = self.authority_feed_url(authority_slug)?;
         let response = self.read_response(self.http.get(&feed_url), limits).await?;
         let feed = std::str::from_utf8(&response.body).map_err(malformed)?;
-        let (request_ids, truncated) =
-            feed_request_ids(feed, &self.base_url, max_items).map_err(malformed)?;
+        let (references, truncated) =
+            feed_references(feed, &self.base_url, &response.final_url, max_items)
+                .map_err(malformed)?;
+        let request_ids = references
+            .iter()
+            .filter_map(|reference| reference.request_id)
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect();
         Ok(response.into_source_read(AuthorityFeedPlan {
             feed_url,
+            references,
             request_ids,
             truncated,
         }))
@@ -269,10 +305,15 @@ impl SyncClient {
 #[cfg(test)]
 mod tests;
 
-/// A bounded XML feed reader. It shares the numeric request-ID extractor with
-/// legacy feed acquisition, but checks XML structure and URL origin before
-/// considering link content. DTDs and custom entity resolution are forbidden.
-fn feed_request_ids(feed: &str, base_url: &Url, limit: usize) -> Result<(Vec<i64>, bool)> {
+/// A bounded XML feed reader. Retain canonical source references without
+/// interpreting event IDs or descriptive slugs as numeric request IDs.
+/// DTDs and custom entity resolution are forbidden.
+fn feed_references(
+    feed: &str,
+    base_url: &Url,
+    document_url: &Url,
+    limit: usize,
+) -> Result<(Vec<AuthorityFeedReference>, bool)> {
     use quick_xml::events::Event;
     if feed
         .chars()
@@ -291,7 +332,7 @@ fn feed_request_ids(feed: &str, base_url: &Url, limit: usize) -> Result<(Vec<i64
     let mut rss = false;
     let mut channels = 0;
     let mut link_text = String::new();
-    let mut ids = BTreeSet::new();
+    let mut references = BTreeMap::new();
     let mut truncated = false;
     loop {
         match reader.read_event()? {
@@ -313,7 +354,9 @@ fn feed_request_ids(feed: &str, base_url: &Url, limit: usize) -> Result<(Vec<i64
                 if captures_link_text(&stack) {
                     return Err(anyhow!("feed request links must contain text only"));
                 }
-                let inside_entry = is_feed_item_path(&stack);
+                let atom_link = stack.as_slice() == ["feed", "entry"] && name == "link";
+                let mut href = None;
+                let mut relation = None;
                 for attribute in element.attributes() {
                     let attribute = attribute?;
                     let value = attribute.normalized_value(quick_xml::XmlVersion::Explicit1_0)?;
@@ -322,21 +365,47 @@ fn feed_request_ids(feed: &str, base_url: &Url, limit: usize) -> Result<(Vec<i64
                         // relative link as belonging to this configured source.
                         return Err(anyhow!("feed XML base overrides are not supported"));
                     }
-                    if name == "link" && inside_entry && attribute.key.as_ref() == "href" {
-                        admit_link(&value, base_url, limit, &mut ids, &mut truncated);
+                    if atom_link {
+                        match attribute.key.as_ref() {
+                            "href" => href = Some(value.into_owned()),
+                            "rel" => relation = Some(value.into_owned()),
+                            _ => {}
+                        }
                     }
                 }
-                if inside_entry && matches!(name.as_str(), "link" | "id" | "guid") {
-                    link_text.clear();
+                if relation
+                    .as_deref()
+                    .is_none_or(|relation| relation == "alternate")
+                {
+                    if let Some(href) = href {
+                        admit_link(
+                            &href,
+                            base_url,
+                            document_url,
+                            limit,
+                            &mut references,
+                            &mut truncated,
+                        );
+                    }
                 }
                 stack.push(name);
-            }
-            Event::End(_) => {
-                let name = stack.pop().ok_or_else(|| anyhow!("unexpected feed end"))?;
-                if matches!(name.as_str(), "link" | "id" | "guid") && is_feed_item_path(&stack) {
-                    admit_link(&link_text, base_url, limit, &mut ids, &mut truncated);
+                if captures_link_text(&stack) {
                     link_text.clear();
                 }
+            }
+            Event::End(_) => {
+                if captures_link_text(&stack) {
+                    admit_link(
+                        &link_text,
+                        base_url,
+                        document_url,
+                        limit,
+                        &mut references,
+                        &mut truncated,
+                    );
+                    link_text.clear();
+                }
+                stack.pop().ok_or_else(|| anyhow!("unexpected feed end"))?;
                 if stack.is_empty() {
                     closed_root = true;
                 }
@@ -394,63 +463,101 @@ fn feed_request_ids(feed: &str, base_url: &Url, limit: usize) -> Result<(Vec<i64
     if !seen_root || !closed_root || !stack.is_empty() || (rss && channels != 1) {
         return Err(anyhow!("incomplete feed document"));
     }
-    Ok((ids.into_iter().collect(), truncated))
-}
-
-fn is_feed_item_path(stack: &[String]) -> bool {
-    stack == ["rss", "channel", "item"] || stack == ["feed", "entry"]
+    Ok((references.into_values().collect(), truncated))
 }
 
 fn captures_link_text(stack: &[String]) -> bool {
-    stack
-        .last()
-        .is_some_and(|name| matches!(name.as_str(), "link" | "id" | "guid"))
-        && is_feed_item_path(&stack[..stack.len().saturating_sub(1)])
+    stack == ["rss", "channel", "item", "link"]
+        || stack == ["rss", "channel", "item", "guid"]
+        || stack == ["feed", "entry", "id"]
 }
 
 fn admit_link(
     link: &str,
     base_url: &Url,
+    document_url: &Url,
     limit: usize,
-    ids: &mut BTreeSet<i64>,
+    references: &mut BTreeMap<String, AuthorityFeedReference>,
     truncated: &mut bool,
 ) {
-    let Ok(url) = base_url.join(link.trim()) else {
+    let Some(reference) = canonical_feed_reference(link, base_url, document_url) else {
         return;
     };
+    references.insert(reference.url.clone(), reference);
+    if references.len() > limit {
+        references.pop_last();
+        *truncated = true;
+    }
+}
+
+fn is_source_slug(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 128
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-'))
+}
+
+fn canonical_feed_reference(
+    link: &str,
+    base_url: &Url,
+    document_url: &Url,
+) -> Option<AuthorityFeedReference> {
+    let link = link.trim();
+    // Reject encodings before URL parsing can normalize encoded dot segments;
+    // fragment text is discarded and has no effect on route admission.
+    if link.is_empty()
+        || link
+            .bytes()
+            .any(|byte| byte.is_ascii_control() || byte == b'\\')
+        || link.split(['?', '#']).next()?.contains('%')
+    {
+        return None;
+    }
+    let mut url = document_url.join(link).ok()?;
     if url.origin() != base_url.origin()
         || !url.username().is_empty()
         || url.password().is_some()
         || url.query().is_some()
-        || url.fragment().is_some()
     {
-        return;
+        return None;
     }
-    let path = url.path();
-    let Ok(singular) = base_url.join("request/") else {
-        return;
-    };
-    let Ok(plural) = base_url.join("requests/") else {
-        return;
-    };
-    let Some(rest) = path
-        .strip_prefix(singular.path())
-        .or_else(|| path.strip_prefix(plural.path()))
-    else {
-        return;
-    };
-    let segment = rest.split('/').next().unwrap_or_default();
-    if segment.is_empty() || !segment.bytes().all(|byte| byte.is_ascii_digit()) {
-        return;
-    }
-    for id in request_ids_from_feed(&format!("/request/{segment}"))
-        .into_iter()
-        .filter(|id| *id > 0)
+    url.set_fragment(None);
+    let prefix = format!("{}/", base_url.path().trim_end_matches('/'));
+    let route = url.path().strip_prefix(&prefix)?;
+    let (kind, request_id) = if let Some(id) = route
+        .strip_prefix("api/v2/request/")
+        .and_then(|route| route.strip_suffix(".json"))
     {
-        ids.insert(id);
-        if ids.len() > limit {
-            ids.pop_last();
-            *truncated = true;
+        (
+            AuthorityFeedReferenceKind::Request,
+            Some(positive_source_id(id)?),
+        )
+    } else {
+        let (kind, segment) = route.split_once('/')?;
+        if !is_source_slug(segment) {
+            return None;
         }
+        match kind {
+            // Alaveteli uses find_by_url_title!, including for all-digit titles.
+            "request" => (AuthorityFeedReferenceKind::Request, None),
+            "request_event" => {
+                positive_source_id(segment)?;
+                (AuthorityFeedReferenceKind::RequestEvent, None)
+            }
+            _ => return None,
+        }
+    };
+    Some(AuthorityFeedReference {
+        kind,
+        url: url.to_string(),
+        request_id,
+    })
+}
+
+fn positive_source_id(value: &str) -> Option<i64> {
+    if value.is_empty() || value.len() > 19 || !value.bytes().all(|byte| byte.is_ascii_digit()) {
+        return None;
     }
+    value.parse::<i64>().ok().filter(|id| *id > 0)
 }

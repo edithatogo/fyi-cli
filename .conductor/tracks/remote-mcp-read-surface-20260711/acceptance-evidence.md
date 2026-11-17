@@ -17,6 +17,14 @@ application database through a remote read.
 - `python scripts/verify_remote_mcp_contract.py`: passed for current v3 and historical v1/v2.
 - Python fixture/verifier tests: 144 passed, Python 3.12.14. Two fixture transport
   checks also passed in the harness owner's run, giving 146 focused checks.
+- After the source-based feed corrections, 150 fixture/verifier tests and two
+  upstream-fixture checks pass (152 total); historical fixtures remain unchanged.
+- An isolated harness executed ten exact, mechanically extracted parser tests
+  successfully against the repository's locked dependency versions. This is
+  parser-only evidence for `read_contract.rs` SHA-256
+  `f1a0e0e84d540073f1127120583a377612b23cbfea470a406c9832e56d83368c`,
+  not a substitute for the production core/MCP suites. The updated source module
+  contains 30 tests for hosted execution.
 - Ruff lint/format of changed Python harness files: passed.
 - Independent source/MCP review identified redirect/request-count, capability
   discovery and nonstandard HTTP-status schema defects; implementation and
@@ -33,6 +41,30 @@ schemas (142 passing, two failing). The corrected source-derived catalogue and
 fixture set passed the 144-test verifier suite. The production catalogue still
 has an exact executable comparison in Rust and the official SDK; source-derived
 fixture generation is not recorded as binary execution evidence.
+
+## Hosted checkpoint and source-contract review
+
+Draft implementation PR: [#494](https://github.com/edithatogo/fyi-cli/pull/494).
+At `dc0910a388a51aa6a32fd069bc715d40ee3032b9`, the macOS job in
+[run 44055105225](https://github.com/edithatogo/fyi-cli/actions/runs/44055105225)
+built the actual production MCP executable and passed all 21 source-read tests.
+Its subsequent MCP test compilation exposed a new test's invalid
+`RemoteMcpPolicy::default()` call. The next revision uses the existing validated
+empty-policy constructor. The same head's full Python 3.15.2 suite reported
+1,727 passes, three failures and two skips; all failures were redirect-case
+expectations. The source correctly exposes an unfollowed HTTP 302 as
+`upstream_unknown`; the current harness now asserts that status and still
+requires exactly one GET. The failed job is not recorded as a passing platform
+gate; the new revision still requires its own complete hosted run.
+
+Review against pinned upstream Alaveteli source also corrected the new feed
+contract: authority feeds use `/feed/body/<slug>`; normal Atom links refer to
+request events; request-page paths contain slugs, including potentially numeric
+slugs. Current fixtures therefore preserve bounded typed references and derive
+request IDs only from the client's explicit numeric API route. They cover
+event links, slug fragments, document-relative links, shared truncation, empty
+feeds and foreign-only feeds without following any reference. The operator
+documentation links the exact upstream route, template and controller revision.
 
 ## Runtime and platform gates
 
@@ -53,12 +85,12 @@ security and runtime results are pending at this checkpoint.
 No open PR existed at intake. During implementation, two independent source
 PRs appeared:
 
-- #488 / #310 at `a26298e55f18c3056f5d063f9b71867ee9df4c12` adds a dedicated
+- #488 / #310 at `f3aa10ceb5a0a2fd58093ac2e78a220f6c81279c` adds a dedicated
   request-evidence transport. When integrating it with this change, retain its
   `evidence_http` initialization in the new shared-guardrail constructor and its
   separate evidence constructor. This change does not implement a competing
   receipt engine or alter its source-adapter track.
-- #489 / #312 at `7805d42b0ccf986a55a21b97cfdeae0a5103a8a4` qualifies Wayback
+- #489 / #312 at `dd56b7de0de1142b2bd1b58b738c04fcca8da003` qualifies Wayback
   transport/replay and the existing receipt portability workflow. Its Wayback
   builder and h2 test dependency are distinct from the bounded read builder and
   quick-xml parser added here. The new read workflow leaves its workflow intact.

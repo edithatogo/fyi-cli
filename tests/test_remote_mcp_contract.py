@@ -457,6 +457,65 @@ def test_current_read_success_requires_provenance(exchanges: dict) -> None:
     assert contract.validate_case_schemas(exchanges, snapshot)
 
 
+@pytest.mark.parametrize(
+    "change",
+    ["missing-references", "event-request-id", "unknown-kind", "missing-url", "too-many"],
+)
+def test_current_feed_reference_contract_rejects_ambiguous_or_unbounded_plans(
+    tmp_path: Path,
+    exchanges: dict,
+    change: str,
+) -> None:
+    case = next(
+        case for case in exchanges["cases"] if case["name"] == "remote_plan_authority_feed_success"
+    )
+    result = case["response"]["result"]
+    plan = result["structuredContent"]["plan"]
+    if change == "missing-references":
+        del plan["references"]
+    elif change == "event-request-id":
+        plan["references"][0]["kind"] = "request_event"
+        plan["references"][0]["url"] = "https://foi-repository.example/request_event/1001"
+    elif change == "unknown-kind":
+        plan["references"][0]["kind"] = "synthetic-sensitive-value"
+    elif change == "missing-url":
+        del plan["references"][0]["url"]
+    else:
+        plan["references"] = [
+            {
+                "kind": "request_event",
+                "url": f"https://foi-repository.example/request_event/{index}",
+                "request_id": None,
+            }
+            for index in range(1, 202)
+        ]
+    result["content"][0]["text"] = json.dumps(result["structuredContent"])
+    errors = contract.validate_current_contract(write_json(tmp_path, exchanges))
+    assert errors
+    assert "synthetic-sensitive-value" not in str(errors)
+
+
+def test_current_feed_reference_keeps_event_identity_separate(
+    tmp_path: Path,
+    exchanges: dict,
+) -> None:
+    case = next(
+        case for case in exchanges["cases"] if case["name"] == "remote_plan_authority_feed_success"
+    )
+    result = case["response"]["result"]
+    plan = result["structuredContent"]["plan"]
+    plan["request_ids"] = []
+    plan["references"] = [
+        {
+            "kind": "request_event",
+            "url": "https://foi-repository.example/request_event/1001",
+            "request_id": None,
+        },
+    ]
+    result["content"][0]["text"] = json.dumps(result["structuredContent"])
+    assert contract.validate_current_contract(write_json(tmp_path, exchanges)) == []
+
+
 def test_current_success_response_id_must_match_request(tmp_path: Path, exchanges: dict) -> None:
     exchanges["cases"][0]["response"]["id"] = "different-request"
     assert contract.validate_current_contract(write_json(tmp_path, exchanges))

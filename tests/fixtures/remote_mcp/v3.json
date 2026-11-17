@@ -255,11 +255,18 @@
             "instance_id": "synthetic",
             "authority_slug": "synthetic-authority",
             "plan": {
-              "feed_url": "https://foi-repository.example/body/synthetic-authority/feed",
+              "feed_url": "https://foi-repository.example/feed/body/synthetic-authority",
               "request_ids": [
                 1001
               ],
-              "truncated": true
+              "truncated": true,
+              "references": [
+                {
+                  "kind": "request",
+                  "url": "https://foi-repository.example/api/v2/request/1001.json",
+                  "request_id": 1001
+                }
+              ]
             },
             "provenance": {
               "instance_id": "synthetic",
@@ -273,7 +280,7 @@
           "content": [
             {
               "type": "text",
-              "text": "{\n  \"authority_slug\": \"synthetic-authority\",\n  \"instance_id\": \"synthetic\",\n  \"plan\": {\n    \"feed_url\": \"https://foi-repository.example/body/synthetic-authority/feed\",\n    \"request_ids\": [\n      1001\n    ],\n    \"truncated\": true\n  },\n  \"provenance\": {\n    \"cache_status\": \"miss\",\n    \"correlation_id\": \"fixture-remote-0001\",\n    \"instance_id\": \"synthetic\",\n    \"response_bytes\": 128,\n    \"retrieved_at\": \"2026-11-17T00:00:00Z\",\n    \"source_status\": 200\n  }\n}"
+              "text": "{\n  \"authority_slug\": \"synthetic-authority\",\n  \"instance_id\": \"synthetic\",\n  \"plan\": {\n    \"feed_url\": \"https://foi-repository.example/feed/body/synthetic-authority\",\n    \"references\": [\n      {\n        \"kind\": \"request\",\n        \"request_id\": 1001,\n        \"url\": \"https://foi-repository.example/api/v2/request/1001.json\"\n      }\n    ],\n    \"request_ids\": [\n      1001\n    ],\n    \"truncated\": true\n  },\n  \"provenance\": {\n    \"cache_status\": \"miss\",\n    \"correlation_id\": \"fixture-remote-0001\",\n    \"instance_id\": \"synthetic\",\n    \"response_bytes\": 128,\n    \"retrieved_at\": \"2026-11-17T00:00:00Z\",\n    \"source_status\": 200\n  }\n}"
             }
           ]
         }
@@ -304,7 +311,7 @@
             "authority_slug": "synthetic-authority",
             "feeds": [
               {
-                "url": "https://foi-repository.example/body/synthetic-authority/feed",
+                "url": "https://foi-repository.example/feed/body/synthetic-authority",
                 "availability": "not_checked"
               }
             ],
@@ -320,7 +327,7 @@
           "content": [
             {
               "type": "text",
-              "text": "{\n  \"authority_slug\": \"synthetic-authority\",\n  \"feeds\": [\n    {\n      \"availability\": \"not_checked\",\n      \"url\": \"https://foi-repository.example/body/synthetic-authority/feed\"\n    }\n  ],\n  \"instance_id\": \"synthetic\",\n  \"provenance\": {\n    \"cache_status\": \"not_applicable\",\n    \"correlation_id\": \"fixture-remote-0001\",\n    \"instance_id\": \"synthetic\",\n    \"response_bytes\": 0,\n    \"retrieved_at\": \"2026-11-17T00:00:00Z\",\n    \"source_status\": null\n  }\n}"
+              "text": "{\n  \"authority_slug\": \"synthetic-authority\",\n  \"feeds\": [\n    {\n      \"availability\": \"not_checked\",\n      \"url\": \"https://foi-repository.example/feed/body/synthetic-authority\"\n    }\n  ],\n  \"instance_id\": \"synthetic\",\n  \"provenance\": {\n    \"cache_status\": \"not_applicable\",\n    \"correlation_id\": \"fixture-remote-0001\",\n    \"instance_id\": \"synthetic\",\n    \"response_bytes\": 0,\n    \"retrieved_at\": \"2026-11-17T00:00:00Z\",\n    \"source_status\": null\n  }\n}"
             }
           ]
         }

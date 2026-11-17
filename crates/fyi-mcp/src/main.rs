@@ -1416,7 +1416,7 @@ fn build_tool_catalogue(remote_enabled: bool, write_enabled: bool) -> Value {
                 ),
                 remote_tool_definition(
                     "remote_plan_authority_feed",
-                    "Read one bounded authority RSS or Atom feed and return up to 200 candidate request IDs. Use after remote_discover_authority_feeds. Does not fetch request details, follow feed links, submit requests, or write to the database.",
+                    "Read one bounded authority RSS or Atom feed and return up to 200 request or request-event references, plus known numeric request IDs. Event IDs and request slugs are not resolved. Use after remote_discover_authority_feeds. Does not fetch request details, follow feed links, submit requests, or write to the database.",
                 ),
             ]);
         if write_enabled {
@@ -1661,8 +1661,22 @@ fn remote_output_schema(name: &str) -> Value {
                 "type": "object", "properties": {
                     "feed_url": {"type": "string", "format": "uri"},
                     "request_ids": {"type": "array", "maxItems": 200, "items": {"type": "integer", "minimum": 1, "maximum": i64::MAX}},
+                    "references": {
+                        "type": "array", "maxItems": 200,
+                        "items": {
+                            "type": "object", "properties": {
+                                "kind": {"type": "string", "enum": ["request", "request_event"]},
+                                "url": {"type": "string", "format": "uri"},
+                                "request_id": {"type": ["integer", "null"], "minimum": 1, "maximum": i64::MAX}
+                            }, "required": ["kind", "url", "request_id"], "additionalProperties": false,
+                            "oneOf": [
+                                {"properties": {"kind": {"const": "request"}}},
+                                {"properties": {"kind": {"const": "request_event"}, "request_id": {"type": "null"}}}
+                            ]
+                        }
+                    },
                     "truncated": {"type": "boolean"}
-                }, "required": ["feed_url", "request_ids", "truncated"], "additionalProperties": false
+                }, "required": ["feed_url", "request_ids", "references", "truncated"], "additionalProperties": false
             });
             required.extend(["authority_slug", "plan"]);
         }
@@ -3284,7 +3298,7 @@ pub async fn read_mcp_resource(db: &DbPool, uri: &str) -> Result<Vec<Value>, Str
             "schema_version": 1, "disabled_by_default": true,
             "recommended_order": ["fyi://remote/status", "remote_list_authorities", "remote_discover_authority_feeds", "remote_plan_authority_feed", "remote_get_request"],
             "feed_discovery": "Canonical route only; availability is not checked and no source request is sent.",
-            "feed_planning": "One bounded feed GET; no detail fetch, feed-link traversal or application database mutation.",
+            "feed_planning": "One bounded feed GET returns canonical request and request-event references. Only explicit numeric request routes populate request_ids; event IDs and request slugs remain unresolved. No detail fetch, feed-link traversal or application database mutation.",
             "budgets": {
                 "mcp_requests": "Admitted operations, including local feed discovery and failed operations.",
                 "source_requests": "Cumulative outbound read attempts; automatic redirects and retries are disabled.",

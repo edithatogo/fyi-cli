@@ -532,7 +532,7 @@
         "authority_slug": "synthetic-authority",
         "feeds": [
           {
-            "url": "https://mcp-fixture.invalid/body/synthetic-authority/feed",
+            "url": "https://mcp-fixture.invalid/feed/body/synthetic-authority",
             "availability": "not_checked"
           }
         ]
@@ -549,20 +549,27 @@
       "exchanges": [
         {
           "method": "GET",
-          "path": "/body/synthetic-authority/feed",
+          "path": "/feed/body/synthetic-authority",
           "status": 200,
-          "body_fixture": "feed-rss-v1.xml"
+          "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\"><channel>\n<title>Synthetic authority requests</title>\n<link>https://mcp-fixture.invalid/feed/body/synthetic-authority</link>\n<item><title>Synthetic Request 1001</title><link>https://mcp-fixture.invalid/api/v2/request/1001.json</link></item>\n<item><title>Synthetic Request 1002</title><link>https://mcp-fixture.invalid/api/v2/request/1002.json</link></item>\n<item><title>Duplicate Request 1001</title><link>https://mcp-fixture.invalid/api/v2/request/1001.json#incoming-1</link></item>\n</channel></rss>\n"
         }
       ],
       "expected": {
         "instance_id": "synthetic",
         "authority_slug": "synthetic-authority",
         "plan": {
-          "feed_url": "https://mcp-fixture.invalid/body/synthetic-authority/feed",
+          "feed_url": "https://mcp-fixture.invalid/feed/body/synthetic-authority",
           "request_ids": [
             1001
           ],
-          "truncated": true
+          "truncated": true,
+          "references": [
+            {
+              "kind": "request",
+              "url": "https://mcp-fixture.invalid/api/v2/request/1001.json",
+              "request_id": 1001
+            }
+          ]
         }
       }
     },
@@ -577,21 +584,199 @@
       "exchanges": [
         {
           "method": "GET",
-          "path": "/body/synthetic-authority/feed",
+          "path": "/feed/body/synthetic-authority",
           "status": 200,
-          "body_fixture": "feed-atom-v1.xml"
+          "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<feed xmlns=\"http://www.w3.org/2005/Atom\">\n<title>Synthetic numeric request references</title>\n<id>https://mcp-fixture.invalid/feed/body/synthetic-authority</id>\n<entry><title>Synthetic Request 2001</title><id>https://mcp-fixture.invalid/api/v2/request/2001.json</id><link href=\"https://mcp-fixture.invalid/api/v2/request/2001.json\"/></entry>\n<entry><title>Synthetic Request 2002</title><id>https://mcp-fixture.invalid/api/v2/request/2002.json</id><link href=\"https://mcp-fixture.invalid/api/v2/request/2002.json\"/></entry>\n</feed>\n"
         }
       ],
       "expected": {
         "instance_id": "synthetic",
         "authority_slug": "synthetic-authority",
         "plan": {
-          "feed_url": "https://mcp-fixture.invalid/body/synthetic-authority/feed",
+          "feed_url": "https://mcp-fixture.invalid/feed/body/synthetic-authority",
           "request_ids": [
             2001,
             2002
           ],
-          "truncated": false
+          "truncated": false,
+          "references": [
+            {
+              "kind": "request",
+              "url": "https://mcp-fixture.invalid/api/v2/request/2001.json",
+              "request_id": 2001
+            },
+            {
+              "kind": "request",
+              "url": "https://mcp-fixture.invalid/api/v2/request/2002.json",
+              "request_id": 2002
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "authority_feed_alaveteli_events",
+      "tool": "remote_plan_authority_feed",
+      "arguments": {
+        "instance_id": "synthetic",
+        "authority_slug": "synthetic-authority",
+        "limit": 4
+      },
+      "exchanges": [
+        {
+          "method": "GET",
+          "path": "/feed/body/synthetic-authority",
+          "status": 200,
+          "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<feed xmlns=\"http://www.w3.org/2005/Atom\">\n<title>Synthetic authority updates</title>\n<id>tag:mcp-fixture.invalid,2026-01-01:/feed/body/synthetic-authority</id>\n<link rel=\"self\" href=\"https://mcp-fixture.invalid/feed/body/synthetic-authority\"/>\n<updated>2026-01-01T00:00:00Z</updated>\n<entry>\n<title>Synthetic request event</title>\n<id>tag:mcp-fixture.invalid,2026-01-01:InfoRequestEvent/3001</id>\n<updated>2026-01-01T00:00:00Z</updated>\n<link rel=\"alternate\" type=\"text/html\" href=\"../../request_event/3001\"/>\n<link rel=\"related\" href=\"https://mcp-fixture.invalid/request/9998\"/>\n</entry>\n<entry>\n<title>Synthetic request response</title>\n<id>tag:mcp-fixture.invalid,2026-01-01:InfoRequestEvent/3002</id>\n<updated>2026-01-01T00:00:00Z</updated>\n<link href=\"https://mcp-fixture.invalid/request/synthetic_statistics#incoming-42\"/>\n</entry>\n<entry>\n<title>Unrelated document-relative route</title>\n<link href=\"request/9999\"/>\n</entry>\n<entry>\n<title>Numeric request slug without database identity</title>\n<link href=\"https://mcp-fixture.invalid/request/321\"/>\n</entry>\n<entry>\n<title>Explicit synthetic API request reference</title>\n<link href=\"https://mcp-fixture.invalid/api/v2/request/4001.json\"/>\n</entry>\n<entry>\n<title>Unverified plural route</title>\n<link href=\"https://mcp-fixture.invalid/requests/9997\"/>\n</entry>\n</feed>\n"
+        }
+      ],
+      "expected": {
+        "instance_id": "synthetic",
+        "authority_slug": "synthetic-authority",
+        "plan": {
+          "feed_url": "https://mcp-fixture.invalid/feed/body/synthetic-authority",
+          "request_ids": [
+            4001
+          ],
+          "truncated": false,
+          "references": [
+            {
+              "kind": "request",
+              "url": "https://mcp-fixture.invalid/api/v2/request/4001.json",
+              "request_id": 4001
+            },
+            {
+              "kind": "request",
+              "url": "https://mcp-fixture.invalid/request/321",
+              "request_id": null
+            },
+            {
+              "kind": "request",
+              "url": "https://mcp-fixture.invalid/request/synthetic_statistics",
+              "request_id": null
+            },
+            {
+              "kind": "request_event",
+              "url": "https://mcp-fixture.invalid/request_event/3001",
+              "request_id": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "authority_feed_reference_limit",
+      "tool": "remote_plan_authority_feed",
+      "arguments": {
+        "instance_id": "synthetic",
+        "authority_slug": "synthetic-authority",
+        "limit": 1
+      },
+      "exchanges": [
+        {
+          "method": "GET",
+          "path": "/feed/body/synthetic-authority",
+          "status": 200,
+          "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<feed xmlns=\"http://www.w3.org/2005/Atom\">\n<title>Synthetic authority updates</title>\n<id>tag:mcp-fixture.invalid,2026-01-01:/feed/body/synthetic-authority</id>\n<link rel=\"self\" href=\"https://mcp-fixture.invalid/feed/body/synthetic-authority\"/>\n<updated>2026-01-01T00:00:00Z</updated>\n<entry>\n<title>Synthetic request event</title>\n<id>tag:mcp-fixture.invalid,2026-01-01:InfoRequestEvent/3001</id>\n<updated>2026-01-01T00:00:00Z</updated>\n<link rel=\"alternate\" type=\"text/html\" href=\"../../request_event/3001\"/>\n<link rel=\"related\" href=\"https://mcp-fixture.invalid/request/9998\"/>\n</entry>\n<entry>\n<title>Synthetic request response</title>\n<id>tag:mcp-fixture.invalid,2026-01-01:InfoRequestEvent/3002</id>\n<updated>2026-01-01T00:00:00Z</updated>\n<link href=\"https://mcp-fixture.invalid/request/synthetic_statistics#incoming-42\"/>\n</entry>\n<entry>\n<title>Unrelated document-relative route</title>\n<link href=\"request/9999\"/>\n</entry>\n<entry>\n<title>Numeric request slug without database identity</title>\n<link href=\"https://mcp-fixture.invalid/request/321\"/>\n</entry>\n<entry>\n<title>Explicit synthetic API request reference</title>\n<link href=\"https://mcp-fixture.invalid/api/v2/request/4001.json\"/>\n</entry>\n<entry>\n<title>Unverified plural route</title>\n<link href=\"https://mcp-fixture.invalid/requests/9997\"/>\n</entry>\n</feed>\n"
+        }
+      ],
+      "expected": {
+        "instance_id": "synthetic",
+        "authority_slug": "synthetic-authority",
+        "plan": {
+          "feed_url": "https://mcp-fixture.invalid/feed/body/synthetic-authority",
+          "request_ids": [
+            4001
+          ],
+          "truncated": true,
+          "references": [
+            {
+              "kind": "request",
+              "url": "https://mcp-fixture.invalid/api/v2/request/4001.json",
+              "request_id": 4001
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "authority_feed_atom_empty",
+      "tool": "remote_plan_authority_feed",
+      "arguments": {
+        "instance_id": "synthetic",
+        "authority_slug": "synthetic-authority",
+        "limit": 10
+      },
+      "exchanges": [
+        {
+          "method": "GET",
+          "path": "/feed/body/synthetic-authority",
+          "status": 200,
+          "body": "<feed xmlns=\"http://www.w3.org/2005/Atom\"/>"
+        }
+      ],
+      "expected": {
+        "instance_id": "synthetic",
+        "authority_slug": "synthetic-authority",
+        "plan": {
+          "feed_url": "https://mcp-fixture.invalid/feed/body/synthetic-authority",
+          "request_ids": [],
+          "truncated": false,
+          "references": []
+        }
+      }
+    },
+    {
+      "id": "authority_feed_rss_empty",
+      "tool": "remote_plan_authority_feed",
+      "arguments": {
+        "instance_id": "synthetic",
+        "authority_slug": "synthetic-authority",
+        "limit": 10
+      },
+      "exchanges": [
+        {
+          "method": "GET",
+          "path": "/feed/body/synthetic-authority",
+          "status": 200,
+          "body": "<rss version=\"2.0\"><channel/></rss>"
+        }
+      ],
+      "expected": {
+        "instance_id": "synthetic",
+        "authority_slug": "synthetic-authority",
+        "plan": {
+          "feed_url": "https://mcp-fixture.invalid/feed/body/synthetic-authority",
+          "request_ids": [],
+          "truncated": false,
+          "references": []
+        }
+      }
+    },
+    {
+      "id": "authority_feed_foreign_only",
+      "tool": "remote_plan_authority_feed",
+      "arguments": {
+        "instance_id": "synthetic",
+        "authority_slug": "synthetic-authority",
+        "limit": 10
+      },
+      "exchanges": [
+        {
+          "method": "GET",
+          "path": "/feed/body/synthetic-authority",
+          "status": 200,
+          "body": "<feed xmlns=\"http://www.w3.org/2005/Atom\">\n<entry><id>tag:foreign.invalid,2026-01-01:InfoRequestEvent/4001</id><link href=\"https://foreign.invalid/request_event/4001\"/></entry>\n<entry><link href=\"https://foreign.invalid/request/4002\"/></entry>\n</feed>"
+        }
+      ],
+      "expected": {
+        "instance_id": "synthetic",
+        "authority_slug": "synthetic-authority",
+        "plan": {
+          "feed_url": "https://mcp-fixture.invalid/feed/body/synthetic-authority",
+          "request_ids": [],
+          "truncated": false,
+          "references": []
         }
       }
     }

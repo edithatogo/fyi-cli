@@ -22,7 +22,7 @@ every call also checks that its specific instance enables the capability.
 | `remote_search_requests` | `query`, optional `limit` (1–50; default 10) | One bounded search GET | None |
 | `remote_get_request` | Positive `request_id` | One request GET; returned ID must match | None |
 | `remote_list_authorities` | Optional `filter`, `limit` (1–200; default 50) | One authority-list GET; filtering and limit apply to the parsed result | None |
-| `remote_discover_authority_feeds` | `authority_slug` | No source request; constructs the canonical `/body/<slug>/feed` route | None |
+| `remote_discover_authority_feeds` | `authority_slug` | No source request; constructs the canonical `/feed/body/<slug>` route | None |
 | `remote_plan_authority_feed` | `authority_slug`, optional `limit` (1–200; default 50) | One bounded RSS/Atom feed GET | None |
 
 An authority slug contains 1–128 ASCII letters, digits, hyphens or underscores.
@@ -32,14 +32,51 @@ location and request a bounded plan if needed. Discovery returns
 `availability: "not_checked"`: it does not assert that the route exists or is
 supported by that deployment.
 
-A feed plan contains `feed_url`, unique positive `request_ids`, and `truncated`.
-It does not fetch those request records, follow pagination or linked resources,
-call `pull_feed`, or open/write the application database. IDs come from validated
-RSS/Atom item links on the configured source origin; arbitrary foreign-origin
-links do not authorize another source request. Malformed documents and DTDs are
-rejected using a bounded XML parser. An empty valid feed is an empty plan.
-`truncated` means the document contained more eligible unique IDs than the limit;
-it does not establish whether an upstream feed omits older records.
+A feed plan contains `feed_url`, `references`, `request_ids`, and `truncated`.
+Each reference has a canonical `url`, a `kind` (`request` or `request_event`), and
+a nullable `request_id`. Only the explicit API route
+`/api/v2/request/<positive-id>.json` supplies a request ID. A `/request/<slug>`
+route remains unresolved even if its slug consists entirely of digits, as does
+a request-event route. For example:
+
+```json
+{
+  "feed_url": "https://foi-repository.example/feed/body/synthetic-authority",
+  "references": [
+    {"kind": "request", "url": "https://foi-repository.example/request/budget_report", "request_id": null},
+    {"kind": "request_event", "url": "https://foi-repository.example/request_event/123", "request_id": null}
+  ],
+  "request_ids": [],
+  "truncated": false
+}
+```
+
+Alaveteli's [authority feed route][upstream-routes] uses `/feed/body/<slug>`. Its
+[Atom template][upstream-template] links events through `/request_event/<id>`;
+the [event controller][upstream-events] redirects those links to their request
+or message. The planner preserves those references without following the
+redirect or mistaking an event ID for a request ID. These upstream shapes are
+covered by synthetic fixtures; they are not captures of live FOI records.
+
+The single item limit applies across unique canonical reference URLs. References
+sort by URL; `request_ids` is the sorted, deduplicated projection of known request
+IDs from the retained API references. Fragment anchors are removed. Relative links
+resolve against the feed document URL, then must match the configured origin
+and base path. Queries, credentials, foreign origins, encoded path segments and
+extra route segments are not admitted. Atom alternate links and RSS item links
+are considered; unrelated metadata does not authorize a source request.
+
+Planning does not fetch request records, resolve event links, follow pagination,
+call `pull_feed`, or open/write the application database. A bounded XML parser
+rejects malformed structure, DTDs and XML base overrides; it does not claim full
+Atom/RSS schema validation. An empty valid feed is an empty plan. `truncated`
+means the document contained more eligible unique references than the limit;
+it does not establish whether an upstream feed omits older records. Only known
+request IDs can be passed directly to `remote_get_request`.
+
+[upstream-routes]: https://github.com/mysociety/alaveteli/blob/00735fc4f26fe576bc2f2fe6faf096e47127ed3f/config/routes.rb
+[upstream-template]: https://github.com/mysociety/alaveteli/blob/00735fc4f26fe576bc2f2fe6faf096e47127ed3f/app/views/track/atom_feed.atom.erb
+[upstream-events]: https://github.com/mysociety/alaveteli/blob/00735fc4f26fe576bc2f2fe6faf096e47127ed3f/app/controllers/request_controller.rb
 
 ## Successful results and cache provenance
 
@@ -123,7 +160,9 @@ chunks are checked before accumulation; a cached representation must fit the
 current read cap before reuse. Result JSON, including provenance, is counted
 again before publication; raw and serialized byte counts are distinct.
 
-The deadline covers pacing, concurrency waits, transport and parsing. The source
+The deadline covers pacing, concurrency waits, transport and parsing. Late
+synchronous parsing or serialization is rejected before result publication;
+the cooperative timer does not forcibly interrupt that CPU work. The source
 client retains its additional one-hour lifetime ceiling beginning at server
 configuration. After that ceiling, or exhaustion of the cumulative allowances,
 restart with reviewed operator configuration to start a new session. A restart

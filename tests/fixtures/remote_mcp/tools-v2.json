@@ -2810,7 +2810,7 @@
         "openWorldHint": true,
         "readOnlyHint": true
       },
-      "description": "Read one bounded authority RSS or Atom feed and return up to 200 candidate request IDs. Use after remote_discover_authority_feeds. Does not fetch request details, follow feed links, submit requests, or write to the database.",
+      "description": "Read one bounded authority RSS or Atom feed and return up to 200 request or request-event references, plus known numeric request IDs. Event IDs and request slugs are not resolved. Use after remote_discover_authority_feeds. Does not fetch request details, follow feed links, submit requests, or write to the database.",
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
@@ -2859,6 +2859,59 @@
                     "format": "uri",
                     "type": "string"
                   },
+                  "references": {
+                    "items": {
+                      "additionalProperties": false,
+                      "oneOf": [
+                        {
+                          "properties": {
+                            "kind": {
+                              "const": "request"
+                            }
+                          }
+                        },
+                        {
+                          "properties": {
+                            "kind": {
+                              "const": "request_event"
+                            },
+                            "request_id": {
+                              "type": "null"
+                            }
+                          }
+                        }
+                      ],
+                      "properties": {
+                        "kind": {
+                          "enum": [
+                            "request",
+                            "request_event"
+                          ],
+                          "type": "string"
+                        },
+                        "request_id": {
+                          "maximum": 9223372036854775807,
+                          "minimum": 1,
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "url": {
+                          "format": "uri",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "url",
+                        "request_id"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 200,
+                    "type": "array"
+                  },
                   "request_ids": {
                     "items": {
                       "maximum": 9223372036854775807,
@@ -2875,6 +2928,7 @@
                 "required": [
                   "feed_url",
                   "request_ids",
+                  "references",
                   "truncated"
                 ],
                 "type": "object"
@@ -3014,7 +3068,7 @@
         ],
         "type": "object"
       },
-      "title": "Read one bounded authority RSS or Atom feed and return up to 200 candidate request IDs. Use after remote_discover_authority_feeds. Does not fetch request details, follow feed links, submit requests, or write to the database."
+      "title": "Read one bounded authority RSS or Atom feed and return up to 200 request or request-event references, plus known numeric request IDs. Event IDs and request slugs are not resolved. Use after remote_discover_authority_feeds. Does not fetch request details, follow feed links, submit requests, or write to the database."
     },
     {
       "annotations": {

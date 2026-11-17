@@ -25,7 +25,8 @@ pub use pull_evidence::{
 };
 mod read_contract;
 pub use read_contract::{
-    AuthorityFeedPlan, CacheStatus, ReadLimits, ReadProvenance, SourceRead, SourceReadError,
+    AuthorityFeedPlan, AuthorityFeedReference, AuthorityFeedReferenceKind, CacheStatus, ReadLimits,
+    ReadProvenance, SourceRead, SourceReadError,
 };
 
 /// An HTTP status observed by the guarded source client.

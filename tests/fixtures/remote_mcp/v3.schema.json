@@ -294,6 +294,37 @@
               }
             }
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "remote_plan_authority_feed_success"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "response": {
+                "properties": {
+                  "result": {
+                    "properties": {
+                      "structuredContent": {
+                        "required": [
+                          "plan"
+                        ],
+                        "properties": {
+                          "plan": {
+                            "$ref": "#/$defs/feedPlan"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       ]
     },
@@ -375,6 +406,94 @@
               "type": "null"
             }
           ]
+        }
+      }
+    },
+    "feedReference": {
+      "type": "object",
+      "required": [
+        "kind",
+        "url",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "request",
+            "request_event"
+          ]
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "request_id": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9223372036854775807
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "request_event"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "request_id": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "feedPlan": {
+      "type": "object",
+      "required": [
+        "feed_url",
+        "request_ids",
+        "truncated",
+        "references"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "feed_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "request_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854775807
+          },
+          "maxItems": 200,
+          "uniqueItems": true
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/feedReference"
+          },
+          "maxItems": 200,
+          "uniqueItems": true
         }
       }
     }
