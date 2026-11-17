@@ -1,38 +1,23 @@
 Generated handovers can be written here.
 
-## Active ownership — MCP classification and source follow-up, 2026-11-16
+## MCP classification and source follow-up, 2026-11-16
 
-- Chat `01a1e3da-9d35-7a01-8723-b07a2749f7bd` owns the current
-  error-classification increment and sequential repository integration.
-- Managed worktree `/Users/doughnut/.codex/worktrees/fyi-mcp-errors-170/fyi-cli`
-  uses branch `codex/fyi-mcp-errors-170-172` based on master `047cc131`.
-- Current scope: source HTTP error identity, MCP classification and offline
-  regression contracts for #170, #172 and #173. No authority, account,
-  application database, credential or native service object is assigned.
-- Next operation: demonstrate the classification failure with offline tests,
-  implement typed propagation, open a scoped PR and verify its required checks.
-  Receipt and replay follow-ups retain the existing source-adapter ownership;
-  preserve the prior local replay branch and its dependencies.
-- Chat `01a1e3da-6e02-7012-8e4a-1e4f2034d019` owns the bounded #477/#310
-  receipt-integrity follow-up in managed worktree
-  `/Users/doughnut/.codex/worktrees/fyi-receipt-integrity-310/fyi-cli`, branch
-  `codex/fyi-sync-receipt-integrity-310`, also based on `047cc131`.
-  Its scope is `crates/fyi-cli/src/main.rs`,
-  `crates/fyi-core/src/acquisition_receipts.rs`, the associated new sync receipt
-  tests, and its receipt-coverage note. It has no native object/authentication
-  scope. Its next operation is an offline fail-closed receipt preflight and
-  terminal evidence handoff; this MCP lane owns `sync.rs` and the shared
-  receiving-head/merge coordination. The #312 replay lane follows the pinned
-  receipt contract and does not duplicate the receipt increment.
+- Source HTTP error identity, MCP classification and offline regression
+  contracts for #170, #172 and #173 merged through PR #478. PR #485 retained
+  the SDK regression with a socket-free source fixture.
+- The bounded #477/#310 receipt-integrity work covered the Rust CLI, core
+  receipt contract and associated tests. The subsequent receipt increments
+  merged through PRs #480, #482 and #484; the replay increments merged through
+  PRs #481 and #483. No live authority or authentication scope was assigned.
+- Remaining receipt, replay, downstream parity and broader MCP acceptance
+  work stays in the existing project tracks.
 
 ## Active ownership — Rust cutover, 2026-11-13
 
-- Chat `01a1d482-9735-7c83-a979-a8dc46f3f2b1` owns this lane.
-- Managed worktree `/Users/doughnut/.codex/worktrees/f104/fyi-cli` uses branch
-  `rust/only-cutover-20261113`.
+- The Rust cutover lane used branch `rust/only-cutover-20261113`.
 - Initial scope covers Rust CLI fail-closed behavior, focused Rust tests, and accurate
-  Rust installation and migration guidance. Existing test-acceleration work in
-  `/Users/doughnut/Documents/fyi-cli` and PR #418 belongs to its existing lane.
+  Rust installation and migration guidance. Existing test-acceleration work
+  and PR #418 belong to their existing lane.
 - This lane has no native object assignment.
 - Initial verification reproduced false success and missing database tables.
   The correction passed 311 Rust tests with all features, workspace Clippy with
@@ -47,8 +32,8 @@ Generated handovers can be written here.
 
 ## Active ownership — shared Rust pacing, 2026-11-13
 
-- The same chat and managed worktree now use branch
-  `feat/rust-shared-pacing-20261113`, based on the correction in draft PR #419.
+- The shared pacing lane used branch `feat/rust-shared-pacing-20261113`, based on
+  the correction in draft PR #419.
 - This increment owns the Rust shared pacing module, its tests, guarded-client
   integration and the `rate-limit-status` CLI command.
 - Local verification passed 331 tests in 15 Rust suites with all features,

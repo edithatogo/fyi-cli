@@ -2,11 +2,9 @@
 
 ## Bounded Rust replay work — 2026-11-16
 
-- [~] Chat `01a1e3da-9d35-7a01-8723-b07a2749f7bd` owns #312 replay in managed
-  worktree `/Users/doughnut/.codex/worktrees/fyi-replay-312/fyi-cli`, branch
-  `codex/fyi-wayback-replay-312`; its frozen source is the read-only managed
-  checkout `/Users/doughnut/.codex/worktrees/fyi-replay-frozen-312/fyi-cli`
-  at `5885469`. No live source, native object or authentication scope is assigned.
+- [x] Develop #312 replay from the frozen source checkpoint `5885469` on branch
+  `codex/fyi-wayback-replay-312`. No live source or authentication scope was
+  assigned. The replay engine merged through PR #481.
 - [x] Reuse the frozen approval, bounded replay and offline recovery contracts;
   establish their dependencies and perform receiving-head preflight before
   integrating source files. Twelve focused offline replay tests pass, including
@@ -16,25 +14,20 @@
   over shared receipt and CLI paths; replay must consume its pinned contract.
 - [x] Integrate the guarded replay transport, response receipts and Rust CLI
   after receipt-integrity integration. [PR #483; merge checkpoint: 71bf805]
-- [~] Chat `01a1e3da-9d35-7a01-8723-b07a2749f7bd` owns the next transport
-  increment in managed worktree
-  `/Users/doughnut/.codex/worktrees/fyi-replay-transport-312/fyi-cli`, branch
-  `codex/fyi-replay-transport-312`, based on the replay engine integrated in
-  PR #481. Its paths are the Rust replay, transport and CLI code, focused tests,
-  and CLI parity manifest. No live authority, native object or authentication
-  scope is assigned. The bounded increment merged through PR #483.
+- [x] Develop the transport increment on branch `codex/fyi-replay-transport-312`,
+  based on PR #481. Its scope covered Rust replay, transport and CLI code,
+  focused tests and the CLI parity manifest. No live source or authentication
+  scope was assigned. The bounded increment merged through PR #483.
 - [x] Implement the bounded transport, CLI, ordered response-body evidence and
   v1 replay receipts, with fail-closed handling for incomplete exchanges.
   Focused offline tests cover redirects, compressed entities, response and
   result tampering, path collisions, checkpoints and runtime limits. [source
   checkpoint: e6e1052]
-- [~] Chat `01a1e3da-9d35-7a01-8723-b07a2749f7bd` owns a bounded #310 sync
-  pull receipt follow-up in managed worktree
-  `/Users/doughnut/.codex/worktrees/fyi-post-replay-receiving-312/fyi-cli`,
-  branch `codex/fyi-sync-pull-receipt-310`, initially based on replay PR #483.
-  Its scope is Rust sync pull evidence, CLI preflight and offline tests. No live
-  authority, native object or authentication scope is assigned. The increment
-  merged through PR #484 after its protected checks and MSRV check passed.
+- [x] Develop the bounded #310 sync pull receipt follow-up on branch
+  `codex/fyi-sync-pull-receipt-310`, initially based on PR #483. Its scope was
+  Rust sync pull evidence, CLI preflight and offline tests. No live source or
+  authentication scope was assigned. The increment merged through PR #484 after
+  its protected checks and MSRV check passed.
 - [x] Implement a fresh, redirect-free single-list sync pull with immutable raw,
   result and receipt files. Offline tests cover a successful pull, HTTP failure,
   redirect, incomplete response and evidence-path preflight. Feed and push
@@ -101,13 +94,10 @@ No existing #310–#314 issue is closed by this incremental Rust implementation.
 
 ## Socket-free source regressions — 2026-11-16
 
-- [~] Chat `01a1e3da-9d35-7a01-8723-b07a2749f7bd` owns the socket-free
-  regression follow-up in managed worktree
-  `/Users/doughnut/.codex/worktrees/fyi-replay-transport-312/fyi-cli`, branch
-  `codex/fyi-replay-socket-free-tests`. Scope: replay transport fixtures, typed
-  source failure fixtures, the corresponding test-only dependencies and
-  affected evidence documentation. No native or authentication scope is
-  assigned. Next: hosted checks and integration through a PR.
+- [x] Develop socket-free replay transport and typed source failure fixtures,
+  test-only dependencies and evidence documentation on branch
+  `codex/fyi-replay-socket-free-tests`. No native or authentication scope was
+  assigned. The follow-up merged through PR #485.
 - [x] Replace the new replay/source socket fixtures with in-process responses
   and a stalled connector; preserve the typed 503/401 and timeout regressions.
   Focused tests also passed with network access explicitly denied. [source

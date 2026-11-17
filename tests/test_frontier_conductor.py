@@ -1,10 +1,36 @@
 """Conductor frontier contract regression tests (pure stdlib, no network)."""
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
 
 from scripts.verify_frontier_conductor import evaluate, inventory_legacy_python
+
+
+def _has_private_coordination_identifier(text: str) -> bool:
+    home_path = r"(?:/(?:Users|home)/|[A-Za-z]:\\Users\\)[^/\\\s`]+"
+    chat_id = (
+        r"(?i)\b(?:chat|thread)\s*(?:id\s*)?[:=]?\s*[`\"']?"
+        r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b"
+    )
+    return bool(re.search(home_path, text) or re.search(chat_id, text))
+
+
+def test_public_coordination_notes_do_not_expose_local_identifiers() -> None:
+    assert _has_private_coordination_identifier("/Users/example/worktree")
+    assert _has_private_coordination_identifier("/home/example/worktree")
+    assert _has_private_coordination_identifier(r"C:\Users\example\worktree")
+    assert _has_private_coordination_identifier("Chat `01234567-89ab-7cde-8fab-0123456789ab`")
+    assert not _has_private_coordination_identifier("Track #310 is in progress.")
+
+    root = Path(__file__).resolve().parents[1]
+    for relative in (
+        ".conductor/tracks/source-adapter-boundary-20260812/plan.md",
+        "handover/README.md",
+    ):
+        found = _has_private_coordination_identifier((root / relative).read_text(encoding="utf-8"))
+        assert not found, f"Local identifier in {relative}"
 
 
 def make_repo(tmp_path: Path) -> Path:
