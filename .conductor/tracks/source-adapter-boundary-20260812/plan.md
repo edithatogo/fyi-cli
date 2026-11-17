@@ -16,10 +16,13 @@ single-list sync pull implementations are retained and extended in this track.
 - [x] Bind incremental sync receipts to redacted before/after boundary snapshots
   and parsed numeric rate-limit observations, including partial application failures.
   [implementation checkpoint: a26298e5; PR #488]
-- [~] Run socket-free red/green regressions, independent review, formatting,
+- [x] Run socket-free red/green regressions, independent review, formatting,
   strict Clippy, workspace tests and the existing hosted acceptance checks.
-- [~] Record the exact implementation checkpoint and current network-command
+  [source checkpoint: 90129b7; CI 44054377597; MSRV 44054377789;
+  Linux/macOS/Windows portability 44054380472]
+- [x] Record the exact implementation checkpoint and current network-command
   coverage without closing the wider #310 or archive-cutover gates prematurely.
+  [source checkpoint: 90129b7; PR #488]
 
 Evidence and limits: [acquisition-integrity-20261117.md](acquisition-integrity-20261117.md).
 
