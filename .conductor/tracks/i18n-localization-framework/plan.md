@@ -169,6 +169,16 @@ combined localization line coverage. Human review remains unchecked.
 - [x] Task: Create translation guidelines for contributors
 - [ ] Task: Conductor - User Manual Verification 'Phase 6.3: Documentation' (Protocol in workflow.md)
 
+#### Issue #67 usage-guide completion — 2026-11-17
+
+- [x] Reconcile the guide with the current locale, template and calendar APIs.
+- [x] Document exact locale-registration and template-customization steps, including
+  resource revisions, variable contracts and translation review evidence.
+- [x] Replace the incomplete calendar snippet with a complete synthetic example;
+  document schema/runtime validation, contribution evidence and year rollover.
+- [~] Verify examples and existing focused contracts; record independent review
+  and the remaining #39/#65/#66 human/legal/calendar acceptance separately.
+
 ## Completion Criteria
 - [ ] All phases complete
 - [x] fluent-rs integrated with 6+ locales
