@@ -34,8 +34,17 @@ def test_evidence_is_initialized_before_tool_setup_and_retained_on_failure(
     directory: str,
 ) -> None:
     steps = jobs()[job]["steps"]
-    provenance = steps[1]
+    harden, checkout, provenance = steps[:3]
+    assert harden["uses"].startswith("step-security/harden-runner@")
+    assert harden["with"]["egress-policy"] == "audit"
+    assert not harden.get("continue-on-error", False)
+    assert "if" not in harden
+    assert checkout["uses"].startswith("actions/checkout@")
+    assert not checkout.get("continue-on-error", False)
+    assert "if" not in checkout
     assert provenance["name"] == "Record execution provenance"
+    assert not provenance.get("continue-on-error", False)
+    assert "if" not in provenance
     assert provenance["shell"] == "bash"
     assert provenance["env"]["SOURCE_HEAD_SHA"] == (
         "${{ github.event.pull_request.head.sha || github.sha }}"
@@ -83,9 +92,7 @@ def test_audit_and_coverage_evidence_preserve_gate_commands_and_versions() -> No
     assert "cargo deny check" in step("audit", "Run cargo-deny")["run"]
     # Both pinned binaries must be installed without a source-build fallback.
     install = step("audit", "Install audit tools (verified binaries)")
-    assert install["uses"] == (
-        "taiki-e/install-action@4a76afe23f9e08d2d9550fb56e556444e8611d21"
-    )
+    assert install["uses"] == ("taiki-e/install-action@4a76afe23f9e08d2d9550fb56e556444e8611d21")
     assert install["with"]["tool"].splitlines() == [
         "cargo-audit@0.23.0",
         "cargo-deny@0.20.2",
@@ -93,7 +100,12 @@ def test_audit_and_coverage_evidence_preserve_gate_commands_and_versions() -> No
     assert install["with"]["fallback"] == "none"
 
     versions = step("audit", "Record audit toolchain versions")["run"]
-    for command in ("rustc --version --verbose", "cargo --version", "cargo audit --version", "cargo deny --version"):
+    for command in (
+        "rustc --version --verbose",
+        "cargo --version",
+        "cargo audit --version",
+        "cargo deny --version",
+    ):
         assert command in versions
     for log in (
         "artifacts/security-audit/install-audit.log",
