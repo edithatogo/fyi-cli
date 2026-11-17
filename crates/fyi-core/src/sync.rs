@@ -273,6 +273,8 @@ fn wayback_http_client_builder(
         .user_agent(identity.user_agent())
         .timeout(Duration::from_secs(60))
         .redirect(reqwest::redirect::Policy::none())
+        // Protocol-NACK retries would bypass the one-attempt receipt observer.
+        .retry(reqwest::retry::never())
         .no_gzip()
         .no_brotli()
         .no_deflate()
