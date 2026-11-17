@@ -44,7 +44,7 @@ fixture generation is not recorded as binary execution evidence.
 
 ## Hosted checkpoint and source-contract review
 
-Draft implementation PR: [#494](https://github.com/edithatogo/fyi-cli/pull/494).
+Implementation PR: [#494](https://github.com/edithatogo/fyi-cli/pull/494).
 At `dc0910a388a51aa6a32fd069bc715d40ee3032b9`, the macOS job in
 [run 44055105225](https://github.com/edithatogo/fyi-cli/actions/runs/44055105225)
 built the actual production MCP executable and passed all 21 source-read tests.
@@ -55,7 +55,7 @@ empty-policy constructor. The same head's full Python 3.15.2 suite reported
 expectations. The source correctly exposes an unfollowed HTTP 302 as
 `upstream_unknown`; the current harness now asserts that status and still
 requires exactly one GET. The failed job is not recorded as a passing platform
-gate; the new revision still requires its own complete hosted run.
+gate. The corrected implementation revision is qualified below.
 
 Review against pinned upstream Alaveteli source also corrected the new feed
 contract: authority feeds use `/feed/body/<slug>`; normal Atom links refer to
@@ -77,8 +77,66 @@ versions, command logs and JUnit artifacts.
 
 Native macOS/Windows TLS trust-store behavior is separately unqualified; no
 system trust-store change or TLS verification bypass is introduced. Historical
-receipts for #169/#173 are not evidence for this new code. Full CI, coverage,
-security and runtime results are pending at this checkpoint.
+receipts for #169/#173 are not evidence for this new code. The following
+qualification uses this implementation revision directly.
+
+## Verified implementation revision
+
+Source commit: `0f80180abbc4a3d83f1a183f04611e7308ce2e52` (tree
+`88ce7a594761fcf70ff9b4cf0336a899ee45d361`). Hosted PR checkout:
+`909fec0dfca2af689cf98bf6a49c2265773b6630`.
+
+All 12 stable required checks completed successfully: Rustfmt, Clippy Lints,
+Workspace Tests, Package Smoke, Security Audit, Code Coverage, Layered Harness
+Contract, Python Tests, CodeQL, Analyze (python), Analyze
+(javascript-typescript), and Packaging Assets. The
+[main CI run](https://github.com/edithatogo/fyi-cli/actions/runs/44058738293)
+and [read-contract matrix](https://github.com/edithatogo/fyi-cli/actions/runs/44058738450)
+completed successfully using Rust 1.100.0 and Python 3.15.2.
+
+| Platform | Source read tests | MCP unit tests | MCP integration tests | Actual SDK cases |
+| --- | ---: | ---: | ---: | ---: |
+| Ubuntu 24.04 | 30 passed | 175 passed | 9 passed | 52 passed |
+| macOS 15 | 30 passed | 175 passed | 9 passed | 4 passed |
+| Windows 2025 | 30 passed | 173 passed | 9 passed | 4 passed |
+
+Every listed Rust suite reported zero failures and zero ignored tests. Windows
+excludes two Unix-only unit tests at compilation. All selected SDK cases passed
+the explicit no-skips JUnit gate. Linux covers actual local TLS/source exchanges;
+macOS and Windows cover portable SDK discovery/policy behavior alongside their
+source and MCP Rust suites. Native TLS on those two platforms is not certified.
+
+The full Python suite passed 1,741 tests with two skips. Coverage independently
+ran all 237 core unit tests and the MCP unit/integration suites and reported
+93.55% line coverage and 89.99% region coverage. The optional self-hosted Offline
+AI job remained queued; it is not one of the repository's 12 required checks and
+is not claimed as passed. The PR body records the latest documentation-head CI
+status; this section preserves the exact implementation execution checkpoint.
+
+## Manual review and phase checkpoint
+
+The implementation, source/SDK qualification and independent scoped reviews are
+complete. `.conductor/workflow.md` separately requires explicit user feedback
+before a final manual-verification checkpoint is created. No such confirmation
+has been received or recorded. The manual review can remain entirely offline:
+
+1. Build the production server with
+   `cargo build --locked --package fyi-mcp --bin fyi-mcp`.
+2. Configure a stdio MCP client to launch that binary with
+   `FYI_MCP_EPHEMERAL=1`, `FYI_MCP_TRANSPORT=stdio`,
+   `FYI_MCP_REMOTE_INSTANCES=synthetic=https://mcp-fixture.invalid`,
+   `FYI_MCP_REMOTE_READ=synthetic`, and an empty `FYI_MCP_REMOTE_WRITE`.
+3. Read `fyi://remote/read-contract`, then call
+   `remote_discover_authority_feeds` with
+   `{"instance_id":"synthetic","authority_slug":"synthetic-authority"}`.
+4. Confirm the returned feed URL is
+   `https://mcp-fixture.invalid/feed/body/synthetic-authority`, availability is
+   `not_checked`, provenance has `cache_status: not_applicable`, null source
+   status and zero downloaded bytes, and the result has a correlation ID.
+   Confirm that the catalogue exposes seven remote reads and no remote writes.
+5. Review the realistic feed fixtures and CI evidence: event IDs and numeric
+   request slugs stay unresolved; only explicit API routes produce request IDs.
+   Confirm the behavior before creating the final manual phase checkpoint.
 
 ## Concurrent source work
 
@@ -99,7 +157,8 @@ Reconcile fresh heads before integration; do not overwrite either source owner.
 
 ## Closure
 
-Implementation is under review. Issue #170 and its existing Conductor track
-remain open until current-head gates and final evidence are recorded. Broader
+Implementation and automated acceptance are verified at the revision above.
+PR #494 remains subject to its final-head checks and review. The track stays
+in progress until the manual checkpoint and merge lifecycle are complete. Broader
 #169/#171/#173 write atomicity, platform TLS, filesystem cache and whole-process
 memory questions are not closed by this read increment.
