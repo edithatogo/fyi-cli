@@ -1,5 +1,27 @@
 # Plan
 
+## Acquisition evidence integrity — 2026-11-17 (#310)
+
+Receiving baseline: `1f0ae6d0b00663d52ccb65904152ca4e933b3486`.
+No open pull requests were present at intake. The existing receipt, replay and
+single-list sync pull implementations are retained and extended in this track.
+
+- [~] Capture a fresh, bounded request response without automatic redirects,
+  cache reuse or content decoding; persist complete HTTP/parse/identity failures
+  as failed v1 receipts, and refuse to fabricate receipts for incomplete exchanges.
+- [~] Apply normalized, non-overlapping evidence/database/sidecar preflight to
+  `fetch-request-page` before creating a pacing database or contacting a source.
+- [~] Bind incremental sync receipts to redacted before/after boundary snapshots
+  and parsed numeric rate-limit observations, including partial application failures.
+- [ ] Run socket-free red/green regressions, independent review, formatting,
+  strict Clippy, workspace tests and the existing hosted acceptance checks.
+- [ ] Record the exact implementation checkpoint and current network-command
+  coverage without closing the wider #310 or archive-cutover gates prematurely.
+
+No live source request or write operation is authorised by this implementation.
+Feed/push receipts, retained Python entrypoints, archive linkage and downstream
+shadow parity remain separate unfinished acceptance work.
+
 ## Bounded Rust replay work — 2026-11-16
 
 - [x] Develop #312 replay from the frozen source checkpoint `5885469` on branch
