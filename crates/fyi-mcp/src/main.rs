@@ -26,6 +26,9 @@ use tokio::net::TcpListener;
 use tracing::Instrument;
 
 mod arguments;
+mod remote_error;
+mod remote_reads;
+use remote_error::RemoteReadError;
 #[cfg(test)]
 mod observability_tests;
 pub mod policy;
@@ -123,6 +126,18 @@ fn tool_error(id: Option<Value>, message: impl Into<String>) -> JsonRpcResponse 
         json!({
             "isError": true,
             "content": [{"type": "text", "text": message.into()}]
+        }),
+    )
+}
+
+/// Read failures preserve the legacy text result and add machine-readable metadata.
+fn tool_read_error(id: Option<Value>, error: RemoteReadError) -> JsonRpcResponse {
+    JsonRpcResponse::success(
+        id,
+        json!({
+            "isError": true,
+            "content": [{"type": "text", "text": error.to_string()}],
+            "structuredContent": {"error": error}
         }),
     )
 }
@@ -1395,6 +1410,14 @@ fn build_tool_catalogue(remote_enabled: bool, write_enabled: bool) -> Value {
                     "remote_list_authorities",
                     "Bounded remote authority discovery",
                 ),
+                remote_tool_definition(
+                    "remote_discover_authority_feeds",
+                    "Plan an unverified canonical authority feed location without remote I/O. Use after remote_list_authorities; remote_plan_authority_feed checks and parses the feed. No database writes.",
+                ),
+                remote_tool_definition(
+                    "remote_plan_authority_feed",
+                    "Read one bounded authority RSS or Atom feed and return up to 200 request or request-event references, plus known numeric request IDs. Event IDs and request slugs are not resolved. Use after remote_discover_authority_feeds. Does not fetch request details, follow feed links, submit requests, or write to the database.",
+                ),
             ]);
         if write_enabled {
             tools["tools"]
@@ -1426,6 +1449,10 @@ fn all_tool_catalogue() -> &'static Value {
 
 fn registered_tool_catalogue(policy: &RemoteMcpPolicy) -> Value {
     let status = policy.status();
+    let read_enabled = status
+        .instances
+        .iter()
+        .any(|instance| instance.read_enabled);
     let write_enabled = !status.degraded
         && status
             .instances
@@ -1438,7 +1465,11 @@ fn registered_tool_catalogue(policy: &RemoteMcpPolicy) -> Value {
         .retain(|tool| {
             let name = tool["name"].as_str().expect("embedded tool name");
             !name.starts_with("remote_")
-                || (status.remote_enabled && (!is_remote_write(name) || write_enabled))
+                || if is_remote_write(name) {
+                    write_enabled
+                } else {
+                    read_enabled
+                }
         });
     catalogue
 }
@@ -1471,6 +1502,17 @@ fn remote_tool_definition(name: &str, description: &str) -> Value {
             properties["filter"] = json!({"type": "string", "maxLength": 100});
             properties["limit"] =
                 json!({"type": "integer", "minimum": 1, "maximum": 200, "default": 50});
+        }
+        "remote_discover_authority_feeds" | "remote_plan_authority_feed" => {
+            properties["authority_slug"] = json!({
+                "type": "string", "minLength": 1, "maxLength": 128,
+                "description": "An authority slug from discovery: ASCII letters, digits, hyphens and underscores only; never a URL or path."
+            });
+            required.push("authority_slug");
+            if name == "remote_plan_authority_feed" {
+                properties["limit"] =
+                    json!({"type": "integer", "minimum": 1, "maximum": 200, "default": 50});
+            }
         }
         "remote_create_request" => {
             properties["title"] = json!({"type": "string", "minLength": 1, "maxLength": 500});
@@ -1598,6 +1640,46 @@ fn remote_output_schema(name: &str) -> Value {
             });
             required.push("authorities");
         }
+        "remote_discover_authority_feeds" => {
+            properties["authority_slug"] =
+                json!({"type": "string", "minLength": 1, "maxLength": 128});
+            properties["feeds"] = json!({
+                "type": "array", "minItems": 1, "maxItems": 1,
+                "items": {
+                    "type": "object", "properties": {
+                        "url": {"type": "string", "format": "uri"},
+                        "availability": {"type": "string", "const": "not_checked"}
+                    }, "required": ["url", "availability"], "additionalProperties": false
+                }
+            });
+            required.extend(["authority_slug", "feeds"]);
+        }
+        "remote_plan_authority_feed" => {
+            properties["authority_slug"] =
+                json!({"type": "string", "minLength": 1, "maxLength": 128});
+            properties["plan"] = json!({
+                "type": "object", "properties": {
+                    "feed_url": {"type": "string", "format": "uri"},
+                    "request_ids": {"type": "array", "maxItems": 200, "items": {"type": "integer", "minimum": 1, "maximum": i64::MAX}},
+                    "references": {
+                        "type": "array", "maxItems": 200,
+                        "items": {
+                            "type": "object", "properties": {
+                                "kind": {"type": "string", "enum": ["request", "request_event"]},
+                                "url": {"type": "string", "format": "uri"},
+                                "request_id": {"type": ["integer", "null"], "minimum": 1, "maximum": i64::MAX}
+                            }, "required": ["kind", "url", "request_id"], "additionalProperties": false,
+                            "oneOf": [
+                                {"properties": {"kind": {"const": "request"}}},
+                                {"properties": {"kind": {"const": "request_event"}, "request_id": {"type": "null"}}}
+                            ]
+                        }
+                    },
+                    "truncated": {"type": "boolean"}
+                }, "required": ["feed_url", "request_ids", "references", "truncated"], "additionalProperties": false
+            });
+            required.extend(["authority_slug", "plan"]);
+        }
         "remote_create_request" => {
             properties["request"] = json!({
                 "type": "object",
@@ -1622,10 +1704,15 @@ fn remote_output_schema(name: &str) -> Value {
         }
         _ => unreachable!("embedded remote tool name"),
     }
-    let result = json!({"type": "object", "properties": properties, "required": required, "additionalProperties": false});
     if !is_remote_write(name) {
-        return result;
+        properties["provenance"] = remote_reads::provenance_schema();
+        required.push("provenance");
+        return json!({"type": "object", "oneOf": [
+            {"type": "object", "properties": properties, "required": required, "additionalProperties": false},
+            remote_reads::error_schema(name)
+        ]});
     }
+    let result = json!({"type": "object", "properties": properties, "required": required, "additionalProperties": false});
     json!({
         "type": "object",
         "oneOf": [
@@ -1739,7 +1826,7 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                     "description": "Local FOI/OIA request tracker and Alaveteli MCP server for FYI.org.nz and multi-jurisdiction instances."
                 },
                 // Smithery / client routing guide (server instructions).
-                "instructions": "Use fyi-mcp for local Freedom of Information / Official Information request tracking against Alaveteli instances (FYI.org.nz, RightToKnow, WhatDoTheyKnow, etc.). Preferred call order: (1) check_status to confirm the local SQLite DB is healthy; (2) list_requests or resources/list (fyi://requests) for triage; (3) retrieve_request for a single ID and correspondence; (4) create_request / update_request for local drafts (does not submit to remote authorities); (5) list_authorities / import_authorities for public-body reference data; (6) sync_monitor / sync_status / sync_conflicts for offline sync health; (7) sync_resolve_conflict only after manual reconciliation; (8) compute_deadline for statutory due dates; (9) search_corpus for demo hybrid search. Prefer resources (fyi://authorities, fyi://requests, fyi://requests/{id}) when the client wants browseable corpus context rather than tool calls. Never invent remote FOI submissions—this server is local-first."
+                "instructions": "Use fyi-mcp for local Freedom of Information / Official Information request tracking against Alaveteli instances (FYI.org.nz, RightToKnow, WhatDoTheyKnow, etc.). Preferred call order: (1) check_status to confirm the local SQLite DB is healthy; (2) list_requests or resources/list (fyi://requests) for triage; (3) retrieve_request for a single ID and correspondence; (4) create_request / update_request for local drafts (does not submit to remote authorities); (5) list_authorities / import_authorities for public-body reference data; (6) sync_monitor / sync_status / sync_conflicts for offline sync health; (7) sync_resolve_conflict only after manual reconciliation; (8) compute_deadline for statutory due dates; (9) search_corpus for demo hybrid search. Prefer resources (fyi://authorities, fyi://requests, fyi://requests/{id}) when the client wants browseable corpus context rather than tool calls. For opt-in remote reads, inspect fyi://remote/read-contract and fyi://remote/status first. Discover authorities, inspect the unverified canonical feed location, then plan one bounded feed read before retrieving individual request details. Remote reads return provenance and typed safe errors; they never submit requests or write imported source data. Never invent remote FOI submissions—this server is local-first."
             });
             Some(JsonRpcResponse::success(req.id, res))
         }
@@ -2723,14 +2810,16 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                 | "remote_version"
                 | "remote_search_requests"
                 | "remote_get_request"
-                | "remote_list_authorities" => {
+                | "remote_list_authorities"
+                | "remote_discover_authority_feeds"
+                | "remote_plan_authority_feed" => {
                     let instance_id = arguments
                         .get("instance_id")
                         .and_then(Value::as_str)
                         .unwrap_or("");
                     match remote_read(remote_policy, instance_id, name, &arguments).await {
                         Ok(payload) => Some(tool_success(req.id, payload)),
-                        Err(error) => Some(tool_error(req.id, error)),
+                        Err(error) => Some(tool_read_error(req.id, error)),
                     }
                 }
                 "remote_create_request" | "remote_add_correspondence" | "remote_update_state" => {
@@ -2788,87 +2877,8 @@ async fn remote_read(
     instance_id: &str,
     operation: &str,
     arguments: &Value,
-) -> Result<Value, String> {
-    let observed_operation = RemoteOperation::from_tool(operation)
-        .ok_or_else(|| "unsupported remote read operation".to_string())?;
-    // Caller validation must precede admission. Bad input must not spend a
-    // network allowance or count as an upstream failure in the shared circuit.
-    let query = arguments
-        .get("query")
-        .and_then(Value::as_str)
-        .unwrap_or("")
-        .trim();
-    let request_id = arguments.get("request_id").and_then(Value::as_i64);
-    let filter = arguments
-        .get("filter")
-        .and_then(Value::as_str)
-        .unwrap_or("");
-    match operation {
-        "remote_search_requests" if query.is_empty() || query.chars().count() > 200 => {
-            return Err("query must be between 1 and 200 characters".into());
-        }
-        "remote_get_request" if request_id.is_none_or(|id| id < 1) => {
-            return Err("request_id must be a positive integer".into());
-        }
-        "remote_list_authorities" if filter.chars().count() > 100 => {
-            return Err("filter exceeds 100 characters".into());
-        }
-        _ => {}
-    }
-    let permit = policy
-        .begin_request(instance_id, policy::RemoteCapability::Read)
-        .map_err(|error| error.to_string())?;
-    let instance = policy
-        .instance(instance_id)
-        .ok_or_else(|| "remote instance is not configured".to_string())?;
-    let operation_future = async {
-        let client = SyncClient::new(&instance.base_url)
-            .map_err(|_| anyhow::anyhow!("remote client could not be initialized"))?;
-        match operation {
-            "remote_health" => {
-                let health = client.health_check().await;
-                Ok(
-                    json!({"instance_id": instance_id, "network_reachable": health.network_reachable, "api_reachable": health.api_reachable}),
-                )
-            }
-            "remote_version" => {
-                #[cfg(feature = "sdk-regression-fixture")]
-                let version = if policy.sdk_regression_fixture {
-                    client.get_api_version_for_sdk_fixture().await
-                } else {
-                    client.get_api_version().await
-                };
-                #[cfg(not(feature = "sdk-regression-fixture"))]
-                let version = client.get_api_version().await;
-                version.map(|version| json!({"instance_id": instance_id, "version": version}))
-            }
-            "remote_search_requests" => {
-                let limit = arguments
-                    .get("limit")
-                    .and_then(Value::as_u64)
-                    .unwrap_or(10)
-                    .clamp(1, 50) as usize;
-                client
-                .search_requests_with_options(&SearchOptions { query: Some(query.into()), per_page: Some(limit as u32), ..Default::default() })
-                .await
-                .map(|requests| json!({"instance_id": instance_id, "query": query, "requests": requests.into_iter().take(limit).collect::<Vec<_>>() }))
-            }
-            "remote_get_request" => client
-                .fetch_request(request_id.expect("request ID validated before admission"))
-                .await
-                .map(|request| json!({"instance_id": instance_id, "request": request})),
-            "remote_list_authorities" => {
-                let limit = arguments
-                    .get("limit")
-                    .and_then(Value::as_u64)
-                    .unwrap_or(50)
-                    .clamp(1, 200) as usize;
-                client.list_authorities_matching(filter).await.map(|authorities| json!({"instance_id": instance_id, "authorities": authorities.into_iter().take(limit).collect::<Vec<_>>() }))
-            }
-            _ => Err(anyhow::anyhow!("unsupported remote read operation")),
-        }
-    };
-    execute_remote_operation(policy, permit, observed_operation, operation_future).await
+) -> Result<Value, RemoteReadError> {
+    remote_reads::read(policy, instance_id, operation, arguments).await
 }
 
 fn next_correlation_id() -> String {
@@ -2887,29 +2897,58 @@ async fn execute_remote_operation(
     observed_operation: RemoteOperation,
     operation: impl std::future::Future<Output = anyhow::Result<Value>>,
 ) -> Result<Value, String> {
-    let observation = policy.telemetry.begin(observed_operation)?;
+    execute_remote_operation_typed(policy, permit, observed_operation, operation)
+        .await
+        .map_err(|error| error.to_string())
+}
+
+async fn execute_remote_operation_typed(
+    policy: &RemoteMcpPolicy,
+    permit: policy::RemoteRequestPermit,
+    observed_operation: RemoteOperation,
+    operation: impl std::future::Future<Output = anyhow::Result<Value>>,
+) -> Result<Value, RemoteReadError> {
+    let observation = policy
+        .telemetry
+        .begin(observed_operation)
+        .map_err(|_| RemoteReadError::internal(observed_operation, None))?;
+    let correlation_id = Some(observation.correlation_id().to_string());
+    let internal = || RemoteReadError::internal(observed_operation, correlation_id.clone());
     let result = tokio::time::timeout(
         permit.duration_budget(),
         operation.instrument(observation.span()),
     )
     .await;
     match result {
-        Ok(Ok(payload)) => {
+        Ok(Ok(mut payload)) => {
+            // Provenance uses the same dispatch ID as telemetry, before byte accounting.
+            if observed_operation.is_read() && payload.get("provenance").is_some() {
+                payload["provenance"]["correlation_id"] = json!(correlation_id);
+            }
             let bytes = match serialized_payload_bytes(&payload) {
                 Ok(bytes) => bytes,
-                Err(error) => {
-                    observation.finish(DispatchOutcome::ResultRejected, 0)?;
+                Err(_) => {
+                    observation
+                        .finish(DispatchOutcome::ResultRejected, 0)
+                        .map_err(|_| internal())?;
                     policy.record_failure();
-                    return Err(error);
+                    return Err(internal());
                 }
             };
-            let outcome = permit.finish(bytes).map_err(|error| error.to_string());
-            if let Err(error) = outcome {
-                observation.finish(DispatchOutcome::ResultRejected, bytes)?;
+            if let Err(error) = permit.finish(bytes) {
+                observation
+                    .finish(DispatchOutcome::ResultRejected, bytes)
+                    .map_err(|_| internal())?;
                 policy.record_failure();
-                return Err(error);
+                return Err(RemoteReadError::from_policy(
+                    observed_operation,
+                    &error,
+                    correlation_id,
+                ));
             }
-            observation.finish(DispatchOutcome::Success, bytes)?;
+            observation
+                .finish(DispatchOutcome::Success, bytes)
+                .map_err(|_| internal())?;
             policy.record_success();
             Ok(payload)
         }
@@ -2924,14 +2963,22 @@ async fn execute_remote_operation(
                 safe_message = classified.safe_message,
                 "remote MCP operation classified failure"
             );
-            observation.finish(DispatchOutcome::Failed, 0)?;
+            observation
+                .finish(DispatchOutcome::Failed, 0)
+                .map_err(|_| internal())?;
             policy.record_failure();
-            Err("remote operation failed; see operator audit telemetry".into())
+            Err(RemoteReadError::from_source(
+                observed_operation,
+                &error,
+                correlation_id,
+            ))
         }
         Err(_) => {
-            observation.finish(DispatchOutcome::TimedOut, 0)?;
+            observation
+                .finish(DispatchOutcome::TimedOut, 0)
+                .map_err(|_| internal())?;
             policy.record_failure();
-            Err("remote operation timed out; see operator audit telemetry".into())
+            Err(RemoteReadError::timeout(observed_operation, correlation_id))
         }
     }
 }
@@ -3187,6 +3234,12 @@ pub async fn list_mcp_resources(db: &DbPool) -> Value {
             "mimeType": "application/json"
         }),
         json!({
+            "uri": "fyi://remote/read-contract",
+            "name": "Remote read contracts",
+            "description": "Offline read-tool schemas, safe errors, provenance, feed planning and budget scopes. Start here before enabling or calling remote reads.",
+            "mimeType": "application/json"
+        }),
+        json!({
             "uri": "fyi://authorities",
             "name": "Public authorities",
             "description": "Imported public authority records used for FOI routing.",
@@ -3216,7 +3269,7 @@ pub async fn list_mcp_resources(db: &DbPool) -> Value {
 
 fn remote_status_resource(policy: &RemoteMcpPolicy) -> Result<Vec<Value>, String> {
     let snapshot = json!({
-        "schema_version": 1,
+        "schema_version": 2,
         "policy": policy.status(),
         "metrics": policy.telemetry.snapshot()?,
     });
@@ -3229,6 +3282,37 @@ fn remote_status_resource(policy: &RemoteMcpPolicy) -> Result<Vec<Value>, String
 
 /// Read a single MCP resource by URI into MCP content items.
 pub async fn read_mcp_resource(db: &DbPool, uri: &str) -> Result<Vec<Value>, String> {
+    if uri == "fyi://remote/read-contract" {
+        let tools = all_tool_catalogue()["tools"]
+            .as_array()
+            .expect("embedded tool array")
+            .iter()
+            .filter(|tool| {
+                tool["name"].as_str().is_some_and(|name| {
+                    RemoteOperation::from_tool(name).is_some_and(|operation| operation.is_read())
+                })
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        let contract = json!({
+            "schema_version": 1, "disabled_by_default": true,
+            "recommended_order": ["fyi://remote/status", "remote_list_authorities", "remote_discover_authority_feeds", "remote_plan_authority_feed", "remote_get_request"],
+            "feed_discovery": "Canonical route only; availability is not checked and no source request is sent.",
+            "feed_planning": "One bounded feed GET returns canonical request and request-event references. Only explicit numeric request routes populate request_ids; event IDs and request slugs remain unresolved. No detail fetch, feed-link traversal or application database mutation.",
+            "budgets": {
+                "mcp_requests": "Admitted operations, including local feed discovery and failed operations.",
+                "source_requests": "Cumulative outbound read attempts; automatic redirects and retries are disabled.",
+                "source_bytes": "Cumulative downloaded read bytes; cached bodies must also fit the current read bound.",
+                "result_bytes": "Cumulative serialized successful payload bytes, including provenance, checked before publication.",
+                "duration": "The configured deadline covers each operation, including pacing; source clients also have a one-hour lifetime from startup.",
+                "concurrency": "One admitted operation per instance. Cloned policies share source cache and allowances."
+            },
+            "tools": tools
+        });
+        return Ok(vec![
+            json!({"uri": uri, "mimeType": "application/json", "text": contract.to_string()}),
+        ]);
+    }
     if uri == "fyi://authorities" {
         ensure_authorities_table(db.pool())
             .await

@@ -85,9 +85,9 @@ async fn remote_status_is_discoverable_even_with_no_remote_capabilities() {
             resource["uri"] == STATUS_URI && resource["mimeType"] == "application/json"
         }));
     let snapshot = status(&policy).await;
-    assert_eq!(snapshot["schema_version"], 1);
+    assert_eq!(snapshot["schema_version"], 2);
     assert_eq!(snapshot["policy"]["remote_enabled"], false);
-    assert_eq!(snapshot["metrics"]["schema_version"], 1);
+    assert_eq!(snapshot["metrics"]["schema_version"], 2);
     assert_eq!(snapshot["metrics"]["scope"], "process");
     assert_eq!(
         snapshot["metrics"]["measurement"],
@@ -95,7 +95,7 @@ async fn remote_status_is_discoverable_even_with_no_remote_capabilities() {
     );
     assert_eq!(
         snapshot["metrics"]["operations"].as_array().unwrap().len(),
-        8
+        10
     );
 }
 
@@ -478,6 +478,71 @@ fn generated_error_contexts_cannot_override_status_or_leak_secrets() {
                 .unwrap()
                 .contains("synthetic-private"));
         }
+    }
+}
+
+#[test]
+fn typed_source_read_failures_keep_their_classification_without_private_context() {
+    use fyi_core::sync::{SourceFailureKind, SourceReadError};
+    use telemetry::{RemoteErrorClassification, RemoteErrorKind};
+
+    let cases = [
+        (
+            SourceFailureKind::Validation,
+            RemoteErrorKind::Validation,
+            false,
+            "remote source input was rejected",
+        ),
+        (
+            SourceFailureKind::MalformedPayload,
+            RemoteErrorKind::MalformedPayload,
+            false,
+            "remote response payload was malformed",
+        ),
+        (
+            SourceFailureKind::Guardrail,
+            RemoteErrorKind::Guardrail,
+            false,
+            "remote source guardrail rejected the operation",
+        ),
+        (
+            SourceFailureKind::Transport,
+            RemoteErrorKind::Transport,
+            true,
+            "remote source transport failed",
+        ),
+        (
+            SourceFailureKind::Cache,
+            RemoteErrorKind::Cache,
+            false,
+            "remote cached response could not be reused",
+        ),
+        (
+            SourceFailureKind::Timeout,
+            RemoteErrorKind::Timeout,
+            true,
+            "remote operation timed out",
+        ),
+    ];
+    for (source_kind, expected_kind, retryable, message) in cases {
+        let source = anyhow::Error::new(SourceReadError::new(source_kind))
+            .context("synthetic-private-token HTTP 401 or 503");
+        for operation in [
+            RemoteOperation::GetRequest,
+            RemoteOperation::PlanAuthorityFeed,
+        ] {
+            let result = RemoteErrorClassification::classify(operation, &source);
+            assert_eq!(result.kind, expected_kind);
+            assert_eq!(result.retryable, retryable);
+            assert_eq!(result.status, None);
+            assert_eq!(result.safe_message, message);
+            assert!(!serde_json::to_string(&result)
+                .unwrap()
+                .contains("synthetic-private"));
+        }
+        let write = RemoteErrorClassification::classify(RemoteOperation::CreateRequest, &source);
+        assert_eq!(write.kind, expected_kind);
+        assert!(!write.retryable);
     }
 }
 

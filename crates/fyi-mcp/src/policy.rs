@@ -4,6 +4,8 @@
 //! the bounded status and audit values to their preferred local system without
 //! sending request content, credentials, or user data anywhere.
 
+use fyi_core::agent_runtime::{ClientIdentity, GuardrailConfig};
+use fyi_core::sync::SyncClient;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::OsStr;
@@ -129,12 +131,26 @@ struct ControlState {
 #[derive(Debug, Clone)]
 pub struct RemoteMcpPolicy {
     instances: BTreeMap<String, RemoteInstancePolicy>,
+    read_clients: BTreeMap<String, RemoteReadClient>,
     state: Arc<Mutex<ControlState>>,
     pub(crate) telemetry: super::telemetry::RemoteTelemetry,
     #[cfg(feature = "sdk-regression-fixture")]
     pub(super) sdk_regression_fixture: bool,
     circuit_failure_threshold: u32,
     circuit_cooldown: Duration,
+}
+
+/// Clones share source pacing, validators, concurrency and cumulative allowances.
+/// The transport and its configuration are intentionally absent from Debug output.
+#[derive(Clone)]
+struct RemoteReadClient(SyncClient);
+
+impl std::fmt::Debug for RemoteReadClient {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("RemoteReadClient")
+            .finish_non_exhaustive()
+    }
 }
 
 /// One admitted remote operation. Dropping it never refunds the request attempt.
@@ -157,6 +173,16 @@ impl RemoteRequestPermit {
     /// Maximum wall-clock duration of the entire admitted remote operation.
     pub fn duration_budget(&self) -> Duration {
         self.duration_budget
+    }
+
+    /// Remaining published-result allowance, also used as a stricter source-read cap.
+    pub(crate) fn remaining_result_bytes(&self) -> Result<u64, PolicyError> {
+        let state = self.state.lock().map_err(|_| policy_unavailable())?;
+        let used = state
+            .usage
+            .get(&self.instance.instance_id)
+            .map_or(0, |usage| usage.1);
+        Ok(self.instance.budget.max_bytes.saturating_sub(used))
     }
 
     /// Account for the serialized returned payload before publishing it.
@@ -217,9 +243,30 @@ impl RemoteMcpPolicy {
             ));
         }
         let mut map = BTreeMap::new();
+        let mut read_clients = BTreeMap::new();
         let mut credential_names = BTreeSet::new();
         for instance in instances {
             validate_instance(&instance)?;
+            if instance.read_enabled {
+                let identity = ClientIdentity::default_identity(None).map_err(|_| {
+                    PolicyError::InvalidConfiguration("remote client identity is invalid".into())
+                })?;
+                let guards = GuardrailConfig {
+                    max_requests: u64::from(instance.budget.max_requests),
+                    max_response_bytes: instance.budget.max_bytes,
+                    max_concurrency: 1,
+                    // The source has a one-hour lifetime ceiling; every individual
+                    // read additionally receives the MCP operation deadline.
+                    ..GuardrailConfig::default()
+                };
+                let client = SyncClient::with_guardrails(&instance.base_url, &identity, guards)
+                    .map_err(|_| {
+                        PolicyError::InvalidConfiguration(
+                            "remote read source configuration is invalid".into(),
+                        )
+                    })?;
+                read_clients.insert(instance.instance_id.clone(), RemoteReadClient(client));
+            }
             let credential_name = instance.bot_token_env_name();
             if map.insert(instance.instance_id.clone(), instance).is_some() {
                 return Err(PolicyError::InvalidConfiguration(
@@ -234,6 +281,7 @@ impl RemoteMcpPolicy {
         }
         Ok(Self {
             instances: map,
+            read_clients,
             telemetry: super::telemetry::RemoteTelemetry::default(),
             #[cfg(feature = "sdk-regression-fixture")]
             sdk_regression_fixture: false,
@@ -401,6 +449,16 @@ impl RemoteMcpPolicy {
 
     pub fn instance(&self, instance_id: &str) -> Option<RemoteInstancePolicy> {
         self.instances.get(instance_id).cloned()
+    }
+
+    /// Return the shared read transport after the caller has reserved its permit.
+    pub(crate) fn read_client(&self, instance_id: &str) -> Result<SyncClient, PolicyError> {
+        self.read_clients
+            .get(instance_id)
+            .map(|client| client.0.clone())
+            .ok_or_else(|| {
+                PolicyError::Disabled("remote read capability is disabled for instance".into())
+            })
     }
 
     /// Legacy post-dispatch accounting. New callers should use `begin_request`.

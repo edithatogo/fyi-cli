@@ -287,6 +287,36 @@ async def _exercise_local_contract(session: ClientSession, expected_revision: st
         if tool.outputSchema is not None:
             Draft202012Validator.check_schema(tool.outputSchema)
 
+    resources = await session.list_resources()
+    read_contract_uri = "fyi://remote/read-contract"
+    assert read_contract_uri in {str(resource.uri) for resource in resources.resources}
+    read_contract = await session.read_resource(read_contract_uri)
+    assert len(read_contract.contents) == 1
+    read_contract = json.loads(read_contract.contents[0].text)
+    assert read_contract["schema_version"] == 1
+    assert read_contract["disabled_by_default"] is True
+    assert {tool["name"] for tool in read_contract["tools"]} == contract.REQUIRED_READ_TOOLS
+    for tool in read_contract["tools"]:
+        assert tool["annotations"]["readOnlyHint"] is True
+        assert tool["annotations"]["destructiveHint"] is False
+        Draft202012Validator.check_schema(tool["inputSchema"])
+        Draft202012Validator.check_schema(tool["outputSchema"])
+    assert read_contract["recommended_order"] == [
+        "fyi://remote/status",
+        "remote_list_authorities",
+        "remote_discover_authority_feeds",
+        "remote_plan_authority_feed",
+        "remote_get_request",
+    ]
+    assert set(read_contract["budgets"]) == {
+        "mcp_requests",
+        "source_requests",
+        "source_bytes",
+        "result_bytes",
+        "duration",
+        "concurrency",
+    }
+
     # ClientSession.call_tool also checks successful output against outputSchema.
     health = await session.call_tool("check_status", {})
     assert not health.isError
@@ -529,13 +559,9 @@ def test_official_sdk_read_only_registration(
         ) as session:
             await session.initialize()
             names = {tool.name for tool in (await session.list_tools()).tools}
-            assert {name for name in names if name.startswith("remote_")} == {
-                "remote_health",
-                "remote_version",
-                "remote_search_requests",
-                "remote_get_request",
-                "remote_list_authorities",
-            }
+            assert {name for name in names if name.startswith("remote_")} == (
+                contract.REQUIRED_READ_TOOLS
+            )
             fixtures = json.loads(contract.CURRENT_FIXTURE.read_text(encoding="utf-8"))
             prepared_cases = [
                 case for case in fixtures["cases"] if case["name"].endswith("_prepared")
@@ -675,13 +701,7 @@ def test_official_sdk_degraded_stdio_restart_recovery(
     fixtures = json.loads(contract.CURRENT_FIXTURE.read_text(encoding="utf-8"))
     prepared_cases = [case for case in fixtures["cases"] if case["name"].endswith("_prepared")]
     assert len(prepared_cases) == 3
-    read_tools = {
-        "remote_health",
-        "remote_version",
-        "remote_search_requests",
-        "remote_get_request",
-        "remote_list_authorities",
-    }
+    read_tools = contract.REQUIRED_READ_TOOLS
 
     async def scenario() -> None:
         tokens: dict[str, str] = {}
