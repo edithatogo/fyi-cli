@@ -1,0 +1,10 @@
+{
+  "authorities": [
+    {
+      "id": "synthetic-2",
+      "slug": "synthetic-authority",
+      "name": "Synthetic Authority",
+      "url": "https://mcp-fixture.invalid/body/synthetic-authority"
+    }
+  ]
+}

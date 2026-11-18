@@ -25,6 +25,22 @@ PLATFORMS = {
     "canada_atip": ("manual_only", {"www.canada.ca", "atip-aiprp.apps.gc.ca"}),
     "india_rti": ("manual_only", {"rtionline.gov.in", "www.rtionline.gov.in"}),
 }
+# Exact immutable maintainer-documentation citations, not a generic GitHub
+# allowlist. These establish source-document evidence, not deployed API access.
+MAINTAINER_SOURCES = {
+    "muckrock": {
+        (
+            "https://github.com/MuckRock/python-muckrock/blob/"
+            "ba065fb10240b0293c08d961e04406d6860c29f7/docs/requests.rst"
+        ),
+    },
+    "fragdenstaat": {
+        (
+            "https://github.com/okfde/froide/blob/"
+            "b80fbe9269d3744b38a123363bbdd7d830d1bcf9/docs/api.rst"
+        ),
+    },
+}
 CONTRACT_FIELDS = {"public_api", "read_surface", "authentication", "write_semantics",
                    "rate_limit", "privacy", "availability"}
 PLATFORM_FIELDS = {"id", "name", "rank", "decision", "reason", "jurisdiction", "lineage",
@@ -138,7 +154,9 @@ def validate_inventory(data: dict, *, as_of: date | None = None) -> dict:
                     "source fields are incomplete or unknown")
             require(isinstance(source["url"], str), "invalid source URL")
             parsed = urlsplit(source["url"])
-            require(parsed.scheme == "https" and parsed.hostname in hosts
+            approved_source = (parsed.hostname in hosts
+                               or source["url"] in MAINTAINER_SOURCES.get(identity, set()))
+            require(parsed.scheme == "https" and approved_source
                     and parsed.port in {None, 443} and parsed.username is None
                     and parsed.password is None and not parsed.query and not parsed.fragment,
                     "source URL must be allowlisted and credential-free HTTPS")

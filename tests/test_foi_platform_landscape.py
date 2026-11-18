@@ -94,7 +94,9 @@ def test_sensitive_and_undocumented_targets_cannot_be_promoted(platform_id: str)
     ["http://help.muckrock.com/api", "https://name:secret@help.muckrock.com/api",
      "https://help.muckrock.com/api?token=secret", "https://help.muckrock.com/api#secret",
      "https://help.muckrock.com.evil.test/api", "https://127.0.0.1/api",
-     "https://help.muckrock.com:444/api"],
+     "https://help.muckrock.com:444/api",
+     "https://github.com/MuckRock/python-muckrock/blob/main/docs/requests.rst",
+     "https://github.com/attacker/docs/blob/ba065fb10240b0293c08d961e04406d6860c29f7/api.rst"],
 )
 def test_sources_require_allowlisted_credential_free_https_urls(url: str) -> None:
     data = inventory()

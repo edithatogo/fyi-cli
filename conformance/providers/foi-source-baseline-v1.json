@@ -1,0 +1,72 @@
+{
+  "schema_version": "1.0.0",
+  "scope": "documentation_only",
+  "fingerprint_kind": "raw-response-bytes-sha256",
+  "reviewed_on": "2026-11-17",
+  "network_access": false,
+  "writes_enabled": false,
+  "retention": "operator_local",
+  "acquisition_method": "managed_proxy_https_review",
+  "sources": [
+    {
+      "source_id": "muckrock_client",
+      "platform_id": "muckrock",
+      "source_url": "https://raw.githubusercontent.com/MuckRock/python-muckrock/main/docs/requests.rst",
+      "retrieved_at": "2026-11-17T08:58:43.394765Z",
+      "http_status": 200,
+      "media_type": "text/plain",
+      "body_bytes": 6842,
+      "body_sha256": "5bf74700765da4b2155adcea0fed7eaf42e13334b2a2927a4477e8de5339ecbe"
+    },
+    {
+      "source_id": "froide_api",
+      "platform_id": "fragdenstaat",
+      "source_url": "https://raw.githubusercontent.com/okfde/froide/main/docs/api.rst",
+      "retrieved_at": "2026-11-17T08:58:43.395450Z",
+      "http_status": 200,
+      "media_type": "text/plain",
+      "body_bytes": 693,
+      "body_sha256": "84a5e4dbd4aeb543c6dd62756ac7aff49de1d8f63f02813f7037a0da3640af2a"
+    },
+    {
+      "source_id": "foia_developer",
+      "platform_id": "foia_gov",
+      "source_url": "https://www.foia.gov/developer/",
+      "retrieved_at": "2026-11-17T08:57:18.910654Z",
+      "http_status": 200,
+      "media_type": "text/html",
+      "body_bytes": 33300,
+      "body_sha256": "e6f5ad01358c0ae690cde6ecc7ee67976b967386ee3adbc1ce302288ddd154a9"
+    },
+    {
+      "source_id": "uscis_openapi",
+      "platform_id": "uscis",
+      "source_url": "https://developer.uscis.gov/sites/default/files/2026-10/swagger.yaml",
+      "retrieved_at": "2026-11-17T08:56:47Z",
+      "http_status": 200,
+      "media_type": "application/octet-stream",
+      "body_bytes": 59569,
+      "body_sha256": "70b831f7d8bcb831ec77e564cfc88acf5585a8668a5280e98f51d9b5ac6b6c44"
+    },
+    {
+      "source_id": "canada_guidance",
+      "platform_id": "canada_atip",
+      "source_url": "https://www.canada.ca/en/treasury-board-secretariat/services/access-information-privacy/access-information/request-information/make-request.html",
+      "retrieved_at": "2026-11-17T08:56:58Z",
+      "http_status": 200,
+      "media_type": "text/html",
+      "body_bytes": 28944,
+      "body_sha256": "9425a57a011354a6200ffffa113cc769bda8625b640b0dc824a0ce3ba9bc8208"
+    },
+    {
+      "source_id": "india_faq",
+      "platform_id": "india_rti",
+      "source_url": "https://rtionline.gov.in/faq.php",
+      "retrieved_at": "2026-11-17T08:57:03Z",
+      "http_status": 200,
+      "media_type": "text/html",
+      "body_bytes": 30554,
+      "body_sha256": "c13cb1c70809f2df443b8ef84bb7a9956aa6eb6fac5b66f337700ae63bbd6bb7"
+    }
+  ]
+}

@@ -20,6 +20,7 @@ use time::OffsetDateTime;
 use tokio::sync::{oneshot, Mutex, OwnedSemaphorePermit, Semaphore};
 use tokio::task::JoinHandle;
 
+pub mod documentation;
 mod pull_evidence;
 pub use pull_evidence::{
     preflight_sync_pull_evidence, SyncPullEvidenceClient, SyncPullEvidencePaths,
