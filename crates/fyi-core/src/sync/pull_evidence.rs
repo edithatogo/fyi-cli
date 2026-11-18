@@ -82,8 +82,11 @@ pub fn preflight_sync_pull_evidence(
         for suffix in ["-wal", "-shm", "-journal"] {
             let mut sidecar = database.as_os_str().to_owned();
             sidecar.push(suffix);
+            let sidecar = PathBuf::from(sidecar);
             ensure!(
-                !normalized[..3].contains(&PathBuf::from(sidecar)),
+                normalized[..3]
+                    .iter()
+                    .all(|path| { !path.starts_with(&sidecar) && !sidecar.starts_with(path) }),
                 "sync evidence path overlaps a database sidecar"
             );
         }
@@ -125,12 +128,28 @@ fn capture_http(identity: &crate::agent_runtime::ClientIdentity) -> Result<Clien
         .user_agent(identity.user_agent())
         .timeout(Duration::from_secs(60))
         .redirect(reqwest::redirect::Policy::none())
+        .retry(reqwest::retry::never())
         .no_gzip()
         .no_brotli()
         .no_deflate()
         .no_zstd()
         .build()
         .context("failed to build sync evidence client")
+}
+
+/// Represent the effective incremental cursor without retaining its source text.
+/// The canonical snapshot, including an absent cursor, is the checkpoint preimage.
+fn boundary_snapshot(boundary: Option<&str>) -> Result<Value> {
+    ensure!(
+        boundary.is_none_or(|value| value.len() <= 4096),
+        "stored sync boundary exceeds the byte limit"
+    );
+    Ok(json!({
+        "schema": "urn:fyi-cli:sync-boundary:1",
+        "updated_since_sha256": boundary
+            .filter(|value| !value.trim().is_empty())
+            .map(|value| sha256_hex(value.as_bytes())),
+    }))
 }
 
 impl SyncPullEvidenceClient {
@@ -144,6 +163,13 @@ impl SyncPullEvidenceClient {
 
     /// Capture one complete response, apply parsed updates, then publish a receipt.
     /// An incomplete response has no v1 representation and produces no receipt.
+    ///
+    /// The saved projection carries redacted before/after cursor snapshots whose
+    /// canonical hashes populate the receipt checkpoint. They describe observed
+    /// database state, including after partial application; they do not make the
+    /// per-record updates atomic. A failed final cursor read leaves only the raw
+    /// response, never a completed receipt. Parsed rate-limit signals are recorded
+    /// separately from retries; this client does not retry or claim observed waits.
     pub async fn pull(&self, db: &DbPool, paths: &SyncPullEvidencePaths<'_>) -> Result<PullReport> {
         self.pull_using(db, paths, |url| async move {
             let response = self
@@ -180,14 +206,8 @@ impl SyncPullEvidenceClient {
     {
         preflight_sync_pull_evidence(paths, None)?;
         let since = db.get_latest_sync_timestamp().await?;
-        ensure!(
-            since.as_ref().is_none_or(|value| value.len() <= 4096),
-            "stored sync boundary exceeds the byte limit"
-        );
-        let since_digest = since
-            .as_deref()
-            .filter(|value| !value.trim().is_empty())
-            .map(|value| sha256_hex(value.as_bytes()));
+        let before = boundary_snapshot(since.as_deref())?;
+        let since_digest = before["updated_since_sha256"].clone();
         let mut url = self.client.base_url.join("api/v2/request.json")?;
         if let Some(since) = since.as_deref().filter(|value| !value.trim().is_empty()) {
             url.query_pairs_mut().append_pair("updated_since", since);
@@ -204,6 +224,20 @@ impl SyncPullEvidenceClient {
             response.body.len() as u64 <= MAX_RESPONSE_BYTES,
             "sync response exceeds its limit; no receipt was published"
         );
+        // HTTP-date signals are relative to the observation time. Parse before
+        // filesystem or database work can reduce their reported duration.
+        let signals = crate::agent_runtime::RateLimitSnapshot::from_headers(
+            response.headers.iter().filter_map(|(name, value)| {
+                value.to_str().ok().map(|value| (name.as_str(), value))
+            }),
+        );
+        // Do not serialize free-form advisory headers or any raw header values.
+        let numeric_rate_observation = json!({
+            "limit": signals.limit,
+            "remaining": signals.remaining,
+            "reset_seconds": signals.reset_seconds,
+            "retry_after_seconds": signals.retry_after_seconds,
+        });
         let status = response.status;
         let mut response_url = response.url.clone();
         if response_url.query().is_some() {
@@ -216,6 +250,9 @@ impl SyncPullEvidenceClient {
         }
         source_url.set_fragment(None);
         let raw = response.body;
+        // A source wait can allow evidence locations to change. Recheck before
+        // publishing any response bytes or applying any database updates.
+        preflight_sync_pull_evidence(paths, None)?;
         write_evidence_bytes_atomic(paths.raw, &raw)
             .context("sync response could not be saved; no receipt was published")?;
 
@@ -244,12 +281,24 @@ impl SyncPullEvidenceClient {
         }
         .await;
 
-        let projection = match &outcome {
+        // Read after failures too: an earlier record may already have applied.
+        // An unavailable final state must not become a successful receipt.
+        let final_boundary = db
+            .get_latest_sync_timestamp()
+            .await
+            .context("final sync boundary unavailable; no receipt was published")?;
+        let after = boundary_snapshot(final_boundary.as_deref())
+            .context("final sync boundary invalid; no receipt was published")?;
+        let before_sha256 = sha256_hex(&canonical_json_bytes(&before)?);
+        let after_sha256 = sha256_hex(&canonical_json_bytes(&after)?);
+        let mut projection = match &outcome {
             Ok(report) => {
                 json!({"schema": "urn:fyi-cli:sync-pull-result:1", "fetched": report.fetched, "applied": report.applied, "source": report.source})
             }
             Err(_) => json!({"schema": "urn:fyi-cli:sync-pull-result:1", "status": "failed"}),
         };
+        projection["checkpoint"] = json!({"before": before, "after": after});
+        projection["rate_limit_observation"] = numeric_rate_observation;
         let result_bytes = canonical_json_bytes(&projection)?;
         let mut receipt = json!({
             "schema": "urn:fyi-cli:acquisition-receipt", "schema_version": "1.0.0",
@@ -261,7 +310,7 @@ impl SyncPullEvidenceClient {
             "responses": [{"url": response_url.as_str(), "status": status.as_u16(), "bytes": raw.len(), "sha256": sha256_hex(&raw), "attempts": 1, "retry_delays_seconds": []}],
             "totals": {"requests": 1, "bytes": raw.len(), "retries": 0},
             "rate_limit": {"name": null, "minimum_interval_seconds": null},
-            "checkpoint": {"before_sha256": null, "after_sha256": null},
+            "checkpoint": {"before_sha256": before_sha256, "after_sha256": after_sha256},
             "result": {"representation": "canonical_result_projection", "media_type": "application/json", "bytes": result_bytes.len(), "sha256": sha256_hex(&result_bytes)},
         });
         if outcome.is_err() {
@@ -274,5 +323,376 @@ impl SyncPullEvidenceClient {
         write_evidence_bytes_atomic(paths.result, &result_bytes)?;
         write_receipt_atomic(paths.receipt, &receipt)?;
         outcome
+    }
+}
+
+#[cfg(test)]
+mod lineage_tests {
+    use super::*;
+
+    struct EvidenceFixture {
+        _directory: tempfile::TempDir,
+        raw: PathBuf,
+        result: PathBuf,
+        receipt: PathBuf,
+    }
+
+    impl EvidenceFixture {
+        fn new() -> Self {
+            let directory =
+                tempfile::tempdir_in(fs::canonicalize(std::env::temp_dir()).unwrap()).unwrap();
+            Self {
+                raw: directory.path().join("response.raw"),
+                result: directory.path().join("result.json"),
+                receipt: directory.path().join("receipt.json"),
+                _directory: directory,
+            }
+        }
+
+        fn paths(&self) -> SyncPullEvidencePaths<'_> {
+            SyncPullEvidencePaths {
+                raw: &self.raw,
+                result: &self.result,
+                receipt: &self.receipt,
+            }
+        }
+
+        fn read(&self) -> (Value, Value) {
+            let result = fs::read(&self.result).unwrap();
+            let receipt: Value = serde_json::from_slice(&fs::read(&self.receipt).unwrap()).unwrap();
+            verify_receipt(&receipt).unwrap();
+            verify_receipt_raw_bytes(&receipt, &fs::read(&self.raw).unwrap()).unwrap();
+            verify_receipt_result_bytes(&receipt, &result).unwrap();
+            (receipt, serde_json::from_slice(&result).unwrap())
+        }
+    }
+
+    async fn database() -> DbPool {
+        let db = DbPool::new_in_memory().await.unwrap();
+        db.run_migrations().await.unwrap();
+        db
+    }
+
+    fn request_body(ids: &[i64]) -> Vec<u8> {
+        serde_json::to_vec(&json!({
+            "requests": ids.iter().map(|id| json!({
+                "id": id, "title": "Synthetic request", "body": "Synthetic body",
+                "updated_at": "2026-01-01T00:00:00Z",
+            })).collect::<Vec<_>>()
+        }))
+        .unwrap()
+    }
+
+    fn boundary(value: Option<&str>) -> Value {
+        json!({
+            "schema": "urn:fyi-cli:sync-boundary:1",
+            "updated_since_sha256": value.map(|value| sha256_hex(value.as_bytes())),
+        })
+    }
+
+    fn assert_lineage(receipt: &Value, result: &Value, before: Value, after: Value) {
+        assert_eq!(result["checkpoint"]["before"], before);
+        assert_eq!(result["checkpoint"]["after"], after);
+        assert_eq!(
+            receipt["checkpoint"]["before_sha256"],
+            sha256_hex(&canonical_json_bytes(&before).unwrap())
+        );
+        assert_eq!(
+            receipt["checkpoint"]["after_sha256"],
+            sha256_hex(&canonical_json_bytes(&after).unwrap())
+        );
+    }
+
+    #[tokio::test]
+    async fn successful_pull_binds_before_and_after_redacted_boundaries() {
+        let db = database().await;
+        let files = EvidenceFixture::new();
+        let client = SyncPullEvidenceClient::new("https://example.test").unwrap();
+        let report = client
+            .pull_using(&db, &files.paths(), |url| async move {
+                assert!(url.query().is_none());
+                Ok(SyncPullResponse {
+                    status: StatusCode::OK,
+                    url,
+                    headers: header::HeaderMap::new(),
+                    body: request_body(&[1]),
+                })
+            })
+            .await
+            .unwrap();
+        assert_eq!(report.applied, 1);
+        let after = db.get_latest_sync_timestamp().await.unwrap().unwrap();
+        let (receipt, result) = files.read();
+        assert_lineage(&receipt, &result, boundary(None), boundary(Some(&after)));
+        assert!(!result.to_string().contains(&after));
+        assert!(!receipt["request_bounds"].to_string().contains(&after));
+        assert_eq!(receipt["status"], "succeeded");
+    }
+
+    #[tokio::test]
+    async fn empty_pull_preserves_the_observed_checkpoint() {
+        let db = database().await;
+        let files = EvidenceFixture::new();
+        let client = SyncPullEvidenceClient::new("https://example.test").unwrap();
+        client
+            .pull_using(&db, &files.paths(), |url| async move {
+                Ok(SyncPullResponse {
+                    status: StatusCode::OK,
+                    url,
+                    headers: header::HeaderMap::new(),
+                    body: request_body(&[]),
+                })
+            })
+            .await
+            .unwrap();
+        let (receipt, result) = files.read();
+        assert_lineage(&receipt, &result, boundary(None), boundary(None));
+        assert_eq!(result["applied"], 0);
+    }
+
+    #[tokio::test]
+    async fn failed_pull_records_rate_signals_without_header_text_or_changed_checkpoint() {
+        for retry_after in ["17", "synthetic-private-header"] {
+            let db = database().await;
+            let existing: AlaveteliRequest = serde_json::from_value(json!({
+                "id": 99, "title": "Synthetic local request", "body": "Synthetic body",
+            }))
+            .unwrap();
+            db.upsert_synced_request(&existing, None).await.unwrap();
+            sqlx::query("UPDATE sync_metadata SET last_synced_at = 'synthetic-private-boundary'")
+                .execute(db.pool())
+                .await
+                .unwrap();
+            let files = EvidenceFixture::new();
+            let client = SyncPullEvidenceClient::new("https://example.test").unwrap();
+            let mut headers = header::HeaderMap::new();
+            headers.insert(header::RETRY_AFTER, retry_after.parse().unwrap());
+            headers.insert("ratelimit-limit", "100".parse().unwrap());
+            headers.insert("ratelimit-remaining", "0".parse().unwrap());
+            headers.insert("ratelimit-reset", "29".parse().unwrap());
+            headers.insert(
+                "x-advisory-status",
+                "synthetic-private-header".parse().unwrap(),
+            );
+            headers.insert(
+                header::SET_COOKIE,
+                "synthetic-private-header".parse().unwrap(),
+            );
+            let error = client
+                .pull_using(&db, &files.paths(), |url| async move {
+                    Ok(SyncPullResponse {
+                        status: StatusCode::TOO_MANY_REQUESTS,
+                        url,
+                        headers,
+                        body: b"synthetic-private-body".to_vec(),
+                    })
+                })
+                .await
+                .unwrap_err();
+            let (receipt, result) = files.read();
+            assert_lineage(
+                &receipt,
+                &result,
+                boundary(Some("synthetic-private-boundary")),
+                boundary(Some("synthetic-private-boundary")),
+            );
+            assert_eq!(receipt["status"], "failed");
+            assert_eq!(receipt["totals"]["retries"], 0);
+            assert_eq!(receipt["responses"][0]["retry_delays_seconds"], json!([]));
+            assert_eq!(
+                result["rate_limit_observation"],
+                json!({
+                    "limit": 100, "remaining": 0, "reset_seconds": 29,
+                    "retry_after_seconds": if retry_after == "17" { Some(17) } else { None },
+                })
+            );
+            for text in [
+                format!("{error:#}"),
+                result.to_string(),
+                receipt.to_string(),
+            ] {
+                assert!(!text.contains("synthetic-private-header"));
+                assert!(!text.contains("synthetic-private-body"));
+                assert!(!text.contains("synthetic-private-boundary"));
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn partial_application_failure_records_the_observed_advanced_boundary() {
+        let db = database().await;
+        sqlx::query(
+            "CREATE TRIGGER reject_second BEFORE INSERT ON requests WHEN NEW.id = 2
+             BEGIN SELECT RAISE(ABORT, 'synthetic application failure'); END",
+        )
+        .execute(db.pool())
+        .await
+        .unwrap();
+        let files = EvidenceFixture::new();
+        let client = SyncPullEvidenceClient::new("https://example.test").unwrap();
+        assert!(client
+            .pull_using(&db, &files.paths(), |url| async move {
+                Ok(SyncPullResponse {
+                    status: StatusCode::OK,
+                    url,
+                    headers: header::HeaderMap::new(),
+                    body: request_body(&[1, 2]),
+                })
+            })
+            .await
+            .is_err());
+        assert!(db.get_request(1).await.unwrap().is_some());
+        assert!(db.get_request(2).await.unwrap().is_none());
+        let after = db.get_latest_sync_timestamp().await.unwrap().unwrap();
+        let (receipt, result) = files.read();
+        assert_lineage(&receipt, &result, boundary(None), boundary(Some(&after)));
+        assert_eq!(receipt["status"], "failed");
+        assert_eq!(result["status"], "failed");
+        assert!(result.get("applied").is_none());
+    }
+
+    #[tokio::test]
+    async fn unavailable_final_boundary_never_publishes_a_completed_receipt() {
+        let db = database().await;
+        let files = EvidenceFixture::new();
+        let client = SyncPullEvidenceClient::new("https://example.test").unwrap();
+        let outcome = client
+            .pull_using(&db, &files.paths(), |url| {
+                let db = &db;
+                async move {
+                    sqlx::query("DROP TABLE sync_metadata")
+                        .execute(db.pool())
+                        .await
+                        .unwrap();
+                    Ok(SyncPullResponse {
+                        status: StatusCode::OK,
+                        url,
+                        headers: header::HeaderMap::new(),
+                        body: request_body(&[]),
+                    })
+                }
+            })
+            .await;
+        assert!(outcome.is_err());
+        assert_eq!(fs::read(&files.raw).unwrap(), request_body(&[]));
+        assert!(!files.result.exists());
+        assert!(!files.receipt.exists());
+    }
+
+    #[tokio::test]
+    async fn changed_output_after_fetch_is_rejected_before_raw_or_database_writes() {
+        let db = database().await;
+        let files = EvidenceFixture::new();
+        let client = SyncPullEvidenceClient::new("https://example.test").unwrap();
+        let outcome = client
+            .pull_using(&db, &files.paths(), |url| {
+                fs::write(&files.result, b"preserved concurrent evidence").unwrap();
+                async move {
+                    Ok(SyncPullResponse {
+                        status: StatusCode::OK,
+                        url,
+                        headers: header::HeaderMap::new(),
+                        body: request_body(&[1]),
+                    })
+                }
+            })
+            .await;
+        assert!(outcome.is_err());
+        assert!(!files.raw.exists());
+        assert_eq!(
+            fs::read(&files.result).unwrap(),
+            b"preserved concurrent evidence"
+        );
+        assert!(!files.receipt.exists());
+        assert!(db.get_request(1).await.unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn result_conflict_after_raw_publication_never_publishes_a_receipt() {
+        let db = database().await;
+        let files = EvidenceFixture::new();
+        let client = SyncPullEvidenceClient::new("https://example.test").unwrap();
+        let (writer_tx, writer_rx) = tokio::sync::oneshot::channel();
+        let outcome = client
+            .pull_using(&db, &files.paths(), |url| {
+                let raw = files.raw.clone();
+                let result = files.result.clone();
+                let db = &db;
+                async move {
+                    // The in-memory pool has one connection. Hold it after the
+                    // initial cursor read so database application cannot resume
+                    // until a competing writer has published its result file.
+                    let connection = db.pool().acquire().await.unwrap();
+                    let writer = tokio::spawn(async move {
+                        tokio::time::timeout(Duration::from_secs(2), async {
+                            while !raw.exists() {
+                                tokio::task::yield_now().await;
+                            }
+                        })
+                        .await
+                        .unwrap();
+                        fs::write(result, b"preserved concurrent evidence").unwrap();
+                        drop(connection);
+                    });
+                    writer_tx.send(writer).unwrap();
+                    Ok(SyncPullResponse {
+                        status: StatusCode::OK,
+                        url,
+                        headers: header::HeaderMap::new(),
+                        body: request_body(&[1]),
+                    })
+                }
+            })
+            .await;
+        writer_rx.await.unwrap().await.unwrap();
+        assert!(outcome.is_err());
+        assert_eq!(fs::read(&files.raw).unwrap(), request_body(&[1]));
+        assert_eq!(
+            fs::read(&files.result).unwrap(),
+            b"preserved concurrent evidence"
+        );
+        assert!(!files.receipt.exists());
+        assert!(db.get_request(1).await.unwrap().is_some());
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn swapped_evidence_parent_is_rejected_after_fetch_before_publication() {
+        let db = database().await;
+        let directory =
+            tempfile::tempdir_in(fs::canonicalize(std::env::temp_dir()).unwrap()).unwrap();
+        let evidence = directory.path().join("evidence");
+        let target = directory.path().join("unintended-target");
+        let preserved = directory.path().join("preserved-original");
+        fs::create_dir(&evidence).unwrap();
+        fs::create_dir(&target).unwrap();
+        let raw = evidence.join("response.raw");
+        let result = evidence.join("result.json");
+        let receipt = evidence.join("receipt.json");
+        let paths = SyncPullEvidencePaths {
+            raw: &raw,
+            result: &result,
+            receipt: &receipt,
+        };
+        let client = SyncPullEvidenceClient::new("https://example.test").unwrap();
+        let error = client
+            .pull_using(&db, &paths, |url| {
+                fs::rename(&evidence, &preserved).unwrap();
+                std::os::unix::fs::symlink(&target, &evidence).unwrap();
+                async move {
+                    Ok(SyncPullResponse {
+                        status: StatusCode::OK,
+                        url,
+                        headers: header::HeaderMap::new(),
+                        body: request_body(&[1]),
+                    })
+                }
+            })
+            .await
+            .unwrap_err();
+        assert!(error.to_string().contains("symlink"));
+        assert!(fs::read_dir(&target).unwrap().next().is_none());
+        assert!(fs::read_dir(&preserved).unwrap().next().is_none());
+        assert!(db.get_request(1).await.unwrap().is_none());
     }
 }

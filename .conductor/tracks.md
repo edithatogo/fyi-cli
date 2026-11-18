@@ -44,6 +44,7 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Issue: [#309](https://github.com/edithatogo/fyi-cli/issues/309), upstream of [fyi-archive #370](https://github.com/edithatogo/fyi-archive/issues/370).*
   *Child issues: [#310](https://github.com/edithatogo/fyi-cli/issues/310) receipt contract, [#311](https://github.com/edithatogo/fyi-cli/issues/311) CDX discovery (closed), [#312](https://github.com/edithatogo/fyi-cli/issues/312) Wayback replay, [#313](https://github.com/edithatogo/fyi-cli/issues/313) source health/pacing, [#314](https://github.com/edithatogo/fyi-cli/issues/314) historical index.*
   *Description: Make fyi-cli the exclusive receipt-producing network boundary for Alaveteli, Internet Archive, Wayback replay, source health, and approved external indexes.*
+  *Current receipt increment: PR #488 adds complete request-failure evidence and incremental sync checkpoint lineage. Source checkpoint `90129b7` passed required CI, MSRV and three-platform portability; full network-entrypoint coverage and downstream cutover remain open.*
   *Replay qualification: [PR #489](https://github.com/edithatogo/fyi-cli/pull/489) bounds checkpoint publication, disables implicit retries, and executes reference/portability contracts; [evidence](./tracks/source-adapter-boundary-20260812/replay-qualification-20261117.md). Final receiving-head checks and integration remain tracked in the PR; live smoke, release and downstream cutover gates remain open.*
 
 ---

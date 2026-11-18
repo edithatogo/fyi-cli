@@ -1,13 +1,10 @@
-use crate::acquisition_receipts::{
-    build_single_get_receipt_with_rate_limit, canonical_json_bytes, SingleGetReceiptInput,
-};
 use crate::api::{
     AddCorrespondencePayload, AlaveteliRequest, Authority, CorrespondenceResponse,
     CreateRequestPayload, CreateRequestResponse, UpdateRequestStatePayload,
     UpdateRequestStateResponse,
 };
 use crate::db::{DbPool, FieldChange, SyncStatus};
-use crate::time_util::{format_rfc3339_millis_z, now_rfc3339_millis_z};
+use crate::time_util::now_rfc3339_millis_z;
 use anyhow::{anyhow, Context, Result};
 use reqwest::{header, Client, RequestBuilder, StatusCode, Url};
 use serde_json::Value;
@@ -30,6 +27,8 @@ pub use read_contract::{
     AuthorityFeedPlan, AuthorityFeedReference, AuthorityFeedReferenceKind, CacheStatus, ReadLimits,
     ReadProvenance, SourceRead, SourceReadError,
 };
+mod request_evidence;
+pub use request_evidence::RequestEvidenceClient;
 
 /// An HTTP status observed by the guarded source client.
 ///
@@ -183,6 +182,9 @@ pub struct FetchedRequestEvidence {
 pub struct SyncClient {
     base_url: Url,
     http: Client,
+    // Only built-in constructors can supply a matching evidence transport.
+    // Opaque caller-supplied clients may carry proxy/TLS policies we cannot copy.
+    evidence_http: Option<Client>,
     middleware: Arc<Mutex<crate::agent_runtime::AgentNetworkMiddleware>>,
     concurrency: Arc<Semaphore>,
     validator_cache: Arc<Mutex<HashMap<String, ValidatorCacheEntry>>>,
@@ -381,7 +383,10 @@ impl SyncClient {
             .map_err(|e| anyhow!("invalid client identity: {e}"))?;
         let http = crate::agent_runtime::build_http_client(&identity)
             .map_err(|e| anyhow!("failed to build HTTP client: {e}"))?;
-        Self::with_http_client_and_identity(base_url, http, identity)
+        let evidence_http = request_evidence::capture_http(&identity)?;
+        let mut client = Self::with_http_client_and_identity(base_url, http, identity)?;
+        client.evidence_http = Some(evidence_http);
+        Ok(client)
     }
 
     /// Construct with an explicit agent identity (version fingerprint + opt-in contact).
@@ -391,7 +396,10 @@ impl SyncClient {
     ) -> Result<Self> {
         let http = crate::agent_runtime::build_http_client(identity)
             .map_err(|e| anyhow!("failed to build HTTP client: {e}"))?;
-        Self::with_http_client_and_identity(base_url, http, identity.clone())
+        let evidence_http = request_evidence::capture_http(identity)?;
+        let mut client = Self::with_http_client_and_identity(base_url, http, identity.clone())?;
+        client.evidence_http = Some(evidence_http);
+        Ok(client)
     }
 
     pub fn with_http_client(base_url: &str, http: Client) -> Result<Self> {
@@ -428,6 +436,7 @@ impl SyncClient {
         Ok(Self {
             base_url,
             http,
+            evidence_http: None,
             middleware: Arc::new(Mutex::new(middleware)),
             concurrency,
             validator_cache: Arc::new(Mutex::new(HashMap::new())),
@@ -504,6 +513,7 @@ impl SyncClient {
         Ok(Self {
             base_url,
             http,
+            evidence_http: None,
             middleware: Arc::new(Mutex::new(
                 crate::agent_runtime::AgentNetworkMiddleware::new(
                     identity,
@@ -526,7 +536,10 @@ impl SyncClient {
             .map_err(|e| anyhow!("invalid client identity: {e}"))?;
         let http = crate::agent_runtime::build_http_client(&identity)
             .map_err(|e| anyhow!("failed to build HTTP client: {e}"))?;
-        Self::with_http_client_and_validation(base_url, http, true)
+        let evidence_http = request_evidence::capture_http(&identity)?;
+        let mut client = Self::with_http_client_and_validation(base_url, http, true)?;
+        client.evidence_http = Some(evidence_http);
+        Ok(client)
     }
 
     pub async fn pull_incremental(&self, db: &DbPool) -> Result<PullReport> {
@@ -948,13 +961,18 @@ impl SyncClient {
             .context("failed to parse request JSON")
     }
 
-    /// Fetch one Alaveteli public request through the existing guarded network
-    /// boundary and build v1 provenance for the exact HTTP body and normalized
-    /// result projection. This method does not send any write request.
+    /// Fetch one Alaveteli public request with a dedicated no-redirect,
+    /// no-decoding transport and v1 provenance for its body and parsed result.
+    /// The existing identity, guardrails and shared pacing remain in force.
+    /// This compatibility API returns successful evidence without publishing
+    /// files; use [`RequestEvidenceClient::fetch`] to retain complete failures.
+    /// Opaque custom HTTP clients are refused: their proxy/TLS policy cannot be
+    /// safely copied into the dedicated transport. They can keep using the
+    /// ordinary request API or explicitly construct a `RequestEvidenceClient`.
     ///
-    /// A 304 replay from the conditional GET cache is explicitly rejected:
-    /// representing cached bytes as newly acquired network evidence would be
-    /// misleading. The regular `fetch_request` API retains its cache semantics.
+    /// An already cached request is refused; representing cached bytes as newly
+    /// acquired evidence would be misleading. Use a fresh evidence client for a
+    /// new acquisition. The regular `fetch_request` API keeps its cache semantics.
     pub async fn fetch_request_evidence(&self, request_id: i64) -> Result<FetchedRequestEvidence> {
         if request_id <= 0 {
             return Err(anyhow!("request ID must be positive"));
@@ -963,51 +981,14 @@ impl SyncClient {
             .base_url
             .join(&format!("api/v2/request/{request_id}.json"))
             .context("failed to build request URL")?;
-        let started = OffsetDateTime::now_utc();
-        let response = self
-            .send_guarded(self.http.get(url.clone()))
+        if self.validator_cache.lock().await.contains_key(url.as_str()) {
+            return Err(anyhow!(
+                "cached request is not fresh HTTP evidence; use a new client for a new acquisition"
+            ));
+        }
+        RequestEvidenceClient::from_sync_client(self)?
+            .fetch_evidence(request_id)
             .await
-            .context("failed to acquire public request")?;
-        if response.source_status == StatusCode::NOT_MODIFIED {
-            return Err(anyhow!(
-                "cached 304 is not fresh HTTP evidence; use a new client for a new acquisition"
-            ));
-        }
-        let response = ensure_success(response, "request endpoint").await?;
-        let completed = OffsetDateTime::now_utc();
-        let request: AlaveteliRequest = serde_json::from_slice(&response.body)
-            .context("failed to parse public request JSON")?;
-        if request.id != request_id {
-            return Err(anyhow!(
-                "upstream request identifier does not match requested ID"
-            ));
-        }
-        let result_projection = canonical_json_bytes(
-            &serde_json::to_value(&request).context("failed to normalize request JSON")?,
-        )?;
-        let started_at = format_rfc3339_millis_z(started);
-        let completed_at = format_rfc3339_millis_z(completed);
-        let receipt = build_single_get_receipt_with_rate_limit(
-            SingleGetReceiptInput {
-                source_url: &url,
-                response_url: &response.final_url,
-                http_status: response.status.as_u16(),
-                raw_response: &response.body,
-                result_projection: &result_projection,
-                request_id,
-                started_at: &started_at,
-                completed_at: &completed_at,
-            },
-            self.shared_pacing
-                .as_ref()
-                .map(|shared| (shared.name.as_str(), shared.minimum_interval.as_secs_f64())),
-        )?;
-        Ok(FetchedRequestEvidence {
-            request,
-            raw_body: response.body,
-            result_projection,
-            receipt,
-        })
     }
 
     pub async fn search_requests(&self, query: &str) -> Result<Vec<AlaveteliRequest>> {

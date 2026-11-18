@@ -99,8 +99,19 @@ jobs:
             --test receipt_verifier_parity \
             --test receipt_wire \
             --test receipt_persistence_portability \
+            --test db_file_paths \
             --test internet_archive_replay \
             2>&1 | tee artifacts/receipt-portability/core-tests.log
+      - name: Verify guarded request acquisition evidence
+        run: |
+          set -o pipefail
+          cargo test --locked --package fyi-core --lib sync::request_evidence::tests \
+            2>&1 | tee artifacts/receipt-portability/request-evidence-tests.log
+      - name: Verify sync pull checkpoint lineage
+        run: |
+          set -o pipefail
+          cargo test --locked --package fyi-core --lib sync::pull_evidence::lineage_tests \
+            2>&1 | tee artifacts/receipt-portability/pull-lineage-tests.log
       - name: Verify bounded replay evidence and transport
         run: |
           set -o pipefail
@@ -113,6 +124,7 @@ jobs:
           set -o pipefail
           cargo test --locked --package fyi-cli \
             --test receipt_numeric_tests --test receipt_wire_tests --test startup_tests \
+            --test fetch_receipt_preflight_tests \
             --test replay_evidence_gate_tests \
             2>&1 | tee artifacts/receipt-portability/cli-tests.log
       - name: Retain portability evidence

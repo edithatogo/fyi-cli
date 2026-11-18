@@ -1,5 +1,35 @@
 # Plan
 
+## Acquisition evidence integrity — 2026-11-17 (#310)
+
+Receiving baseline: `1f0ae6d0b00663d52ccb65904152ca4e933b3486`.
+No open pull requests were present at intake. The existing receipt, replay and
+single-list sync pull implementations are retained and extended in this track.
+
+- [x] Capture a fresh, bounded request response without automatic redirects,
+  cache reuse or content decoding; persist complete HTTP/parse/identity failures
+  as failed v1 receipts, and refuse to fabricate receipts for incomplete exchanges.
+  [implementation checkpoint: a26298e5; PR #488]
+- [x] Apply normalized, non-overlapping evidence/database/sidecar preflight to
+  `fetch-request-page` before creating a pacing database or contacting a source.
+  [implementation checkpoint: a26298e5; PR #488]
+- [x] Bind incremental sync receipts to redacted before/after boundary snapshots
+  and parsed numeric rate-limit observations, including partial application failures.
+  [implementation checkpoint: a26298e5; PR #488]
+- [x] Run socket-free red/green regressions, independent review, formatting,
+  strict Clippy, workspace tests and the existing hosted acceptance checks.
+  [source checkpoint: 90129b7; CI 44054377597; MSRV 44054377789;
+  Linux/macOS/Windows portability 44054380472]
+- [x] Record the exact implementation checkpoint and current network-command
+  coverage without closing the wider #310 or archive-cutover gates prematurely.
+  [source checkpoint: 90129b7; PR #488]
+
+Evidence and limits: [acquisition-integrity-20261117.md](acquisition-integrity-20261117.md).
+
+No live source request or write operation is authorised by this implementation.
+Feed/push receipts, retained Python entrypoints, archive linkage and downstream
+shadow parity remain separate unfinished acceptance work.
+
 ## Replay qualification follow-up — 2026-11-17
 
 Baseline: `1f0ae6d`, including the Rust replay engine and transport from #481/#483.

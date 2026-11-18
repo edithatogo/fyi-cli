@@ -39,6 +39,8 @@ def test_receipt_contracts_and_consumer_are_executed() -> None:
         "receipt_numeric_tests",
         "receipt_wire_tests",
         "startup_tests",
+        "fetch_receipt_preflight_tests",
+        "db_file_paths",
         "internet_archive_replay",
         "replay_evidence_gate_tests",
     ):
@@ -47,6 +49,16 @@ def test_receipt_contracts_and_consumer_are_executed() -> None:
     assert "--lib sync::tests::replay_" in text
     assert "continue-on-error" not in text
     assert "|| true" not in text
+
+
+def test_guarded_acquisition_units_run_with_separate_evidence_logs() -> None:
+    text = workflow()
+    for target, log in (
+        ("sync::request_evidence::tests", "request-evidence-tests.log"),
+        ("sync::pull_evidence::lineage_tests", "pull-lineage-tests.log"),
+    ):
+        assert f"cargo test --locked --package fyi-core --lib {target}" in text
+        assert f"tee artifacts/receipt-portability/{log}" in text
 
 
 def test_workflow_has_read_only_permissions_and_immutable_actions() -> None:
