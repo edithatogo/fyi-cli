@@ -98,12 +98,27 @@ combined localization line coverage. Human review remains unchecked.
 ## Phase 4: Working-Day/Deadline Engine
 
 ### 4.1 Holiday Calendar System
-- [ ] Task: Design holiday calendar data format
-- [ ] Task: Create NZ public holiday calendar (including regional)
-- [ ] Task: Create AU holiday calendars (federal + states)
-- [ ] Task: Create UK holiday calendars (England/Scotland/Wales/NI)
-- [ ] Task: Write tests for holiday lookup
+- [x] Task: Design holiday calendar data format — existing v1 payload plus a strict
+  provenance sidecar and offline contribution validator; checkpoint `4a4fbd7`.
+- [x] Task: Create NZ public holiday calendar (including regional) — 13 explicit
+  2026 national/anniversary profiles, with local-source qualifications and no
+  whole-Otago/Westland or Chathams fallback; checkpoint `4a4fbd7`.
+- [x] Task: Create AU holiday calendars (federal + states) — 2026 common-date base,
+  eight state/territory lists and eleven local profiles. The common-date base is
+  not statutory federal-FOI approval; checkpoint `4a4fbd7`.
+- [x] Task: Create UK holiday calendars (England/Scotland/Wales/NI) — four explicit
+  2026 constituent schedules, including Scotland's exceptional 15 June;
+  ambiguous `GB` removed with migration guidance; checkpoint `4a4fbd7`.
+- [x] Task: Write tests for holiday lookup — 64 Python source/schema/mutation
+  contracts plus 24 Rust calendar/statutory tests in a source-only harness with
+  exact locked dependency versions. Hosted workspace/coverage gates pending.
 - [ ] Task: Conductor - User Manual Verification 'Phase 4.1: Holidays' (Protocol in workflow.md)
+
+Issue #66 source-data implementation is in PR #491. See
+[calendar-evidence.md](calendar-evidence.md) for exact scope, source qualifications,
+red/green checks, independent review and operational limits. All calendar results
+remain legally unvalidated. The phase's human/legal acceptance and broader epic
+remain open; this source-data checkpoint is not an archive or approval receipt.
 
 ### 4.2 Working-Day Calculator
 - [ ] Task: Write failing tests for working-day calculation
@@ -209,3 +224,8 @@ verification, legal acceptance, issue closure or track archive is claimed.
   merge-window request. PR #450 merged as `70fef29` after final-head protected
   checks; its branch was automatically deleted. #64 is complete. #39 and #65–#67
   remain open, and shared status entries now reflect incomplete acceptance.
+
+- **2026-11-17**: PR #491 implements the #66 source-data/contribution scope:
+  37 source-checked 2026 NZ/AU/UK profiles, per-date evidence, strict offline
+  validation, corrected exceptional/observed dates and explicit local replacements.
+  Human/legal phase acceptance remains unchecked; see `calendar-evidence.md`.

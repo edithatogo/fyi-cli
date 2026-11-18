@@ -126,6 +126,7 @@ pub(crate) mod date_btree_set {
         seq.end()
     }
 
+    #[allow(dead_code)]
     pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<BTreeSet<Date>, D::Error>
     where
         D: Deserializer<'de>,

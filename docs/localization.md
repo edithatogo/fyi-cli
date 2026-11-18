@@ -466,181 +466,54 @@ registration and external letter-resource overrides remain separate track work.
 
 ## Holiday calendars
 
-`HolidayCalendarCatalog::embedded()` loads the versioned
-[starter catalog](../crates/fyi-core/locales/calendars/v1/catalog.json).
-Read that file or iterate `catalog.jurisdictions()` for the exact entries; inspect
-each entry's revision and inclusive `valid_from..=valid_to` coverage. National
-entries do not imply complete regional coverage. The starter data remains
-unvalidated pending the source/calendar work in
-[#66](https://github.com/edithatogo/fyi-cli/issues/66).
+`fyi_core::deadlines::statutory::HolidayCalendarCatalog` provides an offline,
+versioned JSON catalog for explicit deadline arithmetic. The **2026** dataset now
+contains 37 source-checked NZ/AU/UK calendars, plus the three unchanged, unreviewed
+DE/FR/ES starters. Every source-checked date has a named event and authoritative
+source reference in `crates/fyi-core/locales/calendars/v1/provenance.json`.
 
-### Load a caller-supplied calendar
+See the [holiday calendar guide](holiday-calendars.md) for the complete scope table,
+source-review boundaries, local profiles, contribution process and commands.
 
-`HolidayCalendarCatalog::from_json` constructs a separate catalog from an
-in-memory JSON string. It neither merges with the embedded catalog nor searches
-files or the network. `get` performs an exact, case-sensitive lookup and returns
-`None` if the key is absent; the caller must handle that absence. To parse one
-entry instead of a catalog, pass only the calendar object to
-`HolidayCalendar::from_json`, without the `schema_version`/`calendars` wrapper.
+- **Select the exact scope.** `NZ` and `AU` are national/common-date bases. They
+  do not select an anniversary, state, local show day or statutory regime.
+  `GB-ENG`, `GB-WLS`, `GB-SCT` and `GB-NIR` identify the four UK constituents.
+  The old ambiguous embedded `GB` key has been removed; `get("GB")` returns `None`.
+- **Check coverage and applicability.** Embedded dates cover 1 January through
+  31 December 2026 only. Source checking establishes published holiday dates;
+  every arithmetic result still has `ValidationStatus::Unvalidated`. The caller
+  must supply an applicable, reviewed `LegalClockRule` and a complete calendar for
+  that rule. Partial-day holidays and law-specific closures are not inferred.
+- **Load contributions explicitly.** `HolidayCalendarCatalog::from_json` and
+  `HolidayCalendar::from_json` accept caller-owned JSON without filesystem or
+  network I/O. Existing valid v1 inputs and the public `HolidayCalendar` fields
+  remain supported. Payloads are bounded to 256 KiB. Unknown fields, duplicate
+  keys/dates/weekend codes, invalid scope identifiers and invalid coverage fail.
+- **No fallback.** Display locale cannot select a legal calendar. An unknown local
+  key returns `None`; a rule/calendar jurisdiction mismatch or a calculation
+  beyond coverage returns an error.
 
-This complete example uses the fictional jurisdiction **`ZZ-DEMO`** and a
-fictional closure. It demonstrates arithmetic only and is not a holiday dataset
-or rule for any real jurisdiction:
+Contribution keys begin with an uppercase two-letter country code and may have
+hyphen-separated uppercase alphanumeric scope components of one to eight
+characters, such as `AU-QLD-CAIRNS` or `NZ-CAN-SOUTH`. These local suffixes are
+project identifiers, not automatic geocoding or a claim of ISO standardisation.
+`weekend_days` uses `0 = Monday .. 6 = Sunday`. Each regional entry contains its
+full date set; local replacements remove the superseded date before adding the
+replacement. Merely unioning calendars can produce an incorrect result.
 
-```rust
-use fyi_core::deadlines::statutory::{
-    calculate_explicit_deadline, DeadlineAdjustment, HolidayCalendarCatalog,
-    LegalClockRule, ReceiptConvention, StatutoryDuration, StatutoryUnit,
-    ValidationStatus,
-};
-use time::{Date, Month};
+For a contributed embedded calendar, update the catalog, matching provenance and
+regression tests, then run:
 
-let custom_json = r#"{
-    "schema_version": 1,
-    "calendars": [{
-        "jurisdiction": "ZZ-DEMO",
-        "revision": "unvalidated-synthetic-v1",
-        "valid_from": "2026-07-01",
-        "valid_to": "2026-07-31",
-        "weekend_days": [5, 6],
-        "excluded_dates": ["2026-07-06"]
-    }]
-}"#;
-let catalog = HolidayCalendarCatalog::from_json(custom_json)?;
-let calendar = catalog.get("ZZ-DEMO").expect("synthetic entry exists");
-assert!(catalog.get("ZZ").is_none());
-assert!(catalog.get("NZ").is_none()); // No merge with embedded entries.
-
-let date = |y, m: u8, d| {
-    Date::from_calendar_date(y, Month::try_from(m).unwrap(), d).expect("fixed valid date")
-};
-let rule = LegalClockRule {
-    id: "synthetic-two-working-days".into(),
-    jurisdiction: "ZZ-DEMO".into(),
-    source_reference: "Synthetic arithmetic example; not a statute".into(),
-    revision: "synthetic-v1".into(),
-    effective_from: date(2026, 7, 1),
-    effective_to: Some(date(2026, 7, 31)),
-    period: StatutoryDuration { amount: 2, unit: StatutoryUnit::WorkingDays },
-    receipt_convention: ReceiptConvention::ExcludeReceiptDay,
-    due_date_adjustment: DeadlineAdjustment::None,
-};
-let result = calculate_explicit_deadline(date(2026, 7, 3), &rule, calendar, None)?;
-// Skip Saturday, Sunday and the fictional Monday closure; count Tuesday/Wednesday.
-assert_eq!(result.due_date, date(2026, 7, 8));
-assert_eq!(result.calendar_revision, "unvalidated-synthetic-v1");
-assert_eq!(result.validation_status, ValidationStatus::Unvalidated);
-# Ok::<(), fyi_core::deadlines::statutory::DeadlineRuleError>(())
+```bash
+python scripts/verify_holiday_calendars.py
+python -m pytest tests/test_holiday_calendar_catalog_schema.py tests/test_holiday_calendar_provenance.py
+cargo test -p fyi-core --test holiday_calendar_data --test statutory_deadline_contract --locked
 ```
 
-`weekend_days` uses `0 = Monday` through `6 = Sunday`. Exclusions must include
-**every applicable national, regional, observed/substitute and exceptional date**
-within the claimed interval. A regional calendar is a complete set, not an
-overlay on the national entry. The calculator cannot discover an omitted holiday.
-
-The rule and calendar jurisdictions must match exactly: `NZ-WGN` does not fall
-back to `NZ`, and a locale such as `en-NZ` does not select either one. A mismatch
-returns `DeadlineRuleError::JurisdictionMismatch`. The calendar must cover the
-receipt date, base period, extension and any terminal adjustment; crossing its
-coverage boundary returns `DeadlineRuleError::CalendarCoverage`. The rule's
-effective dates are checked against the receipt date separately.
-
-The result **always** has `ValidationStatus::Unvalidated`. This is the only
-representable status; review or a different revision string cannot promote it
-to an approved state. Preserve human review evidence separately.
-
-### Contribute an embedded calendar
-
-1. Establish the exact jurisdiction/subdivision and a bounded coverage interval.
-   Gather dated authoritative sources for national, regional, observed/substitute
-   and exceptional exclusions, plus any regime-specific closure rules. Record
-   the applicable legal clock separately; a holiday list alone does not determine
-   a statutory deadline.
-2. Add the complete entry to
-   `crates/fyi-core/locales/calendars/v1/catalog.json`. Use the
-   [v1 schema](../crates/fyi-core/locales/calendars/v1/catalog.schema.json),
-   a revision beginning `unvalidated-`, unique date/day arrays and complete
-   coverage. Keep revisions descriptive and increment them when dates or coverage
-   change. No Rust registration table is needed for an additional calendar key.
-3. For a new year, extend the existing jurisdiction entry's coverage and revision,
-   including all intervening exclusions, or explicitly select a separate
-   caller-supplied catalog. Two entries with the same jurisdiction are rejected,
-   even if their years differ. Year rollover never selects another calendar
-   automatically; include enough coverage for calculations that cross December.
-4. Record source URLs, publication/access dates, date-specific rationale,
-   coverage limits, review scope and unresolved questions in accompanying
-   documentation or PR/track evidence. **Do not add source/reviewer/approval
-   fields to v1 JSON**: neither the struct nor schema supports them, and unknown
-   fields are rejected. A schema change requires separately versioned work.
-5. Validate both the schema and the runtime contract using the commands below.
-   Update the expected jurisdiction inventory in
-   `crates/fyi-core/tests/statutory_deadline_contract.rs` when adding an embedded key.
-   Add focused synthetic regressions for relevant observed/regional exclusions,
-   cross-year periods, missing coverage and jurisdiction mismatches. Record
-   independent source/calendar review under #66; passing tests does not certify
-   that a real holiday list or legal rule is complete.
-
-### Schema checks and runtime checks
-
-The Rust parsers do **not** execute the JSON Schema. Contributors must check both
-layers; they enforce different constraints:
-
-| Constraint | Where it is enforced |
-| --- | --- |
-| Version 1, known fields, nonempty catalog | Catalog parser and JSON Schema |
-| Valid date strings | Rust (`time`); JSON Schema when a format checker is enabled |
-| Uppercase country/subdivision identifier pattern | JSON Schema; Rust requires only a nonblank jurisdiction |
-| No repeated weekend codes or excluded dates | JSON Schema; Rust deserializes into sets and deduplicates them |
-| Ordered coverage interval; exclusions within coverage | Rust parser and the embedded-catalog Python test |
-| Not all seven weekdays are weekends | Rust parser |
-| Unique jurisdiction keys across entries | Catalog parser and the embedded-catalog Python test |
-| Maximum 256 KiB input | Both `from_json` parsers, via `MAX_CALENDAR_CATALOG_BYTES` |
-| Embedded revisions begin `unvalidated-` | Embedded-catalog Python test; not a runtime approval mechanism |
-
-For an external `calendar.json`, run this from the repository root using the
-project's Python environment with `jsonschema` installed:
-
-```python
-import json
-from pathlib import Path
-from jsonschema import Draft202012Validator, FormatChecker
-
-schema = json.loads(Path(
-    "crates/fyi-core/locales/calendars/v1/catalog.schema.json"
-).read_text(encoding="utf-8"))
-catalog = json.loads(Path("calendar.json").read_text(encoding="utf-8"))
-Draft202012Validator(schema, format_checker=FormatChecker()).validate(catalog)
-```
-
-Then pass that same catalog to `HolidayCalendarCatalog::from_json` and exercise
-the intended calculations. The embedded-catalog Python test reads only the
-repository's embedded file; running it does not validate an external file.
-
-## Verification
-
-Run these existing checks from the repository root. Rust `--offline` commands
-require a populated dependency cache; prepare the development environment using
-[CONTRIBUTING.md](../CONTRIBUTING.md) before running them. Test execution uses
-synthetic fixtures and must not contact live authorities or portals.
-
-```sh
-cargo fmt --all -- --check
-cargo clippy --workspace --all-targets -- -D warnings
-cargo test --locked --offline -p fyi-core \
-  --test i18n_messages --test i18n_locale_goldens \
-  --test i18n_request_templates --test i18n_request_goldens \
-  --test i18n_template_regressions --test i18n_terminology \
-  --test i18n_deadline_boundary --test i18n_regressions
-cargo test --locked --offline -p fyi-core --test statutory_deadline_contract
-python -m pytest -q tests/test_holiday_calendar_catalog_schema.py
-python scripts/verify_frontier_conductor.py
-```
-
-The locale/template fixtures check rendering, fallback and provenance. The
-calendar schema and statutory harness check data shape and explicit arithmetic.
-Review exact expected output and source evidence separately; the full required
-PR checks remain the merge gate. Documentation changes should also have their
-Rust examples compiled and run against the same source revision.
+The offline evidence validator runs automatically through the existing Python
+Tests job. It verifies schemas and cross-file consistency; it does not fetch a
+source or confer legal approval. Community contributions must be checked against
+current authoritative sources before their new revision is accepted.
 
 ## Remaining acceptance work
 

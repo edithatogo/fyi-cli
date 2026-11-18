@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:fyi-cli:holiday-calendar-provenance:v1",
+  "title": "Holiday Calendar Provenance v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "sources_checked_on",
+    "legal_validation",
+    "sources",
+    "calendars",
+    "unreviewed_calendars"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "sources_checked_on": {"$ref": "#/$defs/date"},
+    "legal_validation": {"const": "unvalidated"},
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/source"}
+    },
+    "calendars": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/calendar"}
+    },
+    "unreviewed_calendars": {
+      "type": "array",
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["jurisdiction", "revision", "reason"],
+        "properties": {
+          "jurisdiction": {"enum": ["DE", "ES", "FR"]},
+          "revision": {"$ref": "#/$defs/text"},
+          "reason": {"$ref": "#/$defs/text"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "text": {"type": "string", "pattern": "\\S"},
+    "identifier": {"type": "string", "pattern": "^\\S+$", "not": {"pattern": "\\s"}},
+    "jurisdiction": {
+      "type": "string",
+      "pattern": "^[A-Z]{2}(?:-[A-Z0-9]{1,8})*$",
+      "not": {"pattern": "\\s"}
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "source_ids": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/identifier"}
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "url", "title", "publisher", "accessed_on", "valid_from", "valid_to"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "url": {"type": "string", "format": "uri", "pattern": "^https://[^\\s]+$", "not": {"pattern": "\\s"}},
+        "title": {"$ref": "#/$defs/text"},
+        "publisher": {"$ref": "#/$defs/text"},
+        "accessed_on": {"$ref": "#/$defs/date"},
+        "valid_from": {"$ref": "#/$defs/date"},
+        "valid_to": {"$ref": "#/$defs/date"}
+      }
+    },
+    "calendar": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "jurisdiction", "revision", "valid_from", "valid_to", "weekend_days",
+        "coverage_kind", "scope", "limitations", "source_ids", "events"
+      ],
+      "properties": {
+        "jurisdiction": {"$ref": "#/$defs/jurisdiction"},
+        "revision": {"$ref": "#/$defs/text"},
+        "valid_from": {"$ref": "#/$defs/date"},
+        "valid_to": {"$ref": "#/$defs/date"},
+        "weekend_days": {
+          "type": "array",
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": {"type": "integer", "minimum": 0, "maximum": 6}
+        },
+        "coverage_kind": {
+          "enum": ["national_base", "regional_base", "local", "bank_holidays", "anniversary_area"]
+        },
+        "scope": {"$ref": "#/$defs/text"},
+        "limitations": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/text"}
+        },
+        "source_ids": {"$ref": "#/$defs/source_ids"},
+        "events": {"type": "array", "items": {"$ref": "#/$defs/event"}}
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["date", "name", "kind", "source_ids"],
+      "properties": {
+        "date": {"$ref": "#/$defs/date"},
+        "name": {"$ref": "#/$defs/text"},
+        "kind": {"enum": ["national", "regional", "observed", "exceptional"]},
+        "source_ids": {"$ref": "#/$defs/source_ids"},
+        "observed_for": {"$ref": "#/$defs/date"}
+      },
+      "if": {"required": ["observed_for"]},
+      "then": {"properties": {"kind": {"const": "observed"}}}
+    }
+  }
+}

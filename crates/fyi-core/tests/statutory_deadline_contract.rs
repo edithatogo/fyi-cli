@@ -278,13 +278,13 @@ fn input_documents_are_closed_to_unknown_fields() {
 fn embedded_calendar_catalog_covers_nz_au_gb_and_skips_national_holidays() {
     let catalog = HolidayCalendarCatalog::embedded();
     let keys: Vec<&str> = catalog.jurisdictions().collect();
-    assert_eq!(
-        keys,
-        vec![
-            "AU", "AU-ACT", "AU-NSW", "AU-VIC", "DE", "ES", "FR", "GB", "GB-NIR", "GB-SCT", "NZ",
-            "NZ-AUK", "NZ-WGN",
-        ]
-    );
+    assert!(keys.windows(2).all(|pair| pair[0] < pair[1]));
+    for required in [
+        "AU", "AU-ACT", "AU-NSW", "AU-VIC", "DE", "ES", "FR", "GB-ENG", "GB-WLS", "GB-NIR",
+        "GB-SCT", "NZ", "NZ-AUK", "NZ-WGN",
+    ] {
+        assert!(keys.contains(&required), "missing {required}");
+    }
 
     let nz = catalog.get("NZ").expect("NZ starter calendar");
     assert!(nz.excluded_dates.contains(&day(2026, 2, 6))); // Waitangi Day
@@ -309,7 +309,10 @@ fn embedded_calendar_catalog_covers_nz_au_gb_and_skips_national_holidays() {
     let au_act = catalog.get("AU-ACT").expect("AU-ACT regional calendar");
     assert!(au_act.excluded_dates.contains(&day(2026, 6, 1)));
 
-    let gb = catalog.get("GB").expect("GB starter calendar");
+    assert!(catalog.get("GB").is_none());
+    let gb = catalog
+        .get("GB-ENG")
+        .expect("England bank holiday calendar");
     assert!(gb.excluded_dates.contains(&day(2026, 8, 31)));
     let gb_sct = catalog.get("GB-SCT").expect("GB-SCT regional calendar");
     assert!(gb_sct.excluded_dates.contains(&day(2026, 11, 30)));

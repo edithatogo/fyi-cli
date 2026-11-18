@@ -63,11 +63,13 @@ pub struct LegalClockRule {
     pub due_date_adjustment: DeadlineAdjustment,
 }
 
-/// The supplied, fully-covered calendar for one jurisdiction or subdivision.
+/// An explicit day-granularity exclusion calendar for one jurisdiction or scope.
 ///
 /// Weekend day codes are 0=Monday through 6=Sunday. `excluded_dates` must
 /// include any applicable national, state/regional, observed or special dates;
-/// this engine does not invent or fetch holidays.
+/// callers must check completeness for their selected rule. Embedded national
+/// and state bases may need a more local calendar. This engine does not invent
+/// or fetch holidays and cannot represent a part-day closure.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct HolidayCalendar {
@@ -77,9 +79,50 @@ pub struct HolidayCalendar {
     pub valid_from: Date,
     #[serde(with = "crate::time_util::date")]
     pub valid_to: Date,
+    #[serde(deserialize_with = "deserialize_unique_set")]
     pub weekend_days: BTreeSet<u8>,
-    #[serde(with = "crate::time_util::date_btree_set")]
+    #[serde(
+        serialize_with = "crate::time_util::date_btree_set::serialize",
+        deserialize_with = "deserialize_unique_date_set"
+    )]
     pub excluded_dates: BTreeSet<Date>,
+}
+
+fn deserialize_unique_date_set<'de, D>(deserializer: D) -> Result<BTreeSet<Date>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let values = Vec::<String>::deserialize(deserializer)?;
+    let mut unique = BTreeSet::new();
+    for raw in values {
+        let date = Date::parse(
+            &raw,
+            time::macros::format_description!("[year]-[month]-[day]"),
+        )
+        .map_err(serde::de::Error::custom)?;
+        if !unique.insert(date) {
+            return Err(serde::de::Error::custom("duplicate calendar value"));
+        }
+    }
+    Ok(unique)
+}
+
+// Serde's BTreeSet implementation silently discards duplicates. Contributions
+// must instead obey the schema's uniqueItems contract, including when a calendar
+// is deserialized directly rather than through the catalog loader.
+fn deserialize_unique_set<'de, D, T>(deserializer: D) -> Result<BTreeSet<T>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: Deserialize<'de> + Ord,
+{
+    let values = Vec::<T>::deserialize(deserializer)?;
+    let mut unique = BTreeSet::new();
+    for value in values {
+        if !unique.insert(value) {
+            return Err(serde::de::Error::custom("duplicate calendar value"));
+        }
+    }
+    Ok(unique)
 }
 
 /// An explicitly authorised extension, applied after the primary period.
@@ -333,9 +376,12 @@ struct RawHolidayCalendarCatalog {
 
 /// Versioned, caller-extensible catalog of [`HolidayCalendar`] definitions.
 ///
-/// Embedded entries (`NZ`, `AU`, `GB` national starter dates) and caller-supplied
-/// JSON catalogs remain unvalidated until reviewed against authoritative statutes
-/// and applicable state/regional exclusions.
+/// Embedded 2026 NZ/AU/UK dates have source evidence in the adjacent
+/// `locales/calendars/v1/provenance.json`. Country/state bases and local calendars
+/// have different scopes; choose an exact key after checking its limitations.
+/// UK calendars use `GB-ENG`, `GB-WLS`, `GB-SCT` and `GB-NIR`, never ambiguous `GB`.
+/// DE/FR/ES starters have not received this source review. All entries and
+/// caller-supplied catalogs remain unvalidated for statutory applicability.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HolidayCalendarCatalog {
     calendars: BTreeMap<String, HolidayCalendar>,
@@ -350,12 +396,16 @@ impl HolidayCalendar {
         let calendar: Self =
             serde_json::from_str(input).map_err(|_| DeadlineRuleError::InvalidCalendar)?;
         validate_calendar(&calendar)?;
+        validate_calendar_key(&calendar.jurisdiction)?;
         Ok(calendar)
     }
 }
 
 impl HolidayCalendarCatalog {
-    /// Load the embedded unvalidated starter catalog (`NZ`, `AU`, `GB`).
+    /// Load the embedded, legally unvalidated 2026 calendar catalog.
+    ///
+    /// National/state bases do not silently include local holidays or partial
+    /// days. The contribution guide documents each scope and its source evidence.
     #[must_use]
     pub fn embedded() -> Self {
         Self::from_json(include_str!("../../locales/calendars/v1/catalog.json"))
@@ -365,8 +415,10 @@ impl HolidayCalendarCatalog {
     /// Parse and validate a version-1 holiday-calendar JSON catalog in memory.
     ///
     /// Rejects payloads larger than 256 KiB, unknown fields, unsupported
-    /// `schema_version`, empty catalogs, duplicate `jurisdiction` keys, and any
-    /// invalid [`HolidayCalendar`] entry.
+    /// `schema_version`, empty catalogs, duplicate keys/dates/weekend codes, and
+    /// any invalid [`HolidayCalendar`] entry. Contribution keys start with a
+    /// two-letter uppercase country code, optionally followed by hyphen-separated
+    /// uppercase alphanumeric scope components of one to eight characters.
     pub fn from_json(input: &str) -> Result<Self, DeadlineRuleError> {
         if input.len() > MAX_CALENDAR_CATALOG_BYTES {
             return Err(DeadlineRuleError::InvalidCalendar);
@@ -379,6 +431,7 @@ impl HolidayCalendarCatalog {
         let mut calendars = BTreeMap::new();
         for calendar in raw.calendars {
             validate_calendar(&calendar)?;
+            validate_calendar_key(&calendar.jurisdiction)?;
             if calendars
                 .insert(calendar.jurisdiction.clone(), calendar)
                 .is_some()
@@ -389,7 +442,10 @@ impl HolidayCalendarCatalog {
         Ok(Self { calendars })
     }
 
-    /// Look up a calendar by exact jurisdiction key (`"NZ"`, `"AU"`, `"GB"`, etc.).
+    /// Look up an exact jurisdiction/scope key without aliases or regional fallback.
+    ///
+    /// An unknown region, display locale or bare `"GB"` returns `None` for the
+    /// embedded catalog. `"NZ"` and `"AU"` explicitly select national bases only.
     #[must_use]
     pub fn get(&self, jurisdiction: &str) -> Option<&HolidayCalendar> {
         self.calendars.get(jurisdiction)
@@ -399,4 +455,22 @@ impl HolidayCalendarCatalog {
     pub fn jurisdictions(&self) -> impl Iterator<Item = &str> {
         self.calendars.keys().map(String::as_str)
     }
+}
+
+fn validate_calendar_key(jurisdiction: &str) -> Result<(), DeadlineRuleError> {
+    let mut parts = jurisdiction.split('-');
+    let country = parts.next().unwrap_or_default();
+    if country.len() != 2
+        || !country.bytes().all(|byte| byte.is_ascii_uppercase())
+        || parts.any(|part| {
+            part.is_empty()
+                || part.len() > 8
+                || !part
+                    .bytes()
+                    .all(|byte| byte.is_ascii_uppercase() || byte.is_ascii_digit())
+        })
+    {
+        return Err(DeadlineRuleError::InvalidCalendar);
+    }
+    Ok(())
 }
