@@ -109,6 +109,7 @@ Live listings and draft status: **[Where fyi-cli / fyi-mcp is listed](#where-fyi
 |----------|-------------|
 | [Docs site](https://edithatogo.github.io/fyi-cli/) | Full documentation (Astro + Starlight) |
 | [docs/cli-entrypoints-audit.md](docs/cli-entrypoints-audit.md) | Canonical cross-reference for Python CLI, Rust CLI, and Rust MCP surfaces |
+| [docs/localization.md](docs/localization.md) | Locale contributions, request-template customization and holiday-calendar extension guide |
 | [docs/upstream-relations.md](docs/upstream-relations.md) | Alaveteli/instance operator etiquette and outreach log |
 | [docs/registry-distribution-matrix.md](docs/registry-distribution-matrix.md) | MCP catalogs, package managers, containers status |
 | [docs/external-registry-followups.md](docs/external-registry-followups.md) | Smithery score + GitHub MCP onboarding playbook |

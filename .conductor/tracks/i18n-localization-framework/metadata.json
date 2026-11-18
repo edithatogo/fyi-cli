@@ -14,13 +14,13 @@
     "tracked_by": "github-issues-prs",
     "branch": "master"
   },
-  "updated_at": "2026-11-14T12:56:45+00:00",
+  "updated_at": "2026-11-17T09:09:37+00:00",
   "reconciliation": "PRs #436, #447 and #450 are merged; terminology merge 70fef298442c72744583deb39c87ed83e005e60b has the exact verified final-head tree. Child #64 is complete; #39 and #65-#67 remain open. Shared status entries are reconciled; holiday/statutory, human review and later acceptance are incomplete.",
   "archive_allowed": false,
   "verification": {
     "phase_1": "Merged via PR #436 (a0fa71a); historical local and hosted evidence retained.",
     "evidence": "acceptance-evidence.md",
-    "remaining": "Human terminology/translation/legal review; additional regime coverage; holiday/statutory rules; external overrides; additional locales; measured performance criteria; calendar contribution documentation",
+    "remaining": "Human terminology/translation/legal review; additional regime coverage; holiday/statutory rules; external overrides; additional locales; measured performance criteria; localization/calendar review acceptance",
     "phase_2": "Merged via PR #447 (4322d47); historical local and hosted evidence retained.",
     "coverage": {
       "i18n_lines_percent": 99.4550408719346,
@@ -49,6 +49,19 @@
       "workspace_gate_percent": 90,
       "additional_exclusions": false,
       "local_rust_execution": "blocked: already-merged Fluent dependency absent from offline cache; executable evidence supplied by existing hosted CI"
+    },
+    "documentation_issue_67": {
+      "github_issue": 67,
+      "github_pr": 490,
+      "status": "documentation_implemented_review_gates_open",
+      "implementation_commit": "67fe138501fa04f1d06c9149ed5e4d199578c73b",
+      "evidence": "documentation-evidence.md",
+      "rust_examples_passed": 6,
+      "rust_example_scope": "Source-only harness with unchanged i18n/deadline modules and original jurisdiction data/registry prefix; full workspace integration belongs to hosted CI.",
+      "embedded_schema_tests_passed": 1,
+      "human_review_complete": false,
+      "calendar_source_review_complete": false,
+      "hosted_checks": "See PR #490 for the exact current-head status."
     }
   },
   "historical_github_pr": 126,
@@ -56,6 +69,7 @@
     126,
     436,
     447,
-    450
+    450,
+    490
   ]
 }
