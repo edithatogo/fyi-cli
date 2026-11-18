@@ -110,6 +110,11 @@ def test_profiling_uses_bounded_pr_smoke_and_scheduled_full_analysis() -> None:
     assert "python_functions=benchmark_*" in _step(job, "Run performance tests")["run"]
 
 
+def _non_xdist_env() -> dict[str, str]:
+    """Strip parent xdist worker variables so child pytest collection runs standalone."""
+    return {k: v for k, v in os.environ.items() if not k.startswith("PYTEST_XDIST_")}
+
+
 def test_profile_selection_collects_all_eight_existing_benchmarks() -> None:
     completed = subprocess.run(
         [
@@ -123,6 +128,7 @@ def test_profile_selection_collects_all_eight_existing_benchmarks() -> None:
             "python_functions=benchmark_*",
         ],
         cwd=ROOT,
+        env=_non_xdist_env(),
         capture_output=True,
         text=True,
         check=False,
@@ -140,6 +146,7 @@ def test_manual_performance_layer_collects_the_existing_benchmarks() -> None:
     completed = subprocess.run(  # noqa: S603 - execute the checked-in pytest layer, without a shell
         [sys.executable, "-m", "pytest", *layer.command[1:], "--collect-only", "-q"],
         cwd=ROOT,
+        env=_non_xdist_env(),
         capture_output=True,
         text=True,
         check=False,
