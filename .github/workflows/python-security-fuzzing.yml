@@ -3,6 +3,17 @@ name: Python Security and Fuzzing
 on:
   pull_request:
     branches: [main, master]
+    paths:
+      - "src/fyi_system/**"
+      - "fuzzing/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "tests/test_hypothesis.py"
+      - "tests/test_fuzz.py"
+      - "tests/test_atheris_targets.py"
+      - "tests/test_python_security_dependencies.py"
+      - "tests/test_python_security_fuzzing_workflow.py"
+      - ".github/workflows/python-security-fuzzing.yml"
   schedule:
     - cron: "23 14 * * 1"
   workflow_dispatch:

@@ -3,6 +3,17 @@ name: Test profile isolation
 on:
   pull_request:
     branches: [master]
+    paths:
+      - "src/fyi_system/credentials.py"
+      - "src/fyi_system/encryption.py"
+      - "src/fyi_system/security.py"
+      - "tests/conftest.py"
+      - "tests/test_credentials.py"
+      - "tests/test_encryption.py"
+      - "tests/test_keyring_isolation.py"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/test-profile-isolation.yml"
   push:
     branches: [master]
   workflow_dispatch:
