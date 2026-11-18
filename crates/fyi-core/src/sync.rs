@@ -1279,7 +1279,26 @@ impl SyncClient {
     ) -> Result<UpdateRequestStateResponse> {
         validate_request_state(expected_current_state)?;
         validate_request_state(&payload.state)?;
-        let current = self.fetch_request(request_id).await?;
+        let get_url = self
+            .base_url
+            .join(&format!("api/v2/request/{request_id}.json"))
+            .context("failed to build request URL")?;
+        let get_response = ensure_success(
+            self.send_guarded(self.http.get(get_url))
+                .await
+                .context("failed to fetch request")?,
+            "request endpoint",
+        )
+        .await?;
+        let etag = get_response
+            .headers
+            .get(reqwest::header::ETAG)
+            .and_then(|value| value.to_str().ok())
+            .map(str::to_owned);
+        let current = get_response
+            .json::<AlaveteliRequest>()
+            .await
+            .context("failed to parse request JSON")?;
         let actual = current
             .status
             .as_deref()
@@ -1290,7 +1309,24 @@ impl SyncClient {
             ));
         }
 
-        self.update_request_state(request_id, payload).await
+        let put_url = self
+            .base_url
+            .join(&format!("api/v2/request/{request_id}/state.json"))
+            .context("failed to build request state URL")?;
+        let mut request = self.http.put(put_url).json(payload);
+        if let Some(etag) = etag {
+            request = request.header(reqwest::header::IF_MATCH, etag);
+        }
+        let response = self
+            .send_guarded(request)
+            .await
+            .context("failed to update request state")?;
+
+        ensure_success(response, "request state endpoint")
+            .await?
+            .json::<UpdateRequestStateResponse>()
+            .await
+            .context("failed to parse request state response")
     }
 
     pub async fn list_authorities(&self) -> Result<Vec<Authority>> {
@@ -3237,6 +3273,44 @@ mod tests {
                 ResponseTemplate::new(200)
                     .set_body_json(UpdateRequestStateResponse { updated: true }),
             )
+            .mount(&server)
+            .await;
+
+        let client = SyncClient::new_for_testing(&server.uri()).unwrap();
+        let response = client
+            .update_request_state_if_current(
+                42,
+                "waiting_response",
+                &UpdateRequestStatePayload {
+                    state: "successful".to_string(),
+                },
+            )
+            .await
+            .unwrap();
+
+        assert!(response.updated);
+    }
+
+    #[tokio::test]
+    async fn update_request_state_if_current_forwards_etag_as_if_match() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/api/v2/request/42.json"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .insert_header("ETag", "\"req-42-v1\"")
+                    .set_body_json(request(42, "Current request", "2026-07-11T00:00:00Z")),
+            )
+            .mount(&server)
+            .await;
+        Mock::given(method("PUT"))
+            .and(path("/api/v2/request/42/state.json"))
+            .and(wiremock::matchers::header("If-Match", "\"req-42-v1\""))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "request_id": 42,
+                "state": "successful",
+                "updated": true
+            })))
             .mount(&server)
             .await;
 
