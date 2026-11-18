@@ -122,7 +122,7 @@
       "id": "write-failure-retry-denial",
       "category": "error_classification",
       "path": "crates/fyi-mcp/src/telemetry.rs",
-      "before": "retryable: potentially_retryable && read_only,",
+      "before": "retryable: potentially_retryable && operation.is_read(),",
       "after": "retryable: potentially_retryable,",
       "package": "fyi-mcp",
       "test": "observability_tests::remote_error_classification_maps_status_and_redacts_upstream_secrets",

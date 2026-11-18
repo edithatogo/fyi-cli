@@ -7,6 +7,7 @@ import json
 import shutil
 import socket
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 import anyio
@@ -19,6 +20,13 @@ from tests.mcp_upstream_fixture import upstream_server, upstream_session
 mcp_binary = test_mcp_client_interop.mcp_binary
 PRIVATE_ERROR = "remote operation failed; see operator audit telemetry"
 REPLAY_CASES = [case for case in corpus.load_corpus()["cases"] if case["replay"] != "none"]
+HTTP_ERROR_CASES = {
+    401: ("auth", False, "remote authentication failed"),
+    403: ("forbidden", False, "remote permission denied"),
+    404: ("not_found", False, "remote resource not found"),
+    429: ("rate_limited", True, "remote endpoint rate limited request"),
+    503: ("upstream_unavailable", True, "remote endpoint temporarily unavailable"),
+}
 
 
 def test_versioned_shared_fixture_corpus_is_present() -> None:
@@ -282,6 +290,68 @@ def _expected_result(case: dict) -> dict:
     }
 
 
+def _assert_read_provenance(payload: dict, *, response_bytes: int) -> None:
+    """Validate the shared read provenance envelope emitted by with_source."""
+    provenance = payload["provenance"]
+    assert set(provenance) == {
+        "instance_id",
+        "retrieved_at",
+        "cache_status",
+        "correlation_id",
+        "source_status",
+        "response_bytes",
+    }
+    assert provenance["instance_id"] == payload["instance_id"] == "synthetic"
+    assert provenance["cache_status"] == "miss"
+    assert provenance["source_status"] == 200
+    assert type(provenance["response_bytes"]) is int
+    assert provenance["response_bytes"] == response_bytes
+    retrieved = datetime.fromisoformat(provenance["retrieved_at"])
+    assert retrieved.tzinfo is not None
+    assert abs((datetime.now(UTC) - retrieved).total_seconds()) < 60
+    correlation_id = provenance["correlation_id"]
+    assert isinstance(correlation_id, str)
+    assert 0 < len(correlation_id) <= 64
+
+
+def _assert_typed_read_error(
+    structured: dict | None,
+    *,
+    operation: str,
+    case: dict,
+) -> None:
+    """Validate the typed non-secret error envelope emitted by RemoteReadError."""
+    assert structured is not None
+    assert set(structured) == {"error"}
+    error = structured["error"]
+    assert set(error) == {
+        "schema_version",
+        "kind",
+        "operation",
+        "retryable",
+        "status",
+        "safe_message",
+        "correlation_id",
+    }
+    if case["expected"]["outcome"] == "http_error":
+        expected_status = case["expected"]["status"]
+        expected_kind, expected_retryable, expected_message = HTTP_ERROR_CASES[expected_status]
+    else:
+        expected_status = None
+        expected_kind = "malformed_payload"
+        expected_retryable = False
+        expected_message = "remote response payload was malformed"
+    assert type(error["schema_version"]) is int
+    assert error["schema_version"] == 1
+    assert error["kind"] == expected_kind
+    assert error["operation"] == operation
+    assert error["retryable"] is expected_retryable
+    assert error["status"] == expected_status
+    assert error["safe_message"] == expected_message
+    assert isinstance(error["correlation_id"], str)
+    assert 0 < len(error["correlation_id"]) <= 64
+
+
 @pytest.mark.skipif(
     sys.platform != "linux",
     reason="child-only TLS trust fixture is qualified on Linux",
@@ -303,10 +373,20 @@ def test_shared_fixture_replay_uses_production_source_parser(
                 result = await session.call_tool(tool, arguments)
                 if case["expected"]["outcome"] == "accepted":
                     assert not result.isError
-                    assert result.structuredContent == _expected_result(case)
+                    assert result.structuredContent is not None
+                    payload = dict(result.structuredContent)
+                    _assert_read_provenance(
+                        payload,
+                        response_bytes=len(
+                            corpus.read_fixture(corpus.FIXTURE_ROOT, case["path"]),
+                        ),
+                    )
+                    payload.pop("provenance")
+                    assert payload == _expected_result(case)
                 else:
                     assert result.isError
                     assert result.content[0].text == PRIVATE_ERROR
+                    _assert_typed_read_error(result.structuredContent, operation=tool, case=case)
                     for marker in private:
                         assert marker not in result.model_dump_json()
                 await session.send_ping()

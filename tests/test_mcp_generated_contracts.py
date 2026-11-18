@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import sys
+from datetime import UTC, datetime
 from email import policy
 from email.parser import BytesParser
 from typing import TYPE_CHECKING
@@ -42,6 +43,38 @@ pytestmark = [
 
 PRIVATE = "synthetic-generated-private-"
 STATES = ("waiting_response", "successful", "rejected", "partially_successful")
+HTTP_ERRORS = {
+    401: ("auth", False, "remote authentication failed"),
+    403: ("forbidden", False, "remote permission denied"),
+    404: ("not_found", False, "remote resource not found"),
+    429: ("rate_limited", True, "remote endpoint rate limited request"),
+    500: ("upstream_server", True, "remote endpoint returned server error"),
+    503: ("upstream_unavailable", True, "remote endpoint temporarily unavailable"),
+}
+
+
+def _assert_read_provenance(payload: dict, *, response_bytes: int) -> None:
+    """Validate the provenance metadata attached by with_source."""
+    provenance = payload["provenance"]
+    assert set(provenance) == {
+        "instance_id",
+        "retrieved_at",
+        "cache_status",
+        "correlation_id",
+        "source_status",
+        "response_bytes",
+    }
+    assert provenance["instance_id"] == payload["instance_id"] == "synthetic"
+    assert provenance["cache_status"] == "miss"
+    assert provenance["source_status"] == 200
+    assert type(provenance["response_bytes"]) is int
+    assert provenance["response_bytes"] == response_bytes
+    retrieved = datetime.fromisoformat(provenance["retrieved_at"])
+    assert retrieved.tzinfo is not None
+    assert abs((datetime.now(UTC) - retrieved).total_seconds()) < 60
+    correlation_id = provenance["correlation_id"]
+    assert isinstance(correlation_id, str)
+    assert 0 < len(correlation_id) <= 64
 
 
 def _commit(prepared: dict, key: str) -> dict:
@@ -113,7 +146,16 @@ def test_generated_search_variants_preserve_order_and_bound_pagination(
                     {"instance_id": "synthetic", "query": query, "limit": limit},
                 )
                 assert not result.isError
-                assert result.structuredContent == {
+                assert result.structuredContent is not None
+                structured = dict(result.structuredContent)
+                _assert_read_provenance(
+                    structured,
+                    response_bytes=len(
+                        json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode(),
+                    ),
+                )
+                structured.pop("provenance")
+                assert structured == {
                     "instance_id": "synthetic",
                     "query": query.strip(),
                     "requests": records[:limit],
@@ -368,11 +410,33 @@ def test_generated_source_errors_keep_bodies_and_header_values_private(
             async with upstream_session(mcp_binary, directory, upstream) as session:
                 result = await session.call_tool("remote_version", {"instance_id": "synthetic"})
                 assert result.isError
-                assert result.structuredContent is None
+                assert result.structuredContent is not None
+                assert set(result.structuredContent) == {"error"}
+                error = result.structuredContent["error"]
+                assert set(error) == {
+                    "schema_version",
+                    "kind",
+                    "operation",
+                    "retryable",
+                    "status",
+                    "safe_message",
+                    "correlation_id",
+                }
+                expected_kind, expected_retryable, expected_message = HTTP_ERRORS[status]
+                assert type(error["schema_version"]) is int
+                assert error["schema_version"] == 1
+                assert error["kind"] == expected_kind
+                assert error["operation"] == "remote_version"
+                assert error["retryable"] is expected_retryable
+                assert error["status"] == status
+                assert error["safe_message"] == expected_message
+                assert isinstance(error["correlation_id"], str)
+                assert 0 < len(error["correlation_id"]) <= 64
                 assert result.content[0].text == (
                     "remote operation failed; see operator audit telemetry"
                 )
                 assert PRIVATE not in result.model_dump_json()
+                _assert_omits(result.model_dump(mode="json"), PRIVATE)
                 await session.send_ping()
             upstream.assert_complete()
             assert len(upstream.observed) == 1
