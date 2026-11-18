@@ -1,0 +1,233 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "request": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": -9223372036854775808,
+          "maximum": 9223372036854775807
+        },
+        "title": {
+          "type": "string"
+        },
+        "body": {
+          "type": "string"
+        },
+        "user_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "created_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "updated_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tags": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "body"
+      ],
+      "additionalProperties": true
+    },
+    "requests-array": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/request"
+      }
+    },
+    "requests-wrapped": {
+      "type": "object",
+      "properties": {
+        "requests": {
+          "$ref": "#/$defs/requests-array"
+        }
+      },
+      "required": [
+        "requests"
+      ],
+      "additionalProperties": true
+    },
+    "requests-results": {
+      "type": "object",
+      "properties": {
+        "results": {
+          "$ref": "#/$defs/requests-array"
+        }
+      },
+      "required": [
+        "results"
+      ],
+      "additionalProperties": true
+    },
+    "create-response": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": -9223372036854775808,
+          "maximum": 9223372036854775807
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "url"
+      ],
+      "additionalProperties": true
+    },
+    "authority": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "slug": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "authorities-array": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/authority"
+      }
+    },
+    "authorities-wrapped": {
+      "type": "object",
+      "properties": {
+        "authorities": {
+          "$ref": "#/$defs/authorities-array"
+        }
+      },
+      "required": [
+        "authorities"
+      ],
+      "additionalProperties": true
+    },
+    "http-error": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            401,
+            403,
+            404,
+            503
+          ]
+        },
+        "error": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "status",
+        "error",
+        "message"
+      ],
+      "additionalProperties": false
+    },
+    "rate-limit": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "const": 429
+        },
+        "headers": {
+          "type": "object",
+          "properties": {
+            "Retry-After": {
+              "const": "60"
+            }
+          },
+          "required": [
+            "Retry-After"
+          ],
+          "additionalProperties": false
+        },
+        "body": {
+          "type": "object",
+          "properties": {
+            "error": {
+              "const": "rate_limited"
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "error",
+            "message"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "status",
+        "headers",
+        "body"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -3,6 +3,17 @@ name: Test profile isolation
 on:
   pull_request:
     branches: [master]
+    paths:
+      - "src/fyi_system/credentials.py"
+      - "src/fyi_system/encryption.py"
+      - "src/fyi_system/security.py"
+      - "tests/conftest.py"
+      - "tests/test_credentials.py"
+      - "tests/test_encryption.py"
+      - "tests/test_keyring_isolation.py"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/test-profile-isolation.yml"
   push:
     branches: [master]
   workflow_dispatch:
@@ -34,6 +45,9 @@ jobs:
         with:
           python-version: "3.15.2"
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
       - name: Install frozen development dependencies
         run: |
           uv sync --python 3.15.2 --extra dev --frozen
