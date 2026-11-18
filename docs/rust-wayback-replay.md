@@ -15,6 +15,28 @@ paths must be distinct; the payload and response directories cannot contain one
 another or the other paths. Result and receipt paths must be new, and the
 response directory must be absent or empty at the start of each run.
 
+For an operator-reviewed selection, a bounded invocation is:
+
+```bash
+fyi-cli internet-archive-replay \
+  --selection approved-selection.json \
+  --allowed-target-host example.org \
+  --output-dir replay-objects \
+  --responses-dir replay-responses-001 \
+  --checkpoint replay-checkpoint.json \
+  --result replay-result-001.json \
+  --receipt replay-receipt-001.json \
+  --max-rows 1 \
+  --max-payload-bytes 1048576 \
+  --max-redirects 2 \
+  --max-runtime-seconds 30 \
+  --request-timeout-seconds 10
+```
+
+Replace the target host with the exact hostname approved in the selection. This
+command contacts Wayback; the committed synthetic fixtures and automated tests
+are not authorization for a live capture.
+
 The guarded transport never follows redirects automatically or retries. The
 replay engine validates each redirect against the archive origin and approved
 original URL before the next request, then checks the final status, media type,
@@ -44,6 +66,12 @@ selection, configuration and stored payloads on resume. Use new result, receipt
 and response paths for each resumed run. A completed checkpoint can therefore
 produce a legitimate zero-request receipt whose before and after hashes match.
 
+New checkpoint bytes are checked against the same 16 MiB limit used by resume
+before the corresponding payload or checkpoint is published. If accumulated
+metadata exceeds that bound, the previous checkpoint and its verified payloads
+remain usable; the failed row does not become completed progress. Any raw
+response evidence already captured remains available for inspection.
+
 If a complete response is captured but fails verification, a failed receipt
 records the observed bytes and a generic failure projection. Receipt v1 cannot
 represent an attempted exchange that produced no complete response, including
@@ -55,4 +83,6 @@ result together instead of treating file presence as success.
 
 This increment does not complete #310's all-network-command receipt coverage or
 establish Python/Rust behavioral equivalence, hosted source smoke, WARC linkage,
-release pinning or downstream archive shadow parity.
+release pinning or downstream archive shadow parity. The finite offline
+Python/Rust cases and their two explicit behavioral differences are documented
+in the [replay conformance corpus](../conformance/internet-archive-replay/README.md).

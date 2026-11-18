@@ -47,6 +47,7 @@ unic-langid = "0.9"
 
 [dev-dependencies]
 futures-util = "0.3"
+h2 = "0.4.20"
 http = "1.5"
 reqwest = { version = "^0.13", features = ["stream"] }
 tower = "0.5"
