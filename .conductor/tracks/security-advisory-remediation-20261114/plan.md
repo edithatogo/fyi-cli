@@ -37,6 +37,14 @@
 - [ ] RUSTSEC-2026-0370/0371/0372: review zbus and keyring transitive
   chains, qualify modern supported releases and Linux credential-provider
   behaviour. They concern maintenance, not automatically proven exploits.
+- [~] #495 (`RUSTSEC-2026-0543` / `RUSTSEC-2026-0542`): eliminate direct and
+  `sqlx` `chrono` dependencies across the workspace by migrating to `time`
+  (zero matches in `cargo tree`; only an unactivated weak optional edge under
+  `tor-* -> serde_with 3.24.0` remains in `Cargo.lock`); record synchronized
+  time-bounded Tor transitive exception `RUSTSEC-2026-0542` (`humantime 2.4.0`
+  via `arti-client 0.48.0`, expires `2026-12-14`, tracked under
+  [#495](https://github.com/edithatogo/fyi-cli/issues/495)) until upstream
+  `arti-client` / `tor-*` replaces `humantime`.
 - [ ] Verify the full set of other historical exceptions individually;
   remove stale `advisory-not-detected` entries immediately where evidence
   supports non-applicability.

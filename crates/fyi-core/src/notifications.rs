@@ -2,8 +2,8 @@
 //!
 //! Pure types only — no email, HTTP, or other delivery. Callers own transport.
 
-use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
+use time::Date;
 
 /// Default lead times (calendar days before due) for deadline reminders.
 pub const DEFAULT_REMINDER_DAYS_BEFORE: &[u32] = &[7, 3, 1];
@@ -53,8 +53,10 @@ impl ReminderSchedule {
 /// Reminder evaluation for a single deadline relative to `as_of`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DeadlineReminder {
-    pub due: NaiveDate,
-    pub as_of: NaiveDate,
+    #[serde(with = "crate::time_util::date")]
+    pub due: Date,
+    #[serde(with = "crate::time_util::date")]
+    pub as_of: Date,
     /// Calendar days remaining until due (negative when overdue).
     pub days_remaining: i64,
     /// Whether a notification should fire under the associated schedule.
@@ -63,8 +65,8 @@ pub struct DeadlineReminder {
 
 impl DeadlineReminder {
     /// Evaluate reminder state for `due` as of `as_of` using `schedule`.
-    pub fn evaluate(due: NaiveDate, as_of: NaiveDate, schedule: &ReminderSchedule) -> Self {
-        let days_remaining = (due - as_of).num_days();
+    pub fn evaluate(due: Date, as_of: Date, schedule: &ReminderSchedule) -> Self {
+        let days_remaining = (due - as_of).whole_days();
         let should_notify = schedule.should_notify_on_remaining(days_remaining);
         Self {
             due,
@@ -93,8 +95,10 @@ pub enum WebhookEventType {
 pub struct WebhookPayload {
     pub event: WebhookEventType,
     pub request_id: Option<String>,
-    pub due: NaiveDate,
-    pub as_of: NaiveDate,
+    #[serde(with = "crate::time_util::date")]
+    pub due: Date,
+    #[serde(with = "crate::time_util::date")]
+    pub as_of: Date,
     pub days_remaining: i64,
     pub message: String,
 }
@@ -103,8 +107,8 @@ pub struct WebhookPayload {
 #[derive(Debug, Clone, Default)]
 pub struct WebhookPayloadBuilder {
     request_id: Option<String>,
-    due: Option<NaiveDate>,
-    as_of: Option<NaiveDate>,
+    due: Option<Date>,
+    as_of: Option<Date>,
     days_remaining: Option<i64>,
     message: Option<String>,
 }
@@ -119,12 +123,12 @@ impl WebhookPayloadBuilder {
         self
     }
 
-    pub fn due(mut self, due: NaiveDate) -> Self {
+    pub fn due(mut self, due: Date) -> Self {
         self.due = Some(due);
         self
     }
 
-    pub fn as_of(mut self, as_of: NaiveDate) -> Self {
+    pub fn as_of(mut self, as_of: Date) -> Self {
         self.as_of = Some(as_of);
         self
     }
@@ -180,8 +184,8 @@ impl WebhookPayloadBuilder {
 
 /// Convenience: build an approaching payload when the schedule says to notify.
 pub fn approaching_payload_if_due(
-    due: NaiveDate,
-    as_of: NaiveDate,
+    due: Date,
+    as_of: Date,
     schedule: &ReminderSchedule,
     request_id: Option<&str>,
 ) -> Option<WebhookPayload> {
@@ -199,6 +203,7 @@ pub fn approaching_payload_if_due(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use time::macros::date;
 
     #[test]
     fn standard_schedule_is_7_3_1() {
@@ -209,37 +214,21 @@ mod tests {
     #[test]
     fn notify_exactly_on_schedule_offsets() {
         let schedule = ReminderSchedule::standard();
-        let due = NaiveDate::from_ymd_opt(2026, 7, 20).unwrap();
+        let due = date!(2026 - 07 - 20);
 
-        let seven = DeadlineReminder::evaluate(
-            due,
-            NaiveDate::from_ymd_opt(2026, 7, 13).unwrap(),
-            &schedule,
-        );
+        let seven = DeadlineReminder::evaluate(due, date!(2026 - 07 - 13), &schedule);
         assert_eq!(seven.days_remaining, 7);
         assert!(seven.should_notify);
 
-        let three = DeadlineReminder::evaluate(
-            due,
-            NaiveDate::from_ymd_opt(2026, 7, 17).unwrap(),
-            &schedule,
-        );
+        let three = DeadlineReminder::evaluate(due, date!(2026 - 07 - 17), &schedule);
         assert_eq!(three.days_remaining, 3);
         assert!(three.should_notify);
 
-        let one = DeadlineReminder::evaluate(
-            due,
-            NaiveDate::from_ymd_opt(2026, 7, 19).unwrap(),
-            &schedule,
-        );
+        let one = DeadlineReminder::evaluate(due, date!(2026 - 07 - 19), &schedule);
         assert_eq!(one.days_remaining, 1);
         assert!(one.should_notify);
 
-        let other = DeadlineReminder::evaluate(
-            due,
-            NaiveDate::from_ymd_opt(2026, 7, 15).unwrap(),
-            &schedule,
-        );
+        let other = DeadlineReminder::evaluate(due, date!(2026 - 07 - 15), &schedule);
         assert_eq!(other.days_remaining, 5);
         assert!(!other.should_notify);
     }
@@ -247,8 +236,8 @@ mod tests {
     #[test]
     fn overdue_does_not_notify_on_schedule() {
         let schedule = ReminderSchedule::standard();
-        let due = NaiveDate::from_ymd_opt(2026, 7, 10).unwrap();
-        let as_of = NaiveDate::from_ymd_opt(2026, 7, 12).unwrap();
+        let due = date!(2026 - 07 - 10);
+        let as_of = date!(2026 - 07 - 12);
         let reminder = DeadlineReminder::evaluate(due, as_of, &schedule);
         assert!(reminder.is_overdue());
         assert!(!reminder.should_notify);
@@ -257,8 +246,8 @@ mod tests {
 
     #[test]
     fn webhook_payload_builder_deadline_approaching() {
-        let due = NaiveDate::from_ymd_opt(2026, 7, 20).unwrap();
-        let as_of = NaiveDate::from_ymd_opt(2026, 7, 13).unwrap();
+        let due = date!(2026 - 07 - 20);
+        let as_of = date!(2026 - 07 - 13);
         let payload = WebhookPayloadBuilder::new()
             .request_id("42")
             .due(due)
@@ -281,22 +270,12 @@ mod tests {
     #[test]
     fn approaching_payload_if_due_only_on_schedule() {
         let schedule = ReminderSchedule::standard();
-        let due = NaiveDate::from_ymd_opt(2026, 7, 20).unwrap();
-        let hit = approaching_payload_if_due(
-            due,
-            NaiveDate::from_ymd_opt(2026, 7, 17).unwrap(),
-            &schedule,
-            Some("req-9"),
-        );
+        let due = date!(2026 - 07 - 20);
+        let hit = approaching_payload_if_due(due, date!(2026 - 07 - 17), &schedule, Some("req-9"));
         assert!(hit.is_some());
         assert_eq!(hit.unwrap().request_id.as_deref(), Some("req-9"));
 
-        let miss = approaching_payload_if_due(
-            due,
-            NaiveDate::from_ymd_opt(2026, 7, 14).unwrap(),
-            &schedule,
-            None,
-        );
+        let miss = approaching_payload_if_due(due, date!(2026 - 07 - 14), &schedule, None);
         assert!(miss.is_none());
     }
 

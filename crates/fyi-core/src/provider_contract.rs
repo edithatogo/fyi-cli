@@ -6,10 +6,10 @@
 
 use crate::jurisdiction::Instance;
 use anyhow::Result;
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::future::Future;
 use std::pin::Pin;
+use time::OffsetDateTime;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct ReadCapabilities {
@@ -40,8 +40,12 @@ pub enum ProviderMessageDirection {
 pub struct ProviderMessage {
     pub direction: ProviderMessageDirection,
     pub body: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub sent_at: Option<DateTime<Utc>>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "crate::time_util::rfc3339_utc_option"
+    )]
+    pub sent_at: Option<OffsetDateTime>,
     #[serde(default)]
     pub attachment_urls: Vec<String>,
 }
@@ -57,10 +61,18 @@ pub struct ProviderRequest {
     pub status: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_url: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<DateTime<Utc>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<DateTime<Utc>>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "crate::time_util::rfc3339_utc_option"
+    )]
+    pub created_at: Option<OffsetDateTime>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "crate::time_util::rfc3339_utc_option"
+    )]
+    pub updated_at: Option<OffsetDateTime>,
     #[serde(default)]
     pub tags: Vec<String>,
     #[serde(default)]
@@ -122,7 +134,7 @@ mod tests {
             messages: vec![ProviderMessage {
                 direction: ProviderMessageDirection::Response,
                 body: "Attached".into(),
-                sent_at: Some("2026-07-12T00:00:00Z".parse().unwrap()),
+                sent_at: Some(time::macros::datetime!(2026-07-12 00:00:00 UTC)),
                 attachment_urls: vec!["https://example.test/file.pdf".into()],
             }],
             raw_source_hash: Some("sha256:abc".into()),

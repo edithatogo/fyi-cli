@@ -130,7 +130,7 @@ fn timestamp(event: &Map<String, Value>) -> (Option<String>, &'static str) {
         .and_then(Value::as_str);
     match value {
         Some(value) if !value.is_empty() => {
-            if chrono::DateTime::parse_from_rfc3339(value).is_ok() {
+            if crate::time_util::parse_strict_rfc3339(value).is_ok() {
                 (Some(value.to_string()), "valid")
             } else {
                 (None, "invalid")

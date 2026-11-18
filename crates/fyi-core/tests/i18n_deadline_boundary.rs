@@ -1,12 +1,12 @@
 //! These tests verify arithmetic boundaries and delegation, not statutory validity.
 
-use chrono::{Days, NaiveDate};
 use fyi_core::deadlines::{self, DeadlineInput, WorkingDayRule};
 use fyi_core::i18n::{LocalizationEngine, SUPPORTED_LOCALES};
 use fyi_core::jurisdiction::InstanceRegistry;
+use time::{Date, Duration, Month};
 
-fn date(year: i32, month: u32, day: u32) -> NaiveDate {
-    NaiveDate::from_ymd_opt(year, month, day).unwrap()
+fn date(year: i32, month: u32, day: u32) -> Date {
+    Date::from_calendar_date(year, Month::try_from(month as u8).unwrap(), day as u8).unwrap()
 }
 
 #[test]
@@ -144,23 +144,23 @@ fn count_just_above_u32_max_is_rejected_instead_of_becoming_zero() {
 fn zero_days_at_date_boundaries_succeeds_and_advancing_past_max_fails() {
     for locale in SUPPORTED_LOCALES {
         let engine = LocalizationEngine::new(locale);
-        for start in [NaiveDate::MIN, NaiveDate::MAX] {
+        for start in [Date::MIN, Date::MAX] {
             assert_eq!(engine.try_add_working_days(start, 0).unwrap(), start);
         }
-        assert!(engine.try_add_working_days(NaiveDate::MAX, 1).is_err());
+        assert!(engine.try_add_working_days(Date::MAX, 1).is_err());
     }
 }
 
 #[test]
 fn exact_remaining_weekday_capacity_near_max_is_accepted_without_saturation() {
     let engine = LocalizationEngine::new("en-GB");
-    for days_before_max in 0..=15 {
-        let start = NaiveDate::MAX
-            .checked_sub_days(Days::new(days_before_max))
+    for days_before_max in 0..=15_i64 {
+        let start = Date::MAX
+            .checked_sub(Duration::days(days_before_max))
             .unwrap();
         // The canonical counter only traverses this bounded suffix, not the date range.
         let capacity =
-            deadlines::working_days_between(start, NaiveDate::MAX, WorkingDayRule::WeekdaysOnly);
+            deadlines::working_days_between(start, Date::MAX, WorkingDayRule::WeekdaysOnly);
         for count in 0..=capacity {
             let expected = deadlines::add_working_days(start, count, WorkingDayRule::WeekdaysOnly);
             assert_eq!(
@@ -176,11 +176,11 @@ fn exact_remaining_weekday_capacity_near_max_is_accepted_without_saturation() {
             "{start} must reject a count larger than remaining capacity {capacity}"
         );
     }
-    let penultimate = NaiveDate::MAX.pred_opt().unwrap();
-    if deadlines::is_weekday(NaiveDate::MAX) {
+    let penultimate = Date::MAX.previous_day().unwrap();
+    if deadlines::is_weekday(Date::MAX) {
         assert_eq!(
             engine.try_add_working_days(penultimate, 1).unwrap(),
-            NaiveDate::MAX
+            Date::MAX
         );
     } else {
         assert!(engine.try_add_working_days(penultimate, 1).is_err());
@@ -197,15 +197,15 @@ fn instance_adapter_checks_range_after_applying_canonical_period_policy() {
             instance.foi_law.statutory_deadline_days = period;
             assert_eq!(
                 engine
-                    .try_deadline_for_instance(NaiveDate::MAX, &instance)
+                    .try_deadline_for_instance(Date::MAX, &instance)
                     .unwrap(),
-                NaiveDate::MAX
+                Date::MAX
             );
         }
         for period in [None, Some(1), Some(i32::MAX)] {
             instance.foi_law.statutory_deadline_days = period;
             assert!(engine
-                .try_deadline_for_instance(NaiveDate::MAX, &instance)
+                .try_deadline_for_instance(Date::MAX, &instance)
                 .is_err());
         }
         instance.foi_law.statutory_deadline_days = Some(i32::MAX);

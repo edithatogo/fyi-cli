@@ -6,20 +6,17 @@
 mod canonical;
 
 use crate::provenance::sha256_hex;
+use crate::time_util::parse_strict_rfc3339;
 use anyhow::{bail, ensure, Context, Result};
-use chrono::{DateTime, FixedOffset};
 use serde_json::Value;
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
+use time::OffsetDateTime;
 
-fn parse_rfc3339_timestamp(value: &str, field: &str) -> Result<DateTime<FixedOffset>> {
-    ensure!(
-        matches!(value.as_bytes().get(10), Some(b'T' | b't')),
-        "invalid {field}: expected RFC 3339 'T' separator"
-    );
-    DateTime::parse_from_rfc3339(value).with_context(|| format!("invalid {field}"))
+fn parse_rfc3339_timestamp(value: &str, field: &str) -> Result<OffsetDateTime> {
+    parse_strict_rfc3339(value).map_err(|error| anyhow::anyhow!("invalid {field}: {error}"))
 }
 
 /// Canonical UTF-8 JSON with stable key ordering and exactly one newline.
