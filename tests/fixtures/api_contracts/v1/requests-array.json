@@ -1,0 +1,17 @@
+[
+  {
+    "id": 3001,
+    "title": "Café 東京 synthetic request",
+    "body": "Synthetic body",
+    "user_name": null,
+    "tags": null,
+    "future_optional_field": {
+      "synthetic": true
+    }
+  },
+  {
+    "id": 3002,
+    "title": "Synthetic minimal request",
+    "body": ""
+  }
+]

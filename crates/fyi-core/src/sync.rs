@@ -7,8 +7,8 @@ use crate::api::{
     UpdateRequestStateResponse,
 };
 use crate::db::{DbPool, FieldChange, SyncStatus};
+use crate::time_util::{format_rfc3339_millis_z, now_rfc3339_millis_z};
 use anyhow::{anyhow, Context, Result};
-use chrono::{SecondsFormat, Utc};
 use reqwest::{header, Client, RequestBuilder, StatusCode, Url};
 use serde_json::Value;
 use std::collections::{BTreeSet, HashMap};
@@ -16,9 +16,11 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::path::Path;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
+use time::OffsetDateTime;
 use tokio::sync::{oneshot, Mutex, OwnedSemaphorePermit, Semaphore};
 use tokio::task::JoinHandle;
 
+pub mod documentation;
 mod pull_evidence;
 pub use pull_evidence::{
     preflight_sync_pull_evidence, SyncPullEvidenceClient, SyncPullEvidencePaths,
@@ -289,23 +291,31 @@ impl WaybackTransport {
             version: response.version,
             headers: response.headers,
             body: response.body,
-            captured_at: Utc::now(),
+            captured_at: OffsetDateTime::now_utc(),
         })
     }
 }
 
 fn build_wayback_http_client(identity: &crate::agent_runtime::ClientIdentity) -> Result<Client> {
+    wayback_http_client_builder(identity)?
+        .build()
+        .context("failed to build Wayback HTTP client")
+}
+
+fn wayback_http_client_builder(
+    identity: &crate::agent_runtime::ClientIdentity,
+) -> Result<reqwest::ClientBuilder> {
     identity.validate()?;
-    Client::builder()
+    Ok(Client::builder()
         .user_agent(identity.user_agent())
         .timeout(Duration::from_secs(60))
         .redirect(reqwest::redirect::Policy::none())
+        // Protocol-NACK retries would bypass the one-attempt receipt observer.
+        .retry(reqwest::retry::never())
         .no_gzip()
         .no_brotli()
         .no_deflate()
-        .no_zstd()
-        .build()
-        .context("failed to build Wayback HTTP client")
+        .no_zstd())
 }
 
 #[derive(Clone)]
@@ -411,10 +421,7 @@ impl SyncClient {
             guardrails,
             crate::agent_runtime::PacingPolicy::default(),
             Box::new(crate::agent_runtime::NullTraceSink),
-            format!(
-                "sync-{}",
-                chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default()
-            ),
+            format!("sync-{}", OffsetDateTime::now_utc().unix_timestamp_nanos()),
         );
         let base_url = Url::parse(base_url).context("invalid FYI base URL")?;
         validate_instance_url(&base_url, false)?;
@@ -469,7 +476,8 @@ impl SyncClient {
             &crate::shared_pacing::ReservationInput {
                 name: &shared.name,
                 owner_id: &owner,
-                now: Utc::now().timestamp_millis() as f64 / 1_000.0,
+                now: (OffsetDateTime::now_utc().unix_timestamp_nanos() / 1_000_000) as f64
+                    / 1_000.0,
                 interval_seconds: interval.as_secs_f64(),
                 jitter_seconds: 0.25,
                 jitter_fraction: u64::from_le_bytes(random) as f64 / u64::MAX as f64,
@@ -724,7 +732,7 @@ impl SyncClient {
             body.extend_from_slice(&chunk);
         }
         let response_bytes = body.len() as u64;
-        let mut retrieved_at = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true);
+        let mut retrieved_at = now_rfc3339_millis_z();
         if status == StatusCode::NOT_MODIFIED && allow_cache {
             let Some(cached) = cached_response else {
                 return Err(
@@ -955,7 +963,7 @@ impl SyncClient {
             .base_url
             .join(&format!("api/v2/request/{request_id}.json"))
             .context("failed to build request URL")?;
-        let started = Utc::now();
+        let started = OffsetDateTime::now_utc();
         let response = self
             .send_guarded(self.http.get(url.clone()))
             .await
@@ -966,7 +974,7 @@ impl SyncClient {
             ));
         }
         let response = ensure_success(response, "request endpoint").await?;
-        let completed = Utc::now();
+        let completed = OffsetDateTime::now_utc();
         let request: AlaveteliRequest = serde_json::from_slice(&response.body)
             .context("failed to parse public request JSON")?;
         if request.id != request_id {
@@ -977,8 +985,8 @@ impl SyncClient {
         let result_projection = canonical_json_bytes(
             &serde_json::to_value(&request).context("failed to normalize request JSON")?,
         )?;
-        let started_at = started.to_rfc3339_opts(SecondsFormat::Millis, true);
-        let completed_at = completed.to_rfc3339_opts(SecondsFormat::Millis, true);
+        let started_at = format_rfc3339_millis_z(started);
+        let completed_at = format_rfc3339_millis_z(completed);
         let receipt = build_single_get_receipt_with_rate_limit(
             SingleGetReceiptInput {
                 source_url: &url,
@@ -2128,6 +2136,117 @@ mod tests {
     ) -> Result<(reqwest::Response, Url)> {
         let url = request.url().clone();
         Ok((response.into(), url))
+    }
+
+    #[tokio::test]
+    async fn replay_http_client_never_retries_protocol_nacks() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::task::{Context, Poll};
+
+        // Produce an actual remote REFUSED_STREAM over memory, not sockets.
+        // A bare h2::Reason converted into an error is not remotely initiated
+        // and would never exercise reqwest's default retry classifier.
+        let (client_io, server_io) = tokio::io::duplex(4096);
+        let nack = tokio::time::timeout(Duration::from_secs(2), async {
+            let client = async {
+                let (mut sender, connection) = h2::client::handshake(client_io).await.unwrap();
+                let request = http::Request::builder()
+                    .uri("https://example.test/")
+                    .body(())
+                    .unwrap();
+                let (response, _) = sender.send_request(request, true).unwrap();
+                tokio::select! {
+                    response = response => response.unwrap_err(),
+                    result = connection => panic!("connection ended before refusal: {result:?}"),
+                }
+            };
+            let server = async {
+                let mut connection = h2::server::handshake(server_io).await.unwrap();
+                let (_, mut respond) = connection.accept().await.unwrap().unwrap();
+                respond.send_reset(h2::Reason::REFUSED_STREAM);
+                // Drive the queued reset until the client receives it and closes.
+                let _ = connection.accept().await;
+            };
+            tokio::join!(client, server).0
+        })
+        .await
+        .expect("in-memory HTTP/2 refusal must complete");
+        assert!(nack.is_remote() && nack.is_reset());
+        assert_eq!(nack.reason(), Some(h2::Reason::REFUSED_STREAM));
+
+        type BoxError = Box<dyn std::error::Error + Send + Sync>;
+        #[derive(Debug)]
+        struct RefusedStream(Arc<h2::Error>);
+        impl std::fmt::Display for RefusedStream {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.write_str("synthetic remote stream refusal")
+            }
+        }
+        impl std::error::Error for RefusedStream {
+            fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                Some(self.0.as_ref())
+            }
+        }
+        #[derive(Clone)]
+        struct NackLayer {
+            nack: Arc<h2::Error>,
+            calls: Arc<AtomicUsize>,
+        }
+        #[derive(Clone)]
+        struct NackService<S> {
+            _inner: S,
+            layer: NackLayer,
+        }
+        impl<S> tower::Layer<S> for NackLayer {
+            type Service = NackService<S>;
+            fn layer(&self, inner: S) -> Self::Service {
+                NackService {
+                    _inner: inner,
+                    layer: self.clone(),
+                }
+            }
+        }
+        impl<S, Request> tower::Service<Request> for NackService<S>
+        where
+            S: tower::Service<Request>,
+            S::Response: Send + 'static,
+        {
+            type Response = S::Response;
+            type Error = BoxError;
+            type Future = std::future::Ready<Result<Self::Response, Self::Error>>;
+            fn poll_ready(&mut self, _context: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+                Poll::Ready(Ok(()))
+            }
+            fn call(&mut self, _request: Request) -> Self::Future {
+                // Never invoke the inner connector, DNS resolution or sockets.
+                self.layer.calls.fetch_add(1, Ordering::SeqCst);
+                std::future::ready(Err(Box::new(RefusedStream(self.layer.nack.clone()))))
+            }
+        }
+        let nack = Arc::new(nack);
+        let identity = crate::agent_runtime::ClientIdentity::default_identity(None).unwrap();
+        for (builder, expect_retries) in [
+            (Client::builder(), true),
+            (wayback_http_client_builder(&identity).unwrap(), false),
+        ] {
+            let calls = Arc::new(AtomicUsize::new(0));
+            let http = builder
+                .no_proxy()
+                .connector_layer(NackLayer {
+                    nack: nack.clone(),
+                    calls: calls.clone(),
+                })
+                .timeout(Duration::from_secs(2))
+                .build()
+                .unwrap();
+            http.get(replay_fixture_url()).send().await.unwrap_err();
+            let count = calls.load(Ordering::SeqCst);
+            if expect_retries {
+                assert!(count > 1, "control must exercise the default retry policy");
+            } else {
+                assert_eq!(count, 1, "Wayback must issue exactly one transport attempt");
+            }
+        }
     }
 
     #[tokio::test]
@@ -4346,7 +4465,8 @@ mod tests {
             &crate::shared_pacing::ReservationInput {
                 name: "archive-discovery",
                 owner_id: "other-worker",
-                now: Utc::now().timestamp_millis() as f64 / 1_000.0,
+                now: (OffsetDateTime::now_utc().unix_timestamp_nanos() / 1_000_000) as f64
+                    / 1_000.0,
                 interval_seconds: 7_200.0,
                 jitter_seconds: 0.0,
                 jitter_fraction: 0.0,

@@ -7,6 +7,8 @@ on:
       - "crates/fyi-core/**"
       - "crates/fyi-cli/**"
       - "conformance/acquisition/**"
+      - "conformance/internet-archive-replay/**"
+      - "tests/fixtures/internet_archive_replay/**"
       - "Cargo.toml"
       - "Cargo.lock"
       - ".gitattributes"
@@ -20,6 +22,8 @@ on:
       - "crates/fyi-core/**"
       - "crates/fyi-cli/**"
       - "conformance/acquisition/**"
+      - "conformance/internet-archive-replay/**"
+      - "tests/fixtures/internet_archive_replay/**"
       - "Cargo.toml"
       - "Cargo.lock"
       - ".gitattributes"
@@ -70,7 +74,7 @@ jobs:
           mkdir -p artifacts/receipt-portability
           {
             git rev-parse HEAD
-            git ls-files --eol conformance/acquisition
+            git ls-files --eol conformance/acquisition conformance/internet-archive-replay tests/fixtures/internet_archive_replay
             printf 'runner_os=%s\nrunner_arch=%s\n' "$RUNNER_OS" "$RUNNER_ARCH"
             rustc --version --verbose
             cargo --version
@@ -95,12 +99,21 @@ jobs:
             --test receipt_verifier_parity \
             --test receipt_wire \
             --test receipt_persistence_portability \
+            --test internet_archive_replay \
             2>&1 | tee artifacts/receipt-portability/core-tests.log
+      - name: Verify bounded replay evidence and transport
+        run: |
+          set -o pipefail
+          cargo test --locked --package fyi-core --lib internet_archive_replay:: \
+            2>&1 | tee artifacts/receipt-portability/replay-evidence-tests.log
+          cargo test --locked --package fyi-core --lib sync::tests::replay_ \
+            2>&1 | tee artifacts/receipt-portability/replay-transport-tests.log
       - name: Verify actual CLI receipt ingestion
         run: |
           set -o pipefail
           cargo test --locked --package fyi-cli \
             --test receipt_numeric_tests --test receipt_wire_tests --test startup_tests \
+            --test replay_evidence_gate_tests \
             2>&1 | tee artifacts/receipt-portability/cli-tests.log
       - name: Retain portability evidence
         if: always()

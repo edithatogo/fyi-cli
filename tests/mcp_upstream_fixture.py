@@ -9,6 +9,7 @@ temporary directory/memory and are never committed as fixture credentials.
 
 from __future__ import annotations
 
+import functools
 import json
 import socketserver
 import ssl
@@ -40,7 +41,8 @@ PRIVATE_MARKER = "synthetic-upstream-private-error"
 MAX_REQUEST_BYTES = 2 * 1024 * 1024
 
 
-def _certificates(directory: Path) -> ssl.SSLContext:
+@functools.lru_cache(maxsize=1)
+def _ephemeral_pem_bundle() -> tuple[bytes, bytes, bytes]:
     now = datetime.now(UTC)
     ca_key = ec.generate_private_key(ec.SECP256R1())
     ca_name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "Synthetic MCP fixture CA")])
@@ -83,17 +85,24 @@ def _certificates(directory: Path) -> ssl.SSLContext:
         .add_extension(x509.ExtendedKeyUsage([ExtendedKeyUsageOID.SERVER_AUTH]), critical=False)
         .sign(ca_key, hashes.SHA256())
     )
-    (directory / "ca.pem").write_bytes(ca.public_bytes(serialization.Encoding.PEM))
-    (directory / "server.pem").write_bytes(leaf.public_bytes(serialization.Encoding.PEM))
-    key_path = directory / "server.key"
-    key_path.touch(mode=0o600, exist_ok=False)
-    key_path.write_bytes(
+    return (
+        ca.public_bytes(serialization.Encoding.PEM),
+        leaf.public_bytes(serialization.Encoding.PEM),
         key.private_bytes(
             serialization.Encoding.PEM,
             serialization.PrivateFormat.PKCS8,
             serialization.NoEncryption(),
         ),
     )
+
+
+def _certificates(directory: Path) -> ssl.SSLContext:
+    ca_pem, server_pem, server_key_pem = _ephemeral_pem_bundle()
+    (directory / "ca.pem").write_bytes(ca_pem)
+    (directory / "server.pem").write_bytes(server_pem)
+    key_path = directory / "server.key"
+    key_path.touch(mode=0o600, exist_ok=False)
+    key_path.write_bytes(server_key_pem)
     (directory / "empty-ca-directory").mkdir()
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.load_cert_chain(directory / "server.pem", key_path)

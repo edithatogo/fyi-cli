@@ -1,7 +1,6 @@
 //! Source-backed 2026 regressions; public holiday data is not legal approval.
 //! Source URLs and scope limitations live in locales/calendars/v1/provenance.json.
 
-use chrono::NaiveDate;
 use fyi_core::deadlines::statutory::{
     calculate_explicit_deadline, DeadlineAdjustment, DeadlineRuleError, HolidayCalendar,
     HolidayCalendarCatalog, LegalClockRule, ReceiptConvention, StatutoryDuration, StatutoryUnit,
@@ -9,12 +8,14 @@ use fyi_core::deadlines::statutory::{
 };
 use serde_json::{json, Value};
 use std::collections::BTreeSet;
+use time::macros::format_description;
+use time::Date;
 
-fn date(value: &str) -> NaiveDate {
-    NaiveDate::parse_from_str(value, "%Y-%m-%d").unwrap()
+fn date(value: &str) -> Date {
+    Date::parse(value, format_description!("[year]-[month]-[day]")).unwrap()
 }
 
-fn one_working_day(jurisdiction: &str, receipt: &str) -> Result<NaiveDate, DeadlineRuleError> {
+fn one_working_day(jurisdiction: &str, receipt: &str) -> Result<Date, DeadlineRuleError> {
     let catalog = HolidayCalendarCatalog::embedded();
     let rule = LegalClockRule {
         id: "synthetic-arithmetic-test".into(),

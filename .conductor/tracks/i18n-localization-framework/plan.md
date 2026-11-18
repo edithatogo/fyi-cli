@@ -184,6 +184,24 @@ remain open; this source-data checkpoint is not an archive or approval receipt.
 - [x] Task: Create translation guidelines for contributors
 - [ ] Task: Conductor - User Manual Verification 'Phase 6.3: Documentation' (Protocol in workflow.md)
 
+#### Issue #67 usage-guide completion — 2026-11-17
+
+- [x] Reconcile the guide with the current locale, template and calendar APIs — `67fe138`.
+- [x] Document exact locale-registration and template-customization steps, including
+  resource revisions, variable contracts and translation review evidence.
+- [x] Replace the incomplete calendar snippet with a complete synthetic example;
+  document schema/runtime validation, contribution evidence and year rollover.
+- [x] Verify all six Rust examples in a bounded source-only harness and the
+  calendar schema/Python example; record independent source review and the
+  remaining #39/#65/#66 human/legal/calendar acceptance separately.
+
+Implementation checkpoint: `67fe138` ([PR #490](https://github.com/edithatogo/fyi-cli/pull/490)).
+See [documentation-evidence.md](documentation-evidence.md) for exact source
+identities, successful example checks and the full local build's SIGKILL limit.
+The unchanged required hosted checks remain the integration gate. #67's recorded
+human/locale review and #66 source/calendar review remain open; no manual
+verification, legal acceptance, issue closure or track archive is claimed.
+
 ## Completion Criteria
 - [ ] All phases complete
 - [x] fluent-rs integrated with 6+ locales

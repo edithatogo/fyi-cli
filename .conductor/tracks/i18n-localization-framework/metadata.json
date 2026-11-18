@@ -49,6 +49,7 @@
       "workspace_gate_percent": 90,
       "additional_exclusions": false,
       "local_rust_execution": "blocked: already-merged Fluent dependency absent from offline cache; executable evidence supplied by existing hosted CI"
+<<<<<<< HEAD
     },
     "calendar_checkpoint": {
       "issue": 66,
@@ -69,6 +70,22 @@
       "rust_scoped_toolchain": "1.100.0",
       "full_workspace": "hosted checks pending; full local dependency compilation SIGKILL",
       "validation_status": "unvalidated"
+||||||| efd232f
+=======
+    },
+    "documentation_issue_67": {
+      "github_issue": 67,
+      "github_pr": 490,
+      "status": "documentation_implemented_review_gates_open",
+      "implementation_commit": "67fe138501fa04f1d06c9149ed5e4d199578c73b",
+      "evidence": "documentation-evidence.md",
+      "rust_examples_passed": 6,
+      "rust_example_scope": "Source-only harness with unchanged i18n/deadline modules and original jurisdiction data/registry prefix; full workspace integration belongs to hosted CI.",
+      "embedded_schema_tests_passed": 1,
+      "human_review_complete": false,
+      "calendar_source_review_complete": false,
+      "hosted_checks": "See PR #490 for the exact current-head status."
+>>>>>>> origin/master
     }
   },
   "historical_github_pr": 126,
@@ -76,9 +93,16 @@
     126,
     436,
     447,
+<<<<<<< HEAD
     450,
     470,
     473,
     491
+||||||| efd232f
+    450
+=======
+    450,
+    490
+>>>>>>> origin/master
   ]
 }

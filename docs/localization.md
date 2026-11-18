@@ -1,4 +1,9 @@
-# Localization and request-template foundation
+# Localization usage and contribution guide
+
+Use this guide to [add a supported locale](#add-a-supported-locale),
+[customize a request template](#customize-request-templates), or
+[contribute a holiday calendar](#contribute-an-embedded-calendar).
+Examples use the Rust `fyi-core` API and run without contacting a service.
 
 ## Scope and review status
 
@@ -7,9 +12,10 @@ citation, establish a statutory deadline, persist a request or submit anything.
 Successful rendering is **not** evidence of legal validity or human translation
 approval. The embedded text is an unreviewed rendering baseline.
 
-The existing `i18n-localization-framework` track remains active. Its historical
-completed status was not supported by its original acceptance criteria. Shared
-Conductor registry reconciliation belongs to the coordinating workstream.
+The [i18n-localization-framework plan](../.conductor/tracks/i18n-localization-framework/plan.md)
+tracks implemented behavior separately from outstanding translation, calendar and
+legal review. The guide describes the available APIs; it does not mark those
+reviews complete or advertise runtime locale overrides that are not implemented.
 
 ## Supported identifiers and deterministic fallback
 
@@ -157,6 +163,116 @@ and body once (`&`, `<`, `>`, quotes and apostrophes). It is text for an HTML di
 context, not an HTML document or email header. Provenance fields remain structured
 data and need context-appropriate handling by their consumer.
 
+## Customize request templates
+
+### Change a particular letter
+
+Set fields on `RequestTemplateInput` to select an existing variant and register,
+provide a reference or caller-formatted date, and supply your own body. This does
+not require editing resources or rebuilding the library:
+
+```rust
+use fyi_core::i18n::{
+    LetterRegister, LocalizationEngine, OutputFormat, RequestTemplateInput,
+    TemplateVariant, ValidationStatus,
+};
+use fyi_core::jurisdiction::InstanceRegistry;
+
+let registry = InstanceRegistry::embedded()?;
+let instance = registry.get("nz-fyi").expect("embedded NZ fixture");
+let mut input = RequestTemplateInput::new(
+    "Example Council", "Example Requester", "Budget records",
+    "Please let me know the progress of this request.", instance,
+);
+input.variant = TemplateVariant::FollowUp;
+input.register = LetterRegister::Informal;
+input.request_reference = Some("EXAMPLE-42");
+input.date = Some("17 November 2026");
+
+let draft = LocalizationEngine::try_new("en-NZ")?
+    .render_request(&input, OutputFormat::PlainText)?;
+assert_eq!(draft.title, "Follow-up: Budget records");
+assert!(draft.body.contains("EXAMPLE-42"));
+assert!(draft.body.ends_with("Kind regards\nExample Requester"));
+assert_eq!(draft.jurisdiction_id, "nz-fyi");
+assert_eq!(draft.validation, ValidationStatus::RenderedUnvalidated);
+# Ok::<(), Box<dyn std::error::Error>>(())
+```
+
+An appeal also requires `input.review = Some(ReviewInformation { authority: ...,
+instructions: ... })`. Review information remains an explicit caller decision;
+changing the variant does not establish review rights or send the letter.
+
+### Change bundled wording
+
+Edit `crates/fyi-core/locales/v1/<locale>/common.ftl`. English regions inherit
+shared wording from `en/common.ftl`; edit that file for a shared change or add the
+same message key to a regional file for a regional override. Other baseline
+languages have their own complete resources. For example, this is a possible
+English `follow_up_body` wording change:
+
+```ftl
+follow_up_body = Please send an update on { $request_reference }, requested under { $legal_citation }.
+```
+
+Keep message identifiers and Fluent variable names stable. The current typed
+renderer uses these message contracts:
+
+| Message keys | Variables used by the bundled wording |
+| --- | --- |
+| `salutation`, `informal_salutation` | `authority` |
+| `closing`, `informal_closing` | None |
+| `request_title`, `follow_up_title`, `internal_review_title`, `appeal_title` | `title` |
+| `legal_citation` | `law_name`, `citation` |
+| `request_body` | `legal_citation`, `request_term` |
+| `follow_up_body`, `internal_review_body` | `request_reference`, `legal_citation` |
+| `appeal_body` | `review_authority`, `request_reference`, `legal_citation` |
+| `date_line` | `date` |
+| `reference_line` | `request_reference` |
+| `review_contact` | `review_authority` |
+
+The renderer always supplies `authority`, `title`, `law_name` and `request_term`.
+It formats `legal_citation` first when a catalog citation exists, then supplies
+that result (or the law name alone) to the remaining messages. `citation`, `date`,
+`request_reference` and `review_authority` are available only when provided.
+Do not make an ordinary request depend on an optional follow-up or appeal field.
+
+The request body, requester name and review instructions are appended as literal
+sections by [the typed renderer](../crates/fyi-core/src/i18n/templates.rs).
+They are **not** Fluent variables: adding `{ $body }`, `{ $requester }` or
+`{ $review_instructions }` to a resource will fail formatting. Changing section
+order or introducing another typed input requires a separate renderer/API change.
+
+Increment `locales/v1/version.json`'s content revision after a wording change,
+update the affected hand-authored golden fixtures and their revision assertions,
+and rebuild. Review the new expected wording rather than mechanically accepting
+whatever the renderer produces. Run the [focused checks](#verification).
+
+### Render a standalone custom message
+
+`MessageBundle::from_ftl` accepts a caller-supplied UTF-8 Fluent string. This is
+useful for a custom message with its own variables and content revision:
+
+```rust
+use fyi_core::i18n::{BundleVersion, MessageBundle};
+use std::collections::BTreeMap;
+
+let bundle = MessageBundle::from_ftl(
+    "en-NZ",
+    BundleVersion { format_version: 1, revision: "example-v1".into() },
+    "notice = Draft for { $authority }",
+)?;
+bundle.require_messages(&["notice"])?;
+let args = BTreeMap::from([("authority".into(), "Example Council".into())]);
+assert_eq!(bundle.render("notice", &args)?, "Draft for Example Council");
+# Ok::<(), fyi_core::i18n::I18nError>(())
+```
+
+This bundle does not replace `LocalizationEngine`'s embedded resources, register
+a supported locale, compose a typed letter, or load a file. Callers own any I/O
+and output-context escaping. Configurable external letter overrides remain open
+under [#39](https://github.com/edithatogo/fyi-cli/issues/39).
+
 ## Explicit jurisdiction terminology
 
 `i18n::terminology::TerminologyRegistry` supplies eleven typed concepts:
@@ -239,7 +355,7 @@ cargo test --locked --offline -p fyi-core --test i18n_terminology
 ```
 
 The offline command requires a pre-populated dependency cache. Review the six
-hand-authored glossaries in `tests/fixtures/i18n/terminology.json` with competent
+hand-authored glossaries in `crates/fyi-core/tests/fixtures/i18n/terminology.json` with competent
 language/jurisdiction reviewers before claiming translation or legal approval.
 The automated matrix checks nine profiles × six locales × eleven concepts,
 fallback provenance, malformed catalogs, literal Unicode and concurrent lookup.
@@ -257,36 +373,96 @@ terminal-date saturation without duplicating jurisdiction-specific rules. Existi
 infallible methods preserve ordinary results and panic on unsupported bounds;
 new consumers should use the fallible methods. Zero days at either date boundary
 remains valid. Tests compare all six locales with the canonical module, including
-the existing default/negative period policy and exact capacity near `NaiveDate::MAX`.
+the existing default/negative period policy and exact capacity near `Date::MAX`.
+
+### Explicit calendar-aware arithmetic
+
+The separate `deadlines::statutory::calculate_explicit_deadline` API takes a
+caller-selected `LegalClockRule` and matching `HolidayCalendar`. It supports
+explicit working-day, calendar-day and calendar-month periods, receipt-day
+conventions, extensions and terminal-date adjustment. See the
+[deadline rule contract](deadline-rule-contract.md) for these semantics.
+
+Loading a holiday catalog does not alter `try_add_working_days`,
+`try_deadline_for_instance` or `deadlines::calculate_deadline_for_instance`.
+Those compatibility helpers still use weekday-only estimates and never select a
+calendar from a display locale or an instance identifier.
 
 ### Legal-rule verification still required
 
-The catalog currently provides a number of days and its adapter uses weekday-only
-counting. This is a compatibility estimate, not evidence of statutory accuracy.
+The instance catalog's `statutory_deadline_days` field and compatibility adapter
+provide a weekday-only estimate, not evidence of statutory accuracy.
 Before relying on a legal deadline, the deadline/jurisdiction workstream must verify
 the time unit, triggering event, receipt-day treatment, national/regional/observed
 holidays, special closure periods, extensions, transfers, consultation and suspension
 rules, and review/appeal time limits against dated authoritative sources and reviewed
-examples. The canonical module's unchecked direct APIs and linear runtime for very
-large valid periods remain a separate follow-up; only i18n entry points receive the
-representation guard in this increment. Legal reliance remains blocked pending that
-work and human review.
+examples. The compatibility module's unchecked direct APIs and linear runtime for
+very large valid periods remain a separate follow-up. The explicit statutory API
+has its own range/period checks; neither API establishes legal applicability.
 
-## Adding or changing resources
+## Add a supported locale
 
-1. Edit the appropriate UTF-8 `.ftl` file and keep legal references as variables
-   supplied by the existing jurisdiction catalog.
-2. Increment `version.json`'s revision. Do not claim human review from a passing test.
-3. Add exact golden expectations and negative cases for missing messages/variables,
-   braces, Unicode and fallback. A new advertised locale also needs an explicit
-   supported identifier, embedded resource registration and resolution policy.
-4. Run formatting, Clippy, localization tests, drafting regressions and the full
-   required PR checks. Human reviewers must assess terminology, register, law names
-   and review routes separately.
+The advertised locale list is currently closed. Adding another supported locale
+is a source contribution and requires recompilation. `MessageBundle::from_ftl`
+can parse another well-formed language identifier, but cannot register it with
+`LocalizationEngine` or install a runtime override.
 
-The baseline deliberately has a closed locale list. Adding arbitrary locales
-without code changes and configurable external overrides remain track requirements;
-the low-level data-only bundle parser does not imply an override-loading facility.
+For example, a future `it-IT` contribution would require all of these steps;
+Italian is **not currently supported**:
+
+1. Choose the normalized identifier and define its intended fallback chain.
+   Document the distinction between display language, terminology regime and
+   calendar jurisdiction. Adding a locale does not add a law, platform or holiday
+   calendar.
+2. Create `crates/fyi-core/locales/v1/it-IT/common.ftl`. Use
+   `en/common.ftl` as the message-key inventory, translating the typed-letter,
+   legacy and deadline-label messages while preserving variable names. An English
+   regional locale may inherit shared English keys; a new non-English locale
+   needs translated messages rather than accidental English fallback.
+3. In `crates/fyi-core/src/i18n.rs`, add the exact identifier to
+   `SUPPORTED_LOCALES` and update its array length. Register the resource in
+   `embedded_bundles()` with an explicit `include_str!` entry. A directory alone
+   is not discovered automatically.
+4. Update `resolve_locale()` if other identifiers in that language should use the
+   new locale. Exact registration would enable `try_new("it-IT")`; it would not
+   by itself change `new("it-CH")`, which currently falls back to English. Specify
+   and test the intended compatibility fallback; strict `try_new` still rejects
+   identifiers outside the advertised list.
+5. For a new glossary language, add
+   `crates/fyi-core/locales/terminology/v1/it-IT.ftl` and register it in
+   `crates/fyi-core/src/i18n/terminology.rs`'s `bundles()`. Terminology follows the
+   engine's locale chain and uses English for `base`. Adding letter resources
+   alone would leave glossary terms falling back to English. Keep legal names
+   and abbreviations literal in the separately sourced regime catalog.
+6. Increment the letter content revision in `locales/v1/version.json`, relative
+   to `crates/fyi-core/`. If glossary content changes, also increment
+   `version.revision` in `locales/terminology/v1/catalog.json`. Extend the
+   hand-authored `crates/fyi-core/tests/fixtures/i18n/messages.json`,
+   `requests.json` and `terminology.json` fixtures, including message-source
+   expectations. Update explicit locale inventories and revision assertions in
+   `i18n_messages.rs`, `i18n_locale_goldens.rs`, `i18n_request_goldens.rs` and any
+   affected tests.
+7. Run the [verification commands](#verification). Check exact selection,
+   fallback provenance, missing keys/variables, literal braces and Unicode,
+   output escaping, and all four letter variants in both registers. Have
+   competent language/jurisdiction reviewers assess the wording and record
+   their findings independently of automated test success.
+
+### Translation contribution checklist
+
+Keep resources UTF-8 and retain translator comments explaining purpose, register
+and variable meaning. Translate surrounding prose without translating message
+identifiers or variable names. Use the supplied legal references; a translation
+must not substitute a different country's law, invent a deadline or add review
+rights. Preserve user-provided names and text without normalizing their Unicode.
+
+Golden expectations should be authored and reviewed independently of the rendered
+output. Use fictional authorities/requesters and public or synthetic examples.
+Record the locale, exact content revision/commit, reviewed variants and glossary
+concepts, reviewer role, review date, findings and unresolved questions in the PR
+or track evidence. Rendering tests establish behavior; they do not establish
+translation quality or legal approval. RTL support, arbitrary runtime locale
+registration and external letter-resource overrides remain separate track work.
 
 ## Holiday calendars
 

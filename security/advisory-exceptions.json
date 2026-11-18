@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "allow_new_exceptions": false,
-  "policy": "Seven existing RustSec suppressions remain time-bounded; thirteen others were retired after a logged no-matching-crate audit at master 9050a664. New suppressions are forbidden.",
+  "policy": "Eight time-bounded RustSec suppressions remain (seven historical exceptions plus RUSTSEC-2026-0542 for transitive humantime 2.4.0 via arti-client 0.48.0); thirteen stale entries were retired after a logged no-matching-crate audit at master 9050a664. Unauthorised new suppressions are forbidden.",
   "exceptions": {
     "RUSTSEC-2024-0436": {
       "owner": "edithatogo",
@@ -43,6 +43,12 @@
       "owner": "edithatogo",
       "tracking_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
       "reason": "unmaintained zvariant/zbus chain pending upstream keyring migration",
+      "expires": "2026-12-14"
+    },
+    "RUSTSEC-2026-0542": {
+      "owner": "edithatogo",
+      "tracking_issue": "https://github.com/edithatogo/fyi-cli/issues/495",
+      "reason": "transitive unmaintained humantime 2.4.0 via arti-client 0.48.0 latest release while workspace chrono dependency is completely removed",
       "expires": "2026-12-14"
     }
   }

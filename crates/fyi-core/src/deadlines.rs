@@ -7,8 +7,8 @@
 pub mod statutory;
 
 use crate::jurisdiction::Instance;
-use chrono::{Datelike, NaiveDate};
 use serde::{Deserialize, Serialize};
+use time::Date;
 
 /// Working-day calendar rules applied when counting statutory periods.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -25,7 +25,8 @@ pub enum WorkingDayRule {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DeadlineInput {
     /// Inclusive start date of the statutory period (typically submission day).
-    pub start_date: NaiveDate,
+    #[serde(with = "crate::time_util::date")]
+    pub start_date: Date,
     /// Number of working (or calendar) days allowed by statute.
     pub statutory_deadline_days: u32,
     /// How non-working days are treated while counting.
@@ -36,8 +37,10 @@ pub struct DeadlineInput {
 /// Computed statutory deadline with enough metadata for persistence and UI.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StatutoryDeadline {
-    pub start_date: NaiveDate,
-    pub due_date: NaiveDate,
+    #[serde(with = "crate::time_util::date")]
+    pub start_date: Date,
+    #[serde(with = "crate::time_util::date")]
+    pub due_date: Date,
     pub statutory_deadline_days: u32,
     pub working_day_rule: WorkingDayRule,
     /// Optional jurisdiction / instance id for store joins.
@@ -48,8 +51,10 @@ pub struct StatutoryDeadline {
 /// Overdue evaluation result relative to an "as of" date.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OverdueStatus {
-    pub due_date: NaiveDate,
-    pub as_of: NaiveDate,
+    #[serde(with = "crate::time_util::date")]
+    pub due_date: Date,
+    #[serde(with = "crate::time_util::date")]
+    pub as_of: Date,
     pub is_overdue: bool,
     /// Working days past the due date (0 when not overdue).
     pub days_overdue: u32,
@@ -58,7 +63,7 @@ pub struct OverdueStatus {
 }
 
 impl DeadlineInput {
-    pub fn new(start_date: NaiveDate, statutory_deadline_days: u32) -> Self {
+    pub fn new(start_date: Date, statutory_deadline_days: u32) -> Self {
         Self {
             start_date,
             statutory_deadline_days,
@@ -72,7 +77,7 @@ impl DeadlineInput {
     }
 
     /// Build input from a catalog [`Instance`], defaulting to 20 days.
-    pub fn from_instance(start_date: NaiveDate, instance: &Instance) -> Self {
+    pub fn from_instance(start_date: Date, instance: &Instance) -> Self {
         let days = instance
             .foi_law
             .statutory_deadline_days
@@ -83,22 +88,22 @@ impl DeadlineInput {
 }
 
 /// Returns true when `day` is Monday–Friday.
-pub fn is_weekday(day: NaiveDate) -> bool {
-    matches!(day.weekday().num_days_from_monday(), 0..=4)
+pub fn is_weekday(day: Date) -> bool {
+    matches!(day.weekday().number_days_from_monday(), 0..=4)
 }
 
 /// Advance `start` by `days` according to `rule`.
 ///
 /// Counting begins on the day *after* `start` (standard FOI practice: day 0
 /// is the day of receipt/submission).
-pub fn add_working_days(start: NaiveDate, days: u32, rule: WorkingDayRule) -> NaiveDate {
+pub fn add_working_days(start: Date, days: u32, rule: WorkingDayRule) -> Date {
     if days == 0 {
         return start;
     }
     let mut current = start;
     let mut remaining = days;
     while remaining > 0 {
-        current = current.succ_opt().unwrap_or(current);
+        current = current.next_day().unwrap_or(current);
         let counts = match rule {
             WorkingDayRule::WeekdaysOnly => is_weekday(current),
             WorkingDayRule::CalendarDays => true,
@@ -112,14 +117,14 @@ pub fn add_working_days(start: NaiveDate, days: u32, rule: WorkingDayRule) -> Na
 
 /// Count working (or calendar) days strictly after `from` up to and including `to`.
 /// Returns 0 when `to <= from`.
-pub fn working_days_between(from: NaiveDate, to: NaiveDate, rule: WorkingDayRule) -> u32 {
+pub fn working_days_between(from: Date, to: Date, rule: WorkingDayRule) -> u32 {
     if to <= from {
         return 0;
     }
     let mut current = from;
     let mut count = 0u32;
     while current < to {
-        current = current.succ_opt().unwrap_or(current);
+        current = current.next_day().unwrap_or(current);
         let counts = match rule {
             WorkingDayRule::WeekdaysOnly => is_weekday(current),
             WorkingDayRule::CalendarDays => true,
@@ -148,10 +153,7 @@ pub fn calculate_deadline(input: &DeadlineInput) -> StatutoryDeadline {
 }
 
 /// Calculate deadline for a catalog instance and attach its id.
-pub fn calculate_deadline_for_instance(
-    start_date: NaiveDate,
-    instance: &Instance,
-) -> StatutoryDeadline {
+pub fn calculate_deadline_for_instance(start_date: Date, instance: &Instance) -> StatutoryDeadline {
     let input = DeadlineInput::from_instance(start_date, instance);
     let mut deadline = calculate_deadline(&input);
     deadline.instance_id = Some(instance.id.clone());
@@ -161,7 +163,7 @@ pub fn calculate_deadline_for_instance(
 /// Evaluate whether a deadline is overdue as of `as_of`.
 ///
 /// A deadline is overdue when `as_of` is strictly after `due_date`.
-pub fn evaluate_overdue(deadline: &StatutoryDeadline, as_of: NaiveDate) -> OverdueStatus {
+pub fn evaluate_overdue(deadline: &StatutoryDeadline, as_of: Date) -> OverdueStatus {
     let is_overdue = as_of > deadline.due_date;
     let days_overdue = if is_overdue {
         working_days_between(deadline.due_date, as_of, deadline.working_day_rule)
@@ -183,7 +185,7 @@ pub fn evaluate_overdue(deadline: &StatutoryDeadline, as_of: NaiveDate) -> Overd
 }
 
 /// Convenience: true when the statutory deadline is past `as_of`.
-pub fn is_overdue(deadline: &StatutoryDeadline, as_of: NaiveDate) -> bool {
+pub fn is_overdue(deadline: &StatutoryDeadline, as_of: Date) -> bool {
     evaluate_overdue(deadline, as_of).is_overdue
 }
 
@@ -191,25 +193,26 @@ pub fn is_overdue(deadline: &StatutoryDeadline, as_of: NaiveDate) -> bool {
 mod tests {
     use super::*;
     use crate::jurisdiction::InstanceRegistry;
+    use time::macros::date;
 
     #[test]
     fn add_working_days_skips_weekend() {
         // Friday 3 Jul 2026 + 2 working days => Tuesday 7 Jul 2026
-        let start = NaiveDate::from_ymd_opt(2026, 7, 3).unwrap();
+        let start = date!(2026 - 07 - 03);
         let due = add_working_days(start, 2, WorkingDayRule::WeekdaysOnly);
-        assert_eq!(due, NaiveDate::from_ymd_opt(2026, 7, 7).unwrap());
+        assert_eq!(due, date!(2026 - 07 - 07));
     }
 
     #[test]
     fn calendar_days_count_weekends() {
-        let start = NaiveDate::from_ymd_opt(2026, 7, 3).unwrap();
+        let start = date!(2026 - 07 - 03);
         let due = add_working_days(start, 2, WorkingDayRule::CalendarDays);
-        assert_eq!(due, NaiveDate::from_ymd_opt(2026, 7, 5).unwrap());
+        assert_eq!(due, date!(2026 - 07 - 05));
     }
 
     #[test]
     fn zero_days_returns_start() {
-        let start = NaiveDate::from_ymd_opt(2026, 7, 3).unwrap();
+        let start = date!(2026 - 07 - 03);
         assert_eq!(
             add_working_days(start, 0, WorkingDayRule::WeekdaysOnly),
             start
@@ -218,52 +221,43 @@ mod tests {
 
     #[test]
     fn calculate_deadline_serializes() {
-        let start = NaiveDate::from_ymd_opt(2026, 7, 3).unwrap();
+        let start = date!(2026 - 07 - 03);
         let deadline = calculate_deadline(&DeadlineInput::new(start, 20));
         let json = serde_json::to_string(&deadline).unwrap();
         let roundtrip: StatutoryDeadline = serde_json::from_str(&json).unwrap();
         assert_eq!(deadline, roundtrip);
-        assert_eq!(
-            deadline.due_date,
-            NaiveDate::from_ymd_opt(2026, 7, 31).unwrap()
-        );
+        assert_eq!(deadline.due_date, date!(2026 - 07 - 31));
     }
 
     #[test]
     fn nz_instance_deadline_matches_20_working_days() {
         let registry = InstanceRegistry::embedded().unwrap();
         let instance = registry.get("nz-fyi").unwrap();
-        let start = NaiveDate::from_ymd_opt(2026, 7, 3).unwrap();
+        let start = date!(2026 - 07 - 03);
         let deadline = calculate_deadline_for_instance(start, instance);
         assert_eq!(deadline.instance_id.as_deref(), Some("nz-fyi"));
         assert_eq!(deadline.statutory_deadline_days, 20);
-        assert_eq!(
-            deadline.due_date,
-            NaiveDate::from_ymd_opt(2026, 7, 31).unwrap()
-        );
+        assert_eq!(deadline.due_date, date!(2026 - 07 - 31));
     }
 
     #[test]
     fn overdue_detection() {
-        let start = NaiveDate::from_ymd_opt(2026, 7, 3).unwrap();
+        let start = date!(2026 - 07 - 03);
         let deadline = calculate_deadline(&DeadlineInput::new(start, 2));
         // due = 2026-07-07
         let on_due = evaluate_overdue(&deadline, deadline.due_date);
         assert!(!on_due.is_overdue);
         assert_eq!(on_due.days_overdue, 0);
 
-        let after = evaluate_overdue(&deadline, NaiveDate::from_ymd_opt(2026, 7, 9).unwrap());
+        let after = evaluate_overdue(&deadline, date!(2026 - 07 - 09));
         assert!(after.is_overdue);
         assert!(after.days_overdue >= 1);
-        assert!(is_overdue(
-            &deadline,
-            NaiveDate::from_ymd_opt(2026, 7, 10).unwrap()
-        ));
+        assert!(is_overdue(&deadline, date!(2026 - 07 - 10)));
     }
 
     #[test]
     fn days_remaining_before_due() {
-        let start = NaiveDate::from_ymd_opt(2026, 7, 3).unwrap();
+        let start = date!(2026 - 07 - 03);
         let deadline = calculate_deadline(&DeadlineInput::new(start, 5));
         let status = evaluate_overdue(&deadline, start);
         assert!(!status.is_overdue);

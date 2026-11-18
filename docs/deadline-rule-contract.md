@@ -37,14 +37,14 @@ jurisdiction from display locale, or silently choose a holiday calendar.
 ### Synthetic example (not a statute)
 
 ```rust
-use chrono::NaiveDate;
 use fyi_core::deadlines::statutory::{
     calculate_explicit_deadline, DeadlineAdjustment, HolidayCalendar, LegalClockRule,
     ReceiptConvention, StatutoryDuration, StatutoryUnit,
 };
 use std::collections::BTreeSet;
+use time::{Date, Month};
 
-let date = |y, m, d| NaiveDate::from_ymd_opt(y, m, d).unwrap();
+let date = |y, m: u8, d| Date::from_calendar_date(y, Month::try_from(m).unwrap(), d).unwrap();
 let calendar = HolidayCalendar {
     jurisdiction: "TEST-REGION".into(),
     revision: "synthetic-v1".into(),

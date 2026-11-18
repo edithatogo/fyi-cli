@@ -1,5 +1,31 @@
 # Plan
 
+## Replay qualification follow-up — 2026-11-17
+
+Baseline: `1f0ae6d`, including the Rust replay engine and transport from #481/#483.
+This #312 increment retains the existing #309/#310 contract and owners.
+
+- [x] Implement checkpoint-size validation before payload publication and atomic
+  checkpoint replacement. The regression reproduced the defect on all three
+  platforms; the correction passed independent source review. [checkpoint: d7b577e]
+- [x] Disable the Wayback HTTP client's implicit protocol retries. The socket-free
+  regression observed three attempts instead of one before the correction;
+  independent source review accepted the scoped fix. [checkpoint: d7b577e]
+- [x] Execute the frozen replay corpus against the Python reference, retaining
+  the two documented legacy divergences; 67 focused cases passed locally, and
+  the full Python suite passed on tests-first head `7805d42`.
+- [x] Protect replay fixture bytes across checkouts and add focused Rust replay
+  and CLI evidence cases to the existing Linux/macOS/Windows portability gate.
+- [x] Reconcile the replay guides and record source review and tests-first
+  evidence in [replay qualification](./replay-qualification-20261117.md).
+  Implementation PR: [#489](https://github.com/edithatogo/fyi-cli/pull/489).
+- [~] Qualify the final receiving head and coordinate integration through #489.
+  Its current-head check ledger records executable acceptance; the static
+  source review and earlier test receipts do not replace that gate.
+
+Live source smoke, release pinning, downstream shadow parity and archive cutover
+remain separate gates; `archive_cutover_allowed=false`.
+
 ## Bounded Rust replay work — 2026-11-16
 
 - [x] Develop #312 replay from the frozen source checkpoint `5885469` on branch

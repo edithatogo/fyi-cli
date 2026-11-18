@@ -192,7 +192,7 @@ impl SyncPullEvidenceClient {
         if let Some(since) = since.as_deref().filter(|value| !value.trim().is_empty()) {
             url.query_pairs_mut().append_pair("updated_since", since);
         }
-        let started = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true);
+        let started = now_rfc3339_millis_z();
         let response = fetch(url.clone())
             .await
             .map_err(|_| anyhow!("sync source exchange incomplete; no receipt was published"))?;
@@ -256,7 +256,7 @@ impl SyncPullEvidenceClient {
             "command": "sync-pull", "adapter": {"id": "alaveteli-sync", "version": env!("CARGO_PKG_VERSION")},
             "source": {"url": source_url.as_str()},
             "request_bounds": {"updated_since_sha256": since_digest, "max_response_bytes": MAX_RESPONSE_BYTES, "redirects": 0, "retries": 0},
-            "started_at": started, "completed_at": Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true),
+            "started_at": started, "completed_at": now_rfc3339_millis_z(),
             "status": if outcome.is_ok() { "succeeded" } else { "failed" },
             "responses": [{"url": response_url.as_str(), "status": status.as_u16(), "bytes": raw.len(), "sha256": sha256_hex(&raw), "attempts": 1, "retry_delays_seconds": []}],
             "totals": {"requests": 1, "bytes": raw.len(), "retries": 0},

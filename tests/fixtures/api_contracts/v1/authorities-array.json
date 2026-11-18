@@ -1,0 +1,11 @@
+[
+  {
+    "id": "synthetic-1",
+    "name": "Synthetic Authority",
+    "future_optional_field": "ignored"
+  },
+  {
+    "id": null,
+    "slug": "synthetic-no-id"
+  }
+]

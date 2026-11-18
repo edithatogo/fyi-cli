@@ -71,12 +71,17 @@
       "ok": true
     },
     {
+      "detail": "default_setup_state=not-configured stale_default_setup_analyses=[] unexpected_categories=[]",
+      "name": "github:codeql-configuration-hygiene",
+      "ok": true
+    },
+    {
       "detail": "merge gate is automated checks; required approving review count is 0",
       "name": "solo:zero-mandatory-approvals",
       "ok": true
     }
   ],
-  "collected_at": "2026-11-13T09:42:25.759730Z",
+  "collected_at": "2026-11-18T11:27:23.790404Z",
   "mode": "live",
   "ok": true,
   "receipt_type": "solo-maintainer-security-drift",

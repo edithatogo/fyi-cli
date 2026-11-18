@@ -1,5 +1,193 @@
 # Acceptance evidence
 
+## Reproducible harness increment (2026-11-17)
+
+### Verified implementation checkpoint
+
+The implementation is verified at source head
+`cfa72e7e47458e2656142a8ab00a39b31b81f4bd`, tested merge
+`5e3629d02cc13e5954b095de6e6126454d6894a6`, with identical tree
+`64701a568c5e30ad78e31ab7cb9331aa6af8ebc5`.
+[Compatibility/mutation run 44061120141](https://github.com/edithatogo/fyi-cli/actions/runs/44061120141)
+contains these actual, independently inspected results:
+
+| Gate | Observed result |
+| --- | --- |
+| Linux/Windows/macOS × Rust 1.100.0/1.99.1 | All six cells passed; each ran six wire, three journal and exactly 16 official SDK cases without skips, failures or filtered tests |
+| Linux source/fixture/property/privacy suite | 63 passed, zero skipped: 54 corpus cases including 12 source replays, five generated properties and four privacy negative controls |
+| Generated source scenarios | 66 generated examples passed, plus four explicit examples; source-suite execution took 30.40 seconds |
+| Targeted security mutations | 11 exact baselines passed; 15 caught; zero survivors, unviable edits or timeouts |
+| Mutation evidence retention | All 26 log hashes, original source-file hashes, exact selectors and single-test outcomes verified |
+
+All six compatibility artifacts identify the recorded source/merge, clean scoped
+inputs, locked MCP SDK 1.30.0 and matching retained binaries. Ubuntu used CPython
+3.12.16; Windows/macOS used 3.12.10. Architectures were Linux x86_64, Windows
+x86_64 MSVC and macOS aarch64. These receipts qualify the documented stdio and
+local journal scope; the actual source TLS replay remains Linux-specific.
+
+The successful mutation artifact is `14317928476`, ZIP SHA-256
+`5b5990141d8c6af06bae0a4c51b9a6f190e9cc8e795a554ecf9c9df50948885f`.
+Its committed manifest blob is `880fa2c9e5cc153e8543bcfd00db0a72918426d8`,
+SHA-256 `e5669e6939d51818fa667d2fb1cce3916e8bcc065a64e993194d93c51581acb7`.
+The degraded mutation fails first at its write-denial assertion; the retry
+mutation fails first at its declared uncertain-write assertion. The earlier
+failed report below is preserved; this is a fresh complete execution.
+
+[Repository CI at this checkpoint](https://github.com/edithatogo/fyi-cli/actions/runs/44061120028)
+passed 1,808 Python tests with only two opt-in live-site skips. All 22 SDK, 38
+upstream, 54 corpus, five generated, four privacy-sensor and 28 mutation-runner
+cases ran without skips or failures. Current Rust and the separate MSRV job each
+passed 811 workspace tests with one existing ignored subprocess entry point.
+Configured line coverage passed at 93.83% (17,648 of 18,809 lines), retaining the
+90% gate. The Python evidence artifact is `14319306124`, ZIP SHA-256
+`ab32ef9c319739caa90b5b44a2cddcdee48dcaa868d985de919a2d122a73c743`.
+
+This completes the reproducible harness increment. Required checks for the
+final publication head are retained on [PR #493](https://github.com/edithatogo/fyi-cli/pull/493).
+The broader issue and track remain open for the source/cache/raw-transfer,
+attachment/state, platform qualification and genuine migration gates below.
+
+### Implementation and earlier candidate evidence
+
+Starting source is `1f0ae6d0b00663d52ccb65904152ca4e933b3486`.
+[PR #493](https://github.com/edithatogo/fyi-cli/pull/493) implements the existing
+#173 assignment with the following independently reviewable sensors:
+
+- Shared v1 corpus: 17 synthetic JSON/RSS/Atom/error cases, exact file hashes,
+  strict schemas, private verifier failures and negative controls. Existing
+  root fixtures are reused unchanged. Twelve JSON/error variants have actual
+  SDK/source replay cases using the existing non-forwarding Linux TLS fixture.
+- Five generated source-contract families: result pagination/order/query
+  encoding across collection variants, matched/stale state preconditions and
+  immutable confirmation scope/replay, confined path normalization with exact
+  multipart bytes, invalid path rejection before I/O, and source-error privacy.
+  Negative controls cover escaped strings in responses and diagnostic logs.
+- Current-source mutation manifest: 15 exact targets and 11 distinct baseline
+  selectors across capability, confirmation scope/expiry/replay, SSRF, source
+  and MCP guardrails, typed errors/retryability and nested redaction. The runner
+  exports committed HEAD and its manifest, uses offline/locked Cargo and one
+  build job, cancels output/time overruns, retains bounded per-test logs, and
+  fails on survivors, unviable edits, missing selectors or stale source.
+- Six explicit platform/compiler cells: Ubuntu 24.04, Windows 2025 and macOS 15
+  against repository-pinned current Rust 1.100.0 and MSRV 1.99.1. Each cell uses
+  an additional CPython 3.12 / lock-pinned MCP client environment, verifies the
+  Rust wire/journal targets and exactly 16 portable stdio SDK cases without
+  skips, and retains compiler/source/client/executable identities. The existing
+  required Python 3.15.2 Linux suite remains separate and unchanged.
+
+### Verification at implementation time
+
+The new runner imports and missing shared manifest produced the intended RED
+failures before implementation. Fixture and runner negative controls pass on
+Linux CPython 3.12.14 with the frozen MCP SDK 1.30.0 test environment. The
+standalone shared corpus verifies 17 cases. The combined existing contract and
+new harness regression run passed **214 tests**, with the 12 new source replays
+deselected pending a compiled binary (4.42 seconds). Ruff, formatting, Rustfmt,
+the existing remote-MCP verifier and the Conductor verifier pass. The 15 mutation
+source selectors validate, without claiming mutation execution. Runtime receipts
+remain pending the candidate execution.
+
+Independent review reproduced a real Windows-checkout defect: enabling Git's
+`core.autocrlf` changed the RSS fixture hash. The shared corpus now has an explicit
+`-text` attribute. The same checkout-filter command preserves all 17 manifest
+hashes after correction; no fixture bytes or hashes were replaced. Local and
+hosted Actionlint both passed the new workflow.
+
+Review also narrowed the write-retry mutation to remove only the `read_only`
+guard and the degraded mutation to disable only degraded write rejection.
+Reads remain unchanged, so the selected tests must reach their write-denial
+assertions. The earlier broader replacements failed read assertions and do not
+establish the narrower write-denial evidence. Runtime verification of the
+corrected manifest and final candidate head is recorded on PR #493.
+
+### First hosted candidate and corrections
+
+At source head `cebb3bf6fd5d5dabe206633d26ffce570c6aca0b`, tested merge
+`2e7f94f49d7baa1a54b1cfe0431472ecc0fef96d` has the same source tree
+`0dadbb9b069230f5606af3a829f224351105d449`. The
+[first compatibility run](https://github.com/edithatogo/fyi-cli/actions/runs/44054213740)
+executed all six platform/compiler stdio cells: each passed six wire tests,
+three journal tests and exactly 16 SDK cases without skips. All retained binary
+hashes match their receipts. All 11 mutation baselines and 15 original mutations
+executed; the two refinements above require fresh execution, and the other 13
+failed at the intended assertions.
+
+The Linux source replay passed 62 tests, including all 12 corpus replays, and
+failed the generated privacy case because its fixture expected `/version.json`
+instead of the existing production `/api/v2/version.json`. The fixture path is
+corrected. Full Python CI independently found that mismatch and a conditional
+hardening step disallowed by the repository's workflow contract. Hardening now
+uses the same unconditional first step as the existing portability workflow;
+all 133 workflow-hardening tests and local Actionlint pass after correction.
+The first candidate's full Rust workspace passed 811 tests with one ignored;
+configured line coverage passed at 93.83%. Full Python reported 1,797 passed,
+two failed and two unrelated skips; it is not counted as a passing candidate.
+
+Using the retained Linux/current binary, whose unchanged production source and
+SHA-256 were verified, the corrected five generated families passed 66 generated
+examples plus four explicit examples in 49.97 seconds. An earlier local privacy
+run had an intermittent timeout with a dispatch-start event but no completion;
+its unsuccessful receipt is retained. The exact example passed three diagnostic
+replays with unchanged bounds, followed by the complete five-family pass. No
+cause was established and no timeout was relaxed. Fresh hosted verification of
+all corrections remains required; the final-head receipts are linked from PR #493.
+
+### Corrected source candidate and custom-assertion parser repair
+
+At source head `40bfe36c6c7fc1b83347ebba2c0ea523ab4635ab`, tested merge
+`924da1bdd62b9f592516dfddf6c151739312a7df` has the same source tree
+`02917b48fb2c8681eea0ea1ae2a21a6cb1bbe74e`. The
+[second compatibility run](https://github.com/edithatogo/fyi-cli/actions/runs/44057966689)
+passed all six stdio cells, with nine Rust and 16 SDK contracts per cell. The
+Linux source step passed all 63 cases without skips, including 12 source replays,
+five generated properties and four privacy negative controls. Hypothesis
+reported 66 passing generated examples; the source step took 26.71 seconds.
+
+[Full Python CI](https://github.com/edithatogo/fyi-cli/actions/runs/44057966812/job/133952097248)
+passed 1,799 tests with two opt-in live-site tests skipped. All 22 SDK, 38 upstream,
+54 shared-corpus, five generated and four privacy-sensor cases ran without skips.
+Rust 1.99.1 workspace verification passed 811 tests with one existing ignored
+subprocess entry point. Configured line coverage passed at 93.83% (17,649 of
+18,809 lines); the 90% gate is unchanged.
+
+The second mutation report is retained as failed: 11 baselines passed, 14 mutants
+were caught and one was classified unviable. The narrowed write-retry mutation
+actually reached its intended write assertion, but Rust printed its custom
+message without the generic `assertion failed` prefix. The parser incorrectly
+rejected that executed assertion. The corrected manifest declares the exact
+message, and the runner accepts it only immediately after the selected test's
+unique panic frame with one failed test and exit status 101. Other log copies,
+unrelated assertions, generic panics and compile failures remain rejected.
+
+The actual retained failure reproduced RED before this correction. The corrected
+parser passes 28 unit tests and classifies all 15 retained mutation logs as
+caught; it still rejects the earlier read-assertion failure for the write-specific
+target. This replay validates the parser, not a new mutation execution. The
+original 14/1 report remains unchanged, and fresh execution of the corrected
+runner is required before its full gate can pass.
+
+Local Rust builds were killed with SIGKILL in dependency compilation, including
+after reducing to one build job, no debug information and serial code generation.
+Those attempts do not establish executable test success. Full local Python
+3.15.2 environment preparation also stopped on missing CFFI development
+headers; the successful local frozen test environment uses Python 3.12.14.
+Hosted dependency preparation and runtime checks remain required. No Rust
+version, source dependency, runtime lock or existing required gate was changed
+to conceal either environment limitation.
+
+### Acceptance boundary
+
+The fixture verifier establishes syntax/schema/identity expectations. It does
+not prove the production feed helper rejects malformed XML; that helper still
+extracts link text and the deliberately truncated feeds preserve complete
+links. Feed implementation remains with #170. Raw transfer and filesystem-cache
+qualification, immutable attachment content, atomic upstream state transitions,
+platform ACL/power-loss behavior and genuine future profile migration remain
+separate gates. New matrix and mutation configuration requires actual passing
+execution before it counts as acceptance evidence. The track remains open and
+unarchived; no complete-workspace mutation score or live-platform certification
+is claimed.
+
 ## Reconciled baseline (2026-11-14)
 
 Commit `a816dcd` had a pending plan and metadata despite the registry's

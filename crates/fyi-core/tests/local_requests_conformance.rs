@@ -66,8 +66,14 @@ async fn python_registration_fixtures_match_native_persisted_fields() {
         let created_at = fields.remove("created_at").unwrap();
         let updated_at = fields.remove("updated_at").unwrap();
         assert_eq!(created_at, updated_at, "{fixture}");
+        let created_at_str = created_at.as_str().unwrap();
         assert!(
-            chrono::DateTime::parse_from_rfc3339(created_at.as_str().unwrap()).is_ok(),
+            matches!(created_at_str.as_bytes().get(10), Some(b'T' | b't'))
+                && time::OffsetDateTime::parse(
+                    created_at_str,
+                    &time::format_description::well_known::Rfc3339,
+                )
+                .is_ok(),
             "{fixture}"
         );
         assert_eq!(actual, case["expected_row_without_timestamps"], "{fixture}");

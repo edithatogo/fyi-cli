@@ -1,14 +1,14 @@
 //! Synthetic contractual examples: these are not statements of any jurisdiction's law.
-use chrono::NaiveDate;
 use fyi_core::deadlines::statutory::{
     calculate_explicit_deadline, CalculatedDeadline, DeadlineAdjustment, DeadlineExtension,
     DeadlineRuleError, HolidayCalendar, HolidayCalendarCatalog, LegalClockRule, ReceiptConvention,
     StatutoryDuration, StatutoryUnit, ValidationStatus, MAX_CALENDAR_CATALOG_BYTES,
 };
 use std::collections::BTreeSet;
+use time::{Date, Month};
 
-fn day(y: i32, m: u32, d: u32) -> NaiveDate {
-    NaiveDate::from_ymd_opt(y, m, d).unwrap()
+fn day(y: i32, m: u32, d: u32) -> Date {
+    Date::from_calendar_date(y, Month::try_from(m as u8).unwrap(), d as u8).unwrap()
 }
 
 fn calendar() -> HolidayCalendar {
@@ -143,7 +143,7 @@ fn rejects_different_jurisdiction_and_uncovered_dates_without_fallback() {
 
 #[test]
 fn never_saturates_at_maximum_date_or_accepts_unbounded_periods() {
-    let max = NaiveDate::MAX;
+    let max = Date::MAX;
     let mut c = calendar();
     c.valid_from = max;
     c.valid_to = max;
@@ -379,4 +379,62 @@ fn holiday_calendar_catalog_from_json_allows_custom_contributions_and_fails_clos
             Err(DeadlineRuleError::InvalidCalendar)
         );
     }
+}
+
+#[test]
+fn calendar_months_preserve_leap_years_and_month_end_clamping() {
+    let mut cal = calendar();
+    cal.valid_from = day(1999, 1, 1);
+    cal.valid_to = day(2028, 12, 31);
+    cal.excluded_dates.clear();
+
+    let mut policy = rule(StatutoryUnit::CalendarMonths, 1);
+    policy.effective_from = day(1999, 1, 1);
+
+    // Non-leap vs leap February clamping
+    let res = calculate_explicit_deadline(day(2024, 1, 31), &policy, &cal, None).unwrap();
+    assert_eq!(res.due_date, day(2024, 2, 29));
+
+    // Century / year boundary
+    let y2k = calculate_explicit_deadline(day(1999, 12, 31), &policy, &cal, None).unwrap();
+    assert_eq!(y2k.due_date, day(2000, 1, 31));
+
+    // Leap day + 12 months clamps to Feb 28; + 48 months stays Feb 29
+    policy.period.amount = 12;
+    assert_eq!(
+        calculate_explicit_deadline(day(2024, 2, 29), &policy, &cal, None)
+            .unwrap()
+            .due_date,
+        day(2025, 2, 28)
+    );
+    policy.period.amount = 48;
+    assert_eq!(
+        calculate_explicit_deadline(day(2024, 2, 29), &policy, &cal, None)
+            .unwrap()
+            .due_date,
+        day(2028, 2, 29)
+    );
+
+    // Zero months is identity; overflow past Date::MAX returns DateOutOfRange
+    policy.period.amount = 0;
+    assert_eq!(
+        calculate_explicit_deadline(day(2024, 2, 29), &policy, &cal, None)
+            .unwrap()
+            .due_date,
+        day(2024, 2, 29)
+    );
+
+    let max = Date::MAX;
+    cal.valid_to = max;
+    policy.period.amount = 1;
+    assert_eq!(
+        calculate_explicit_deadline(max, &policy, &cal, None),
+        Err(DeadlineRuleError::DateOutOfRange)
+    );
+
+    // Omitted effective_to continues deserializing as None.
+    let mut raw = serde_json::to_value(&policy).unwrap();
+    raw.as_object_mut().unwrap().remove("effective_to");
+    let decoded: LegalClockRule = serde_json::from_value(raw).unwrap();
+    assert_eq!(decoded.effective_to, None);
 }
