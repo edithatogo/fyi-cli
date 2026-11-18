@@ -5,7 +5,6 @@ use axum::{
     routing::get,
     Json, Router,
 };
-use chrono::NaiveDate;
 use fyi_core::api::AlaveteliRequest;
 use fyi_core::api::{
     AddCorrespondencePayload, CorrespondenceDirection, CreateRequestPayload,
@@ -21,6 +20,9 @@ use serde_json::{json, Value};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use time::{
+    format_description::well_known::Rfc3339, macros::format_description, Date, OffsetDateTime,
+};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::net::TcpListener;
 use tracing::Instrument;
@@ -2328,14 +2330,17 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                     });
 
                     let id = get_next_request_id(db.pool()).await;
+                    let now = OffsetDateTime::now_utc()
+                        .format(&Rfc3339)
+                        .unwrap_or_default();
                     let new_req = AlaveteliRequest {
                         id,
                         title,
                         body,
                         user_name,
                         status,
-                        created_at: Some(chrono::Utc::now().to_rfc3339()),
-                        updated_at: Some(chrono::Utc::now().to_rfc3339()),
+                        created_at: Some(now.clone()),
+                        updated_at: Some(now),
                         url,
                         tags,
                     };
@@ -2443,7 +2448,11 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                             .and_then(|s| s.as_str())
                             .map(String::from),
                         created_at: existing.created_at,
-                        updated_at: Some(chrono::Utc::now().to_rfc3339()),
+                        updated_at: Some(
+                            OffsetDateTime::now_utc()
+                                .format(&Rfc3339)
+                                .unwrap_or_default(),
+                        ),
                         url: arguments
                             .get("url")
                             .and_then(|u| u.as_str())
@@ -2723,21 +2732,22 @@ pub async fn handle_jsonrpc_request_with_policy_and_gate(
                         .and_then(|v| v.as_bool())
                         .unwrap_or(false);
 
-                    let start_date = match NaiveDate::parse_from_str(start_raw, "%Y-%m-%d") {
-                        Ok(d) => d,
-                        Err(_) => {
-                            return Some(JsonRpcResponse::success(
-                                req.id,
-                                json!({
-                                    "isError": true,
-                                    "content": [{
-                                        "type": "text",
-                                        "text": "Invalid start_date (expected YYYY-MM-DD)"
-                                    }]
-                                }),
-                            ));
-                        }
-                    };
+                    let start_date =
+                        match Date::parse(start_raw, format_description!("[year]-[month]-[day]")) {
+                            Ok(d) => d,
+                            Err(_) => {
+                                return Some(JsonRpcResponse::success(
+                                    req.id,
+                                    json!({
+                                        "isError": true,
+                                        "content": [{
+                                            "type": "text",
+                                            "text": "Invalid start_date (expected YYYY-MM-DD)"
+                                        }]
+                                    }),
+                                ));
+                            }
+                        };
                     let Some(days) = days else {
                         return Some(JsonRpcResponse::success(
                             req.id,

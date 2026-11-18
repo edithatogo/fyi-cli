@@ -8,7 +8,7 @@
 //! composition without hard-depending on those runtimes. Trace events use a
 //! Langfuse/Braintrust-friendly span schema and default to local JSONL.
 
-use chrono::{DateTime, Utc};
+use crate::time_util::now_rfc3339_z;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::cmp::Reverse;
@@ -19,6 +19,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use thiserror::Error;
+use time::{format_description::well_known::Rfc2822, OffsetDateTime};
 
 /// Product constants for cryptographic-aligned identity.
 pub const PRODUCT_NAME: &str = "fyi-cli";
@@ -256,10 +257,10 @@ fn parse_reset_seconds(value: &str) -> Option<u64> {
         return Some(secs);
     }
     // HTTP-date → seconds until then (best-effort; zero if past).
-    if let Ok(dt) = DateTime::parse_from_rfc2822(t) {
-        let now = Utc::now();
-        let delta = dt.with_timezone(&Utc).signed_duration_since(now);
-        return Some(delta.num_seconds().max(0) as u64);
+    if let Ok(dt) = OffsetDateTime::parse(t, &Rfc2822) {
+        let now = OffsetDateTime::now_utc();
+        let delta = dt - now;
+        return Some(delta.whole_seconds().max(0) as u64);
     }
     None
 }
@@ -599,12 +600,9 @@ impl EndpointMemory {
             self.ewma_latency_ms = ALPHA * ms + (1.0 - ALPHA) * self.ewma_latency_ms;
         }
         self.samples = self.samples.saturating_add(1);
-        self.last_seen_at = Some(Utc::now().to_rfc3339());
-        let hour = Utc::now()
-            .format("%H")
-            .to_string()
-            .parse::<usize>()
-            .unwrap_or(0);
+        let now_dt = OffsetDateTime::now_utc();
+        self.last_seen_at = Some(now_rfc3339_z());
+        let hour = usize::from(now_dt.hour());
         if hour < 24 {
             self.hour_hits[hour] = self.hour_hits[hour].saturating_add(1);
         }
@@ -612,14 +610,11 @@ impl EndpointMemory {
 
     pub fn observe_rate_limit(&mut self) {
         self.rate_limit_hits = self.rate_limit_hits.saturating_add(1);
-        let now = Utc::now().to_rfc3339();
+        let now_dt = OffsetDateTime::now_utc();
+        let now = now_rfc3339_z();
         self.last_rate_limit_at = Some(now.clone());
         self.last_seen_at = Some(now);
-        let hour = Utc::now()
-            .format("%H")
-            .to_string()
-            .parse::<usize>()
-            .unwrap_or(0);
+        let hour = usize::from(now_dt.hour());
         if hour < 24 {
             self.hour_hits[hour] = self.hour_hits[hour].saturating_add(1);
         }
@@ -631,11 +626,7 @@ impl EndpointMemory {
         if total < 20 {
             return false;
         }
-        let hour = Utc::now()
-            .format("%H")
-            .to_string()
-            .parse::<usize>()
-            .unwrap_or(0);
+        let hour = usize::from(OffsetDateTime::now_utc().hour());
         let mut ranked: Vec<(usize, u64)> = self
             .hour_hits
             .iter()
@@ -979,11 +970,12 @@ fn new_event(
     instance_id: Option<&str>,
     metadata: serde_json::Value,
 ) -> TraceEvent {
+    let timestamp = now_rfc3339_z();
     let id = {
         let mut hasher = Sha256::new();
         hasher.update(run_id.as_bytes());
         hasher.update(name.as_bytes());
-        hasher.update(Utc::now().to_rfc3339().as_bytes());
+        hasher.update(timestamp.as_bytes());
         hasher.update(metadata.to_string().as_bytes());
         let d = hasher.finalize();
         d.iter().take(8).map(|b| format!("{b:02x}")).collect()
@@ -991,7 +983,7 @@ fn new_event(
     TraceEvent {
         r#type: type_.to_string(),
         name: name.to_string(),
-        timestamp: Utc::now().to_rfc3339(),
+        timestamp,
         run_id: run_id.to_string(),
         instance_id: instance_id.map(|s| s.to_string()),
         level: "DEFAULT".to_string(),
@@ -1092,7 +1084,7 @@ impl AgentNetworkMiddleware {
             GuardrailConfig::default(),
             PacingPolicy::default(),
             Box::new(NullTraceSink),
-            format!("run-{}", Utc::now().timestamp()),
+            format!("run-{}", OffsetDateTime::now_utc().unix_timestamp()),
         ))
     }
 
@@ -1506,9 +1498,15 @@ mod tests {
 
     #[test]
     fn parses_http_date_retry_after_without_leaking_body_data() {
-        let future = (Utc::now() + chrono::Duration::seconds(30)).to_rfc2822();
+        let future = (OffsetDateTime::now_utc() + time::Duration::seconds(30))
+            .format(&Rfc2822)
+            .unwrap();
         let snap = RateLimitSnapshot::from_headers([("Retry-After", future.as_str())]);
         assert!(snap.retry_after_seconds.is_some_and(|seconds| seconds > 0));
+
+        let past_gmt =
+            RateLimitSnapshot::from_headers([("Retry-After", "Wed, 21 Oct 2015 07:28:00 GMT")]);
+        assert_eq!(past_gmt.retry_after_seconds, Some(0));
     }
 
     #[test]
@@ -1725,7 +1723,7 @@ mod tests {
     fn filesystem_cache_roundtrip() {
         let dir = std::env::temp_dir().join(format!(
             "fyi-agent-cache-{}",
-            Utc::now().timestamp_nanos_opt().unwrap_or(0)
+            OffsetDateTime::now_utc().unix_timestamp_nanos()
         ));
         let cache = FilesystemResponseCache::new(&dir).unwrap();
         let url = "https://fyi.org.nz/api/v2/request/1.json";
@@ -1835,7 +1833,7 @@ mod tests {
     fn load_memory_persists() {
         let dir = std::env::temp_dir().join(format!(
             "fyi-agent-mem-{}",
-            Utc::now().timestamp_nanos_opt().unwrap_or(1)
+            OffsetDateTime::now_utc().unix_timestamp_nanos()
         ));
         fs::create_dir_all(&dir).unwrap();
         let path = dir.join("memory.json");
@@ -1870,7 +1868,7 @@ mod tests {
     fn cache_short_circuit_on_second_get() {
         let dir = std::env::temp_dir().join(format!(
             "fyi-agent-cache2-{}",
-            Utc::now().timestamp_nanos_opt().unwrap_or(2)
+            OffsetDateTime::now_utc().unix_timestamp_nanos()
         ));
         let mut mw = AgentNetworkMiddleware::with_defaults(None)
             .unwrap()
@@ -1900,7 +1898,7 @@ mod tests {
     fn cache_does_not_store_non_get_or_error_responses() {
         let dir = std::env::temp_dir().join(format!(
             "fyi-agent-cache3-{}",
-            Utc::now().timestamp_nanos_opt().unwrap_or(3)
+            OffsetDateTime::now_utc().unix_timestamp_nanos()
         ));
         let mut mw = AgentNetworkMiddleware::with_defaults(None)
             .unwrap()

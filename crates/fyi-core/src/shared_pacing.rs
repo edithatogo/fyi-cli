@@ -1,13 +1,13 @@
 //! SQLite pacing shared with the retained Python source adapters.
 
 use anyhow::{ensure, Context, Result};
-use chrono::{DateTime, SecondsFormat, Utc};
 use serde::Serialize;
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqlitePoolOptions},
     Row, SqlitePool,
 };
 use std::path::Path;
+use time::{format_description::FormatItem, macros::format_description, OffsetDateTime};
 
 const SCHEMA: &str = "
 CREATE TABLE IF NOT EXISTS shared_rate_limit_state (
@@ -110,12 +110,20 @@ pub async fn reserve_slot(pool: &SqlitePool, input: &ReservationInput<'_>) -> Re
             .is_none_or(|status| (100..=599).contains(&status)),
         "invalid shared pacing status code"
     );
-    let observed = DateTime::<Utc>::from_timestamp(
-        input.now.trunc() as i64,
-        (input.now.fract() * 1_000_000_000.0) as u32,
-    )
-    .context("shared pacing timestamp is outside the supported range")?
-    .to_rfc3339_opts(SecondsFormat::Micros, false);
+    const PACING_TS_FORMAT: &[FormatItem<'_>] = format_description!(
+        "[year]-[month]-[day]T[hour]:[minute]:[second].[subsecond digits:6]+00:00"
+    );
+    let whole_secs = input.now.trunc();
+    ensure!(
+        whole_secs <= i64::MAX as f64,
+        "shared pacing timestamp is outside the supported range"
+    );
+    let total_nanos = i128::from(whole_secs as i64) * 1_000_000_000
+        + i128::from((input.now.fract() * 1_000_000_000.0) as u32);
+    let observed = OffsetDateTime::from_unix_timestamp_nanos(total_nanos)
+        .context("shared pacing timestamp is outside the supported range")?
+        .format(PACING_TS_FORMAT)
+        .context("shared pacing timestamp is outside the supported range")?;
 
     let mut transaction = pool.begin_with("BEGIN IMMEDIATE").await?;
     sqlx::raw_sql(SCHEMA).execute(&mut *transaction).await?;

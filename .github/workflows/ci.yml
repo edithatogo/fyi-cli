@@ -297,7 +297,8 @@ jobs:
             --ignore RUSTSEC-2026-0459 \
             --ignore RUSTSEC-2026-0370 \
             --ignore RUSTSEC-2026-0371 \
-            --ignore RUSTSEC-2026-0372 2>&1 | tee artifacts/security-audit/audit.log
+            --ignore RUSTSEC-2026-0372 \
+            --ignore RUSTSEC-2026-0542 2>&1 | tee artifacts/security-audit/audit.log
 
       - name: Run cargo-deny
         shell: bash

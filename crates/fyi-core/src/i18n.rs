@@ -6,7 +6,7 @@
 //! plain text; typed letter output can explicitly request HTML text escaping.
 
 use crate::jurisdiction::Instance;
-use chrono::{Days, NaiveDate};
+use time::{Date, Duration};
 
 mod templates;
 pub mod terminology;
@@ -415,7 +415,7 @@ impl LocalizationEngine {
 
     /// Compatibility adapter. Panics for an unrepresentable result; prefer the fallible API.
     /// This is a weekday-only catalog estimate, not a legally verified deadline.
-    pub fn deadline_for_instance(&self, start: NaiveDate, instance: &Instance) -> NaiveDate {
+    pub fn deadline_for_instance(&self, start: Date, instance: &Instance) -> Date {
         self.try_deadline_for_instance(start, instance)
             .expect("deadline is outside the supported date range")
     }
@@ -423,26 +423,22 @@ impl LocalizationEngine {
     /// Apply existing catalog policy and delegate arithmetic to the canonical deadline module.
     pub fn try_deadline_for_instance(
         &self,
-        start: NaiveDate,
+        start: Date,
         instance: &Instance,
-    ) -> Result<NaiveDate, I18nError> {
+    ) -> Result<Date, I18nError> {
         let input = crate::deadlines::DeadlineInput::from_instance(start, instance);
         check_deadline_capacity(&input)?;
         Ok(crate::deadlines::calculate_deadline_for_instance(start, instance).due_date)
     }
 
     /// Compatibility weekday adapter. Panics for unrepresentable counts/results.
-    pub fn add_working_days(&self, start: NaiveDate, days: usize) -> NaiveDate {
+    pub fn add_working_days(&self, start: Date, days: usize) -> Date {
         self.try_add_working_days(start, days)
             .expect("deadline is outside the supported date range")
     }
 
     /// Check representation bounds, then use the existing weekday arithmetic.
-    pub fn try_add_working_days(
-        &self,
-        start: NaiveDate,
-        days: usize,
-    ) -> Result<NaiveDate, I18nError> {
+    pub fn try_add_working_days(&self, start: Date, days: usize) -> Result<Date, I18nError> {
         let days = u32::try_from(days).map_err(|_| I18nError::DeadlineRange)?;
         let input = crate::deadlines::DeadlineInput::new(start, days);
         check_deadline_capacity(&input)?;
@@ -459,7 +455,7 @@ impl LocalizationEngine {
 // prevents the legacy engine from repeatedly operating on its terminal date.
 fn check_deadline_capacity(input: &crate::deadlines::DeadlineInput) -> Result<(), I18nError> {
     use crate::deadlines::{is_weekday, WorkingDayRule};
-    let available = (NaiveDate::MAX - input.start_date).num_days() as u64;
+    let available = (Date::MAX - input.start_date).whole_days() as u64;
     let capacity = match input.working_day_rule {
         WorkingDayRule::CalendarDays => available,
         WorkingDayRule::WeekdaysOnly => {
@@ -467,7 +463,7 @@ fn check_deadline_capacity(input: &crate::deadlines::DeadlineInput) -> Result<()
             for offset in 1..=available % 7 {
                 let day = input
                     .start_date
-                    .checked_add_days(Days::new(offset))
+                    .checked_add(Duration::days(offset as i64))
                     .ok_or(I18nError::DeadlineRange)?;
                 if is_weekday(day) {
                     capacity += 1;
@@ -486,11 +482,12 @@ fn check_deadline_capacity(input: &crate::deadlines::DeadlineInput) -> Result<()
 mod tests {
     use super::*;
     use crate::jurisdiction::InstanceRegistry;
+    use time::macros::date;
 
     #[test]
     fn capacity_guard_preserves_canonical_calendar_day_boundaries() {
         use crate::deadlines::{DeadlineInput, WorkingDayRule};
-        let start = NaiveDate::MAX.pred_opt().unwrap();
+        let start = Date::MAX.previous_day().unwrap();
         let valid = DeadlineInput::new(start, 1).with_rule(WorkingDayRule::CalendarDays);
         assert!(check_deadline_capacity(&valid).is_ok());
         let invalid = DeadlineInput::new(start, 2).with_rule(WorkingDayRule::CalendarDays);
@@ -512,9 +509,9 @@ mod tests {
     #[test]
     fn add_working_days_skips_weekends() {
         let engine = LocalizationEngine::new("en-AU");
-        let start = NaiveDate::from_ymd_opt(2026, 7, 3).unwrap();
+        let start = date!(2026 - 07 - 03);
         let deadline = engine.add_working_days(start, 2);
-        assert_eq!(deadline, NaiveDate::from_ymd_opt(2026, 7, 7).unwrap());
+        assert_eq!(deadline, date!(2026 - 07 - 07));
     }
 
     #[test]
@@ -535,13 +532,13 @@ mod tests {
         let engine = LocalizationEngine::new("en-NZ");
         let registry = InstanceRegistry::embedded().unwrap();
         let instance = registry.get("nz-fyi").unwrap();
-        let start = NaiveDate::from_ymd_opt(2026, 7, 3).unwrap();
+        let start = date!(2026 - 07 - 03);
         let deadline = engine.deadline_for_instance(start, instance);
 
         assert!(engine
             .render_request_template_with_instance("Ministry", instance)
             .contains("Kia ora Ministry"));
-        assert_eq!(deadline, NaiveDate::from_ymd_opt(2026, 7, 31).unwrap());
+        assert_eq!(deadline, date!(2026 - 07 - 31));
     }
 
     #[test]
