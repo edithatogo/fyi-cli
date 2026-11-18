@@ -14,8 +14,8 @@ use crate::acquisition_receipts::{
 };
 use crate::agent_runtime::ClientIdentity;
 use crate::provenance::sha256_hex;
+use crate::time_util::now_rfc3339_millis_z;
 use anyhow::{anyhow, ensure, Context, Result};
-use chrono::{SecondsFormat, Utc};
 use reqwest::{header, Client, StatusCode, Url};
 use serde_json::{json, Value};
 use std::fs;
@@ -320,7 +320,7 @@ impl DocumentationClient {
         Ok(CapturedDocument {
             body: response.body,
             media_type,
-            retrieved_at: Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true),
+            retrieved_at: now_rfc3339_millis_z(),
         })
     }
 }
@@ -437,7 +437,7 @@ pub async fn observe_documentation(source_id: &str, output: &Path, live: bool) -
     let source = source_by_id(source_id)?;
     source_url(source)?;
     let output = reserve_output(output)?;
-    let started_at = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true);
+    let started_at = now_rfc3339_millis_z();
     let captured = tokio::time::timeout(EXCHANGE_TIMEOUT, async {
         DocumentationClient::new(source).await?.fetch().await
     })
@@ -787,7 +787,8 @@ mod tests {
     #[test]
     fn publication_binds_body_and_observation_bytes_and_never_overwrites() {
         let dir = tempfile::tempdir().unwrap();
-        let output = reserve_output(&dir.path().join("captured")).unwrap();
+        let root = fs::canonicalize(dir.path()).unwrap();
+        let output = reserve_output(&root.join("captured")).unwrap();
         let observed = publish_document(
             &SOURCES[0],
             &output,
@@ -833,7 +834,8 @@ mod tests {
     #[test]
     fn publication_failure_leaves_no_completion_marker_or_replaced_evidence() {
         let dir = tempfile::tempdir().unwrap();
-        let output = reserve_output(&dir.path().join("captured")).unwrap();
+        let root = fs::canonicalize(dir.path()).unwrap();
+        let output = reserve_output(&root.join("captured")).unwrap();
         fs::write(output.join("receipt.json"), b"prior").unwrap();
         assert!(publish_document(
             &SOURCES[0],
@@ -858,16 +860,17 @@ mod tests {
     #[test]
     fn output_preflight_rejects_parent_traversal_and_symlinks() {
         let dir = tempfile::tempdir().unwrap();
-        assert!(reserve_output(&dir.path().join("child/../capture")).is_err());
+        let root = fs::canonicalize(dir.path()).unwrap();
+        assert!(reserve_output(&root.join("child/../capture")).is_err());
         #[cfg(unix)]
         {
-            let link = dir.path().join("alias");
-            std::os::unix::fs::symlink(dir.path(), &link).unwrap();
+            let link = root.join("alias");
+            std::os::unix::fs::symlink(&root, &link).unwrap();
             assert!(reserve_output(&link.join("capture")).is_err());
-            let dangling = dir.path().join("dangling");
-            std::os::unix::fs::symlink(dir.path().join("absent"), &dangling).unwrap();
+            let dangling = root.join("dangling");
+            std::os::unix::fs::symlink(root.join("absent"), &dangling).unwrap();
             assert!(reserve_output(&dangling).is_err());
-            assert!(!dir.path().join("capture").exists());
+            assert!(!root.join("capture").exists());
         }
     }
 }
