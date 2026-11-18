@@ -1,0 +1,13 @@
+{
+  "track_id": "serde_boundary_assurance_20261118",
+  "type": "dependency_qualification",
+  "status": "new",
+  "created_at": "2026-11-18",
+  "updated_at": "2026-11-18",
+  "description": "FYI is Rust-first and already uses serde derive, serde_json, CSV, quick-xml and TOML at distinct real format boundaries; no general dependency replacement is appropriate.",
+  "verification": {
+    "status": "not_run",
+    "commands": []
+  },
+  "capability_status": "planning_only"
+}

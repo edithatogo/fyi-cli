@@ -28,7 +28,7 @@ pub struct ReplayResponse {
     pub version: reqwest::Version,
     pub headers: reqwest::header::HeaderMap,
     pub body: Vec<u8>,
-    pub captured_at: chrono::DateTime<chrono::Utc>,
+    pub captured_at: time::OffsetDateTime,
 }
 
 impl ReplayResponse {
@@ -658,12 +658,11 @@ fn load_checkpoint(
     Ok(checkpoint.completed)
 }
 
-fn write_checkpoint(
-    path: &Path,
+fn checkpoint_bytes(
     config: &ReplayConfig,
     selection: &ApprovedSelection,
     completed: &[ReplayObject],
-) -> Result<()> {
+) -> Result<Vec<u8>> {
     let identity = config.identity(selection);
     let mut checkpoint = Checkpoint {
         checkpoint_sha256: String::new(),
@@ -674,7 +673,12 @@ fn write_checkpoint(
         schema: CHECKPOINT_SCHEMA.to_string(),
     };
     checkpoint.checkpoint_sha256 = sha256_hex(&canonical(&checkpoint.unsigned())?);
-    replace_atomic(path, &canonical(&checkpoint)?)
+    let bytes = canonical(&checkpoint)?;
+    ensure!(
+        bytes.len() <= MAX_CHECKPOINT_BYTES,
+        "replay checkpoint exceeds byte limit"
+    );
+    Ok(bytes)
 }
 
 fn absolute_path(path: &Path) -> Result<PathBuf> {
@@ -904,7 +908,7 @@ where
             "Wayback media type does not match approval"
         );
         let name = object_name(row);
-        persist_payload(&output_dir.join(&name), &payload, config.max_payload_bytes)?;
+        let path = output_dir.join(&name);
         completed.push(ReplayObject {
             bytes: payload.len(),
             cdx_digest: row.cdx_digest.clone(),
@@ -917,7 +921,12 @@ where
             status: response.status.as_u16(),
             timestamp: row.timestamp.clone(),
         });
-        write_checkpoint(checkpoint_path, config, selection, &completed)?;
+        // Validate the complete next checkpoint before publishing either file.
+        // Unbounded response metadata must not replace resumable progress with
+        // a checkpoint that the reader cannot reopen under its byte limit.
+        let checkpoint = checkpoint_bytes(config, selection, &completed)?;
+        persist_payload(&path, &payload, config.max_payload_bytes)?;
+        replace_atomic(checkpoint_path, &checkpoint)?;
     }
     Ok(ReplayResult {
         objects: completed,

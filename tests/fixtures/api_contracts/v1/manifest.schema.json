@@ -1,0 +1,298 @@
+{
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "corpus_id": {
+      "const": "alaveteli-mcp-source-v1"
+    },
+    "provenance": {
+      "const": "synthetic; not live-platform certification"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 17,
+      "maxItems": 17,
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]+$",
+            "maxLength": 64
+          },
+          "variant": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "contract": {
+            "enum": [
+              "requests-array",
+              "requests-wrapped",
+              "requests-results",
+              "create-response",
+              "authorities-array",
+              "authorities-wrapped",
+              "http-error",
+              "rate-limit",
+              "rss",
+              "atom"
+            ]
+          },
+          "expected": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "outcome": {
+                    "const": "accepted"
+                  },
+                  "ids": {
+                    "type": "array",
+                    "maxItems": 50,
+                    "items": {
+                      "type": [
+                        "integer",
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "outcome",
+                  "ids"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "outcome": {
+                    "enum": [
+                      "invalid_schema",
+                      "invalid_json",
+                      "invalid_xml"
+                    ]
+                  }
+                },
+                "required": [
+                  "outcome"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "outcome": {
+                    "const": "http_error"
+                  },
+                  "status": {
+                    "enum": [
+                      401,
+                      403,
+                      404,
+                      429,
+                      503
+                    ]
+                  }
+                },
+                "required": [
+                  "outcome",
+                  "status"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "replay": {
+            "enum": [
+              "search",
+              "authorities",
+              "status",
+              "none"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "variant",
+          "path",
+          "sha256",
+          "contract",
+          "expected",
+          "replay"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "contract": {
+                  "enum": [
+                    "requests-array",
+                    "requests-wrapped",
+                    "requests-results"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "expected": {
+                  "properties": {
+                    "outcome": {
+                      "enum": [
+                        "accepted",
+                        "invalid_schema",
+                        "invalid_json"
+                      ]
+                    }
+                  }
+                },
+                "replay": {
+                  "const": "search"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "contract": {
+                  "enum": [
+                    "authorities-array",
+                    "authorities-wrapped"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "expected": {
+                  "properties": {
+                    "outcome": {
+                      "enum": [
+                        "accepted"
+                      ]
+                    }
+                  }
+                },
+                "replay": {
+                  "const": "authorities"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "contract": {
+                  "enum": [
+                    "create-response"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "expected": {
+                  "properties": {
+                    "outcome": {
+                      "enum": [
+                        "accepted"
+                      ]
+                    }
+                  }
+                },
+                "replay": {
+                  "const": "none"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "contract": {
+                  "enum": [
+                    "http-error",
+                    "rate-limit"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "expected": {
+                  "properties": {
+                    "outcome": {
+                      "enum": [
+                        "http_error"
+                      ]
+                    }
+                  }
+                },
+                "replay": {
+                  "const": "status"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "contract": {
+                  "enum": [
+                    "rss",
+                    "atom"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "expected": {
+                  "properties": {
+                    "outcome": {
+                      "enum": [
+                        "accepted",
+                        "invalid_xml"
+                      ]
+                    }
+                  }
+                },
+                "replay": {
+                  "const": "none"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "corpus_id",
+    "provenance",
+    "cases"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

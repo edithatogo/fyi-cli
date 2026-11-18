@@ -136,7 +136,7 @@ async fn bounded_reads_keep_success_variants_and_matching_provenance() {
         version.provenance.response_bytes,
         json!({"version": "fixture-v1"}).to_string().len() as u64
     );
-    assert!(chrono::DateTime::parse_from_rfc3339(&version.provenance.retrieved_at).is_ok());
+    assert!(crate::time_util::parse_strict_rfc3339(&version.provenance.retrieved_at).is_ok());
     assert_eq!(
         client
             .fetch_request_read(7, &limits())

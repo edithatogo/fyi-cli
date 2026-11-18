@@ -73,7 +73,7 @@ fn response(event: &Value, requested_url: &str) -> ReplayResponse {
         version: reqwest::Version::HTTP_11,
         headers,
         body: bytes(event["body_hex"].as_str().unwrap()),
-        captured_at: "2026-11-14T00:00:00Z".parse().unwrap(),
+        captured_at: time::macros::datetime!(2026 - 11 - 14 00:00:00 UTC),
     }
 }
 
@@ -201,6 +201,95 @@ async fn replay_rejects_oversized_checkpoint_before_source_io() {
     .await
     .unwrap_err();
     assert!(format!("{error:#}").contains("replay checkpoint exceeds byte limit"));
+}
+
+#[tokio::test]
+async fn replay_checkpoint_overflow_preserves_resumable_progress() {
+    for completed_before_failure in [0, 1] {
+        let baseline = case("baseline");
+        let mut document: Value =
+            serde_json::from_str(baseline["selection_json"].as_str().unwrap()).unwrap();
+        let mut second = document["rows"][0].clone();
+        second["row_index"] = json!(1);
+        second["original"] = json!("https://example.test/request/2.json");
+        document["rows"].as_array_mut().unwrap().push(second);
+        document["rows"][completed_before_failure]
+            .as_object_mut()
+            .unwrap()
+            .remove("expected_media_type");
+        document.as_object_mut().unwrap().remove("selection_sha256");
+        document["selection_sha256"] = json!(sha256_hex(&canonical_json_bytes(&document).unwrap()));
+        let selection =
+            validate_selection_bytes(&canonical_json_bytes(&document).unwrap()).unwrap();
+        let config: ReplayConfig = serde_json::from_value(baseline["config"].clone()).unwrap();
+        let directory = test_directory();
+        let output = directory.path().join("payloads");
+        let checkpoint = directory.path().join("checkpoint.json");
+        let prior_checkpoint = Arc::new(Mutex::new(None));
+        let captured_checkpoint = prior_checkpoint.clone();
+        let calls = AtomicUsize::new(0);
+        let event = &baseline["events"][0];
+
+        let outcome = replay_approved_rows(
+            &selection,
+            &config,
+            &output,
+            &checkpoint,
+            |url, _, _| {
+                let position = calls.fetch_add(1, Ordering::SeqCst);
+                let mut reply = response(event, &url);
+                if position == completed_before_failure {
+                    *captured_checkpoint.lock().unwrap() = std::fs::read(&checkpoint).ok();
+                    // Valid, unapproved response metadata must not make the next
+                    // checkpoint larger than the adapter can reopen on resume.
+                    reply.headers.insert(
+                        reqwest::header::CONTENT_TYPE,
+                        format!("application/{}", "x".repeat(16 * 1024 * 1024))
+                            .parse()
+                            .unwrap(),
+                    );
+                }
+                std::future::ready(Ok(reply))
+            },
+            |_| Ok(()),
+        )
+        .await;
+
+        assert!(
+            outcome.is_err(),
+            "oversized checkpoint must not be published"
+        );
+        let error = outcome.unwrap_err();
+        assert!(format!("{error:#}").contains("replay checkpoint exceeds byte limit"));
+        assert_eq!(calls.load(Ordering::SeqCst), completed_before_failure + 1);
+        assert_eq!(
+            std::fs::read(&checkpoint).ok(),
+            *prior_checkpoint.lock().unwrap()
+        );
+        assert_eq!(files(&output).len(), completed_before_failure);
+
+        let resumed_calls = AtomicUsize::new(0);
+        let result = replay_approved_rows(
+            &selection,
+            &config,
+            &output,
+            &checkpoint,
+            |url, _, _| {
+                resumed_calls.fetch_add(1, Ordering::SeqCst);
+                std::future::ready(Ok(response(event, &url)))
+            },
+            |_| Ok(()),
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            resumed_calls.load(Ordering::SeqCst),
+            2 - completed_before_failure
+        );
+        assert_eq!(files(&output).len(), 2);
+        let result: Value = serde_json::from_slice(&result.canonical_bytes().unwrap()).unwrap();
+        assert_eq!(result["objects"].as_array().unwrap().len(), 2);
+    }
 }
 
 #[tokio::test]

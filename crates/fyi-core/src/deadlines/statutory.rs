@@ -5,10 +5,10 @@
 //! complete coverage and all excluded dates, including observed/regional holidays.
 //! Only reviewed data may be used operationally; no default regional calendar exists.
 
-use chrono::{Datelike, Days, Months, NaiveDate};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use thiserror::Error;
+use time::{Date, Duration, Month};
 
 /// Unit of the specified legal period. Months are never approximated as 30 days.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -54,27 +54,75 @@ pub struct LegalClockRule {
     pub jurisdiction: String,
     pub source_reference: String,
     pub revision: String,
-    pub effective_from: NaiveDate,
-    pub effective_to: Option<NaiveDate>,
+    #[serde(with = "crate::time_util::date")]
+    pub effective_from: Date,
+    #[serde(default, with = "crate::time_util::option_date")]
+    pub effective_to: Option<Date>,
     pub period: StatutoryDuration,
     pub receipt_convention: ReceiptConvention,
     pub due_date_adjustment: DeadlineAdjustment,
 }
 
-/// The supplied, fully-covered calendar for one jurisdiction or subdivision.
+/// An explicit day-granularity exclusion calendar for one jurisdiction or scope.
 ///
 /// Weekend day codes are 0=Monday through 6=Sunday. `excluded_dates` must
 /// include any applicable national, state/regional, observed or special dates;
-/// this engine does not invent or fetch holidays.
+/// callers must check completeness for their selected rule. Embedded national
+/// and state bases may need a more local calendar. This engine does not invent
+/// or fetch holidays and cannot represent a part-day closure.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct HolidayCalendar {
     pub jurisdiction: String,
     pub revision: String,
-    pub valid_from: NaiveDate,
-    pub valid_to: NaiveDate,
+    #[serde(with = "crate::time_util::date")]
+    pub valid_from: Date,
+    #[serde(with = "crate::time_util::date")]
+    pub valid_to: Date,
+    #[serde(deserialize_with = "deserialize_unique_set")]
     pub weekend_days: BTreeSet<u8>,
-    pub excluded_dates: BTreeSet<NaiveDate>,
+    #[serde(
+        serialize_with = "crate::time_util::date_btree_set::serialize",
+        deserialize_with = "deserialize_unique_date_set"
+    )]
+    pub excluded_dates: BTreeSet<Date>,
+}
+
+fn deserialize_unique_date_set<'de, D>(deserializer: D) -> Result<BTreeSet<Date>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let values = Vec::<String>::deserialize(deserializer)?;
+    let mut unique = BTreeSet::new();
+    for raw in values {
+        let date = Date::parse(
+            &raw,
+            time::macros::format_description!("[year]-[month]-[day]"),
+        )
+        .map_err(serde::de::Error::custom)?;
+        if !unique.insert(date) {
+            return Err(serde::de::Error::custom("duplicate calendar value"));
+        }
+    }
+    Ok(unique)
+}
+
+// Serde's BTreeSet implementation silently discards duplicates. Contributions
+// must instead obey the schema's uniqueItems contract, including when a calendar
+// is deserialized directly rather than through the catalog loader.
+fn deserialize_unique_set<'de, D, T>(deserializer: D) -> Result<BTreeSet<T>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: Deserialize<'de> + Ord,
+{
+    let values = Vec::<T>::deserialize(deserializer)?;
+    let mut unique = BTreeSet::new();
+    for value in values {
+        if !unique.insert(value) {
+            return Err(serde::de::Error::custom("duplicate calendar value"));
+        }
+    }
+    Ok(unique)
 }
 
 /// An explicitly authorised extension, applied after the primary period.
@@ -100,9 +148,12 @@ pub enum ValidationStatus {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CalculatedDeadline {
-    pub receipt_date: NaiveDate,
-    pub unadjusted_due_date: NaiveDate,
-    pub due_date: NaiveDate,
+    #[serde(with = "crate::time_util::date")]
+    pub receipt_date: Date,
+    #[serde(with = "crate::time_util::date")]
+    pub unadjusted_due_date: Date,
+    #[serde(with = "crate::time_util::date")]
+    pub due_date: Date,
     pub policy_id: String,
     pub policy_revision: String,
     pub jurisdiction: String,
@@ -163,19 +214,35 @@ fn validate_calendar(calendar: &HolidayCalendar) -> Result<(), DeadlineRuleError
     Ok(())
 }
 
-fn check_coverage(date: NaiveDate, calendar: &HolidayCalendar) -> Result<(), DeadlineRuleError> {
+fn check_coverage(date: Date, calendar: &HolidayCalendar) -> Result<(), DeadlineRuleError> {
     if date < calendar.valid_from || date > calendar.valid_to {
         return Err(DeadlineRuleError::CalendarCoverage);
     }
     Ok(())
 }
 
-fn is_working(date: NaiveDate, calendar: &HolidayCalendar) -> Result<bool, DeadlineRuleError> {
+fn is_working(date: Date, calendar: &HolidayCalendar) -> Result<bool, DeadlineRuleError> {
     check_coverage(date, calendar)?;
     Ok(!calendar
         .weekend_days
-        .contains(&(date.weekday().num_days_from_monday() as u8))
+        .contains(&date.weekday().number_days_from_monday())
         && !calendar.excluded_dates.contains(&date))
+}
+
+fn add_months(start: Date, months: u32) -> Option<Date> {
+    if months == 0 {
+        return Some(start);
+    }
+    let months = i32::try_from(months).ok()?;
+    let total_months = start
+        .year()
+        .checked_mul(12)?
+        .checked_add(i32::from(u8::from(start.month())) - 1)?
+        .checked_add(months)?;
+    let year = total_months.div_euclid(12);
+    let month = Month::try_from((total_months.rem_euclid(12) + 1) as u8).ok()?;
+    let day = start.day().min(month.length(year));
+    Date::from_calendar_date(year, month, day).ok()
 }
 
 // Bounded to make hostile counts fail immediately, rather than hang or silently
@@ -184,11 +251,11 @@ const MAX_PERIOD_DAYS: u32 = 100_000;
 const MAX_PERIOD_MONTHS: u32 = 1_200;
 
 fn advance_period(
-    start: NaiveDate,
+    start: Date,
     period: StatutoryDuration,
     convention: ReceiptConvention,
     calendar: &HolidayCalendar,
-) -> Result<NaiveDate, DeadlineRuleError> {
+) -> Result<Date, DeadlineRuleError> {
     let maximum = match period.unit {
         StatutoryUnit::CalendarMonths => MAX_PERIOD_MONTHS,
         StatutoryUnit::WorkingDays | StatutoryUnit::CalendarDays => MAX_PERIOD_DAYS,
@@ -204,7 +271,7 @@ fn advance_period(
                 period.amount
             };
             let date = start
-                .checked_add_days(Days::new(u64::from(count)))
+                .checked_add(Duration::days(i64::from(count)))
                 .ok_or(DeadlineRuleError::DateOutOfRange)?;
             check_coverage(date, calendar)?;
             Ok(date)
@@ -213,9 +280,7 @@ fn advance_period(
             if convention == ReceiptConvention::IncludeReceiptDay {
                 return Err(DeadlineRuleError::UnsupportedCountingConvention);
             }
-            let date = start
-                .checked_add_months(Months::new(period.amount))
-                .ok_or(DeadlineRuleError::DateOutOfRange)?;
+            let date = add_months(start, period.amount).ok_or(DeadlineRuleError::DateOutOfRange)?;
             check_coverage(date, calendar)?;
             Ok(date)
         }
@@ -230,7 +295,7 @@ fn advance_period(
             }
             while remaining > 0 {
                 current = current
-                    .succ_opt()
+                    .next_day()
                     .ok_or(DeadlineRuleError::DateOutOfRange)?;
                 if is_working(current, calendar)? {
                     remaining -= 1;
@@ -249,7 +314,7 @@ fn advance_period(
 /// must verify that sequence against the particular statute. The engine never
 /// substitutes a national calendar for an unrecognized regional one.
 pub fn calculate_explicit_deadline(
-    receipt_date: NaiveDate,
+    receipt_date: Date,
     rule: &LegalClockRule,
     calendar: &HolidayCalendar,
     extension: Option<&DeadlineExtension>,
@@ -283,7 +348,7 @@ pub fn calculate_explicit_deadline(
     let unadjusted_due_date = date;
     if rule.due_date_adjustment == DeadlineAdjustment::NextWorkingDay {
         while !is_working(date, calendar)? {
-            date = date.succ_opt().ok_or(DeadlineRuleError::DateOutOfRange)?;
+            date = date.next_day().ok_or(DeadlineRuleError::DateOutOfRange)?;
         }
     }
     Ok(CalculatedDeadline {
@@ -311,9 +376,12 @@ struct RawHolidayCalendarCatalog {
 
 /// Versioned, caller-extensible catalog of [`HolidayCalendar`] definitions.
 ///
-/// Embedded entries (`NZ`, `AU`, `GB` national starter dates) and caller-supplied
-/// JSON catalogs remain unvalidated until reviewed against authoritative statutes
-/// and applicable state/regional exclusions.
+/// Embedded 2026 NZ/AU/UK dates have source evidence in the adjacent
+/// `locales/calendars/v1/provenance.json`. Country/state bases and local calendars
+/// have different scopes; choose an exact key after checking its limitations.
+/// UK calendars use `GB-ENG`, `GB-WLS`, `GB-SCT` and `GB-NIR`, never ambiguous `GB`.
+/// DE/FR/ES starters have not received this source review. All entries and
+/// caller-supplied catalogs remain unvalidated for statutory applicability.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HolidayCalendarCatalog {
     calendars: BTreeMap<String, HolidayCalendar>,
@@ -328,12 +396,16 @@ impl HolidayCalendar {
         let calendar: Self =
             serde_json::from_str(input).map_err(|_| DeadlineRuleError::InvalidCalendar)?;
         validate_calendar(&calendar)?;
+        validate_calendar_key(&calendar.jurisdiction)?;
         Ok(calendar)
     }
 }
 
 impl HolidayCalendarCatalog {
-    /// Load the embedded unvalidated starter catalog (`NZ`, `AU`, `GB`).
+    /// Load the embedded, legally unvalidated 2026 calendar catalog.
+    ///
+    /// National/state bases do not silently include local holidays or partial
+    /// days. The contribution guide documents each scope and its source evidence.
     #[must_use]
     pub fn embedded() -> Self {
         Self::from_json(include_str!("../../locales/calendars/v1/catalog.json"))
@@ -343,8 +415,10 @@ impl HolidayCalendarCatalog {
     /// Parse and validate a version-1 holiday-calendar JSON catalog in memory.
     ///
     /// Rejects payloads larger than 256 KiB, unknown fields, unsupported
-    /// `schema_version`, empty catalogs, duplicate `jurisdiction` keys, and any
-    /// invalid [`HolidayCalendar`] entry.
+    /// `schema_version`, empty catalogs, duplicate keys/dates/weekend codes, and
+    /// any invalid [`HolidayCalendar`] entry. Contribution keys start with a
+    /// two-letter uppercase country code, optionally followed by hyphen-separated
+    /// uppercase alphanumeric scope components of one to eight characters.
     pub fn from_json(input: &str) -> Result<Self, DeadlineRuleError> {
         if input.len() > MAX_CALENDAR_CATALOG_BYTES {
             return Err(DeadlineRuleError::InvalidCalendar);
@@ -357,6 +431,7 @@ impl HolidayCalendarCatalog {
         let mut calendars = BTreeMap::new();
         for calendar in raw.calendars {
             validate_calendar(&calendar)?;
+            validate_calendar_key(&calendar.jurisdiction)?;
             if calendars
                 .insert(calendar.jurisdiction.clone(), calendar)
                 .is_some()
@@ -367,7 +442,10 @@ impl HolidayCalendarCatalog {
         Ok(Self { calendars })
     }
 
-    /// Look up a calendar by exact jurisdiction key (`"NZ"`, `"AU"`, `"GB"`, etc.).
+    /// Look up an exact jurisdiction/scope key without aliases or regional fallback.
+    ///
+    /// An unknown region, display locale or bare `"GB"` returns `None` for the
+    /// embedded catalog. `"NZ"` and `"AU"` explicitly select national bases only.
     #[must_use]
     pub fn get(&self, jurisdiction: &str) -> Option<&HolidayCalendar> {
         self.calendars.get(jurisdiction)
@@ -377,4 +455,22 @@ impl HolidayCalendarCatalog {
     pub fn jurisdictions(&self) -> impl Iterator<Item = &str> {
         self.calendars.keys().map(String::as_str)
     }
+}
+
+fn validate_calendar_key(jurisdiction: &str) -> Result<(), DeadlineRuleError> {
+    let mut parts = jurisdiction.split('-');
+    let country = parts.next().unwrap_or_default();
+    if country.len() != 2
+        || !country.bytes().all(|byte| byte.is_ascii_uppercase())
+        || parts.any(|part| {
+            part.is_empty()
+                || part.len() > 8
+                || !part
+                    .bytes()
+                    .all(|byte| byte.is_ascii_uppercase() || byte.is_ascii_digit())
+        })
+    {
+        return Err(DeadlineRuleError::InvalidCalendar);
+    }
+    Ok(())
 }

@@ -1,7 +1,7 @@
 pub mod local;
 
 use crate::api::{AlaveteliCorrespondence, AlaveteliRequest, CorrespondenceDirection};
-use chrono::Utc;
+use crate::time_util::now_rfc3339_z;
 use serde::Serialize;
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqlitePool, SqlitePoolOptions},
@@ -904,5 +904,5 @@ fn json_value<T: Serialize>(value: T) -> String {
 }
 
 fn now_timestamp() -> String {
-    Utc::now().to_rfc3339()
+    now_rfc3339_z()
 }

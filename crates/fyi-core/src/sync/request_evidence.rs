@@ -10,7 +10,6 @@ use crate::acquisition_receipts::{
 };
 use crate::provenance::sha256_hex;
 use anyhow::{anyhow, ensure, Context, Result};
-use chrono::{SecondsFormat, Utc};
 use reqwest::{header, Client, Url};
 use serde_json::{json, Value};
 use std::future::Future;
@@ -160,7 +159,7 @@ impl RequestEvidenceClient {
             .client
             .base_url
             .join(&format!("api/v2/request/{request_id}.json"))?;
-        let started = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true);
+        let started = crate::time_util::now_rfc3339_millis_z();
         let response = self
             .client
             .send_guarded_with_limits_using(
@@ -222,7 +221,7 @@ impl RequestEvidenceClient {
             "command": "fetch-request", "adapter": {"id": "alaveteli-request-json", "version": env!("CARGO_PKG_VERSION")},
             "source": {"url": safe_url.as_str()},
             "request_bounds": {"request_id": request_id, "max_response_bytes": MAX_RESPONSE_BYTES, "redirects": 0, "retries": 0},
-            "started_at": started, "completed_at": Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true),
+            "started_at": started, "completed_at": crate::time_util::now_rfc3339_millis_z(),
             "status": if outcome.is_ok() { "succeeded" } else { "failed" },
             "responses": [{"url": safe_url.as_str(), "status": status.as_u16(), "bytes": raw.len(), "sha256": sha256_hex(&raw), "attempts": 1, "retry_delays_seconds": []}],
             "totals": {"requests": 1, "bytes": raw.len(), "retries": 0},

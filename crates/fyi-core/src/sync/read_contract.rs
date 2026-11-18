@@ -157,8 +157,17 @@ impl SyncClient {
         }
         identity.validate()?;
         let http = build_read_http_client(identity)?;
-        Self::with_http_client_identity_and_guardrails(base_url, http, identity.clone(), guardrails)
-            .map_err(|error| error.context(SourceReadError::new(SourceFailureKind::Validation)))
+        let evidence_http = super::request_evidence::capture_http(identity)
+            .map_err(|error| error.context(SourceReadError::new(SourceFailureKind::Validation)))?;
+        let mut client = Self::with_http_client_identity_and_guardrails(
+            base_url,
+            http,
+            identity.clone(),
+            guardrails,
+        )
+        .map_err(|error| error.context(SourceReadError::new(SourceFailureKind::Validation)))?;
+        client.evidence_http = Some(evidence_http);
+        Ok(client)
     }
 
     async fn read_response(

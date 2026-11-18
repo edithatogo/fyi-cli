@@ -201,10 +201,9 @@ fn normalize_authority(raw: &Value) -> Result<ProviderAuthority> {
     })
 }
 
-fn parse_timestamp(raw: &Value, keys: &[&str]) -> Option<chrono::DateTime<chrono::Utc>> {
+fn parse_timestamp(raw: &Value, keys: &[&str]) -> Option<time::OffsetDateTime> {
     string_field(raw, keys)
-        .and_then(|value| chrono::DateTime::parse_from_rfc3339(&value).ok())
-        .map(|value| value.with_timezone(&chrono::Utc))
+        .and_then(|value| crate::time_util::parse_strict_rfc3339_utc(&value).ok())
 }
 
 fn hex_digest(bytes: &[u8]) -> String {
@@ -311,12 +310,22 @@ mod tests {
         assert_eq!(record.status.as_deref(), Some("Completed"));
         assert_eq!(record.tags, vec!["water", "quality"]);
         assert_eq!(
-            record.created_at.as_ref().unwrap().to_rfc3339(),
-            "2026-10-21T00:30:00+00:00"
+            record
+                .created_at
+                .as_ref()
+                .unwrap()
+                .format(&time::format_description::well_known::Rfc3339)
+                .unwrap(),
+            "2026-10-21T00:30:00Z"
         );
         assert_eq!(
-            record.updated_at.as_ref().unwrap().to_rfc3339(),
-            "2026-10-22T00:30:00+00:00"
+            record
+                .updated_at
+                .as_ref()
+                .unwrap()
+                .format(&time::format_description::well_known::Rfc3339)
+                .unwrap(),
+            "2026-10-22T00:30:00Z"
         );
         assert_eq!(
             record.source_url.as_deref(),

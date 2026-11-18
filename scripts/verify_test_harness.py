@@ -176,6 +176,73 @@ def _command_environment(command: tuple[str, ...]) -> dict[str, str]:
     return environment
 
 
+def _layer_is_skipped(layer: Layer) -> bool:
+    if layer.expensive:
+        LOGGER.info(
+            "SKIP %s: pass --run-expensive for long-running analysis",
+            layer.name,
+        )
+        return True
+    if layer.network and not _live_smoke_enabled():
+        LOGGER.info(
+            "SKIP %s: live smoke is opt-in (set FYI_LIVE_SMOKE=1)",
+            layer.name,
+        )
+        return True
+    return False
+
+
+def _collect_safe_plan() -> tuple[list[str], list[tuple[str, ...]]]:
+    pytest_files: list[str] = []
+    commands: list[tuple[str, ...]] = []
+    for layer in LAYERS:
+        if _layer_is_skipped(layer):
+            continue
+        if layer.command == ("python", "scripts/run_property_tests.py"):
+            pytest_files.extend(("tests/test_hypothesis.py", "tests/test_fuzz.py"))
+            commands.append(("cargo", "test", "-p", "fyi-core", "--test", "property_tests"))
+        elif layer.command and layer.command[0] == "pytest":
+            pytest_files.extend(layer.command[1:])
+        else:
+            commands.append(_python_command(layer.command))
+    return list(dict.fromkeys(pytest_files)), list(dict.fromkeys(commands))
+
+
+def _run_command(command: tuple[str, ...]) -> int:
+    LOGGER.info("RUN  %s", " ".join(command))
+    completed = subprocess.run(  # noqa: S603
+        command,
+        cwd=ROOT,
+        check=False,
+        env=_command_environment(command),
+    )
+    return completed.returncode
+
+
+def _run_safe_layers() -> int:
+    pytest_files, commands = _collect_safe_plan()
+    for command in commands:
+        if _run_command(command):
+            LOGGER.error("FAILED %s", " ".join(command))
+            return 1
+    if pytest_files:
+        pytest_command = (
+            sys.executable,
+            "-m",
+            "pytest",
+            "-q",
+            "-n",
+            "4",
+            "--dist",
+            "worksteal",
+            *pytest_files,
+        )
+        if _run_command(pytest_command):
+            LOGGER.error("FAILED %s", " ".join(pytest_command))
+            return 1
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -200,12 +267,9 @@ def main() -> int:
     )
     if not args.run:
         return 0
+    if not args.run_expensive:
+        return _run_safe_layers()
     for layer in LAYERS:
-        if layer.expensive and not args.run_expensive:
-            LOGGER.info(
-                "SKIP %s: pass --run-expensive for long-running analysis", layer.name,
-            )
-            continue
         if run_layer(layer):
             LOGGER.error("FAILED %s", layer.name)
             return 1

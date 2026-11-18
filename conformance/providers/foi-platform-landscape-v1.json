@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "reviewed_on": "2026-11-14",
+  "reviewed_on": "2026-11-17",
   "scope": "research_only",
   "excluded_lineages": [
     "alaveteli"
@@ -17,21 +17,21 @@
       "reason": "Best documented public record, communication and attachment mapping; default to public reads only.",
       "jurisdiction": "United States: federal, state and local records; jurisdiction-specific handling.",
       "lineage": "MuckRock (not Alaveteli)",
-      "next_experiment": "Offline fixtures for one public request, agency, communication and file; later authorise a bounded public-read smoke.",
+      "next_experiment": "Offline public request, agency, communication and file fixtures; reconcile client licence metadata before reuse and separately authorise any live smoke. The captured client documentation is not a deployed schema.",
       "confidence": "documented",
-      "reviewed_on": "2026-11-14",
+      "reviewed_on": "2026-11-17",
       "review_interval_days": 30,
-      "next_review_on": "2026-12-14",
+      "next_review_on": "2026-12-17",
       "sources": [
         {
           "url": "https://help.muckrock.com/19ef8892696381e88627c50e4ee90ed4",
-          "reviewed_on": "2026-11-14",
+          "reviewed_on": "2026-11-17",
           "access": "retrieved_page"
         },
         {
-          "url": "https://python-muckrock.readthedocs.io/en/latest/requests.html",
-          "reviewed_on": "2026-11-14",
-          "access": "indexed_page"
+          "url": "https://github.com/MuckRock/python-muckrock/blob/ba065fb10240b0293c08d961e04406d6860c29f7/docs/requests.rst",
+          "reviewed_on": "2026-11-17",
+          "access": "retrieved_page"
         }
       ],
       "contract": {
@@ -50,36 +50,31 @@
       "name": "FragDenStaat / Froide",
       "rank": 2,
       "decision": "read_only_pilot",
-      "reason": "Suitable public request/public-body model; deployment-specific schema and throttling still need fixture evidence.",
+      "reason": "Useful public request/public-body model, but framework documentation and source disagree about authentication and schema routes; deployed schema and throttling remain unverified.",
       "jurisdiction": "Germany; EU access regimes must remain explicitly distinguished.",
       "lineage": "Froide (not Alaveteli)",
-      "next_experiment": "Freeze one public request/public-body response and reconcile deployed schema/auth; do not assume the framework docs URL exists on the instance.",
+      "next_experiment": "Reconcile the pinned framework documentation with source settings/routes and deployed auth/schema before public fixture qualification; failed operator-page retrieval is not replaced by source access.",
       "confidence": "provisional",
-      "reviewed_on": "2026-11-14",
+      "reviewed_on": "2026-11-17",
       "review_interval_days": 30,
-      "next_review_on": "2026-12-14",
+      "next_review_on": "2026-12-17",
       "sources": [
         {
-          "url": "https://fragdenstaat.de/hilfe/funktionen-der-plattform/entwicklerinnen/",
-          "reviewed_on": "2026-11-14",
-          "access": "indexed_page"
-        },
-        {
-          "url": "https://froide.readthedocs.io/en/latest/api/",
-          "reviewed_on": "2026-11-14",
-          "access": "indexed_page"
+          "url": "https://github.com/okfde/froide/blob/b80fbe9269d3744b38a123363bbdd7d830d1bcf9/docs/api.rst",
+          "reviewed_on": "2026-11-17",
+          "access": "retrieved_page"
         }
       ],
       "contract": {
         "public_api": "documented",
-        "read_surface": "Froide API v1 exposes requests and public bodies, with search endpoints.",
-        "authentication": "Public reads are documented by Froide; FragDenStaat documents OAuth application registration.",
+        "read_surface": "Framework API v1 describes requests, public bodies and search; its documented schema URL disagrees with current source routes, so deployment reconciliation remains pending.",
+        "authentication": "Framework prose describes public GETs and BasicAuth/session writes; the same revision uses OAuth2/session classes. Deployed authentication remains unverified.",
         "write_semantics": "Authenticated account operations are separate; no submission enabled by this inventory.",
         "rate_limit": "No numeric deployment quota verified in the reviewed primary documentation; obtain current limits before live use.",
         "privacy": "Keep source jurisdiction, redactions, attribution and personal-data retention explicit.",
         "availability": "documentation_review_only"
       },
-      "contract_sha256": "f9eb95ded989b6cb97329459b84bcad5a0563da5a13be7c9e82001e4859341c0"
+      "contract_sha256": "abccacc73c4c616c99cc1f1c4cdf358b8c7b71a5fec99b4b3528a717af7fac3d"
     },
     {
       "id": "foia_gov",
@@ -91,18 +86,18 @@
       "lineage": "US DOJ national portal / Drupal JSON API (not Alaveteli)",
       "next_experiment": "Offline agency-component and request-form fixtures; live catalogue smoke requires an operator-supplied API key.",
       "confidence": "documented",
-      "reviewed_on": "2026-11-14",
+      "reviewed_on": "2026-11-17",
       "review_interval_days": 30,
-      "next_review_on": "2026-12-14",
+      "next_review_on": "2026-12-17",
       "sources": [
         {
           "url": "https://www.foia.gov/developer/",
-          "reviewed_on": "2026-11-14",
+          "reviewed_on": "2026-11-17",
           "access": "retrieved_page"
         },
         {
           "url": "https://www.foia.gov/developer/agency-api/",
-          "reviewed_on": "2026-11-14",
+          "reviewed_on": "2026-11-17",
           "access": "retrieved_page"
         }
       ],
@@ -125,33 +120,38 @@
       "reason": "Identity-sensitive case workflow requires onboarding and scope-specific consent, not bulk public discovery.",
       "jurisdiction": "United States USCIS FOIA/Privacy Act case workflow.",
       "lineage": "USCIS FIRST / developer API (not Alaveteli)",
-      "next_experiment": "Review sandbox contract and required interface text offline; no credentials, real subjects, case creation or polling in default CI.",
-      "confidence": "provisional",
-      "reviewed_on": "2026-11-14",
+      "next_experiment": "Review captured OpenAPI 3.0.1/API 1.3.0 and required interface text offline; retain the separate onboarding, consent and production-approval gates. No credentials, real subjects, case creation or polling in CI.",
+      "confidence": "documented",
+      "reviewed_on": "2026-11-17",
       "review_interval_days": 30,
-      "next_review_on": "2026-12-14",
+      "next_review_on": "2026-12-17",
       "sources": [
         {
           "url": "https://developer.uscis.gov/api/foia-request-and-status",
-          "reviewed_on": "2026-11-14",
-          "access": "indexed_page"
+          "reviewed_on": "2026-11-17",
+          "access": "retrieved_page"
         },
         {
-          "url": "https://developer.uscis.gov/node/157",
-          "reviewed_on": "2026-11-14",
-          "access": "indexed_page"
+          "url": "https://developer.uscis.gov/sites/default/files/2026-10/swagger.yaml",
+          "reviewed_on": "2026-11-17",
+          "access": "retrieved_page"
+        },
+        {
+          "url": "https://developer.uscis.gov/get-started/sandbox",
+          "reviewed_on": "2026-11-17",
+          "access": "retrieved_page"
         }
       ],
       "contract": {
         "public_api": "documented",
-        "read_surface": "Case-status operation; not a public corpus or general agency catalogue.",
-        "authentication": "USCIS developer onboarding and OAuth; exact current version/scopes must be confirmed in sandbox.",
-        "write_semantics": "POST case creates a FOIA case; production prerequisites and required interface text apply.",
-        "rate_limit": "No numeric quota independently verified; published guidance describes daily case-status checks.",
-        "privacy": "Identity, representation and consent documents require separate access and retention controls.",
+        "read_surface": "API 1.3.0 documents GET /case-status for case-specific status; not a public corpus or general agency catalogue.",
+        "authentication": "OpenAPI 3.0.1/API 1.3.0 documents OAuth 2.0 client credentials; actual app access and granted scopes require separate developer onboarding.",
+        "write_semantics": "POST /case creates a FOIA case; production prerequisites, identity/consent safeguards and required interface text apply. No writes approved.",
+        "rate_limit": "FOIA sandbox documentation states 3,500 requests/day and 5 transactions/second; production quotas are supplied on approval. Daily individual-case status checks are separate guidance.",
+        "privacy": "Identity, representation and consent documents require separate controls. Raw schema examples are not independently verified synthetic and remain in private operator evidence only.",
         "availability": "documentation_review_only"
       },
-      "contract_sha256": "8d2299e9e74ccf12dcaf8a564f10c6ce0f97e900737e9ca80be3b3a3ee5e7245"
+      "contract_sha256": "746b9868f51242216141e92a6911e7bbc016c764d903907ecd9b2a22a973e21c"
     },
     {
       "id": "canada_atip",
@@ -159,35 +159,35 @@
       "rank": 5,
       "decision": "manual_only",
       "reason": "No general-purpose transaction API identified in reviewed sources; preserve manual routing and separate released-summary discovery.",
-      "jurisdiction": "Canada federal institutions; IRCC application records have a distinct routing path.",
+      "jurisdiction": "Canada federal institutions; preserve institution-specific and separately documented IRCC routing distinctions.",
       "lineage": "Government of Canada ATIP portals (not Alaveteli)",
       "next_experiment": "Document institution routing and manually supplied export formats; investigate released summaries separately from request submission.",
       "confidence": "limited_search",
-      "reviewed_on": "2026-11-14",
+      "reviewed_on": "2026-11-17",
       "review_interval_days": 60,
-      "next_review_on": "2027-01-13",
+      "next_review_on": "2027-01-16",
       "sources": [
         {
           "url": "https://www.canada.ca/en/treasury-board-secretariat/services/access-information-privacy/access-information/request-information/make-request.html",
-          "reviewed_on": "2026-11-14",
+          "reviewed_on": "2026-11-17",
           "access": "retrieved_page"
         },
         {
-          "url": "https://atip-aiprp.apps.gc.ca/atip/",
-          "reviewed_on": "2026-11-14",
-          "access": "indexed_page"
+          "url": "https://www.canada.ca/en/transparency/terms.html",
+          "reviewed_on": "2026-11-17",
+          "access": "retrieved_page"
         }
       ],
       "contract": {
         "public_api": "not_identified",
         "read_surface": "Official request guidance, institution routing and released-request summaries; no transaction API established by this review.",
-        "authentication": "Portal/account workflow; do not automate accounts, private status or response packages.",
+        "authentication": "Official guidance links to ATIP Online and invites account creation for future access; no account automation, private status or response-package access is approved.",
         "write_semantics": "Official forms/portal submit requests and may involve payments; manual only.",
         "rate_limit": "No programmatic quota verified; no unattended portal traffic authorised.",
-        "privacy": "Personal-information requests and response packages must not be treated as public data.",
+        "privacy": "Personal-information requests and response packages are not public data. Retain raw guidance privately; publication rights differ for commercial redistribution.",
         "availability": "documentation_review_only"
       },
-      "contract_sha256": "d21fcef358e44430fd0260ac747524a8e08b6811d8cb0a8860ef1524bf1cd2bd"
+      "contract_sha256": "1ebcb436a68712f6ac1a0dce1956135c3df647eedcb3b25947083cdf136e4c1f"
     },
     {
       "id": "india_rti",
@@ -199,13 +199,18 @@
       "lineage": "DoPT / NIC RTI Online (not Alaveteli)",
       "next_experiment": "Prepare manual routing guidance and consent-aware export fixtures; do not automate payment, CAPTCHA, OTP or filing.",
       "confidence": "limited_search",
-      "reviewed_on": "2026-11-14",
+      "reviewed_on": "2026-11-17",
       "review_interval_days": 60,
-      "next_review_on": "2027-01-13",
+      "next_review_on": "2027-01-16",
       "sources": [
         {
           "url": "https://rtionline.gov.in/faq.php",
-          "reviewed_on": "2026-11-14",
+          "reviewed_on": "2026-11-17",
+          "access": "retrieved_page"
+        },
+        {
+          "url": "https://rtionline.gov.in/Policies.php",
+          "reviewed_on": "2026-11-17",
           "access": "retrieved_page"
         }
       ],

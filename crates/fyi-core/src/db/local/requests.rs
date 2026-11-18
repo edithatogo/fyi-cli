@@ -2,10 +2,13 @@
 
 use super::{required_nullable, LocalError, MAX_LOCAL_INPUT_BYTES};
 use crate::db::DbPool;
-use chrono::{DateTime, NaiveDateTime, SecondsFormat, Utc};
+use crate::time_util::{now_rfc3339_micros_z, parse_strict_rfc3339_utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{Connection, FromRow, Sqlite, SqliteConnection, Transaction};
 use std::cmp::Ordering;
+use time::{
+    format_description::FormatItem, macros::format_description, OffsetDateTime, PrimitiveDateTime,
+};
 
 pub const MAX_LOCAL_STATUS_BYTES: usize = 128;
 const MAX_LOCAL_TEXT_FIELD_BYTES: usize = 16 * 1024;
@@ -131,7 +134,7 @@ fn validate_request_id(id: i64) -> Result<(), LocalError> {
 }
 
 fn now_timestamp() -> String {
-    Utc::now().to_rfc3339_opts(SecondsFormat::Micros, true)
+    now_rfc3339_micros_z()
 }
 
 async fn finish_transaction<T>(
@@ -393,13 +396,23 @@ pub(crate) fn sort_timeline_items(items: &mut [TimelineItem]) {
     });
 }
 
-pub(crate) fn parsed_timestamp(value: Option<&str>) -> Option<DateTime<Utc>> {
+pub(crate) fn parsed_timestamp(value: Option<&str>) -> Option<OffsetDateTime> {
     let value = value?;
-    if let Ok(timestamp) = DateTime::parse_from_rfc3339(value) {
-        return Some(timestamp.with_timezone(&Utc));
+    if let Ok(timestamp) = parse_strict_rfc3339_utc(value) {
+        return Some(timestamp);
     }
-    NaiveDateTime::parse_from_str(value, "%Y-%m-%d %H:%M:%S%.f")
-        .or_else(|_| NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M:%S%.f"))
+    const SQLITE_SPACE_WITH_SUBSEC: &[FormatItem<'_>] =
+        format_description!("[year]-[month]-[day] [hour]:[minute]:[second].[subsecond]");
+    const SQLITE_SPACE: &[FormatItem<'_>] =
+        format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
+    const SQLITE_T_WITH_SUBSEC: &[FormatItem<'_>] =
+        format_description!("[year]-[month]-[day]T[hour]:[minute]:[second].[subsecond]");
+    const SQLITE_T: &[FormatItem<'_>] =
+        format_description!("[year]-[month]-[day]T[hour]:[minute]:[second]");
+    PrimitiveDateTime::parse(value, SQLITE_SPACE_WITH_SUBSEC)
+        .or_else(|_| PrimitiveDateTime::parse(value, SQLITE_SPACE))
+        .or_else(|_| PrimitiveDateTime::parse(value, SQLITE_T_WITH_SUBSEC))
+        .or_else(|_| PrimitiveDateTime::parse(value, SQLITE_T))
         .ok()
-        .map(|timestamp| timestamp.and_utc())
+        .map(PrimitiveDateTime::assume_utc)
 }

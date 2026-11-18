@@ -265,6 +265,75 @@ def check_rulesets(checks: list[dict[str, Any]], live: bool) -> dict[str, Any]:
     return observation
 
 
+def check_codeql_configuration_hygiene(checks: list[dict[str, Any]], live: bool) -> None:
+    if not live:
+        checks.append(
+            {
+                "name": "github:codeql-configuration-hygiene",
+                "ok": True,
+                "detail": "skipped (--offline)",
+            },
+        )
+        return
+
+    ds_ok, ds_payload = gh_api(f"repos/{REPO}/code-scanning/default-setup")
+    if not ds_ok or not isinstance(ds_payload, dict):
+        checks.append(
+            {
+                "name": "github:codeql-configuration-hygiene",
+                "ok": False,
+                "detail": f"gh api default-setup failed: {ds_payload}",
+            },
+        )
+        return
+
+    an_ok, an_payload = gh_api(
+        f"repos/{REPO}/code-scanning/analyses?ref=refs/heads/master&per_page=100",
+    )
+    if not an_ok or not isinstance(an_payload, list):
+        checks.append(
+            {
+                "name": "github:codeql-configuration-hygiene",
+                "ok": False,
+                "detail": f"gh api analyses failed: {an_payload}",
+            },
+        )
+        return
+
+    default_setup_state = ds_payload.get("state")
+    stale_deletable = [
+        entry.get("id")
+        for entry in an_payload
+        if isinstance(entry, dict)
+        and entry.get("deletable") is True
+        and str(entry.get("analysis_key", "")).startswith("dynamic/github-code-scanning/codeql:")
+    ]
+    unexpected_categories = sorted(
+        {
+            str(entry.get("category"))
+            for entry in an_payload
+            if isinstance(entry, dict)
+            and entry.get("category") in {"/language:actions", "/language:ruby", "/language:rust"}
+        },
+    )
+    ok = (
+        default_setup_state == "not-configured"
+        and not stale_deletable
+        and not unexpected_categories
+    )
+    checks.append(
+        {
+            "name": "github:codeql-configuration-hygiene",
+            "ok": ok,
+            "detail": (
+                f"default_setup_state={default_setup_state} "
+                f"stale_default_setup_analyses={stale_deletable} "
+                f"unexpected_categories={unexpected_categories}"
+            ),
+        },
+    )
+
+
 def check_zero_approvals_note(checks: list[dict[str, Any]]) -> None:
     # Enforced by check_branch_protection (approving == 0). This entry documents intent.
     checks.append(
@@ -299,6 +368,7 @@ def main() -> int:
     check_solo_operation(checks, live)
     protection = check_branch_protection(checks, live)
     rulesets = check_rulesets(checks, live)
+    check_codeql_configuration_hygiene(checks, live)
     check_zero_approvals_note(checks)
 
     failures = [c for c in checks if not c["ok"]]

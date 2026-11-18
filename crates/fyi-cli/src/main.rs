@@ -1,4 +1,3 @@
-use chrono::NaiveDate;
 use clap::{Parser, Subcommand, ValueEnum};
 use fyi_core::db::{DbPool, GlobalSyncStatus};
 use fyi_core::deadlines::{
@@ -16,6 +15,7 @@ use fyi_core::sync::{PullReport, PushReport, SyncClient, SyncConfig};
 use std::fs::OpenOptions;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
+use time::{macros::format_description, Date};
 use tokio::runtime::Runtime;
 
 mod local;
@@ -1028,8 +1028,8 @@ fn parse_interval(value: &str) -> Result<std::time::Duration, String> {
         .map_err(|_| "interval must be finite, nonnegative and representable".to_owned())
 }
 
-fn parse_ymd(value: &str) -> Result<NaiveDate, String> {
-    NaiveDate::parse_from_str(value, "%Y-%m-%d")
+fn parse_ymd(value: &str) -> Result<Date, String> {
+    Date::parse(value, format_description!("[year]-[month]-[day]"))
         .map_err(|e| format!("invalid date '{value}' (expected YYYY-MM-DD): {e}"))
 }
 
@@ -2003,7 +2003,7 @@ mod tests {
     fn test_parse_ymd_accepts_iso() {
         assert_eq!(
             parse_ymd("2026-07-03").unwrap(),
-            NaiveDate::from_ymd_opt(2026, 7, 3).unwrap()
+            time::macros::date!(2026 - 07 - 03)
         );
         assert!(parse_ymd("not-a-date").is_err());
     }

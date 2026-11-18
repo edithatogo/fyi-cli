@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 import tempfile
@@ -40,6 +41,13 @@ pytestmark = [pytest.mark.integration, pytest.mark.compatibility]
 @pytest.fixture(scope="session")
 def socket_free_sdk_fixture() -> Path:
     """Build the test-only entrypoint which runs the real MCP/source code."""
+    configured = os.environ.get("FYI_MCP_SDK_FIXTURE_BINARY")
+    if configured is not None:
+        binary = Path(configured).expanduser().resolve()
+        if not configured or not binary.is_file():
+            pytest.fail("FYI_MCP_SDK_FIXTURE_BINARY must name an existing executable")
+        return binary
+
     cargo = _cargo_executable()
     if cargo is None:
         pytest.fail("the socket-free MCP SDK regression requires Cargo")

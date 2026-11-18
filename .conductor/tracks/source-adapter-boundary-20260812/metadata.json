@@ -14,5 +14,13 @@
     "https://github.com/edithatogo/fyi-cli/issues/313",
     "https://github.com/edithatogo/fyi-cli/issues/314"
   ],
-  "archive_cutover_allowed": false
+  "archive_cutover_allowed": false,
+  "replay_qualification_20261117": {
+    "github_pr": "https://github.com/edithatogo/fyi-cli/pull/489",
+    "baseline_commit": "1f0ae6d0b00663d52ccb65904152ca4e933b3486",
+    "tests_first_commit": "7805d42b0ccf986a55a21b97cfdeae0a5103a8a4",
+    "implementation_checkpoint": "d7b577efe25491ae1e7ccac0255ebdcd081384fe",
+    "evidence": "replay-qualification-20261117.md",
+    "receiving_gate": "https://github.com/edithatogo/fyi-cli/pull/489/checks"
+  }
 }

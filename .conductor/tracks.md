@@ -45,6 +45,7 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Child issues: [#310](https://github.com/edithatogo/fyi-cli/issues/310) receipt contract, [#311](https://github.com/edithatogo/fyi-cli/issues/311) CDX discovery (closed), [#312](https://github.com/edithatogo/fyi-cli/issues/312) Wayback replay, [#313](https://github.com/edithatogo/fyi-cli/issues/313) source health/pacing, [#314](https://github.com/edithatogo/fyi-cli/issues/314) historical index.*
   *Description: Make fyi-cli the exclusive receipt-producing network boundary for Alaveteli, Internet Archive, Wayback replay, source health, and approved external indexes.*
   *Current receipt increment: PR #488 adds complete request-failure evidence and incremental sync checkpoint lineage. Source checkpoint `90129b7` passed required CI, MSRV and three-platform portability; full network-entrypoint coverage and downstream cutover remain open.*
+  *Replay qualification: [PR #489](https://github.com/edithatogo/fyi-cli/pull/489) bounds checkpoint publication, disables implicit retries, and executes reference/portability contracts; [evidence](./tracks/source-adapter-boundary-20260812/replay-qualification-20261117.md). Final receiving-head checks and integration remain tracked in the PR; live smoke, release and downstream cutover gates remain open.*
 
 ---
 
@@ -186,7 +187,7 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Issue: [#39](https://github.com/edithatogo/fyi-cli/issues/39) (open)*
   *Link: [./tracks/i18n-localization-framework/](./tracks/i18n-localization-framework/)*
   *Description: fluent-rs i18n, locale-aware templates, terminology map, working-day/deadline engine + holiday calendars.*
-  *Status: Automated message/template/terminology contracts delivered; reviewed calendars/statutory rules, human translation/legal review, external overrides and measured performance remain open. See the existing track's acceptance-evidence.md; archive_allowed=false.*
+  *Status: Automated message/template/terminology contracts delivered; PR #491 adds 37 source-checked 2026 NZ/AU/UK calendars and strict contribution evidence. Statutory rules, broader calendar/human legal review, external overrides and measured performance remain open. See the existing track's acceptance-evidence.md; archive_allowed=false.*
 
 - [x] **Track: jurisdiction-au-righttoknow** (COMPLETED 2026-07-08, PR #126)
   *Issue: #40 (closed)*
@@ -258,11 +259,11 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Dependencies: remote-mcp-observability-security*
   *Priority: high*
 
-- [~] **Track: remote-mcp-contract-harness** (IN PROGRESS 2026-11-14; protocol PR #438, confirmation/budget PR #441, schema/SDK PR #443, degraded-startup PR #449 and credential-namespace PR #452 merged; original acceptance incomplete)
+- [~] **Track: remote-mcp-contract-harness** (IN PROGRESS 2026-11-17; reproducible fixture, mutation and platform harness verified in PR #493; original source acceptance remains open)
   *GitHub parent: [#169](https://github.com/edithatogo/fyi-cli/issues/169)*
   *GitHub issue: [#173](https://github.com/edithatogo/fyi-cli/issues/173)*
   *Link: [./tracks/remote-mcp-contract-harness-20260711/](./tracks/remote-mcp-contract-harness-20260711/)*
-  *Description: Executable MCP catalogue/exchange fixtures, official SDK stdio/HTTP and synthetic upstream contracts, private errors, bounded confirmations and measured local budgets. RSS/Atom, source cache/transfer, broader mutation/property and Windows/macOS evidence remain open; see acceptance-evidence.md in the existing track.*
+  *Description: Executable MCP catalogue/exchange fixtures, official SDK stdio/HTTP and synthetic upstream contracts, private errors, bounded confirmations and measured local budgets. PR #493 verifies the shared v1 corpus, generated state/pagination/path/privacy contracts, all 15 targeted security mutations and six platform/compiler stdio cells at an exact implementation checkpoint. Production malformed-feed/cache/raw-transfer guarantees, immutable attachment/state behavior and broader platform qualification remain open; see acceptance-evidence.md in the existing track.*
   *Dependencies: remote-mcp-observability-security, remote-mcp-read-surface*
   *Priority: high*
 
@@ -310,7 +311,7 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Link: [./tracks/foi-platform-landscape_20260712/](./tracks/foi-platform-landscape_20260712/)*
   *GitHub issue: [#195](https://github.com/edithatogo/fyi-cli/issues/195); child [#199](https://github.com/edithatogo/fyi-cli/issues/199)*
   *Description: Map non-Alaveteli FOI request platforms and rank safe integration opportunities.*
-  *Reconciliation: #195 was reopened on 2026-11-13 because Phase 3 maintenance and drift monitoring remain open in the track plan; #199 is complete.*
+  *Reconciliation: PR #492 adds six raw research fingerprints, a guarded Rust documentation observer and offline receipt-bound drift checks. Live observer qualification remains open because direct DNS is unavailable in the execution environment; research captures explicitly record their managed-proxy provenance. #199 is complete.*
 
 - [x] **Track: foi-adapter-pilots_20260712** (COMPLETED 2026-07-28)
   *Link: [./tracks/foi-adapter-pilots_20260712/](./tracks/foi-adapter-pilots_20260712/)*

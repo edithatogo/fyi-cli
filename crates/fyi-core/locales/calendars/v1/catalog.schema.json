@@ -27,11 +27,13 @@
           "jurisdiction": {
             "type": "string",
             "minLength": 2,
-            "pattern": "^[A-Z]{2}(?:-[A-Z0-9]{1,8})?$"
+            "pattern": "^[A-Z]{2}(?:-[A-Z0-9]{1,8})*$",
+            "not": {"pattern": "\\s"}
           },
           "revision": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "pattern": "\\S"
           },
           "valid_from": {
             "type": "string",
@@ -43,6 +45,7 @@
           },
           "weekend_days": {
             "type": "array",
+            "maxItems": 6,
             "uniqueItems": true,
             "items": {
               "type": "integer",

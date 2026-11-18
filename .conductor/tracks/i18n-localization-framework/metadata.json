@@ -9,18 +9,18 @@
   ],
   "priority": "high",
   "github_issue": 39,
-  "github_pr": 450,
+  "github_pr": 491,
   "implementation_workflow": {
     "tracked_by": "github-issues-prs",
-    "branch": "master"
+    "branch": "codex/issue-66-holiday-calendars-20261117"
   },
-  "updated_at": "2026-11-14T12:56:45+00:00",
-  "reconciliation": "PRs #436, #447 and #450 are merged; terminology merge 70fef298442c72744583deb39c87ed83e005e60b has the exact verified final-head tree. Child #64 is complete; #39 and #65-#67 remain open. Shared status entries are reconciled; holiday/statutory, human review and later acceptance are incomplete.",
+  "updated_at": "2026-11-17T19:12:00+10:00",
+  "reconciliation": "Source-data/contribution implementation for #66 is in PR #491, after merged v1 starter work #470/#473. Thirty-seven NZ/AU/UK 2026 profiles have explicit source evidence; DE/ES/FR source review, legal/statutory applicability and human acceptance remain open. Track and archive holds are unchanged.",
   "archive_allowed": false,
   "verification": {
     "phase_1": "Merged via PR #436 (a0fa71a); historical local and hosted evidence retained.",
     "evidence": "acceptance-evidence.md",
-    "remaining": "Human terminology/translation/legal review; additional regime coverage; holiday/statutory rules; external overrides; additional locales; measured performance criteria; calendar contribution documentation",
+    "remaining": "Human terminology/translation/legal review; additional regime coverage; statutory rules and source review of unsupplied calendars; external overrides; additional locales; measured performance criteria. Calendar-data source/contribution implementation now has bounded automated evidence in PR #491.",
     "phase_2": "Merged via PR #447 (4322d47); historical local and hosted evidence retained.",
     "coverage": {
       "i18n_lines_percent": 99.4550408719346,
@@ -49,6 +49,43 @@
       "workspace_gate_percent": 90,
       "additional_exclusions": false,
       "local_rust_execution": "blocked: already-merged Fluent dependency absent from offline cache; executable evidence supplied by existing hosted CI"
+<<<<<<< HEAD
+    },
+    "calendar_checkpoint": {
+      "issue": 66,
+      "pull_request": 491,
+      "implementation_commit": "4a4fbd7fc1e54a39a018ce249bf60fab9a4f414e",
+      "evidence": "calendar-evidence.md",
+      "source_checked_calendars": 37,
+      "unreviewed_legacy_calendars": [
+        "DE",
+        "ES",
+        "FR"
+      ],
+      "source_records": 30,
+      "named_events": 444,
+      "python_tests_passed": 64,
+      "rust_scoped_tests_passed": 24,
+      "rust_scoped_clippy": "passed",
+      "rust_scoped_toolchain": "1.100.0",
+      "full_workspace": "hosted checks pending; full local dependency compilation SIGKILL",
+      "validation_status": "unvalidated"
+||||||| efd232f
+=======
+    },
+    "documentation_issue_67": {
+      "github_issue": 67,
+      "github_pr": 490,
+      "status": "documentation_implemented_review_gates_open",
+      "implementation_commit": "67fe138501fa04f1d06c9149ed5e4d199578c73b",
+      "evidence": "documentation-evidence.md",
+      "rust_examples_passed": 6,
+      "rust_example_scope": "Source-only harness with unchanged i18n/deadline modules and original jurisdiction data/registry prefix; full workspace integration belongs to hosted CI.",
+      "embedded_schema_tests_passed": 1,
+      "human_review_complete": false,
+      "calendar_source_review_complete": false,
+      "hosted_checks": "See PR #490 for the exact current-head status."
+>>>>>>> origin/master
     }
   },
   "historical_github_pr": 126,
@@ -56,6 +93,16 @@
     126,
     436,
     447,
+<<<<<<< HEAD
+    450,
+    470,
+    473,
+    491
+||||||| efd232f
     450
+=======
+    450,
+    490
+>>>>>>> origin/master
   ]
 }
