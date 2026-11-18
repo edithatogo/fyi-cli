@@ -54,6 +54,9 @@ jobs:
 
       - name: Set up uv
         uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
@@ -84,16 +87,22 @@ jobs:
           } >> artifacts/python-tests/environment.txt
 
       - name: Prepare locked Rust dependencies for offline SDK fixture
+        shell: bash
         run: |
           cargo fetch --locked --target x86_64-unknown-linux-gnu
-          cargo build -p fyi-mcp --locked
           cargo build --locked --offline --package fyi-mcp --example sdk-regression-fixture --features sdk-regression-fixture
+          cp target/debug/examples/sdk-regression-fixture "$RUNNER_TEMP/sdk-regression-fixture"
+          cargo build -p fyi-mcp --locked
+          {
+            printf 'FYI_MCP_TEST_BINARY=%s/target/debug/fyi-mcp\n' "$PWD"
+            printf 'FYI_MCP_SDK_FIXTURE_BINARY=%s/sdk-regression-fixture\n' "$RUNNER_TEMP"
+          } >> "$GITHUB_ENV"
 
       - name: Run Python test suite
         shell: bash
         run: |
           set -o pipefail
-          uv run pytest -q --junitxml=artifacts/python-tests/junit.xml -n 4 --dist loadfile 2>&1 | tee artifacts/python-tests/pytest.log
+          uv run pytest -q --junitxml=artifacts/python-tests/junit.xml -n 4 --dist worksteal 2>&1 | tee artifacts/python-tests/pytest.log
 
       - name: Retain Python test evidence
         if: always()
@@ -126,6 +135,9 @@ jobs:
 
       - name: Set up uv
         uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
@@ -499,9 +511,15 @@ jobs:
         with:
           python-version: "3.15.2"
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
       - name: Install test harness dependencies
         run: |
-          python -m pip install --upgrade uv && uv sync --python 3.15.2 --extra dev --locked
+          uv sync --python 3.15.2 --extra dev --locked
           uv run --no-sync --python 3.15.2 python scripts/verify_python315_runtime.py
 
       - name: Run offline harness layers

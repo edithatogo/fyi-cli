@@ -234,7 +234,7 @@ def _run_safe_layers() -> int:
             "-n",
             "4",
             "--dist",
-            "loadfile",
+            "worksteal",
             *pytest_files,
         )
         if _run_command(pytest_command):
