@@ -20,7 +20,7 @@ GRANDFATHERED = frozenset({
     "RUSTSEC-2024-0436", "RUSTSEC-2023-0071",
     "RUSTSEC-2026-0387", "RUSTSEC-2026-0459",
     "RUSTSEC-2026-0370", "RUSTSEC-2026-0371",
-    "RUSTSEC-2026-0372",
+    "RUSTSEC-2026-0372", "RUSTSEC-2026-0542",
 })
 ADVISORY = re.compile(r"^RUSTSEC-\d{4}-\d{4}$")
 CLI_IGNORE = re.compile(r"--ignore(?:=|\s+)([^\s\\]+)")

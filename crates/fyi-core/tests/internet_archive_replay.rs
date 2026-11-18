@@ -73,7 +73,7 @@ fn response(event: &Value, requested_url: &str) -> ReplayResponse {
         version: reqwest::Version::HTTP_11,
         headers,
         body: bytes(event["body_hex"].as_str().unwrap()),
-        captured_at: "2026-11-14T00:00:00Z".parse().unwrap(),
+        captured_at: time::macros::datetime!(2026 - 11 - 14 00:00:00 UTC),
     }
 }
 

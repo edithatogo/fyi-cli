@@ -70,13 +70,16 @@ hook is claimed installed.
 
 ## Actual vulnerability remediation
 
-The current suppressions have been reduced from 20 historical RustSec entries to seven, after 13 were verified as not encountered in the master 9050a664 Cargo-deny audit. This does **not** establish that any of the five explicitly ignored active advisories have been fixed.\n\nThe existing audit uses CLI ignores for RUSTSEC-2026-0387,
-RUSTSEC-2026-0459 and RUSTSEC-2026-0370/0371/0372. Resolve or
+The current suppressions were reduced from 20 historical RustSec entries to seven after 13 were verified as not encountered in the master 9050a664 Cargo-deny audit, and now include one synchronized time-bounded Tor transitive exception (`RUSTSEC-2026-0542`, `humantime 2.4.0` via `arti-client 0.48.0`, tracked in [#495](https://github.com/edithatogo/fyi-cli/issues/495) and expiring `2026-12-14`) while direct and `sqlx` `chrono` usage (`RUSTSEC-2026-0543`) has been eliminated by migrating the workspace to `time`. This does **not** establish that any explicitly ignored active advisory has been fixed.
+
+The existing audit uses CLI ignores for `RUSTSEC-2023-0071`, `RUSTSEC-2024-0436`, `RUSTSEC-2026-0387`,
+`RUSTSEC-2026-0459`, `RUSTSEC-2026-0370/0371/0372`, and `RUSTSEC-2026-0542`. Resolve or
 remove their affected transitive dependencies using
 `cargo tree -i <crate>` and lockfile evidence. For SQLite, check
 malicious database/WAL admission and compatible SQLx/rusqlite versions;
 for cryptography, test the p256/elliptic-curve/crypto-bigint chain; for
-zbus, qualify a supported keyring dependency. Re-check all other
+zbus, qualify a supported keyring dependency; for `humantime`, track
+upstream `arti-client` / `tor-*` releases removing `humantime 2.4.0` (#495). Re-check all other
 historical entries and remove obsolete exceptions.
 
 The remediation target is `cargo audit` and `cargo deny` with **no
@@ -105,9 +108,9 @@ remains subject to an explicit audit ignore and has **not** been retired.
 
 This only removes stale suppressions from the recorded dependency
 graph; it does **not** establish security fixes for remaining
-vulnerabilities. The now-seven remaining exceptions require
-independent assessment and removal. Future advisory database changes
-remain fail-closed through the required CI job.
+vulnerabilities. The now-eight remaining exceptions (seven legacy plus
+`RUSTSEC-2026-0542` under #495) require independent assessment and removal.
+Future advisory database changes remain fail-closed through the required CI job.
 
 ## Independent security review correction — implicit cargo-audit configuration
 

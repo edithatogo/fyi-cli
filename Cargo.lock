@@ -918,10 +918,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1aa79e62e7697b8e29b513a68abacf485adcd1fe8284a4316c5ae868e6633327"
 dependencies = [
  "iana-time-zone",
- "js-sys",
  "num-traits",
  "serde",
- "wasm-bindgen",
  "windows-link",
 ]
 
@@ -2325,7 +2323,6 @@ dependencies = [
 name = "fyi-cli"
 version = "0.1.2"
 dependencies = [
- "chrono",
  "clap",
  "crossterm",
  "dhat",
@@ -2335,6 +2332,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sqlx",
+ "time",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -2349,7 +2347,6 @@ dependencies = [
  "aes-gcm",
  "anyhow",
  "arti-client",
- "chrono",
  "csv",
  "data-encoding",
  "flate2",
@@ -2374,6 +2371,7 @@ dependencies = [
  "surt-rs",
  "tempfile",
  "thiserror 1.0.69",
+ "time",
  "tokio",
  "toml 0.8.23",
  "tor-rtcompat",
@@ -2390,13 +2388,13 @@ version = "0.1.2"
 dependencies = [
  "anyhow",
  "axum",
- "chrono",
  "fyi-core",
  "hmac 0.12.1",
  "serde",
  "serde_json",
  "sha2 0.10.9",
  "sqlx",
+ "time",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -5602,7 +5600,6 @@ dependencies = [
  "base64 0.22.1",
  "bytes",
  "cfg-if",
- "chrono",
  "crc",
  "crossbeam-queue",
  "either",
@@ -5678,7 +5675,6 @@ dependencies = [
  "bitflags 2.13.2",
  "byteorder",
  "bytes",
- "chrono",
  "crc",
  "digest 0.11.3",
  "dotenvy",
@@ -5706,7 +5702,6 @@ dependencies = [
  "base64 0.22.1",
  "bitflags 2.13.2",
  "byteorder",
- "chrono",
  "crc",
  "dotenvy",
  "etcetera",
@@ -5739,7 +5734,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "488e99c397a62007e4229aec669a179816339afc6d2620ca6fa420dbee2e982c"
 dependencies = [
  "atoi",
- "chrono",
  "flume",
  "form_urlencoded",
  "futures-channel",

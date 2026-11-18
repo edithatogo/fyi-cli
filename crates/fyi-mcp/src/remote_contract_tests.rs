@@ -154,10 +154,15 @@ async fn feed_discovery_and_read_contract_are_offline_and_leave_database_empty()
         .as_str()
         .unwrap()
         .starts_with("mcp-"));
-    assert!(chrono::DateTime::parse_from_rfc3339(
-        payload["provenance"]["retrieved_at"].as_str().unwrap()
-    )
-    .is_ok());
+    let retrieved_at = payload["provenance"]["retrieved_at"].as_str().unwrap();
+    assert!(
+        matches!(retrieved_at.as_bytes().get(10), Some(b'T' | b't'))
+            && time::OffsetDateTime::parse(
+                retrieved_at,
+                &time::format_description::well_known::Rfc3339,
+            )
+            .is_ok()
+    );
     let mut result = payload.clone();
     assert_eq!(
         arguments::validate_arguments(

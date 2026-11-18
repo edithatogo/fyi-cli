@@ -28,7 +28,7 @@ pub struct ReplayResponse {
     pub version: reqwest::Version,
     pub headers: reqwest::header::HeaderMap,
     pub body: Vec<u8>,
-    pub captured_at: chrono::DateTime<chrono::Utc>,
+    pub captured_at: time::OffsetDateTime,
 }
 
 impl ReplayResponse {

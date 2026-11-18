@@ -7,8 +7,8 @@ use crate::api::{
     UpdateRequestStateResponse,
 };
 use crate::db::{DbPool, FieldChange, SyncStatus};
+use crate::time_util::{format_rfc3339_millis_z, now_rfc3339_millis_z};
 use anyhow::{anyhow, Context, Result};
-use chrono::{SecondsFormat, Utc};
 use reqwest::{header, Client, RequestBuilder, StatusCode, Url};
 use serde_json::Value;
 use std::collections::{BTreeSet, HashMap};
@@ -16,6 +16,7 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::path::Path;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
+use time::OffsetDateTime;
 use tokio::sync::{oneshot, Mutex, OwnedSemaphorePermit, Semaphore};
 use tokio::task::JoinHandle;
 
@@ -289,7 +290,7 @@ impl WaybackTransport {
             version: response.version,
             headers: response.headers,
             body: response.body,
-            captured_at: Utc::now(),
+            captured_at: OffsetDateTime::now_utc(),
         })
     }
 }
@@ -419,10 +420,7 @@ impl SyncClient {
             guardrails,
             crate::agent_runtime::PacingPolicy::default(),
             Box::new(crate::agent_runtime::NullTraceSink),
-            format!(
-                "sync-{}",
-                chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default()
-            ),
+            format!("sync-{}", OffsetDateTime::now_utc().unix_timestamp_nanos()),
         );
         let base_url = Url::parse(base_url).context("invalid FYI base URL")?;
         validate_instance_url(&base_url, false)?;
@@ -477,7 +475,8 @@ impl SyncClient {
             &crate::shared_pacing::ReservationInput {
                 name: &shared.name,
                 owner_id: &owner,
-                now: Utc::now().timestamp_millis() as f64 / 1_000.0,
+                now: (OffsetDateTime::now_utc().unix_timestamp_nanos() / 1_000_000) as f64
+                    / 1_000.0,
                 interval_seconds: interval.as_secs_f64(),
                 jitter_seconds: 0.25,
                 jitter_fraction: u64::from_le_bytes(random) as f64 / u64::MAX as f64,
@@ -732,7 +731,7 @@ impl SyncClient {
             body.extend_from_slice(&chunk);
         }
         let response_bytes = body.len() as u64;
-        let mut retrieved_at = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true);
+        let mut retrieved_at = now_rfc3339_millis_z();
         if status == StatusCode::NOT_MODIFIED && allow_cache {
             let Some(cached) = cached_response else {
                 return Err(
@@ -963,7 +962,7 @@ impl SyncClient {
             .base_url
             .join(&format!("api/v2/request/{request_id}.json"))
             .context("failed to build request URL")?;
-        let started = Utc::now();
+        let started = OffsetDateTime::now_utc();
         let response = self
             .send_guarded(self.http.get(url.clone()))
             .await
@@ -974,7 +973,7 @@ impl SyncClient {
             ));
         }
         let response = ensure_success(response, "request endpoint").await?;
-        let completed = Utc::now();
+        let completed = OffsetDateTime::now_utc();
         let request: AlaveteliRequest = serde_json::from_slice(&response.body)
             .context("failed to parse public request JSON")?;
         if request.id != request_id {
@@ -985,8 +984,8 @@ impl SyncClient {
         let result_projection = canonical_json_bytes(
             &serde_json::to_value(&request).context("failed to normalize request JSON")?,
         )?;
-        let started_at = started.to_rfc3339_opts(SecondsFormat::Millis, true);
-        let completed_at = completed.to_rfc3339_opts(SecondsFormat::Millis, true);
+        let started_at = format_rfc3339_millis_z(started);
+        let completed_at = format_rfc3339_millis_z(completed);
         let receipt = build_single_get_receipt_with_rate_limit(
             SingleGetReceiptInput {
                 source_url: &url,
@@ -4465,7 +4464,8 @@ mod tests {
             &crate::shared_pacing::ReservationInput {
                 name: "archive-discovery",
                 owner_id: "other-worker",
-                now: Utc::now().timestamp_millis() as f64 / 1_000.0,
+                now: (OffsetDateTime::now_utc().unix_timestamp_nanos() / 1_000_000) as f64
+                    / 1_000.0,
                 interval_seconds: 7_200.0,
                 jitter_seconds: 0.0,
                 jitter_fraction: 0.0,

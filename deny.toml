@@ -35,6 +35,11 @@ ignore = [
   "RUSTSEC-2026-0370",
   "RUSTSEC-2026-0371",
   "RUSTSEC-2026-0372",
+  # RUSTSEC-2026-0542: humantime 2.4.0 unmaintained transitive dependency
+  # pulled in exclusively by arti-client 0.48.0 / tor-* 0.48.0 (latest on
+  # crates.io), while workspace chrono (RUSTSEC-2026-0543) is removed.
+  # Tracked under #495; expires 2026-12-14.
+  "RUSTSEC-2026-0542",
 ]
 
 [bans]

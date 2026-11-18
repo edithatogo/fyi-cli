@@ -11,8 +11,8 @@ use crate::acquisition_receipts::{
 };
 use crate::provenance::sha256_hex;
 use crate::sync::WaybackTransport;
+use crate::time_util::now_rfc3339_millis_z;
 use anyhow::{ensure, Context, Result};
-use chrono::{SecondsFormat, Utc};
 use serde_json::{json, Value};
 use std::cell::Cell;
 use std::fs;
@@ -306,7 +306,7 @@ where
     Fut: Future<Output = Result<ReplayResponse, ReplayFetchError>>,
 {
     let before = checkpoint_digest(paths.checkpoint)?;
-    let started = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true);
+    let started = now_rfc3339_millis_z();
     let mut responses = Vec::new();
     let mut incomplete = false;
     let attempted = Cell::new(0_usize);
@@ -364,7 +364,7 @@ where
         "source": {"url": format!("{REPLAY_ORIGIN}/")},
         "request_bounds": config.request_bounds(selection),
         "started_at": started,
-        "completed_at": Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true),
+        "completed_at": now_rfc3339_millis_z(),
         "status": if outcome.is_ok() { "succeeded" } else { "failed" },
         "responses": responses,
         "totals": {"requests": responses.len(), "bytes": total_bytes, "retries": 0},
@@ -460,7 +460,7 @@ mod tests {
             version: Version::HTTP_11,
             headers,
             body: body.to_vec(),
-            captured_at: Utc::now(),
+            captured_at: time::OffsetDateTime::now_utc(),
         }
     }
 
