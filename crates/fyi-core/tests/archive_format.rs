@@ -1,4 +1,3 @@
-use chrono::{DateTime, TimeZone, Utc};
 use data_encoding::BASE32;
 use flate2::read::GzDecoder;
 use fyi_core::archive_format::{
@@ -12,16 +11,15 @@ use std::collections::BTreeMap;
 use std::fs::{self, File};
 use std::io::{self, Cursor, Read, Write};
 use std::path::Path;
+use time::{macros::datetime, Duration, OffsetDateTime};
 use zip::write::SimpleFileOptions;
 use zip::{CompressionMethod, ZipArchive, ZipWriter};
 
 const HTML: &[u8] = include_bytes!("../../../conformance/archive/page.html");
 const BINARY: &[u8] = b"%PDF-synthetic\0\xff\r\nentity bytes\n";
 
-fn timestamp() -> DateTime<Utc> {
-    Utc.with_ymd_and_hms(2026, 11, 14, 5, 6, 7)
-        .single()
-        .unwrap()
+fn timestamp() -> OffsetDateTime {
+    datetime!(2026 - 11 - 14 05:06:07 UTC)
 }
 
 fn resource<'a>(
@@ -562,9 +560,9 @@ fn pages_require_matching_response_timestamps_and_unique_identifiers() {
     let directory = tempfile::tempdir().unwrap();
     let (warc, records, mut pages) = write_fixture(directory.path());
     let output = directory.path().join("capture.wacz");
-    pages[0].ts += chrono::Duration::seconds(1);
+    pages[0].ts += Duration::seconds(1);
     assert!(write_wacz(&output, &warc, &records, &pages).is_err());
-    pages[0].ts -= chrono::Duration::seconds(1);
+    pages[0].ts -= Duration::seconds(1);
     pages.push(pages[0].clone());
     assert!(write_wacz(&output, &warc, &records, &pages).is_err());
     assert!(!output.exists());

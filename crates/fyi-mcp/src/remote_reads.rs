@@ -205,8 +205,11 @@ fn with_source<T>(read: SourceRead<T>, instance_id: &str, value: impl FnOnce(T) 
 }
 
 fn with_generated_provenance(mut payload: Value, instance_id: &str) -> Value {
+    let retrieved_at = time::OffsetDateTime::now_utc()
+        .format(&time::format_description::well_known::Rfc3339)
+        .unwrap_or_default();
     payload["provenance"] = json!({
-        "instance_id": instance_id, "retrieved_at": chrono::Utc::now().to_rfc3339(),
+        "instance_id": instance_id, "retrieved_at": retrieved_at,
         "cache_status": "not_applicable", "source_status": null,
         "response_bytes": 0, "correlation_id": null
     });

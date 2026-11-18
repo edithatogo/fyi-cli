@@ -6,11 +6,11 @@
 use super::{
     BundleVersion, I18nError, LocaleResolution, LocalizationEngine, MessageBundle, ValidationStatus,
 };
-use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
 use thiserror::Error;
+use time::Date;
 
 const EMBEDDED: &str = include_str!("../../locales/terminology/v1/catalog.json");
 const MAX_CATALOG_BYTES: usize = 256 * 1024;
@@ -84,7 +84,8 @@ pub struct JurisdictionTerminology {
     pub request_abbreviation: String,
     pub authority_term: AuthorityTerm,
     pub source_url: String,
-    pub source_checked_at: NaiveDate,
+    #[serde(with = "crate::time_util::date")]
+    pub source_checked_at: Date,
 }
 
 /// A displayed term with independently inspectable catalog and language provenance.
@@ -95,7 +96,8 @@ pub struct LocalizedTerm {
     pub text: String,
     pub jurisdiction_id: String,
     pub source_url: String,
-    pub source_checked_at: NaiveDate,
+    #[serde(with = "crate::time_util::date")]
+    pub source_checked_at: Date,
     pub locale: LocaleResolution,
     /// None for untranslated legal names and abbreviations.
     pub source_locale: Option<String>,

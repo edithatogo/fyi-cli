@@ -18,8 +18,8 @@
 //! - <https://docs.rs/flate2/1.1.11/flate2/>
 //! - <https://docs.rs/surt-rs/0.1.3/surt_rs/>
 
+use crate::time_util::parse_strict_rfc3339_utc;
 use anyhow::{anyhow, bail, ensure, Context, Result};
-use chrono::{DateTime, Datelike, SecondsFormat, Utc};
 use data_encoding::BASE32;
 use flate2::{bufread::GzDecoder, Compression, GzBuilder};
 use reqwest::{header::HeaderName, header::HeaderValue, StatusCode, Url, Version};
@@ -31,6 +31,11 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{self, BufReader, Read, Seek, SeekFrom, Write};
 use std::path::Path;
 use std::rc::Rc;
+use time::{
+    format_description::{well_known::Rfc3339, FormatItem},
+    macros::format_description,
+    OffsetDateTime, UtcOffset,
+};
 use zip::write::SimpleFileOptions;
 use zip::{CompressionMethod, ZipArchive, ZipWriter};
 
@@ -92,7 +97,7 @@ pub struct HttpResource<'a> {
     pub status: u16,
     pub headers: &'a [(String, Vec<u8>)],
     pub payload: &'a [u8],
-    pub captured_at: DateTime<Utc>,
+    pub captured_at: OffsetDateTime,
     pub http_version: Version,
 }
 
@@ -108,7 +113,8 @@ pub struct ArchivedRecord {
     pub offset: u64,
     pub length: u64,
     pub status: u16,
-    pub captured_at: DateTime<Utc>,
+    #[serde(with = "crate::time_util::rfc3339_utc")]
+    pub captured_at: OffsetDateTime,
     pub http_version: String,
 }
 
@@ -116,7 +122,8 @@ pub struct ArchivedRecord {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ArchivePage {
     pub url: String,
-    pub ts: DateTime<Utc>,
+    #[serde(with = "crate::time_util::rfc3339_utc")]
+    pub ts: OffsetDateTime,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -342,16 +349,29 @@ fn validate_kind(kind: &str) -> Result<()> {
     Ok(())
 }
 
-fn validate_timestamp(timestamp: DateTime<Utc>) -> Result<()> {
+fn validate_timestamp(timestamp: OffsetDateTime) -> Result<()> {
     ensure!(
-        (1..=9999).contains(&timestamp.year()),
+        (1..=9999).contains(&timestamp.to_offset(UtcOffset::UTC).year()),
         "archive timestamp is outside the CDX calendar range"
     );
     Ok(())
 }
 
-fn rfc3339(timestamp: DateTime<Utc>) -> String {
-    timestamp.to_rfc3339_opts(SecondsFormat::AutoSi, true)
+fn rfc3339(timestamp: OffsetDateTime) -> String {
+    timestamp
+        .to_offset(UtcOffset::UTC)
+        .format(&Rfc3339)
+        .expect("validated archive timestamp always formats as RFC 3339")
+}
+
+fn cdx_timestamp(timestamp: OffsetDateTime) -> Result<String> {
+    const CDX_FORMAT: &[FormatItem<'_>] =
+        format_description!("[year][month][day][hour][minute][second]");
+    validate_timestamp(timestamp)?;
+    timestamp
+        .to_offset(UtcOffset::UTC)
+        .format(CDX_FORMAT)
+        .context("formatting CDXJ timestamp")
 }
 
 fn source_version(version: Version) -> Result<&'static str> {
@@ -491,7 +511,8 @@ struct Manifest {
     resources: Vec<ResourceDescriptor>,
     title: String,
     description: String,
-    created: DateTime<Utc>,
+    #[serde(with = "crate::time_util::rfc3339_utc")]
+    created: OffsetDateTime,
     software: String,
     #[serde(rename = "mainPageUrl", skip_serializing_if = "Option::is_none")]
     main_page_url: Option<String>,
@@ -592,7 +613,7 @@ pub fn write_wacz_with_checkpoint<F: FnMut() -> Result<()>>(
             .and_then(|page| page.title.clone())
             .unwrap_or_else(|| "FYI archive".into()),
         description: "Archived HTTP entity responses with reconstructed HTTP/1.1 framing.".into(),
-        created: Utc::now(),
+        created: OffsetDateTime::now_utc(),
         software: format!("fyi-core/{}", env!("CARGO_PKG_VERSION")),
         main_page_url: pages.first().map(|page| page.url.clone()),
         main_page_date: pages.first().map(|page| rfc3339(page.ts)),
@@ -706,7 +727,7 @@ fn index_bytes(records: &[ArchivedRecord]) -> Result<Vec<u8>> {
             &mut line,
             "{} {} ",
             surt_key(&record.url)?,
-            record.captured_at.format("%Y%m%d%H%M%S")
+            cdx_timestamp(record.captured_at)?
         )?;
         serde_json::to_writer(&mut line, &entry)?;
         line.write_all(b"\n")?;
@@ -954,7 +975,7 @@ fn verify_wacz_inner<F: FnMut() -> Result<()>>(
             "CDXJ response identity mismatch"
         );
         ensure!(
-            parsed.captured_at.format("%Y%m%d%H%M%S").to_string() == indexed.timestamp
+            cdx_timestamp(parsed.captured_at)? == indexed.timestamp
                 && surt_key(&parsed.url)? == indexed.key,
             "CDXJ URL/timestamp mismatch"
         );
@@ -1174,7 +1195,7 @@ struct ParsedRecord {
     sha256: String,
     warc_record_id: String,
     status: u16,
-    captured_at: DateTime<Utc>,
+    captured_at: OffsetDateTime,
     http_version: String,
 }
 
@@ -1308,9 +1329,8 @@ fn read_record(input: impl Read, length: u64) -> Result<ParsedRecord> {
     );
     let url = required("warc-target-uri")?.to_string();
     parse_url(&url)?;
-    let captured_at = DateTime::parse_from_rfc3339(required("warc-date")?)
-        .context("invalid WARC timestamp")?
-        .with_timezone(&Utc);
+    let captured_at = parse_strict_rfc3339_utc(required("warc-date")?)
+        .map_err(|_| anyhow!("invalid WARC timestamp"))?;
     validate_timestamp(captured_at)?;
     let record_id = required("warc-record-id")?.to_string();
     validate_record_id(&record_id)?;

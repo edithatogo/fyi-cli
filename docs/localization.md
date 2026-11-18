@@ -373,7 +373,7 @@ terminal-date saturation without duplicating jurisdiction-specific rules. Existi
 infallible methods preserve ordinary results and panic on unsupported bounds;
 new consumers should use the fallible methods. Zero days at either date boundary
 remains valid. Tests compare all six locales with the canonical module, including
-the existing default/negative period policy and exact capacity near `NaiveDate::MAX`.
+the existing default/negative period policy and exact capacity near `Date::MAX`.
 
 ### Explicit calendar-aware arithmetic
 
@@ -488,12 +488,12 @@ fictional closure. It demonstrates arithmetic only and is not a holiday dataset
 or rule for any real jurisdiction:
 
 ```rust
-use chrono::NaiveDate;
 use fyi_core::deadlines::statutory::{
     calculate_explicit_deadline, DeadlineAdjustment, HolidayCalendarCatalog,
     LegalClockRule, ReceiptConvention, StatutoryDuration, StatutoryUnit,
     ValidationStatus,
 };
+use time::{Date, Month};
 
 let custom_json = r#"{
     "schema_version": 1,
@@ -511,7 +511,9 @@ let calendar = catalog.get("ZZ-DEMO").expect("synthetic entry exists");
 assert!(catalog.get("ZZ").is_none());
 assert!(catalog.get("NZ").is_none()); // No merge with embedded entries.
 
-let date = |y, m, d| NaiveDate::from_ymd_opt(y, m, d).expect("fixed valid date");
+let date = |y, m: u8, d| {
+    Date::from_calendar_date(y, Month::try_from(m).unwrap(), d).expect("fixed valid date")
+};
 let rule = LegalClockRule {
     id: "synthetic-two-working-days".into(),
     jurisdiction: "ZZ-DEMO".into(),
@@ -586,7 +588,7 @@ layers; they enforce different constraints:
 | Constraint | Where it is enforced |
 | --- | --- |
 | Version 1, known fields, nonempty catalog | Catalog parser and JSON Schema |
-| Valid date strings | Rust/Chrono; JSON Schema when a format checker is enabled |
+| Valid date strings | Rust (`time`); JSON Schema when a format checker is enabled |
 | Uppercase country/subdivision identifier pattern | JSON Schema; Rust requires only a nonblank jurisdiction |
 | No repeated weekend codes or excluded dates | JSON Schema; Rust deserializes into sets and deduplicates them |
 | Ordered coverage interval; exclusions within coverage | Rust parser and the embedded-catalog Python test |

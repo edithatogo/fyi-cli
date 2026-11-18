@@ -87,6 +87,7 @@ def test_audit_and_coverage_evidence_preserve_gate_commands_and_versions() -> No
         "RUSTSEC-2026-0370",
         "RUSTSEC-2026-0371",
         "RUSTSEC-2026-0372",
+        "RUSTSEC-2026-0542",
     ):
         assert f"--ignore {advisory}" in audit
     assert "cargo deny check" in step("audit", "Run cargo-deny")["run"]

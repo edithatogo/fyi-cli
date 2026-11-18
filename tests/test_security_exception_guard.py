@@ -215,3 +215,27 @@ def test_checked_in_audit_toml_does_not_suppress_independently() -> None:
 
         audit = tomllib.load(stream)
     assert not audit.get("advisories", {}).get("ignore", [])
+
+
+def test_humantime_tor_transitive_exception_is_synchronized_and_time_bounded() -> None:
+    import tomllib
+
+    root = Path(__file__).resolve().parents[1]
+    with (root / "deny.toml").open("rb") as stream:
+        ignored = set(tomllib.load(stream)["advisories"]["ignore"])
+    assert "RUSTSEC-2026-0542" in ignored
+
+    policy = json.loads(
+        (root / "security/advisory-exceptions.json").read_text(encoding="utf-8")
+    )
+    record = policy["exceptions"]["RUSTSEC-2026-0542"]
+    assert record["owner"] == "edithatogo"
+    assert record["tracking_issue"] == "https://github.com/edithatogo/fyi-cli/issues/495"
+    assert record["expires"] == "2026-12-14"
+    assert "humantime" in record["reason"]
+    assert "arti-client" in record["reason"]
+
+    assert run_guard(root, date(2026, 11, 18)).returncode == 0
+    expired = run_guard(root, date(2026, 12, 14))
+    assert expired.returncode != 0
+    assert "RUSTSEC-2026-0542" in expired.stdout + expired.stderr
