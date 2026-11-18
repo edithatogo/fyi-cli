@@ -70,10 +70,11 @@ async fn registration_preserves_content_and_links_one_atomic_creation_event() {
     assert_eq!(stored.fyi_url, None);
     assert_eq!(stored.last_seen_at, None);
     assert_eq!(stored.last_event_title, None);
-    assert!(stored
-        .created_at
-        .as_deref()
-        .is_some_and(|time| { chrono::DateTime::parse_from_rfc3339(time).is_ok() }));
+    assert!(stored.created_at.as_deref().is_some_and(|ts| {
+        matches!(ts.as_bytes().get(10), Some(b'T' | b't'))
+            && time::OffsetDateTime::parse(ts, &time::format_description::well_known::Rfc3339)
+                .is_ok()
+    }));
     assert_eq!(stored.created_at, stored.updated_at);
     assert_eq!(
         serde_json::to_value(&stored)

@@ -333,15 +333,15 @@ a versioned JSON holiday-calendar catalog (`HolidayCalendarCatalog`):
    single entry with `HolidayCalendar::from_json`) and pass the matching
    `HolidayCalendar` to `calculate_explicit_deadline`:
    ```rust
-   use chrono::NaiveDate;
    use fyi_core::deadlines::statutory::{
        calculate_explicit_deadline, HolidayCalendarCatalog, LegalClockRule,
    };
+   use time::macros::date;
 
    let catalog = HolidayCalendarCatalog::from_json(custom_json)?;
    let calendar = catalog.get("NZ-WGN").expect("calendar present");
    let deadline = calculate_explicit_deadline(
-       NaiveDate::from_ymd_opt(2026, 1, 16).unwrap(),
+       date!(2026 - 01 - 16),
        &rule,
        calendar,
        None,
