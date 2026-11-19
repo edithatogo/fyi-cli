@@ -37,7 +37,7 @@ env:
 
 jobs:
   build-and-push:
-    name: Build and push multi-arch image
+    name: Build the multi-arch release candidate
     permissions:
       contents: read
       packages: write
@@ -93,7 +93,7 @@ jobs:
             org.opencontainers.image.licenses=MIT
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
 
-      - name: Build and push
+      - name: Build and push an unpromoted candidate
         id: build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
@@ -101,30 +101,114 @@ jobs:
           file: ./Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ steps.image.outputs.name }}:rc-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           labels: ${{ steps.meta.outputs.labels }}
           provenance: true
           sbom: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Summary
+  scan:
+    name: Grype container (${{ matrix.arch }})
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        with:
+          egress-policy: audit
+      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+      - uses: docker/login-action@abd2ef45e78c5afb21d64d4ca52ee8550d9572c7 # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Resolve the immutable platform manifest
+        id: platform
+        env:
+          IMAGE: ${{ needs.build-and-push.outputs.image }}
+          INDEX_DIGEST: ${{ needs.build-and-push.outputs.digest }}
+          ARCH: ${{ matrix.arch }}
         run: |
-          {
-            echo "## fyi-mcp container publish"
-            echo ""
-            echo "- **Image:** \`${{ steps.image.outputs.name }}\`"
-            echo "- **Platforms:** linux/amd64, linux/arm64"
-            echo "- **Tags:**"
-            echo '```'
-            echo "${{ steps.meta.outputs.tags }}"
-            echo '```'
-            echo "- **Digest:** \`${{ steps.build.outputs.digest }}\`"
-            echo ""
-            echo "Pull examples: see [docs/containers.md](../docs/containers.md)"
-            echo ""
-            echo "Do not mark GHCR **live** in the distribution matrix until a public pull succeeds."
-          } >> "$GITHUB_STEP_SUMMARY"
+          set -euo pipefail
+          [[ "$INDEX_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          mkdir -p "$RUNNER_TEMP/container-manifest"
+          docker buildx imagetools inspect "$IMAGE@$INDEX_DIGEST" --raw > "$RUNNER_TEMP/container-manifest/index.json"
+          digest="$(jq -er --arg arch "$ARCH" '
+            [.manifests[] | select(.platform.os == "linux" and .platform.architecture == $arch)]
+            | if length == 1 then .[0].digest else error("Expected exactly one runtime platform manifest") end
+            | select(test("^sha256:[0-9a-f]{64}$"))
+          ' "$RUNNER_TEMP/container-manifest/index.json")"
+          jq -n --arg image "$IMAGE" --arg index "$INDEX_DIGEST" --arg digest "$digest" --arg platform "linux/$ARCH"  \
+            '{image: $image, index: $index, digest: $digest, platform: $platform}' > "$RUNNER_TEMP/container-manifest/identity.json"
+          echo "image=$IMAGE@$digest" >> "$GITHUB_OUTPUT"
+      - name: Enforce the critical vulnerability gate
+        uses: edithatogo/repository-standards/.github/actions/grype-scan@bf6bb998414f275296dd174d459504a0c45582b5
+        with:
+          image: ${{ steps.platform.outputs.image }}
+          platform: linux/${{ matrix.arch }}
+          mode: enforce
+          severity-cutoff: critical
+          artifact-name: grype-container-${{ matrix.arch }}
+          output-directory: ${{ runner.temp }}/grype-container-${{ matrix.arch }}
+          source-sha: ${{ github.sha }}
+      - name: Retain index and platform binding
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: container-manifest-${{ matrix.arch }}
+          path: ${{ runner.temp }}/container-manifest
+          if-no-files-found: error
+          retention-days: 90
+
+  promote:
+    name: Promote scanned multi-arch image
+    needs: [build-and-push, scan]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        with:
+          egress-policy: audit
+      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+      - uses: docker/login-action@abd2ef45e78c5afb21d64d4ca52ee8550d9572c7 # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Promote the scanned image without rebuilding
+        env:
+          IMAGE: ${{ needs.build-and-push.outputs.image }}
+          IMAGE_DIGEST: ${{ needs.build-and-push.outputs.digest }}
+          IMAGE_TAGS: ${{ needs.build-and-push.outputs.tags }}
+        run: |
+          set -euo pipefail
+          [[ "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          args=()
+          while IFS= read -r tag; do
+            [ -n "$tag" ] && args+=(--tag "$tag")
+          done <<< "$IMAGE_TAGS"
+          [ "${#args[@]}" -gt 0 ]
+          docker buildx imagetools create --prefer-index=false "${args[@]}" "$IMAGE@$IMAGE_DIGEST"
+          while IFS= read -r tag; do
+            [ -n "$tag" ] || continue
+            actual="$(docker buildx imagetools inspect "$tag" --format '{{.Manifest.Digest}}')"
+            [ "$actual" = "$IMAGE_DIGEST" ]
+            echo "Promoted $tag@$actual" >> "$GITHUB_STEP_SUMMARY"
+          done <<< "$IMAGE_TAGS"
+          echo "Do not mark GHCR live in the distribution matrix until a public pull succeeds." >> "$GITHUB_STEP_SUMMARY"
 
   # Optional: mirror to Docker Hub when explicitly enabled.
   # Isolated job so Hub auth/quota failures never fail the GHCR publish (needs: + continue-on-error).
@@ -132,7 +216,7 @@ jobs:
     name: Optional Docker Hub mirror
     permissions:
       packages: read
-    needs: build-and-push
+    needs: [build-and-push, promote]
     if: ${{ vars.ENABLE_DOCKERHUB_MIRROR == 'true' }}
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -188,10 +272,10 @@ jobs:
           src_ref="${SRC}@${DIGEST}"
           echo "Mirroring ${src_ref} → ${dest_base}"
           # Use buildx imagetools to copy without rebuild (low risk / no QEMU rebuild).
-          docker buildx imagetools create --tag "${dest_base}:latest" "${src_ref}"
+          docker buildx imagetools create --prefer-index=false --tag "${dest_base}:latest" "${src_ref}"
           # Also tag matching the Git ref when this is a version tag
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             tag_name="${GITHUB_REF#refs/tags/}"
-            docker buildx imagetools create --tag "${dest_base}:${tag_name}" "${src_ref}"
+            docker buildx imagetools create --prefer-index=false --tag "${dest_base}:${tag_name}" "${src_ref}"
           fi
           echo "Docker Hub mirror attempted for ${dest_base}"

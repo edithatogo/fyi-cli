@@ -25,6 +25,7 @@ MANAGED_PATHS = [path for path in WORKFLOW_PATHS if path.name not in SEPARATELY_
 WRITE_PERMISSIONS = {
     ("codeql.yml", "analyze"): {"security-events"},
     ("container-publish.yml", "build-and-push"): {"packages"},
+    ("container-publish.yml", "promote"): {"packages"},
     ("docs-site.yml", "deploy"): {"pages", "id-token"},
     ("external-registry-monitor.yml", "monitor"): {"issues"},
     ("issue-maintenance.yml", "triage"): {"issues"},
