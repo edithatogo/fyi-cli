@@ -157,7 +157,7 @@ jobs:
             '{image: $image, index: $index, digest: $digest, platform: $platform}' > "$RUNNER_TEMP/container-manifest/identity.json"
           echo "image=$IMAGE@$digest" >> "$GITHUB_OUTPUT"
       - name: Enforce the critical vulnerability gate
-        uses: edithatogo/repository-standards/.github/actions/grype-scan@bf6bb998414f275296dd174d459504a0c45582b5
+        uses: edithatogo/repository-standards/.github/actions/grype-scan@bc76f1fbe0fa87a1371eadc06b08f54b48c623f7
         with:
           image: ${{ steps.platform.outputs.image }}
           platform: linux/${{ matrix.arch }}
