@@ -142,6 +142,12 @@ jobs:
           [[ "$INDEX_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
           mkdir -p "$RUNNER_TEMP/container-manifest"
           docker buildx imagetools inspect "$IMAGE@$INDEX_DIGEST" --raw > "$RUNNER_TEMP/container-manifest/index.json"
+          jq -e --argjson expected '["linux/amd64","linux/arm64"]' '
+            [.manifests[] | select(
+              .platform.os != "unknown" or .platform.architecture != "unknown" or
+              .annotations["vnd.docker.reference.type"] != "attestation-manifest") |
+              [.platform.os, .platform.architecture] | join("/")] | sort == ($expected | sort)
+          ' "$RUNNER_TEMP/container-manifest/index.json" > /dev/null
           digest="$(jq -er --arg arch "$ARCH" '
             [.manifests[] | select(.platform.os == "linux" and .platform.architecture == $arch)]
             | if length == 1 then .[0].digest else error("Expected exactly one runtime platform manifest") end
