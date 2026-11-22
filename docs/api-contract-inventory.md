@@ -15,7 +15,7 @@ The experimental authority API records external requests and correspondence. It 
 | Capability | Current evidence | Remaining gap |
 | --- | --- | --- |
 | Public reads, search, authorities and feeds | Rust and Python paths and synthetic read fixtures exist. | Qualify each selected deployment, response shape, credentials and completeness. |
-| Authority API request read | An explicit Rust library method sends `k` and parses `request_text` in socket-free tests against the pinned controller profile. | The existing CLI/MCP read still uses its synthetic profile; no deployed instance or requester session is qualified. |
+| Authority API request read | The explicit Rust library and CLI authority profile use `k` and `request_text`; socket-free tests verify its raw/result receipt. | MCP still uses its synthetic profile; a successful CLI-to-source run and deployed instance or requester session are not qualified. |
 | Register and confirm an account | Upstream web routes and controller tests are documented. | No FYI CLI/MCP remote-account signup and confirmation journey is verified. |
 | Login, challenges and logout | Local MFA/session primitives and synthetic authorization failures exist. | No supported FOI-site account session lifecycle or provider-specific challenge behavior is verified. |
 | Requester submits a new request or follow-up | Local `register-request` and a prefilled URL are available. | Neither establishes authenticated web submission or downstream delivery. |
@@ -25,15 +25,16 @@ The experimental authority API records external requests and correspondence. It 
 
 ## Pinned upstream versus current synthetic MCP fixture
 
-The comparator checks only the selected fixture method, path, parameter names and response-field presence. It does not execute the client or establish the behavior of a live upstream service. Fixture: `tests/fixtures/remote_mcp/upstream-v2.json`. Run `.venv/bin/python scripts/api_contract_inventory.py --check-upstream` to fail closed while any selected case differs.
+The comparator checks only the selected fixture method, status, path, parameter names and response-field presence. It does not execute the client or establish the behavior of a live upstream service. Fixture: `tests/fixtures/remote_mcp/upstream-v2.json`. Run `.venv/bin/python scripts/api_contract_inventory.py --check-upstream` to fail closed while any selected case differs.
 The five selected actual-binary SDK/fixture cases passed in the [PR #509 Python test run](https://github.com/edithatogo/fyi-cli/actions/runs/44996077720); that run tested the synthetic profile, not the pinned server.
+The separate `tests/fixtures/remote_mcp/upstream-stock-v1.json` contains the pinned reference fields and placeholder keys. Its field comparison is not an MCP execution or a deployed-server test.
 
 | Upstream operation | Synthetic fixture case | Comparison |
 | --- | --- | --- |
 | `authority_read_request` | `request_complete` | missing parameter k; missing response field request_text |
-| `authority_create_external_request` | `create` | path; missing parameter k; missing parameter request_json |
-| `authority_correspondence` | `correspondence_json` | path; missing parameter k; missing parameter correspondence_json; missing response field url |
-| `authority_response_attachment` | `correspondence_multipart` | path; missing parameter k; missing parameter correspondence_json; missing parameter attachments; missing response field url |
+| `authority_create_external_request` | `create` | status; path; missing parameter k; missing parameter request_json |
+| `authority_correspondence` | `correspondence_json` | status; path; missing parameter k; missing parameter correspondence_json; missing response field url |
+| `authority_response_attachment` | `correspondence_multipart` | status; path; missing parameter k; missing parameter correspondence_json; missing parameter attachments; missing response field url |
 | `authority_update_state` | `state_preflight` | method; path; missing parameter k; missing response field url |
 
 ## Contract Matrix
@@ -60,6 +61,6 @@ The five selected actual-binary SDK/fixture cases passed in the [PR #509 Python 
 
 ## Next actions
 
-1. Integrate the explicit upstream authority read into the selected consumer only with its receipt and source-profile gates; reconcile the remaining operations against the target deployment.
+1. Exercise the explicit CLI authority read end to end against an isolated source; integrate the selected MCP profile and reconcile the remaining operations against the target deployment.
 2. Reuse socket-free tests for selected reads, authority writes and account/session failures; cover the requester web journey separately from the experimental authority API.
 3. Verify a local isolated upstream workflow with synthetic accounts and intercepted mail; separately authorize any live site smoke. Keep `archive_cutover_allowed=false` until the existing downstream acceptance gates pass.

@@ -20,6 +20,7 @@ UPSTREAM_CASES = [
         "fixture_case": "request_complete",
         "exchange_index": 0,
         "method": "GET",
+        "status": 200,
         "path": "/api/v2/request/{request_id}.json",
         "parameters": ["k"],
         "response_fields": ["id", "title", "url", "request_text"],
@@ -29,6 +30,7 @@ UPSTREAM_CASES = [
         "fixture_case": "create",
         "exchange_index": 0,
         "method": "POST",
+        "status": 200,
         "path": "/api/v2/request.json",
         "parameters": ["k", "request_json"],
         "json_string_parameters": ["request_json"],
@@ -39,6 +41,7 @@ UPSTREAM_CASES = [
         "fixture_case": "correspondence_json",
         "exchange_index": 0,
         "method": "POST",
+        "status": 200,
         "path": "/api/v2/request/{request_id}.json",
         "parameters": ["k", "correspondence_json", "state"],
         "json_string_parameters": ["correspondence_json"],
@@ -49,6 +52,7 @@ UPSTREAM_CASES = [
         "fixture_case": "correspondence_multipart",
         "exchange_index": 0,
         "method": "POST",
+        "status": 200,
         "path": "/api/v2/request/{request_id}.json",
         "parameters": ["k", "correspondence_json", "state", "attachments"],
         "json_string_parameters": ["correspondence_json"],
@@ -59,12 +63,14 @@ UPSTREAM_CASES = [
         "fixture_case": "state_preflight",
         "exchange_index": 1,
         "method": "POST",
+        "status": 200,
         "path": "/api/v2/request/{request_id}/update.json",
         "parameters": ["k", "state"],
         "response_fields": ["url"],
     },
 ]
 MCP_FIXTURE = "tests/fixtures/remote_mcp/upstream-v2.json"
+MCP_STOCK_FIXTURE = "tests/fixtures/remote_mcp/upstream-stock-v1.json"
 
 REQUIRED_SURFACES = {
     "rust_api_payloads",
@@ -99,6 +105,8 @@ def compare_upstream_case(
     findings = []
     if exchange.get("method") != reference["method"]:
         findings.append("method")
+    if "status" in reference and exchange.get("status") != reference["status"]:
+        findings.append("status")
     parsed = urlsplit(exchange.get("path", ""))
     if parsed.path != reference["path"].format(request_id=request_id):
         findings.append("path")
@@ -414,10 +422,12 @@ def build_contract_inventory(repo_root: Path) -> dict[str, Any]:
         surface["status"] = _status(repo_root, surface["files"])
 
     fixture = json.loads((repo_root / MCP_FIXTURE).read_text(encoding="utf-8"))
+    stock_fixture = json.loads((repo_root / MCP_STOCK_FIXTURE).read_text(encoding="utf-8"))
     return {
         "surfaces": surfaces,
         "gaps": gaps,
         "reference_comparison": compare_upstream_fixture(UPSTREAM_CASES, fixture),
+        "stock_reference_comparison": compare_upstream_fixture(UPSTREAM_CASES, stock_fixture),
     }
 
 
@@ -465,10 +475,10 @@ def render_markdown(inventory: dict[str, Any]) -> str:
         "| Public reads, search, authorities and feeds | Rust and Python paths and synthetic read "
         "fixtures exist. | Qualify each selected deployment, response shape, credentials and "
         "completeness. |",
-        "| Authority API request read | An explicit Rust library method sends `k` and parses "
-        "`request_text` in socket-free tests against the pinned controller profile. | "
-        "The existing CLI/MCP read still uses its synthetic profile; no deployed "
-        "instance or requester session is qualified. |",
+        "| Authority API request read | The explicit Rust library and CLI authority profile "
+        "use `k` and `request_text`; socket-free tests verify its raw/result receipt. | "
+        "MCP still uses its synthetic profile; a successful CLI-to-source run and "
+        "deployed instance or requester session are not qualified. |",
         "| Register and confirm an account | Upstream web routes and controller tests are "
         "documented. | No FYI CLI/MCP remote-account signup and confirmation journey is "
         "verified. |",
@@ -490,7 +500,7 @@ def render_markdown(inventory: dict[str, Any]) -> str:
         "",
         "## Pinned upstream versus current synthetic MCP fixture",
         "",
-        "The comparator checks only the selected fixture method, path, "
+        "The comparator checks only the selected fixture method, status, path, "
         "parameter names and response-field presence. It does not execute "
         "the client or establish the behavior of a live upstream service. "
         f"Fixture: `{MCP_FIXTURE}`. Run "
@@ -500,6 +510,9 @@ def render_markdown(inventory: dict[str, Any]) -> str:
         "[PR #509 Python test run](https://github.com/edithatogo/fyi-cli/"
         "actions/runs/44996077720); "
         "that run tested the synthetic profile, not the pinned server.",
+        f"The separate `{MCP_STOCK_FIXTURE}` contains the pinned reference "
+        "fields and placeholder keys. Its field comparison is not an MCP "
+        "execution or a deployed-server test.",
         "",
         "| Upstream operation | Synthetic fixture case | Comparison |",
         "| --- | --- | --- |",
@@ -548,8 +561,8 @@ def render_markdown(inventory: dict[str, Any]) -> str:
             "",
             "## Next actions",
             "",
-            "1. Integrate the explicit upstream authority read into the selected "
-            "consumer only with its receipt and source-profile gates; reconcile "
+            "1. Exercise the explicit CLI authority read end to end against an "
+            "isolated source; integrate the selected MCP profile and reconcile "
             "the remaining operations against the target deployment.",
             "2. Reuse socket-free tests for selected reads, authority writes "
             "and account/session failures; cover the requester web journey "
@@ -590,8 +603,14 @@ def main() -> int:
         for case in inventory["reference_comparison"]:
             result = "; ".join(case["differences"]) or "selected fields match"
             sys.stdout.write(f"{case['id']}: {result}\n")
+        for case in inventory["stock_reference_comparison"]:
+            result = "; ".join(case["differences"]) or "selected fields match"
+            sys.stdout.write(f"stock/{case['id']}: {result}\n")
         sys.stdout.write("Synthetic fixture comparison only; deployed behavior is not qualified.\n")
-        return int(any(case["differences"] for case in inventory["reference_comparison"]))
+        return int(
+            any(case["differences"] for case in inventory["reference_comparison"])
+            or any(case["differences"] for case in inventory["stock_reference_comparison"]),
+        )
     output = args.output
     if not output.is_absolute():
         output = repo_root / output

@@ -140,6 +140,46 @@ fn safe_source_error(error: anyhow::Error) -> anyhow::Error {
     SourceReadError::new(source_failure_kind(&error).unwrap_or(SourceFailureKind::Transport)).into()
 }
 
+pub(super) fn upstream_authority_request_url(
+    base_url: &Url,
+    request_id: i64,
+    authority_key: &str,
+) -> Result<Url> {
+    if request_id <= 0
+        || authority_key.is_empty()
+        || authority_key.trim() != authority_key
+        || authority_key.chars().any(char::is_control)
+    {
+        return Err(SourceReadError::new(SourceFailureKind::Validation).into());
+    }
+    let mut url = base_url
+        .join(&format!("api/v2/request/{request_id}.json"))
+        .map_err(|_| SourceReadError::new(SourceFailureKind::Validation))?;
+    url.query_pairs_mut().append_pair("k", authority_key);
+    Ok(url)
+}
+
+pub(super) fn parse_upstream_authority_request(
+    body: &[u8],
+    request_id: i64,
+) -> Result<AlaveteliRequest> {
+    let upstream: UpstreamAuthorityRequest = serde_json::from_slice(body).map_err(malformed)?;
+    if upstream.id != request_id {
+        return Err(SourceReadError::new(SourceFailureKind::MalformedPayload).into());
+    }
+    Ok(AlaveteliRequest {
+        id: upstream.id,
+        title: upstream.title,
+        body: upstream.request_text,
+        user_name: None,
+        status: upstream.status,
+        created_at: upstream.created_at,
+        updated_at: upstream.updated_at,
+        url: Some(upstream.url),
+        tags: None,
+    })
+}
+
 fn build_read_http_client(identity: &crate::agent_runtime::ClientIdentity) -> Result<Client> {
     identity.validate()?;
     Ok(Client::builder()
@@ -287,26 +327,16 @@ impl SyncClient {
         F: FnOnce(reqwest::Request) -> Fut,
         Fut: std::future::Future<Output = Result<(reqwest::Response, Url)>>,
     {
-        if request_id <= 0
-            || authority_key.is_empty()
-            || authority_key.trim() != authority_key
-            || authority_key.chars().any(char::is_control)
-            || limits.max_bytes == 0
-            || limits.max_duration.is_zero()
-        {
+        if limits.max_bytes == 0 || limits.max_duration.is_zero() {
             return Err(SourceReadError::new(SourceFailureKind::Validation).into());
         }
+        let url = upstream_authority_request_url(&self.base_url, request_id, authority_key)?;
         let budget = self.middleware.lock().await.guardrails.snapshot();
         let remaining =
             Duration::from_millis(budget.max_runtime_ms.saturating_sub(budget.elapsed_ms));
         if remaining.is_zero() {
             return Err(SourceReadError::new(SourceFailureKind::Guardrail).into());
         }
-        let mut url = self
-            .base_url
-            .join(&format!("api/v2/request/{request_id}.json"))
-            .map_err(|_| SourceReadError::new(SourceFailureKind::Validation))?;
-        url.query_pairs_mut().append_pair("k", authority_key);
         let request = self
             .http
             .get(url.clone())
@@ -330,22 +360,7 @@ impl SyncClient {
         let response = ensure_success(response, "authority request endpoint")
             .await
             .map_err(safe_source_error)?;
-        let upstream: UpstreamAuthorityRequest =
-            serde_json::from_slice(&response.body).map_err(malformed)?;
-        if upstream.id != request_id {
-            return Err(SourceReadError::new(SourceFailureKind::MalformedPayload).into());
-        }
-        let value = AlaveteliRequest {
-            id: upstream.id,
-            title: upstream.title,
-            body: upstream.request_text,
-            user_name: None,
-            status: upstream.status,
-            created_at: upstream.created_at,
-            updated_at: upstream.updated_at,
-            url: Some(upstream.url),
-            tags: None,
-        };
+        let value = parse_upstream_authority_request(&response.body, request_id)?;
         Ok(response.into_source_read(value))
     }
 

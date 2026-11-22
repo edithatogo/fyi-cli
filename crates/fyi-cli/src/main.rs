@@ -207,13 +207,16 @@ pub enum Commands {
         #[arg(long, default_value = "30.0")]
         request_timeout_seconds: String,
     },
-    #[command(about = "Acquire a public request JSON response with optional evidence")]
+    #[command(about = "Acquire request JSON, with optional pinned authority profile")]
     FetchRequestPage {
         request_id: i32,
         #[arg(long, default_value = "https://fyi.org.nz")]
         base_url: String,
         #[arg(long, default_value = "fyi_system.db")]
         db: String,
+        /// Use the pinned upstream authority API with FYI_ALAVETELI_AUTHORITY_KEY.
+        #[arg(long)]
+        authority_api: bool,
         /// Optional path for a v1 acquisition receipt.
         #[arg(long)]
         receipt: Option<String>,
@@ -788,6 +791,7 @@ fn main() {
             request_id,
             base_url,
             db: _,
+            authority_api,
             receipt,
             result_file,
             raw_file,
@@ -807,6 +811,27 @@ fn main() {
                 eprintln!("--receipt, --result-file and --raw-file must be used together");
                 std::process::exit(2);
             }
+            if *authority_api && provided != 3 {
+                eprintln!("--authority-api requires --receipt, --result-file and --raw-file");
+                std::process::exit(2);
+            }
+            let authority_key = if *authority_api {
+                match std::env::var("FYI_ALAVETELI_AUTHORITY_KEY") {
+                    Ok(key)
+                        if !key.is_empty()
+                            && key.trim() == key
+                            && !key.chars().any(char::is_control) =>
+                    {
+                        Some(key)
+                    }
+                    _ => {
+                        eprintln!("--authority-api requires a valid FYI_ALAVETELI_AUTHORITY_KEY");
+                        std::process::exit(2);
+                    }
+                }
+            } else {
+                None
+            };
             if let (Some(receipt), Some(result), Some(raw)) = (
                 receipt.as_deref(),
                 result_file.as_deref(),
@@ -872,7 +897,15 @@ fn main() {
                         result: Path::new(result),
                         receipt: Path::new(receipt),
                     };
-                    runtime.block_on(client.fetch(i64::from(*request_id), &paths))?
+                    if let Some(key) = authority_key.as_deref() {
+                        runtime.block_on(client.fetch_upstream_authority_request(
+                            i64::from(*request_id),
+                            key,
+                            &paths,
+                        ))?
+                    } else {
+                        runtime.block_on(client.fetch(i64::from(*request_id), &paths))?
+                    }
                 } else {
                     runtime
                         .block_on(client.fetch_evidence(i64::from(*request_id)))?

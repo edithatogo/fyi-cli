@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -106,6 +107,33 @@ def test_upstream_contract_retains_every_selected_operation() -> None:
         "authority_response_attachment",
         "authority_update_state",
     }
+
+
+def test_stock_reference_fixture_matches_pinned_controller_without_changing_legacy() -> None:
+    root = Path(__file__).resolve().parents[1]
+    fixture_dir = root / "tests/fixtures/remote_mcp"
+    stock = json.loads((fixture_dir / "upstream-stock-v1.json").read_text(encoding="utf-8"))
+    existing = json.loads((fixture_dir / "upstream-v2.json").read_text(encoding="utf-8"))
+    assert stock["reference_revision"] == "3966415f0b2a9f445fa3bb25c06eaeb75ded6609"
+    assert all(not case["differences"] for case in compare_upstream_fixture(UPSTREAM_CASES, stock))
+    assert all(case["differences"] for case in compare_upstream_fixture(UPSTREAM_CASES, existing))
+    assert stock["provenance"].startswith("synthetic")
+
+
+def test_upstream_reference_comparison_rejects_wrong_success_status() -> None:
+    reference = next(case for case in UPSTREAM_CASES if case["id"] == "authority_read_request")
+    exchange = {
+        "method": "GET",
+        "path": "/api/v2/request/7001.json?k=placeholder",
+        "status": 201,
+        "json": {
+            "id": 7001,
+            "title": "Synthetic",
+            "url": "https://example.invalid",
+            "request_text": "Synthetic",
+        },
+    }
+    assert "status" in compare_upstream_case(reference, exchange, request_id=7001)
 
 
 def test_reference_comparison_rejects_empty_key_without_disclosing_values() -> None:
