@@ -1,5 +1,32 @@
 # Plan: fyi-api-coverage-audit
 
+## Coverage reconciliation — 2026-11-22
+
+The prior #126 checkpoint verified the then-current synthetic client contract;
+it did not establish Rust/Python parity or stock Alaveteli compatibility. The
+track is reopened locally. Issue #37 remains historically closed; this update
+does not change GitHub state. The existing source-adapter and remote MCP tracks
+retain ownership of source transport and governed write implementations.
+
+- [x] Pin upstream API and account-flow references; compare the current Rust,
+  Python and MCP capabilities and their synthetic fixtures. Checkpoint: `20360fc`.
+- [x] Add one explicit upstream authority-request read to the Rust library,
+  with bounded socket-free tests. Checkpoint: `d9a13dd`.
+- [ ] Integrate that read into an appropriate consumer with source-profile and
+  receipt requirements, and qualify it against a selected deployment.
+- [ ] Implement and verify remaining upstream authority-write contracts,
+  preserving explicit provider differences and existing write governance.
+- [ ] Cover requester signup, confirmation, login, logout, request submission
+  and follow-up separately from the experimental authority disclosure API.
+- [ ] Verify the agreed journeys with isolated synthetic accounts and mail;
+  retain live-site authorization and archive cutover as separate gates.
+
+Current matrix and reproducible fixture comparison:
+[`docs/api-contract-inventory.md`](../../../docs/api-contract-inventory.md).
+The granular requester and MCP fixture execution plan is owned by the new
+[Alaveteli MCP coverage track](../alaveteli-mcp-coverage-20261122/plan.md).
+Historical checked tasks and PR evidence below are retained as history.
+
 ## Phase 1: Search API Implementation
 
 ### 1.1 Search Endpoint

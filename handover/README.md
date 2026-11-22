@@ -1,5 +1,38 @@
 Generated handovers can be written here.
 
+## Local handoff — Alaveteli fixture and receipt integration, 2026-11-22
+
+- The source-adapter lane owns branch `codex/alaveteli-coverage-contract` and
+  the new Alaveteli MCP coverage track and workflow map, its stock fixture and
+  inventory comparator, the selected Rust source-read/receipt and CLI consumer
+  files, and focused offline tests.
+- Native scope: none. No live account, authority, request, response or source
+  operation is authorized by this work. The private checkout assignment is
+  recorded in the ignored `outputs/` coordination file.
+- Local checkpoints: track and workflow map `6de144e`; stock reference fixture
+  and authority-read receipt integration `c32e6cf`. Focused offline tests pass.
+- Next operation: connect the actual MCP handlers to the stock fixture and
+  verify the requester and consumer journeys in the isolated upstream setup.
+  Archive cutover remains blocked on the existing source and downstream gates.
+
+## Local ownership handoff — Alaveteli coverage contract, 2026-11-22
+
+- The source-adapter integration lane owns the existing
+  `source-adapter-boundary-20260812` and remote MCP contract reconciliation,
+  branch `codex/alaveteli-coverage-contract`, based on `6495285`. The private
+  worktree assignment is retained in the ignored `outputs/` coordination file.
+- Scope: the API inventory, focused offline tests, API-key redaction in the
+  existing Rust and legacy Python paths, an explicit pinned-upstream authority
+  read in the existing Rust source client, related guides and Conductor plans.
+  Native scope: none; no credentials, live requests, account creation or
+  external submissions.
+- Terminal local checkpoints: `20360fc` records the source comparison and
+  authority-key redaction; `d9a13dd` adds one bounded Rust authority read with
+  socket-free tests. This branch remains local pending the normal PR process.
+- Next operation: integrate the selected source profile and receipt path, then
+  verify the remaining writes and requester journeys in an isolated upstream
+  environment. No archive cutover or live action is implied by this handoff.
+
 ## MCP classification and source follow-up, 2026-11-16
 
 - Source HTTP error identity, MCP classification and offline regression

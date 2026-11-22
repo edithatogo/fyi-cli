@@ -3,16 +3,182 @@
 from __future__ import annotations
 
 import argparse
+import json
+import sys
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qsl, urlsplit
+
+# These expectations describe the referenced upstream controller, not the
+# version or behavior of any deployed instance. The official prose differs on
+# form parameter names; keep the pinned implementation and prose visible.
+UPSTREAM_REVISION = "3966415f0b2a9f445fa3bb25c06eaeb75ded6609"
+UPSTREAM_ROOT = f"https://github.com/mysociety/alaveteli/blob/{UPSTREAM_REVISION}"
+UPSTREAM_CASES = [
+    {
+        "id": "authority_read_request",
+        "fixture_case": "request_complete",
+        "exchange_index": 0,
+        "method": "GET",
+        "status": 200,
+        "path": "/api/v2/request/{request_id}.json",
+        "parameters": ["k"],
+        "response_fields": ["id", "title", "url", "request_text"],
+    },
+    {
+        "id": "authority_create_external_request",
+        "fixture_case": "create",
+        "exchange_index": 0,
+        "method": "POST",
+        "status": 200,
+        "path": "/api/v2/request.json",
+        "parameters": ["k", "request_json"],
+        "json_string_parameters": ["request_json"],
+        "response_fields": ["id", "url"],
+    },
+    {
+        "id": "authority_correspondence",
+        "fixture_case": "correspondence_json",
+        "exchange_index": 0,
+        "method": "POST",
+        "status": 200,
+        "path": "/api/v2/request/{request_id}.json",
+        "parameters": ["k", "correspondence_json", "state"],
+        "json_string_parameters": ["correspondence_json"],
+        "response_fields": ["url"],
+    },
+    {
+        "id": "authority_response_attachment",
+        "fixture_case": "correspondence_multipart",
+        "exchange_index": 0,
+        "method": "POST",
+        "status": 200,
+        "path": "/api/v2/request/{request_id}.json",
+        "parameters": ["k", "correspondence_json", "state", "attachments"],
+        "json_string_parameters": ["correspondence_json"],
+        "response_fields": ["url"],
+    },
+    {
+        "id": "authority_update_state",
+        "fixture_case": "state_preflight",
+        "exchange_index": 1,
+        "method": "POST",
+        "status": 200,
+        "path": "/api/v2/request/{request_id}/update.json",
+        "parameters": ["k", "state"],
+        "response_fields": ["url"],
+    },
+]
+MCP_FIXTURE = "tests/fixtures/remote_mcp/upstream-v2.json"
+MCP_STOCK_FIXTURE = "tests/fixtures/remote_mcp/upstream-stock-v1.json"
 
 REQUIRED_SURFACES = {
     "rust_api_payloads",
     "rust_sync_client",
     "rust_cli_sync_surface",
     "rust_mcp_sync_surface",
+    "legacy_python_api",
     "archive_public_web",
 }
+
+
+def _is_json_object_text(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    try:
+        return isinstance(json.loads(value), dict)
+    except ValueError:
+        return False
+
+
+def compare_upstream_case(
+    reference: dict[str, Any],
+    exchange: dict[str, Any],
+    *,
+    request_id: int,
+) -> list[str]:
+    """Compare synthetic fixture fields with a pinned upstream controller case.
+
+    Values, including synthetic credentials, are never included in findings.
+    This comparison does not execute a client or qualify a deployed instance.
+    """
+    findings = []
+    if exchange.get("method") != reference["method"]:
+        findings.append("method")
+    if "status" in reference and exchange.get("status") != reference["status"]:
+        findings.append("status")
+    parsed = urlsplit(exchange.get("path", ""))
+    if parsed.path != reference["path"].format(request_id=request_id):
+        findings.append("path")
+    parameters = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    for body_name in ("request_json", "request_parts"):
+        body = exchange.get(body_name, {})
+        if not isinstance(body, dict):
+            findings.append(f"invalid fixture {body_name}")
+            continue
+        parameters.update((name.removesuffix("[]"), value) for name, value in body.items())
+    findings.extend(
+        f"missing parameter {name}"
+        for name in reference.get("parameters", [])
+        if name not in parameters
+    )
+    if "k" in parameters and (not isinstance(parameters["k"], str) or not parameters["k"].strip()):
+        findings.append("parameter k is empty or invalid")
+    findings.extend(
+        f"parameter {name} must be JSON text"
+        for name in reference.get("json_string_parameters", [])
+        if name in parameters and not _is_json_object_text(parameters[name])
+    )
+    response = exchange.get("json")
+    response = response if isinstance(response, dict) else {}
+    findings.extend(
+        f"missing response field {name}"
+        for name in reference.get("response_fields", [])
+        if name not in response
+    )
+    return findings
+
+
+def compare_upstream_fixture(
+    reference: list[dict[str, Any]],
+    fixture: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Return a finding for every reference case, including absent fixtures."""
+    ids = [case["id"] for case in reference]
+    if not ids or len(ids) != len(set(ids)):
+        message = "reference cases must be present and have unique ids"
+        raise ValueError(message)
+    cases = fixture.get("cases", [])
+    if not isinstance(cases, list):
+        message = "fixture cases must be a list"
+        raise TypeError(message)
+    result = []
+    for expected in reference:
+        case_name = expected["fixture_case"]
+        matching = [
+            case for case in cases if isinstance(case, dict) and case.get("id") == case_name
+        ]
+        if not matching:
+            differences = ["fixture case missing"]
+        elif len(matching) != 1:
+            differences = ["fixture case duplicated"]
+        else:
+            case = matching[0]
+            exchanges = case.get("exchanges")
+            index = expected["exchange_index"]
+            if not isinstance(exchanges, list) or not 0 <= index < len(exchanges):
+                differences = ["fixture exchange missing"]
+            elif not isinstance(exchanges[index], dict):
+                differences = ["invalid fixture exchange"]
+            else:
+                request_id = case.get("arguments", {}).get("request_id", 0)
+                differences = compare_upstream_case(
+                    expected,
+                    exchanges[index],
+                    request_id=request_id,
+                )
+        result.append({"id": expected["id"], "fixture_case": case_name, "differences": differences})
+    return result
 
 
 def _exists(repo_root: Path, path: str) -> bool:
@@ -64,29 +230,31 @@ def build_contract_inventory(repo_root: Path) -> dict[str, Any]:
             "id": "rust_sync_client",
             "surface": "Rust sync API client",
             "contract": (
-                "GET /api/v2/request.json, GET /api/v2/request/{id}.json, "
-                "POST /api/v2/request, watched feed pulls, retry queues, "
-                "and merge/conflict preservation."
+                "Local client paths for request reads, search, source writes, "
+                "feeds, retry queues and conflict preservation; one explicit "
+                "pinned-upstream authority read is available in the Rust library."
             ),
-            "files": ["crates/fyi-core/src/sync.rs"],
-            "tests": ["crates/fyi-core/src/sync.rs::tests"],
+            "files": [
+                "crates/fyi-core/src/sync.rs",
+                "crates/fyi-core/src/sync/read_contract.rs",
+            ],
+            "tests": [
+                "crates/fyi-core/src/sync.rs::tests",
+                "crates/fyi-core/src/sync/read_contract/tests.rs",
+            ],
             "coverage": (
                 "Mocked successful pull, feed pull, malformed JSON, missing "
                 "required fields, HTTP 401/403/404/429/5xx failures, health, "
-                "push retry, scheduler, and conflict merge behavior."
+                "push retry, scheduler, and conflict merge behavior. The "
+                "pinned authority read has socket-free injected-transport tests."
             ),
-            "risk": _risk(
-                repo_root,
-                ["crates/fyi-core/src/sync.rs"],
-                ["429", "unauthorized", "malformed"],
-            ),
+            "risk": "high",
         },
         {
             "id": "rust_cli_sync_surface",
             "surface": "Rust CLI sync commands",
             "contract": (
-                "CLI presentation for sync status, pull, push, conflicts, "
-                "and conflict resolution."
+                "CLI presentation for sync status, pull, push, conflicts, and conflict resolution."
             ),
             "files": [
                 "crates/fyi-cli/src/main.rs",
@@ -99,8 +267,8 @@ def build_contract_inventory(repo_root: Path) -> dict[str, Any]:
                 "crates/fyi-cli/tests/e2e_tests.rs",
             ],
             "coverage": (
-                "Parser and E2E coverage for sync command shapes and "
-                "database-backed output."
+                "Parser and local CLI tests; register-request is local only; "
+                "push receipt transport evidence is unavailable."
             ),
             "risk": _risk(
                 repo_root,
@@ -116,20 +284,35 @@ def build_contract_inventory(repo_root: Path) -> dict[str, Any]:
             "id": "rust_mcp_sync_surface",
             "surface": "Rust MCP API-adjacent tools",
             "contract": (
-                "JSON-RPC tools exposing request CRUD, authority import, "
-                "sync status, sync monitor, conflicts, and resolution."
+                "Local tools and separately enabled remote reads and governed "
+                "create, correspondence and state writes."
             ),
             "files": ["crates/fyi-mcp/src/main.rs"],
-            "tests": ["crates/fyi-mcp/src/main.rs::tests"],
+            "tests": [
+                "crates/fyi-mcp/src/main.rs::tests",
+                "tests/test_mcp_upstream_contract.py",
+            ],
             "coverage": (
-                "In-process JSON-RPC tests for tool listing, request flows, "
-                "sync status, conflict, and monitor tools."
+                "Protocol and actual-binary tests use synthetic source "
+                "fixtures; their wire profile is not upstream certification."
             ),
-            "risk": _risk(
-                repo_root,
-                ["crates/fyi-mcp/src/main.rs"],
-                ["test_sync_status_tool", "failed to fetch sync", "invalid"],
+            "risk": "high",
+        },
+        {
+            "id": "legacy_python_api",
+            "surface": "Legacy Python Alaveteli client",
+            "contract": (
+                "Read, disclosure-log write, correspondence, attachment and "
+                "state methods; not an ordinary account-session client."
             ),
+            "files": ["src/fyi_system/alaveteli_client.py"],
+            "tests": ["tests/test_alaveteli_client.py"],
+            "coverage": (
+                "Mocked request and response methods use `k` and the documented "
+                "`json` form field; the pinned controller expects different "
+                "parameter names and separate state."
+            ),
+            "risk": "high",
         },
         {
             "id": "archive_public_web",
@@ -170,6 +353,15 @@ def build_contract_inventory(repo_root: Path) -> dict[str, Any]:
     gaps = [
         {
             "surface": "rust_sync_client",
+            "risk": "high",
+            "gap": (
+                "The synthetic source profile differs from the pinned upstream "
+                "controller on routes, authority authentication, parameters "
+                "and response shapes; see the reference comparison below."
+            ),
+        },
+        {
+            "surface": "rust_sync_client",
             "risk": "closed",
             "gap": (
                 "HTTP 401/403/404/429/5xx responses are covered by mocked "
@@ -188,16 +380,35 @@ def build_contract_inventory(repo_root: Path) -> dict[str, Any]:
             "surface": "rust_cli_sync_surface",
             "risk": "medium",
             "gap": (
-                "CLI output has sync coverage, but API failure presentation "
-                "needs end-to-end assertions."
+                "Push cannot yet produce an acquisition receipt. Local "
+                "register-request does not submit or create a user account."
             ),
         },
         {
             "surface": "rust_mcp_sync_surface",
-            "risk": "medium",
+            "risk": "high",
             "gap": (
-                "MCP database errors are surfaced, but upstream API error "
-                "normalization is indirect until sync error types are added."
+                "Governed source writes are exercised against a synthetic "
+                "profile, not proven against the pinned upstream controller "
+                "or a deployed instance."
+            ),
+        },
+        {
+            "surface": "legacy_python_api",
+            "risk": "high",
+            "gap": (
+                "Python's mocked disclosure API requests follow the online "
+                "prose's `json` field, not the pinned controller's named "
+                "parameters; no live deployment is qualified."
+            ),
+        },
+        {
+            "surface": "legacy_python_api",
+            "risk": "closed",
+            "gap": (
+                "Authority `k` is redacted from the covered URL, structured "
+                "metadata and legacy HTTP error paths; source compatibility "
+                "and complete credential handling remain separate gaps."
             ),
         },
         {
@@ -210,7 +421,14 @@ def build_contract_inventory(repo_root: Path) -> dict[str, Any]:
     for surface in surfaces:
         surface["status"] = _status(repo_root, surface["files"])
 
-    return {"surfaces": surfaces, "gaps": gaps}
+    fixture = json.loads((repo_root / MCP_FIXTURE).read_text(encoding="utf-8"))
+    stock_fixture = json.loads((repo_root / MCP_STOCK_FIXTURE).read_text(encoding="utf-8"))
+    return {
+        "surfaces": surfaces,
+        "gaps": gaps,
+        "reference_comparison": compare_upstream_fixture(UPSTREAM_CASES, fixture),
+        "stock_reference_comparison": compare_upstream_fixture(UPSTREAM_CASES, stock_fixture),
+    }
 
 
 def render_markdown(inventory: dict[str, Any]) -> str:
@@ -218,14 +436,100 @@ def render_markdown(inventory: dict[str, Any]) -> str:
     lines = [
         "# API Contract Inventory",
         "",
-        "Generated from checked-in source and test evidence for the "
-        "`api-contract-hardening-20260630` Conductor track.",
+        "Generated by `scripts/api_contract_inventory.py` from checked-in "
+        "source, tests and the pinned upstream reference. A synthetic fixture "
+        "or a matching line-coverage percentage does not qualify a provider.",
         "",
-        "## Contract Matrix",
+        "## Pinned Alaveteli reference",
         "",
-        "| Surface | Contract | Coverage | Risk |",
-        "| --- | --- | --- | --- |",
+        f"The baseline is upstream commit [`{UPSTREAM_REVISION[:7]}`]"
+        f"(https://github.com/mysociety/alaveteli/commit/{UPSTREAM_REVISION}): "
+        f"[routes]({UPSTREAM_ROOT}/config/routes.rb), "
+        f"[API controller]({UPSTREAM_ROOT}/app/controllers/api_controller.rb), "
+        f"[API tests]({UPSTREAM_ROOT}/spec/controllers/api_controller_spec.rb), "
+        f"[signup tests]({UPSTREAM_ROOT}/spec/controllers/user_controller_spec.rb), "
+        f"[session tests]({UPSTREAM_ROOT}/spec/controllers/users/sessions_controller_spec.rb), "
+        f"and [confirmation tests]({UPSTREAM_ROOT}/spec/controllers/users/"
+        "confirmations_controller_spec.rb).",
+        "The [official API prose](https://alaveteli.org/docs/developers/api/) "
+        "describes `/api/v2/request` and `json` as a form field; the pinned "
+        "route uses `/api/v2/request.json`, and its controller reads "
+        "`request_json` or `correspondence_json` and a separate `state`. "
+        "Resolve this discrepancy against the exact deployed version; do not "
+        "assume either behavior on a fork.",
+        "The checked [paired fork revision](https://github.com/edithatogo/alaveteli/"
+        "blob/58d2f13e089145307b0d1d5ca460d08cfb84384a/app/controllers/api_controller.rb) "
+        "uses the same named parameters, but its deployed use has not been established.",
+        "",
+        "The experimental authority API records external requests and "
+        "correspondence. It does not establish an ordinary requester's "
+        "signup, session or request-submission journey. The API controller "
+        "uses the authority's `k` parameter; the fork-local bot header is a "
+        "separate mechanism. User signup, confirmation, login and logout are "
+        "web flows, not documented API operations.",
+        "",
+        "## Requested capability coverage",
+        "",
+        "| Capability | Current evidence | Remaining gap |",
+        "| --- | --- | --- |",
+        "| Public reads, search, authorities and feeds | Rust and Python paths and synthetic read "
+        "fixtures exist. | Qualify each selected deployment, response shape, credentials and "
+        "completeness. |",
+        "| Authority API request read | The explicit Rust library and CLI authority profile "
+        "use `k` and `request_text`; socket-free tests verify its raw/result receipt. | "
+        "MCP still uses its synthetic profile; a successful CLI-to-source run and "
+        "deployed instance or requester session are not qualified. |",
+        "| Register and confirm an account | Upstream web routes and controller tests are "
+        "documented. | No FYI CLI/MCP remote-account signup and confirmation journey is "
+        "verified. |",
+        "| Login, challenges and logout | Local MFA/session primitives and synthetic "
+        "authorization failures exist. | No supported FOI-site account session lifecycle or "
+        "provider-specific challenge behavior is verified. |",
+        "| Requester submits a new request or follow-up | Local `register-request` and a prefilled "
+        "URL are available. | Neither establishes authenticated web submission or downstream "
+        "delivery. |",
+        "| Authority imports a request, correspondence or state | Rust/Python client and governed "
+        "MCP paths have synthetic tests. | The current MCP fixture differs from the pinned "
+        "upstream wire contract; deployed compatibility is unverified. |",
+        "| Response attachments | Synthetic multipart tests check bytes and size/path bounds. | "
+        "Upstream parameters, immutable prepare-to-send bytes and actual source acceptance "
+        "remain unverified. |",
+        "| Wayback receipt, WARC and WACZ | One offline fixture preserved the exact encoded "
+        "entity and linked it to its verified receipt. | Other source commands, attachments, "
+        "live replay and downstream archive shadow parity remain open. |",
+        "",
+        "## Pinned upstream versus current synthetic MCP fixture",
+        "",
+        "The comparator checks only the selected fixture method, status, path, "
+        "parameter names and response-field presence. It does not execute "
+        "the client or establish the behavior of a live upstream service. "
+        f"Fixture: `{MCP_FIXTURE}`. Run "
+        "`.venv/bin/python scripts/api_contract_inventory.py --check-upstream` "
+        "to fail closed while any selected case differs.",
+        "The five selected actual-binary SDK/fixture cases passed in the "
+        "[PR #509 Python test run](https://github.com/edithatogo/fyi-cli/"
+        "actions/runs/44996077720); "
+        "that run tested the synthetic profile, not the pinned server.",
+        f"The separate `{MCP_STOCK_FIXTURE}` contains the pinned reference "
+        "fields and placeholder keys. Its field comparison is not an MCP "
+        "execution or a deployed-server test.",
+        "",
+        "| Upstream operation | Synthetic fixture case | Comparison |",
+        "| --- | --- | --- |",
     ]
+
+    for case in inventory["reference_comparison"]:
+        comparison = "; ".join(case["differences"]) or "selected fields match; not qualified"
+        lines.append(f"| `{case['id']}` | `{case['fixture_case']}` | {comparison} |")
+    lines.extend(
+        [
+            "",
+            "## Contract Matrix",
+            "",
+            "| Surface | Contract | Coverage | Risk |",
+            "| --- | --- | --- | --- |",
+        ],
+    )
 
     for surface in inventory["surfaces"]:
         files = ", ".join(f"`{path}`" for path in surface["files"])
@@ -249,18 +553,24 @@ def render_markdown(inventory: dict[str, Any]) -> str:
         ],
     )
     lines.extend(
-        f"- **{gap['risk']}** `{gap['surface']}`: {gap['gap']}"
-        for gap in inventory["gaps"]
+        f"- **{gap['risk']}** `{gap['surface']}`: {gap['gap']}" for gap in inventory["gaps"]
     )
 
     lines.extend(
         [
             "",
-            "## Phase 1 Next Actions",
+            "## Next actions",
             "",
-            "1. Keep live FYI smoke tests opt-in with `FYI_LIVE_SMOKE=1`.",
-            "2. Run mocked contract tests before release.",
-            "3. Refresh fixtures when FYI/Alaveteli response shapes change.",
+            "1. Exercise the explicit CLI authority read end to end against an "
+            "isolated source; integrate the selected MCP profile and reconcile "
+            "the remaining operations against the target deployment.",
+            "2. Reuse socket-free tests for selected reads, authority writes "
+            "and account/session failures; cover the requester web journey "
+            "separately from the experimental authority API.",
+            "3. Verify a local isolated upstream workflow with synthetic "
+            "accounts and intercepted mail; separately authorize any live "
+            "site smoke. Keep `archive_cutover_allowed=false` until the "
+            "existing downstream acceptance gates pass.",
             "",
         ],
     )
@@ -280,15 +590,33 @@ def main() -> int:
         default=Path("docs/api-contract-inventory.md"),
         type=Path,
     )
+    parser.add_argument(
+        "--check-upstream",
+        action="store_true",
+        help="Compare the synthetic MCP fixture with the pinned upstream wire fields",
+    )
     args = parser.parse_args()
 
     repo_root = args.repo_root.resolve()
+    inventory = build_contract_inventory(repo_root)
+    if args.check_upstream:
+        for case in inventory["reference_comparison"]:
+            result = "; ".join(case["differences"]) or "selected fields match"
+            sys.stdout.write(f"{case['id']}: {result}\n")
+        for case in inventory["stock_reference_comparison"]:
+            result = "; ".join(case["differences"]) or "selected fields match"
+            sys.stdout.write(f"stock/{case['id']}: {result}\n")
+        sys.stdout.write("Synthetic fixture comparison only; deployed behavior is not qualified.\n")
+        return int(
+            any(case["differences"] for case in inventory["reference_comparison"])
+            or any(case["differences"] for case in inventory["stock_reference_comparison"]),
+        )
     output = args.output
     if not output.is_absolute():
         output = repo_root / output
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(
-        render_markdown(build_contract_inventory(repo_root)),
+        render_markdown(inventory),
         encoding="utf-8",
     )
     return 0

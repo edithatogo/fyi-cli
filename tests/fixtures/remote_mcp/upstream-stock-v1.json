@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "fixture_id": "alaveteli-stock-authority-reference-v1",
+  "reference_revision": "3966415f0b2a9f445fa3bb25c06eaeb75ded6609",
+  "provenance": "synthetic reference fields derived from the pinned controller; not a running server or deployment certification",
+  "cases": [
+    {
+      "id": "request_complete",
+      "arguments": {"request_id": 7001},
+      "exchanges": [
+        {
+          "method": "GET",
+          "path": "/api/v2/request/7001.json?k=%3Cinjected-at-runtime%3E",
+          "status": 200,
+          "json": {"id": 7001, "title": "Synthetic", "url": "https://source.invalid/request/example", "request_text": "Synthetic request"}
+        }
+      ]
+    },
+    {
+      "id": "create",
+      "arguments": {},
+      "exchanges": [
+        {
+          "method": "POST",
+          "path": "/api/v2/request.json",
+          "status": 200,
+          "request_parts": {"k": "<injected-at-runtime>", "request_json": "{\"title\":\"Synthetic\",\"body\":\"Synthetic request\",\"external_user_name\":\"Synthetic\",\"external_url\":\"https://source.invalid/external\"}"},
+          "json": {"id": 7001, "url": "https://source.invalid/request/example"}
+        }
+      ]
+    },
+    {
+      "id": "correspondence_json",
+      "arguments": {"request_id": 7001},
+      "exchanges": [
+        {
+          "method": "POST",
+          "path": "/api/v2/request/7001.json",
+          "status": 200,
+          "request_parts": {"k": "<injected-at-runtime>", "correspondence_json": "{\"direction\":\"response\",\"body\":\"Synthetic response\",\"sent_at\":\"2026-11-22T00:00:00Z\"}", "state": "successful"},
+          "json": {"url": "https://source.invalid/request/example"}
+        }
+      ]
+    },
+    {
+      "id": "correspondence_multipart",
+      "arguments": {"request_id": 7001},
+      "exchanges": [
+        {
+          "method": "POST",
+          "path": "/api/v2/request/7001.json",
+          "status": 200,
+          "request_parts": {"k": "<injected-at-runtime>", "correspondence_json": "{\"direction\":\"response\",\"body\":\"Synthetic response\",\"sent_at\":\"2026-11-22T00:00:00Z\"}", "state": "successful", "attachments[]": ["Synthetic attachment"]},
+          "json": {"url": "https://source.invalid/request/example"}
+        }
+      ]
+    },
+    {
+      "id": "state_preflight",
+      "arguments": {"request_id": 7001},
+      "exchanges": [
+        {
+          "method": "GET",
+          "path": "/api/v2/request/7001.json?k=%3Cinjected-at-runtime%3E",
+          "status": 200,
+          "json": {"id": 7001, "title": "Synthetic", "url": "https://source.invalid/request/example", "request_text": "Synthetic request", "status": "waiting_response"}
+        },
+        {
+          "method": "POST",
+          "path": "/api/v2/request/7001/update.json",
+          "status": 200,
+          "request_parts": {"k": "<injected-at-runtime>", "state": "successful"},
+          "json": {"url": "https://source.invalid/request/example"}
+        }
+      ]
+    }
+  ]
+}

@@ -1,15 +1,9 @@
-"""Alaveteli API Client for FYI.org.nz and compatible platforms.
+"""Legacy client for Alaveteli-style read and authority disclosure APIs.
 
-This module provides a comprehensive client for the Alaveteli API,
-supporting both Read API (public data) and Write API (programmatic operations).
-
-Compatible with:
-- FYI.org.nz (New Zealand)
-- WhatDoTheyKnow.com (UK)
-- FragDenStaat.de (Germany)
-- Any Alaveteli v0.39+ deployment
-
-API Documentation: https://alaveteli.org/docs/developers/api/
+Synthetic tests cover the existing call shapes, not compatibility with any
+deployed instance. The pinned upstream controller and documentation differ on
+some write parameters; see ``docs/api-contract-inventory.md``. Ordinary user
+account and requester-submission workflows are not established by this module.
 """
 from __future__ import annotations
 import json
@@ -195,12 +189,15 @@ class AlaveteliClient:
 
                 return response
             except requests.exceptions.HTTPError as e:
-                if response.status_code == 429:
+                status = e.response.status_code if e.response is not None else None
+                if status == 429:
                     retries += 1
                     continue
-                raise AlaveteliAPIError(f"API error: {e}", response.status_code)
-            except requests.exceptions.RequestException as e:
-                raise AlaveteliAPIError(f"Request failed: {e}")
+                message = f"API error: HTTP {status}" if status is not None else "API error"
+                raise AlaveteliAPIError(message, status) from None
+            except requests.exceptions.RequestException:
+                message = "Request failed"
+                raise AlaveteliAPIError(message) from None
 
         raise AlaveteliAPIError("Request failed: Max retries exceeded due to rate limiting", 429)
     
@@ -238,9 +235,12 @@ class AlaveteliClient:
             response.raise_for_status()
             return response
         except requests.exceptions.HTTPError as e:
-            raise AlaveteliAPIError(f"API error: {e}", response.status_code)
-        except requests.exceptions.RequestException as e:
-            raise AlaveteliAPIError(f"Request failed: {e}")
+            status = e.response.status_code if e.response is not None else None
+            message = f"API error: HTTP {status}" if status is not None else "API error"
+            raise AlaveteliAPIError(message, status) from None
+        except requests.exceptions.RequestException:
+            message = "Request failed"
+            raise AlaveteliAPIError(message) from None
     
     # ========== Read API Methods ==========
     

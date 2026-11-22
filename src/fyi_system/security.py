@@ -12,7 +12,8 @@ from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 SENSITIVE_QUERY_KEYS = {
-    'token', 'api_key', 'apikey', 'key', 'signature', 'sig', 'auth', 'authorization', 'access_token'
+    "k", "token", "api_key", "apikey", "key", "signature", "sig", "auth",
+    "authorization", "access_token",
 }
 SENSITIVE_FIELD_KEYS = {
     'body', 'raw_json', 'summary', 'detail', 'email', 'authorization', 'token', 'api_key'
@@ -132,7 +133,7 @@ def _redact_url_query_secrets(value: str) -> str:
             if changed:
                 return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(pairs), parts.fragment))
         except Exception:
-            return token
+            return "[redacted-url]"
         return token
     return URL_RE.sub(repl, value)
 
@@ -142,6 +143,9 @@ def sanitize_payload(payload: Any, *, profile: str = 'standard') -> Any:
         sanitized = {}
         for key, value in payload.items():
             lower = key.lower()
+            if lower in {"k", "api_key", "authorization", "token"} and isinstance(value, str):
+                sanitized[key] = "[redacted]"
+                continue
             if profile == 'strict' and lower in {'body', 'raw_json'} and isinstance(value, str):
                 digest = hashlib.sha256(value.encode('utf-8')).hexdigest()[:12]
                 sanitized[key] = f'[redacted sha256:{digest}]'

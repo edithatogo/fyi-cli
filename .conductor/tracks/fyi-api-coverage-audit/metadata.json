@@ -1,9 +1,9 @@
 {
   "track_id": "fyi-api-coverage-audit",
   "type": "feature",
-  "status": "completed",
+  "status": "in_progress",
   "created_at": "2026-07-08T22:07:37+10:00",
-  "description": "Audit FYI/Alaveteli API surface; bring Rust core to full parity with Python client + close web-artifact gaps.",
+  "description": "Reconcile FYI/Alaveteli capabilities against pinned upstream and the existing Rust, Python and MCP evidence.",
   "dependencies": [],
   "priority": "high",
   "github_issue": 37,
@@ -12,5 +12,21 @@
     "tracked_by": "github-issues-prs",
     "branch": "60217257-implement-foi-tracks"
   },
-  "updated_at": "2026-07-09T00:00:00Z"
+  "updated_at": "2026-11-22T17:59:53+10:00",
+  "prior_completion": {
+    "date": "2026-07-08",
+    "pull_request": 126,
+    "issue": 37,
+    "issue_status": "closed",
+    "boundary": "historical synthetic-client and local verification; not upstream parity"
+  },
+  "reconciliation": {
+    "reference_revision": "3966415f0b2a9f445fa3bb25c06eaeb75ded6609",
+    "coverage_contract": "docs/api-contract-inventory.md",
+    "contract_and_redaction_checkpoint": "20360fc",
+    "rust_authority_read_checkpoint": "d9a13dd",
+    "source_owner": "source-adapter-boundary-20260812",
+    "remote_mcp_owner": "remote-mcp-contract-harness-20260711",
+    "reason": "Synthetic write fixtures and legacy client assumptions differ from pinned upstream; requester account journeys remain unverified."
+  }
 }

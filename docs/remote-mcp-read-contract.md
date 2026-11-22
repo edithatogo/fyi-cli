@@ -1,5 +1,10 @@
 # Guarded remote MCP reads
 
+The synthetic request-read fixture does not establish stock Alaveteli
+compatibility: the pinned upstream API controller requires an authority key and
+returns `request_text`. Deployment-specific behavior remains unverified. See the
+[coverage contract](api-contract-inventory.md).
+
 Issue [#170](https://github.com/edithatogo/fyi-cli/issues/170) adds a complete read
 contract around the existing `SyncClient`. Reads are disabled by default. Set an
 explicit `FYI_MCP_REMOTE_INSTANCES` allowlist and enable its opaque instance IDs

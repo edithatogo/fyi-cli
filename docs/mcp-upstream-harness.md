@@ -1,5 +1,11 @@
 # Actual MCP-to-source offline contracts
 
+The source in this harness is a synthetic server, not the Alaveteli upstream
+application. Its existing write paths and response shapes differ from the
+version-pinned upstream controller. See the
+[coverage contract](api-contract-inventory.md) before inferring provider
+compatibility from a passing fixture. Existing fixture evidence is retained.
+
 ## Current read coverage — 2026-11-17
 
 The #170 increment uses `upstream-v2.json` and the current tools-v2/v3 schema

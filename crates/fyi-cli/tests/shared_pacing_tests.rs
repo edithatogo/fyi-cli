@@ -185,6 +185,41 @@ fn invalid_fetch_pacing_options_fail_before_creating_the_database() {
 }
 
 #[test]
+fn authority_read_requires_evidence_and_a_key_before_creating_pacing_state() {
+    let directory = test_directory();
+    let db = directory.join("pacing.db");
+    let command = || {
+        let mut command = Command::new(env!("CARGO_BIN_EXE_fyi-cli"));
+        command
+            .current_dir(&directory)
+            .env_remove("FYI_ALAVETELI_AUTHORITY_KEY")
+            .args(["fetch-request-page", "42", "--authority-api"])
+            .arg("--shared-rate-limit-db")
+            .arg(&db);
+        command
+    };
+    let missing_evidence = command().output().unwrap();
+    assert_eq!(missing_evidence.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&missing_evidence.stderr).contains("requires --receipt"));
+    let missing_key = command()
+        .args([
+            "--receipt",
+            "receipt.json",
+            "--raw-file",
+            "raw.bin",
+            "--result-file",
+            "result.json",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(missing_key.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&missing_key.stderr).contains("FYI_ALAVETELI_AUTHORITY_KEY"));
+    assert!(!db.exists());
+    assert!(fs::read_dir(&directory).unwrap().next().is_none());
+    fs::remove_dir_all(directory).unwrap();
+}
+
+#[test]
 fn fetch_rejects_a_database_path_used_for_evidence_before_any_acquisition() {
     let directory = test_directory();
     let db = directory.join("pacing.db");

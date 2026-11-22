@@ -99,6 +99,22 @@ impl RequestEvidenceClient {
         .await
     }
 
+    /// Fetch a pinned upstream authority request and publish private evidence.
+    ///
+    /// The authority key is used only for the exchange. The raw response can
+    /// contain authority-only personal information and must be kept private.
+    pub async fn fetch_upstream_authority_request(
+        &self,
+        request_id: i64,
+        authority_key: &str,
+        paths: &SyncPullEvidencePaths<'_>,
+    ) -> Result<AlaveteliRequest> {
+        self.fetch_authority_using(request_id, authority_key, paths, |request| {
+            self.client.execute_guarded_request(request)
+        })
+        .await
+    }
+
     async fn fetch_using<F, Fut>(
         &self,
         request_id: i64,
@@ -109,9 +125,48 @@ impl RequestEvidenceClient {
         F: FnOnce(reqwest::Request) -> Fut,
         Fut: Future<Output = Result<(reqwest::Response, Url)>>,
     {
+        self.fetch_profile_using(request_id, None, paths, execute)
+            .await
+    }
+
+    async fn fetch_authority_using<F, Fut>(
+        &self,
+        request_id: i64,
+        authority_key: &str,
+        paths: &SyncPullEvidencePaths<'_>,
+        execute: F,
+    ) -> Result<AlaveteliRequest>
+    where
+        F: FnOnce(reqwest::Request) -> Fut,
+        Fut: Future<Output = Result<(reqwest::Response, Url)>>,
+    {
+        self.fetch_profile_using(request_id, Some(authority_key), paths, execute)
+            .await
+    }
+
+    async fn fetch_profile_using<F, Fut>(
+        &self,
+        request_id: i64,
+        authority_key: Option<&str>,
+        paths: &SyncPullEvidencePaths<'_>,
+        execute: F,
+    ) -> Result<AlaveteliRequest>
+    where
+        F: FnOnce(reqwest::Request) -> Fut,
+        Fut: Future<Output = Result<(reqwest::Response, Url)>>,
+    {
         ensure!(request_id > 0, "request ID must be positive");
+        if let Some(key) = authority_key {
+            super::read_contract::upstream_authority_request_url(
+                &self.client.base_url,
+                request_id,
+                key,
+            )?;
+        }
         preflight_sync_pull_evidence(paths, None)?;
-        let observed = self.observe_using(request_id, execute).await?;
+        let observed = self
+            .observe_profile_using(request_id, authority_key, execute)
+            .await?;
         // A source wait must not let a replaced parent redirect evidence into
         // another directory. These checks and no-clobber publication assume
         // trusted operator directories; they are not directory-handle race protection.
@@ -148,6 +203,19 @@ impl RequestEvidenceClient {
         F: FnOnce(reqwest::Request) -> Fut,
         Fut: Future<Output = Result<(reqwest::Response, Url)>>,
     {
+        self.observe_profile_using(request_id, None, execute).await
+    }
+
+    async fn observe_profile_using<F, Fut>(
+        &self,
+        request_id: i64,
+        authority_key: Option<&str>,
+        execute: F,
+    ) -> Result<RequestObservation>
+    where
+        F: FnOnce(reqwest::Request) -> Fut,
+        Fut: Future<Output = Result<(reqwest::Response, Url)>>,
+    {
         ensure!(request_id > 0, "request ID must be positive");
         if let Some(shared) = &self.client.shared_pacing {
             ensure!(
@@ -155,10 +223,17 @@ impl RequestEvidenceClient {
                 "rate limit name must not be blank"
             );
         }
-        let url = self
-            .client
-            .base_url
-            .join(&format!("api/v2/request/{request_id}.json"))?;
+        let url = if let Some(key) = authority_key {
+            super::read_contract::upstream_authority_request_url(
+                &self.client.base_url,
+                request_id,
+                key,
+            )?
+        } else {
+            self.client
+                .base_url
+                .join(&format!("api/v2/request/{request_id}.json"))?
+        };
         let started = crate::time_util::now_rfc3339_millis_z();
         let response = self
             .client
@@ -178,6 +253,23 @@ impl RequestEvidenceClient {
             response.final_url == url,
             "request response URL differs from its request; no receipt was published"
         );
+        if let Some(key) = authority_key {
+            let encoded_key = url
+                .query()
+                .and_then(|query| query.strip_prefix("k="))
+                .unwrap_or("");
+            let contains = |needle: &[u8]| {
+                !needle.is_empty()
+                    && response
+                        .body
+                        .windows(needle.len())
+                        .any(|part| part.eq_ignore_ascii_case(needle))
+            };
+            ensure!(
+                !contains(key.as_bytes()) && !contains(encoded_key.as_bytes()),
+                "source response contains authority key material; no evidence was published"
+            );
+        }
         let status = response.source_status;
         let outcome = (|| -> Result<AlaveteliRequest> {
             if !status.is_success() {
@@ -194,8 +286,12 @@ impl RequestEvidenceClient {
                     "unsupported request content encoding"
                 );
             }
-            let request: AlaveteliRequest = serde_json::from_slice(&response.body)
-                .map_err(|_| anyhow!("invalid public request JSON"))?;
+            let request: AlaveteliRequest = if authority_key.is_some() {
+                super::read_contract::parse_upstream_authority_request(&response.body, request_id)?
+            } else {
+                serde_json::from_slice(&response.body)
+                    .map_err(|_| anyhow!("invalid public request JSON"))?
+            };
             ensure!(
                 request.id == request_id,
                 "upstream request identifier does not match requested ID"
@@ -216,9 +312,14 @@ impl RequestEvidenceClient {
         safe_url.set_fragment(None);
         let raw = response.body;
         let limiter = self.client.shared_pacing.as_ref();
+        let adapter_id = if authority_key.is_some() {
+            "alaveteli-authority-request-json"
+        } else {
+            "alaveteli-request-json"
+        };
         let mut receipt = json!({
             "schema": "urn:fyi-cli:acquisition-receipt", "schema_version": "1.0.0",
-            "command": "fetch-request", "adapter": {"id": "alaveteli-request-json", "version": env!("CARGO_PKG_VERSION")},
+            "command": "fetch-request", "adapter": {"id": adapter_id, "version": env!("CARGO_PKG_VERSION")},
             "source": {"url": safe_url.as_str()},
             "request_bounds": {"request_id": request_id, "max_response_bytes": MAX_RESPONSE_BYTES, "redirects": 0, "retries": 0},
             "started_at": started, "completed_at": crate::time_util::now_rfc3339_millis_z(),
@@ -347,6 +448,94 @@ mod tests {
             fs::read(&harness.result).unwrap(),
             canonical_json_bytes(&serde_json::to_value(request).unwrap()).unwrap()
         );
+    }
+
+    #[tokio::test]
+    async fn authority_read_receipt_binds_exact_bytes_and_hides_key() {
+        let harness = Harness::new();
+        let key = "synthetic-private+key/=";
+        let raw = br#"{"id":42,"title":"Synthetic","request_text":"Request body","url":"https://source.example.test/request/example","request_email":"fictional@example.invalid"}"#;
+        let request = client()
+            .await
+            .fetch_authority_using(42, key, &harness.paths(), |request| async move {
+                assert_eq!(
+                    request.url().query_pairs().collect::<Vec<_>>(),
+                    [("k".into(), key.into())]
+                );
+                response(request, 200, raw, Some("identity"))
+            })
+            .await
+            .unwrap();
+        assert_eq!(request.body, "Request body");
+        assert_eq!(fs::read(&harness.raw).unwrap(), raw);
+        let receipt = harness.verified_receipt();
+        assert_eq!(receipt["status"], "succeeded");
+        assert_eq!(receipt["adapter"]["id"], "alaveteli-authority-request-json");
+        assert!(receipt["source"]["url"]
+            .as_str()
+            .unwrap()
+            .ends_with("?REDACTED"));
+        assert!(!receipt.to_string().contains(key));
+        assert!(!fs::read_to_string(&harness.result).unwrap().contains(key));
+        let mut changed = fs::read(&harness.raw).unwrap();
+        changed[0] ^= 1;
+        assert!(verify_receipt_raw_bytes(&receipt, &changed).is_err());
+        let mut changed_result = fs::read(&harness.result).unwrap();
+        changed_result[0] ^= 1;
+        assert!(verify_receipt_result_bytes(&receipt, &changed_result).is_err());
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(
+                fs::metadata(&harness.raw).unwrap().permissions().mode() & 0o777,
+                0o600
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn authority_read_failure_evidence_never_publishes_a_key() {
+        for (status, body, publishes_receipt) in [
+            (302, b"redirected".as_slice(), true),
+            (403, b"denied".as_slice(), true),
+            (200, b"invalid json".as_slice(), true),
+            (200, b"synthetic-private-key".as_slice(), false),
+            (200, b"synthetic-private%2Bkey".as_slice(), false),
+        ] {
+            let harness = Harness::new();
+            let key = if body.ends_with(b"%2Bkey") {
+                "synthetic-private+key"
+            } else {
+                "synthetic-private-key"
+            };
+            let error = client()
+                .await
+                .fetch_authority_using(42, key, &harness.paths(), |request| async move {
+                    response(request, status, body, None)
+                })
+                .await
+                .unwrap_err();
+            assert!(!format!("{error:#}").contains(key));
+            if publishes_receipt {
+                assert_eq!(harness.verified_receipt()["status"], "failed");
+                assert!(!fs::read_to_string(&harness.receipt).unwrap().contains(key));
+            } else {
+                harness.assert_absent();
+            }
+        }
+        let harness = Harness::new();
+        let error = client()
+            .await
+            .fetch_authority_using(
+                42,
+                "synthetic-private-key",
+                &harness.paths(),
+                |_request| async { Err(anyhow!("synthetic-private-key transport failure")) },
+            )
+            .await
+            .unwrap_err();
+        assert!(!format!("{error:#}").contains("synthetic-private-key"));
+        harness.assert_absent();
     }
 
     #[tokio::test]

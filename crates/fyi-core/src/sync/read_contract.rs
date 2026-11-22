@@ -9,6 +9,19 @@ use super::*;
 use serde::Serialize;
 use std::collections::BTreeMap;
 
+/// Selected fields returned by the pinned upstream authority API. The
+/// controller also returns authority-only fields that this read does not retain.
+#[derive(serde::Deserialize)]
+struct UpstreamAuthorityRequest {
+    id: i64,
+    title: String,
+    request_text: String,
+    url: String,
+    status: Option<String>,
+    created_at: Option<String>,
+    updated_at: Option<String>,
+}
+
 /// Per-operation transfer limits. Request counts and aggregate transfer bytes
 /// are additionally bounded by the client's shared `GuardrailConfig`.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -127,6 +140,46 @@ fn safe_source_error(error: anyhow::Error) -> anyhow::Error {
     SourceReadError::new(source_failure_kind(&error).unwrap_or(SourceFailureKind::Transport)).into()
 }
 
+pub(super) fn upstream_authority_request_url(
+    base_url: &Url,
+    request_id: i64,
+    authority_key: &str,
+) -> Result<Url> {
+    if request_id <= 0
+        || authority_key.is_empty()
+        || authority_key.trim() != authority_key
+        || authority_key.chars().any(char::is_control)
+    {
+        return Err(SourceReadError::new(SourceFailureKind::Validation).into());
+    }
+    let mut url = base_url
+        .join(&format!("api/v2/request/{request_id}.json"))
+        .map_err(|_| SourceReadError::new(SourceFailureKind::Validation))?;
+    url.query_pairs_mut().append_pair("k", authority_key);
+    Ok(url)
+}
+
+pub(super) fn parse_upstream_authority_request(
+    body: &[u8],
+    request_id: i64,
+) -> Result<AlaveteliRequest> {
+    let upstream: UpstreamAuthorityRequest = serde_json::from_slice(body).map_err(malformed)?;
+    if upstream.id != request_id {
+        return Err(SourceReadError::new(SourceFailureKind::MalformedPayload).into());
+    }
+    Ok(AlaveteliRequest {
+        id: upstream.id,
+        title: upstream.title,
+        body: upstream.request_text,
+        user_name: None,
+        status: upstream.status,
+        created_at: upstream.created_at,
+        updated_at: upstream.updated_at,
+        url: Some(upstream.url),
+        tags: None,
+    })
+}
+
 fn build_read_http_client(identity: &crate::agent_runtime::ClientIdentity) -> Result<Client> {
     identity.validate()?;
     Ok(Client::builder()
@@ -233,6 +286,81 @@ impl SyncClient {
         if value.id != request_id {
             return Err(SourceReadError::new(SourceFailureKind::MalformedPayload).into());
         }
+        Ok(response.into_source_read(value))
+    }
+
+    /// Read one request through the pinned upstream *authority* API profile.
+    ///
+    /// The caller explicitly supplies the authority's key; this is not an
+    /// ordinary requester session. The dedicated no-redirect transport is
+    /// required, and no validator cache or raw authority response is retained.
+    /// Compatibility with an individual deployment must be qualified separately.
+    pub async fn fetch_upstream_authority_request_read(
+        &self,
+        request_id: i64,
+        authority_key: &str,
+        limits: &ReadLimits,
+    ) -> Result<SourceRead<AlaveteliRequest>> {
+        let http = self
+            .evidence_http
+            .as_ref()
+            .ok_or_else(|| SourceReadError::new(SourceFailureKind::Validation))?;
+        self.authority_request_read_using(request_id, authority_key, limits, |request| async move {
+            let response = http
+                .execute(request)
+                .await
+                .map_err(|error| error.without_url())?;
+            let url = response.url().clone();
+            Ok((response, url))
+        })
+        .await
+    }
+
+    async fn authority_request_read_using<F, Fut>(
+        &self,
+        request_id: i64,
+        authority_key: &str,
+        limits: &ReadLimits,
+        execute: F,
+    ) -> Result<SourceRead<AlaveteliRequest>>
+    where
+        F: FnOnce(reqwest::Request) -> Fut,
+        Fut: std::future::Future<Output = Result<(reqwest::Response, Url)>>,
+    {
+        if limits.max_bytes == 0 || limits.max_duration.is_zero() {
+            return Err(SourceReadError::new(SourceFailureKind::Validation).into());
+        }
+        let url = upstream_authority_request_url(&self.base_url, request_id, authority_key)?;
+        let budget = self.middleware.lock().await.guardrails.snapshot();
+        let remaining =
+            Duration::from_millis(budget.max_runtime_ms.saturating_sub(budget.elapsed_ms));
+        if remaining.is_zero() {
+            return Err(SourceReadError::new(SourceFailureKind::Guardrail).into());
+        }
+        let request = self
+            .http
+            .get(url.clone())
+            .header(header::ACCEPT_ENCODING, "identity");
+        let response = tokio::time::timeout(
+            limits.max_duration.min(remaining),
+            self.send_guarded_with_limits_using(
+                request,
+                Some(limits.max_bytes),
+                false,
+                "alaveteli_authority_request",
+                execute,
+            ),
+        )
+        .await
+        .map_err(|_| SourceReadError::new(SourceFailureKind::Timeout))?
+        .map_err(safe_source_error)?;
+        if response.final_url != url {
+            return Err(SourceReadError::new(SourceFailureKind::Validation).into());
+        }
+        let response = ensure_success(response, "authority request endpoint")
+            .await
+            .map_err(safe_source_error)?;
+        let value = parse_upstream_authority_request(&response.body, request_id)?;
         Ok(response.into_source_read(value))
     }
 

@@ -25,6 +25,8 @@ This directory contains the canonical Conductor project context and management f
 - [Tracks Directory](./tracks/) - Individual track specifications and plans
 
 ### Active Tracks
+- **alaveteli-mcp-coverage-20261122** — Source-backed MCP fixture, requester journey, authority-read receipt integration and archive cutover plan; see the [track](./tracks/alaveteli-mcp-coverage-20261122/).
+- **fyi-api-coverage-audit** — Reopened in Conductor: the historical synthetic-client checkpoint does not establish upstream API parity or account-journey coverage; see the [coverage contract](../docs/api-contract-inventory.md).
 - **remote-mcp-read-surface-20260711** — #170 implementation in PR #494: typed reads, provenance, bounded shared SyncClient and source-verified feed references; CI evidence and review checkpoints in the track.
 - **security-advisory-remediation-20261114** — Retire all RustSec suppressions through verified dependency upgrades; stop new/expired exceptions with required CI and an optional pre-commit hook (issue #325; in progress).
 - **i18n-localization-framework** — Fluent, typed letters and terminology are merged (#436, #447, #450); calendars/statutory rules, human review and remaining integration/performance acceptance stay open under #39.
