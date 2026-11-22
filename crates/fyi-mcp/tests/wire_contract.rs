@@ -246,3 +246,59 @@ async fn oversized_stdio_frame_is_rejected_without_unbounded_drain() {
         })]
     );
 }
+
+#[tokio::test]
+async fn stock_profile_configuration_is_explicit_and_fails_closed_without_key() {
+    let invalid = tokio::time::timeout(
+        Duration::from_secs(5),
+        isolated_command()
+            .env("FYI_MCP_EPHEMERAL", "1")
+            .env(
+                "FYI_MCP_REMOTE_INSTANCES",
+                "synthetic=https://source.invalid",
+            )
+            .env("FYI_MCP_REMOTE_STOCK_ALAVETELI", "unknown-private")
+            .stdin(Stdio::null())
+            .output(),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert!(!invalid.status.success());
+    assert!(invalid.stdout.is_empty());
+    let diagnostics = String::from_utf8(invalid.stderr).unwrap();
+    assert!(diagnostics.contains("outside the allowlist"));
+    assert!(!diagnostics.contains("unknown-private"));
+
+    let mut child = isolated_command()
+        .env("FYI_MCP_EPHEMERAL", "1")
+        .env(
+            "FYI_MCP_REMOTE_INSTANCES",
+            "synthetic=https://source.invalid",
+        )
+        .env("FYI_MCP_REMOTE_READ", "synthetic")
+        .env("FYI_MCP_REMOTE_STOCK_ALAVETELI", "synthetic")
+        .stdin(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let mut stdin = child.stdin.take().unwrap();
+    let message = json!({"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"remote_get_request","arguments":{"instance_id":"synthetic","request_id":7001}}});
+    stdin
+        .write_all((message.to_string() + "\n").as_bytes())
+        .await
+        .unwrap();
+    stdin.shutdown().await.unwrap();
+    drop(stdin);
+    let output = tokio::time::timeout(Duration::from_secs(10), child.wait_with_output())
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(output.status.success());
+    let response: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(response["result"]["isError"], true);
+    assert_eq!(
+        response["result"]["structuredContent"]["error"]["kind"],
+        "validation"
+    );
+    assert!(response["result"]["structuredContent"]["error"]["correlation_id"].is_null());
+}

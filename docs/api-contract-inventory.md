@@ -15,19 +15,19 @@ The experimental authority API records external requests and correspondence. It 
 | Capability | Current evidence | Remaining gap |
 | --- | --- | --- |
 | Public reads, search, authorities and feeds | Rust and Python paths and synthetic read fixtures exist. | Qualify each selected deployment, response shape, credentials and completeness. |
-| Authority API request read | The explicit Rust library and CLI authority profile use `k` and `request_text`; socket-free tests verify its raw/result receipt. | MCP still uses its synthetic profile; a successful CLI-to-source run and deployed instance or requester session are not qualified. |
+| Authority API request read | The explicit Rust library and CLI authority profile use `k` and `request_text`; socket-free tests verify its raw/result receipt. The opt-in MCP handler consumes the same stock read profile. | A successful CLI-to-source run and deployed instance or requester session are not qualified. |
 | Register and confirm an account | Upstream web routes and controller tests are documented. | No FYI CLI/MCP remote-account signup and confirmation journey is verified. |
 | Login, challenges and logout | Local MFA/session primitives and synthetic authorization failures exist. | No supported FOI-site account session lifecycle or provider-specific challenge behavior is verified. |
 | Requester submits a new request or follow-up | Local `register-request` and a prefilled URL are available. | Neither establishes authenticated web submission or downstream delivery. |
-| Authority imports a request, correspondence or state | Rust/Python client and governed MCP paths have synthetic tests. | The current MCP fixture differs from the pinned upstream wire contract; deployed compatibility is unverified. |
-| Response attachments | Synthetic multipart tests check bytes and size/path bounds. | Upstream parameters, immutable prepare-to-send bytes and actual source acceptance remain unverified. |
+| Authority imports a request, correspondence or state | Rust/Python client and governed MCP paths have synthetic tests, including five stock handler fixture cases. | The legacy fixture differs from the pinned upstream wire contract; a running upstream and deployed compatibility are unverified. |
+| Response attachments | Synthetic multipart tests check bytes and size/path bounds. | Immutable prepare-to-send bytes and actual source acceptance remain unverified. |
 | Wayback receipt, WARC and WACZ | One offline fixture preserved the exact encoded entity and linked it to its verified receipt. | Other source commands, attachments, live replay and downstream archive shadow parity remain open. |
 
 ## Pinned upstream versus current synthetic MCP fixture
 
 The comparator checks only the selected fixture method, status, path, parameter names and response-field presence. It does not execute the client or establish the behavior of a live upstream service. Fixture: `tests/fixtures/remote_mcp/upstream-v2.json`. Run `.venv/bin/python scripts/api_contract_inventory.py --check-upstream` to fail closed while any selected case differs.
 The five selected actual-binary SDK/fixture cases passed in the [PR #509 Python test run](https://github.com/edithatogo/fyi-cli/actions/runs/44996077720); that run tested the synthetic profile, not the pinned server.
-The separate `tests/fixtures/remote_mcp/upstream-stock-v1.json` contains the pinned reference fields and placeholder keys. Its field comparison is not an MCP execution or a deployed-server test.
+The separate `tests/fixtures/remote_mcp/upstream-stock-v1.json` contains the pinned reference fields and placeholder keys. The stock handler test executes all five cases with an injected in-process transport; it does not run the upstream application or certify a deployed server.
 
 | Upstream operation | Synthetic fixture case | Comparison |
 | --- | --- | --- |
@@ -42,9 +42,9 @@ The separate `tests/fixtures/remote_mcp/upstream-stock-v1.json` contains the pin
 | Surface | Contract | Coverage | Risk |
 | --- | --- | --- | --- |
 | rust_api_payloads: Rust API payload structs | Serde JSON shapes for Alaveteli request, correspondence, create, update, and action responses. | Round-trip payload tests, optional field compatibility, and wiremock success responses. Evidence: `crates/fyi-core/src/api.rs`; tests: `crates/fyi-core/src/api.rs::tests`. | medium |
-| rust_sync_client: Rust sync API client | Local client paths for request reads, search, source writes, feeds, retry queues and conflict preservation; one explicit pinned-upstream authority read is available in the Rust library. | Mocked successful pull, feed pull, malformed JSON, missing required fields, HTTP 401/403/404/429/5xx failures, health, push retry, scheduler, and conflict merge behavior. The pinned authority read has socket-free injected-transport tests. Evidence: `crates/fyi-core/src/sync.rs`, `crates/fyi-core/src/sync/read_contract.rs`; tests: `crates/fyi-core/src/sync.rs::tests`, `crates/fyi-core/src/sync/read_contract/tests.rs`. | high |
+| rust_sync_client: Rust sync API client | Local client paths for request reads, search, source writes, feeds, retry queues and conflict preservation; an explicit pinned-upstream authority read and import profile is available. | Mocked successful pull, feed pull, malformed JSON, missing required fields, HTTP 401/403/404/429/5xx failures, health, push retry, scheduler, and conflict merge behavior. The pinned authority read and selected imports have socket-free injected-transport tests. Evidence: `crates/fyi-core/src/sync.rs`, `crates/fyi-core/src/sync/read_contract.rs`, `crates/fyi-core/src/sync/alaveteli_stock.rs`; tests: `crates/fyi-core/src/sync.rs::tests`, `crates/fyi-core/src/sync/read_contract/tests.rs`. | high |
 | rust_cli_sync_surface: Rust CLI sync commands | CLI presentation for sync status, pull, push, conflicts, and conflict resolution. | Parser and local CLI tests; register-request is local only; push receipt transport evidence is unavailable. Evidence: `crates/fyi-cli/src/main.rs`, `crates/fyi-cli/tests/cli_tests.rs`, `crates/fyi-cli/tests/e2e_tests.rs`; tests: `crates/fyi-cli/src/main.rs::tests`, `crates/fyi-cli/tests/cli_tests.rs`, `crates/fyi-cli/tests/e2e_tests.rs`. | medium |
-| rust_mcp_sync_surface: Rust MCP API-adjacent tools | Local tools and separately enabled remote reads and governed create, correspondence and state writes. | Protocol and actual-binary tests use synthetic source fixtures; their wire profile is not upstream certification. Evidence: `crates/fyi-mcp/src/main.rs`; tests: `crates/fyi-mcp/src/main.rs::tests`, `tests/test_mcp_upstream_contract.py`. | high |
+| rust_mcp_sync_surface: Rust MCP API-adjacent tools | Local tools and separately enabled remote reads and governed create, correspondence and state writes. | The existing provider has actual-binary synthetic tests. The opt-in stock profile has five socket-free handler fixture cases; neither fixture certifies a deployment. Evidence: `crates/fyi-mcp/src/main.rs`; tests: `crates/fyi-mcp/src/main.rs::tests`, `tests/test_mcp_upstream_contract.py`, `crates/fyi-mcp/src/stock_contract_tests.rs`. | high |
 | legacy_python_api: Legacy Python Alaveteli client | Read, disclosure-log write, correspondence, attachment and state methods; not an ordinary account-session client. | Mocked request and response methods use `k` and the documented `json` form field; the pinned controller expects different parameter names and separate state. Evidence: `src/fyi_system/alaveteli_client.py`; tests: `tests/test_alaveteli_client.py`. | high |
 | archive_public_web: Archive public-web endpoints | FYI public request pages, attachments, discovery feeds, diff manifests, and archive health JSON. | Mocked discovery, capture, diff, and health tests; live discovery smoke test remains environment-gated. Evidence: `src/fyi_system/discovery.py`, `src/fyi_system/archive_capture.py`, `src/fyi_system/archive_diff.py`, `src/fyi_system/archive_health.py`; tests: `tests/test_discovery.py`, `tests/test_discovery_smoke.py`, `tests/test_archive_capture.py`, `tests/test_archive_diff.py`, `tests/test_archive_health.py`. | medium |
 
@@ -54,13 +54,13 @@ The separate `tests/fixtures/remote_mcp/upstream-stock-v1.json` contains the pin
 - **closed** `rust_sync_client`: HTTP 401/403/404/429/5xx responses are covered by mocked non-secret error contract tests.
 - **closed** `rust_sync_client`: Malformed JSON, missing required fields, and unexpected optional fields are covered by regression tests.
 - **medium** `rust_cli_sync_surface`: Push cannot yet produce an acquisition receipt. Local register-request does not submit or create a user account.
-- **high** `rust_mcp_sync_surface`: Governed source writes are exercised against a synthetic profile, not proven against the pinned upstream controller or a deployed instance.
+- **high** `rust_mcp_sync_surface`: The stock profile's selected handler cases use an in-process synthetic fixture; the pinned upstream application and deployed instances have not been exercised.
 - **high** `legacy_python_api`: Python's mocked disclosure API requests follow the online prose's `json` field, not the pinned controller's named parameters; no live deployment is qualified.
 - **closed** `legacy_python_api`: Authority `k` is redacted from the covered URL, structured metadata and legacy HTTP error paths; source compatibility and complete credential handling remain separate gaps.
 - **medium** `archive_public_web`: Live public-web smoke remains opt-in to avoid network-dependent CI.
 
 ## Next actions
 
-1. Exercise the explicit CLI authority read end to end against an isolated source; integrate the selected MCP profile and reconcile the remaining operations against the target deployment.
+1. Exercise the explicit CLI authority read end to end against an isolated source; reconcile the selected MCP stock profile and remaining operations against the target deployment.
 2. Reuse socket-free tests for selected reads, authority writes and account/session failures; cover the requester web journey separately from the experimental authority API.
 3. Verify a local isolated upstream workflow with synthetic accounts and intercepted mail; separately authorize any live site smoke. Keep `archive_cutover_allowed=false` until the existing downstream acceptance gates pass.

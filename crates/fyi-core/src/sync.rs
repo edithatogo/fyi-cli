@@ -22,6 +22,7 @@ mod pull_evidence;
 pub use pull_evidence::{
     preflight_sync_pull_evidence, SyncPullEvidenceClient, SyncPullEvidencePaths,
 };
+mod alaveteli_stock;
 mod read_contract;
 pub use read_contract::{
     AuthorityFeedPlan, AuthorityFeedReference, AuthorityFeedReferenceKind, CacheStatus, ReadLimits,
@@ -190,7 +191,19 @@ pub struct SyncClient {
     validator_cache: Arc<Mutex<HashMap<String, ValidatorCacheEntry>>>,
     bot_token: Option<String>,
     shared_pacing: Option<SharedPacing>,
+    #[cfg(feature = "sdk-regression-fixture")]
+    sdk_fixture_transport: Option<FixtureTransport>,
 }
+
+#[cfg(feature = "sdk-regression-fixture")]
+type FixtureTransport = Arc<
+    dyn Fn(
+            reqwest::Request,
+        ) -> std::pin::Pin<
+            Box<dyn std::future::Future<Output = Result<(reqwest::Response, Url)>> + Send>,
+        > + Send
+        + Sync,
+>;
 
 /// Redirect-free, bounded source transport for approved Wayback replay.
 ///
@@ -442,6 +455,8 @@ impl SyncClient {
             validator_cache: Arc::new(Mutex::new(HashMap::new())),
             bot_token: None,
             shared_pacing: None,
+            #[cfg(feature = "sdk-regression-fixture")]
+            sdk_fixture_transport: None,
         })
     }
 
@@ -527,6 +542,8 @@ impl SyncClient {
             validator_cache: Arc::new(Mutex::new(HashMap::new())),
             bot_token: None,
             shared_pacing: None,
+            #[cfg(feature = "sdk-regression-fixture")]
+            sdk_fixture_transport: None,
         })
     }
 
@@ -582,6 +599,10 @@ impl SyncClient {
         &self,
         request: reqwest::Request,
     ) -> Result<(reqwest::Response, Url)> {
+        #[cfg(feature = "sdk-regression-fixture")]
+        if let Some(transport) = &self.sdk_fixture_transport {
+            return transport(request).await;
+        }
         let response = self
             .http
             .execute(request)
@@ -589,6 +610,18 @@ impl SyncClient {
             .context("outbound request failed")?;
         let url = response.url().clone();
         Ok((response, url))
+    }
+
+    /// Install an in-process transport for the explicitly enabled regression fixture.
+    #[cfg(feature = "sdk-regression-fixture")]
+    #[doc(hidden)]
+    pub fn with_sdk_fixture_transport<F, Fut>(mut self, transport: F) -> Self
+    where
+        F: Fn(reqwest::Request) -> Fut + Send + Sync + 'static,
+        Fut: std::future::Future<Output = Result<(reqwest::Response, Url)>> + Send + 'static,
+    {
+        self.sdk_fixture_transport = Some(Arc::new(move |request| Box::pin(transport(request))));
+        self
     }
 
     async fn send_guarded_with_limits_using<F, Fut>(
@@ -1149,6 +1182,25 @@ impl SyncClient {
             form = form.text("state", state.clone());
         }
 
+        form = Self::add_attachment_parts(form, attachments, false).await?;
+
+        let response = self
+            .send_guarded(self.http.post(url).multipart(form))
+            .await
+            .context("failed to add correspondence with attachments")?;
+
+        ensure_success(response, "correspondence endpoint")
+            .await?
+            .json::<CorrespondenceResponse>()
+            .await
+            .context("failed to parse correspondence response")
+    }
+
+    async fn add_attachment_parts<P: AsRef<Path>>(
+        mut form: reqwest::multipart::Form,
+        attachments: &[P],
+        stock: bool,
+    ) -> Result<reqwest::multipart::Form> {
         const MAX_ATTACHMENTS: usize = 8;
         const MAX_ATTACHMENT_BYTES: u64 = 50 * 1024 * 1024;
         const MAX_TOTAL_ATTACHMENT_BYTES: u64 = 100 * 1024 * 1024;
@@ -1210,19 +1262,14 @@ impl SyncClient {
                 .file_name(filename)
                 .mime_str(mime)
                 .context("failed to build attachment part")?;
-            form = form.part(format!("attachment_{index}"), part);
+            let name = if stock {
+                "attachments[]".to_string()
+            } else {
+                format!("attachment_{index}")
+            };
+            form = form.part(name, part);
         }
-
-        let response = self
-            .send_guarded(self.http.post(url).multipart(form))
-            .await
-            .context("failed to add correspondence with attachments")?;
-
-        ensure_success(response, "correspondence endpoint")
-            .await?
-            .json::<CorrespondenceResponse>()
-            .await
-            .context("failed to parse correspondence response")
+        Ok(form)
     }
 
     pub async fn update_request_state(

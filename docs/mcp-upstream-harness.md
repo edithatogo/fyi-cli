@@ -6,6 +6,28 @@ version-pinned upstream controller. See the
 [coverage contract](api-contract-inventory.md) before inferring provider
 compatibility from a passing fixture. Existing fixture evidence is retained.
 
+## Stock authority handler fixture — 2026-11-22
+
+The separate `upstream-stock-v1.json` fixture follows the pinned controller at
+`3966415f0b2a9f445fa3bb25c06eaeb75ded6609`. The opt-in stock profile is
+exercised through the actual Rust MCP JSON-RPC handler and guarded source
+client using an in-process transport with networking denied. The five cases
+cover request read, create, correspondence with and without an attachment, and
+state preflight/update. Write cases exercise prepare, commit, consumed-token
+rejection and cached replay; the fixture checks routes, keys, forms, attachment
+bytes and result shapes. Additional tests cover a missing key, stale state,
+source errors, redirect responses, and ETag forwarding.
+
+This run is a handler-level contract against synthetic responses. It does not
+run the pinned upstream application or the official SDK against the new profile,
+and does not establish requester-account behavior or deployed compatibility.
+Stock state preflight is not atomic. The [operator guide](remote-mcp-security.md)
+describes explicit selection, credentials and retained safeguards.
+
+```sh
+cargo test --locked --offline -p fyi-mcp --features sdk-regression-fixture stock_contract_tests
+```
+
 ## Current read coverage — 2026-11-17
 
 The #170 increment uses `upstream-v2.json` and the current tools-v2/v3 schema

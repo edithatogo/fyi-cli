@@ -231,12 +231,13 @@ def build_contract_inventory(repo_root: Path) -> dict[str, Any]:
             "surface": "Rust sync API client",
             "contract": (
                 "Local client paths for request reads, search, source writes, "
-                "feeds, retry queues and conflict preservation; one explicit "
-                "pinned-upstream authority read is available in the Rust library."
+                "feeds, retry queues and conflict preservation; an explicit "
+                "pinned-upstream authority read and import profile is available."
             ),
             "files": [
                 "crates/fyi-core/src/sync.rs",
                 "crates/fyi-core/src/sync/read_contract.rs",
+                "crates/fyi-core/src/sync/alaveteli_stock.rs",
             ],
             "tests": [
                 "crates/fyi-core/src/sync.rs::tests",
@@ -246,7 +247,8 @@ def build_contract_inventory(repo_root: Path) -> dict[str, Any]:
                 "Mocked successful pull, feed pull, malformed JSON, missing "
                 "required fields, HTTP 401/403/404/429/5xx failures, health, "
                 "push retry, scheduler, and conflict merge behavior. The "
-                "pinned authority read has socket-free injected-transport tests."
+                "pinned authority read and selected imports have socket-free "
+                "injected-transport tests."
             ),
             "risk": "high",
         },
@@ -291,10 +293,12 @@ def build_contract_inventory(repo_root: Path) -> dict[str, Any]:
             "tests": [
                 "crates/fyi-mcp/src/main.rs::tests",
                 "tests/test_mcp_upstream_contract.py",
+                "crates/fyi-mcp/src/stock_contract_tests.rs",
             ],
             "coverage": (
-                "Protocol and actual-binary tests use synthetic source "
-                "fixtures; their wire profile is not upstream certification."
+                "The existing provider has actual-binary synthetic tests. "
+                "The opt-in stock profile has five socket-free handler "
+                "fixture cases; neither fixture certifies a deployment."
             ),
             "risk": "high",
         },
@@ -388,9 +392,9 @@ def build_contract_inventory(repo_root: Path) -> dict[str, Any]:
             "surface": "rust_mcp_sync_surface",
             "risk": "high",
             "gap": (
-                "Governed source writes are exercised against a synthetic "
-                "profile, not proven against the pinned upstream controller "
-                "or a deployed instance."
+                "The stock profile's selected handler cases use an in-process "
+                "synthetic fixture; the pinned upstream application and deployed "
+                "instances have not been exercised."
             ),
         },
         {
@@ -476,8 +480,9 @@ def render_markdown(inventory: dict[str, Any]) -> str:
         "fixtures exist. | Qualify each selected deployment, response shape, credentials and "
         "completeness. |",
         "| Authority API request read | The explicit Rust library and CLI authority profile "
-        "use `k` and `request_text`; socket-free tests verify its raw/result receipt. | "
-        "MCP still uses its synthetic profile; a successful CLI-to-source run and "
+        "use `k` and `request_text`; socket-free tests verify its raw/result receipt. "
+        "The opt-in MCP handler consumes the same stock read profile. | "
+        "A successful CLI-to-source run and "
         "deployed instance or requester session are not qualified. |",
         "| Register and confirm an account | Upstream web routes and controller tests are "
         "documented. | No FYI CLI/MCP remote-account signup and confirmation journey is "
@@ -489,10 +494,11 @@ def render_markdown(inventory: dict[str, Any]) -> str:
         "URL are available. | Neither establishes authenticated web submission or downstream "
         "delivery. |",
         "| Authority imports a request, correspondence or state | Rust/Python client and governed "
-        "MCP paths have synthetic tests. | The current MCP fixture differs from the pinned "
-        "upstream wire contract; deployed compatibility is unverified. |",
+        "MCP paths have synthetic tests, including five stock handler fixture cases. | "
+        "The legacy fixture differs from the pinned upstream wire contract; "
+        "a running upstream and deployed compatibility are unverified. |",
         "| Response attachments | Synthetic multipart tests check bytes and size/path bounds. | "
-        "Upstream parameters, immutable prepare-to-send bytes and actual source acceptance "
+        "Immutable prepare-to-send bytes and actual source acceptance "
         "remain unverified. |",
         "| Wayback receipt, WARC and WACZ | One offline fixture preserved the exact encoded "
         "entity and linked it to its verified receipt. | Other source commands, attachments, "
@@ -511,8 +517,9 @@ def render_markdown(inventory: dict[str, Any]) -> str:
         "actions/runs/44996077720); "
         "that run tested the synthetic profile, not the pinned server.",
         f"The separate `{MCP_STOCK_FIXTURE}` contains the pinned reference "
-        "fields and placeholder keys. Its field comparison is not an MCP "
-        "execution or a deployed-server test.",
+        "fields and placeholder keys. The stock handler test executes all five "
+        "cases with an injected in-process transport; it does not run the "
+        "upstream application or certify a deployed server.",
         "",
         "| Upstream operation | Synthetic fixture case | Comparison |",
         "| --- | --- | --- |",
@@ -562,8 +569,8 @@ def render_markdown(inventory: dict[str, Any]) -> str:
             "## Next actions",
             "",
             "1. Exercise the explicit CLI authority read end to end against an "
-            "isolated source; integrate the selected MCP profile and reconcile "
-            "the remaining operations against the target deployment.",
+            "isolated source; reconcile the selected MCP stock profile and "
+            "remaining operations against the target deployment.",
             "2. Reuse socket-free tests for selected reads, authority writes "
             "and account/session failures; cover the requester web journey "
             "separately from the experimental authority API.",
