@@ -1,5 +1,22 @@
 Generated handovers can be written here.
 
+## Local handoff — Alaveteli MCP stock profile, 2026-11-22
+
+- The source-adapter integration lane owns branch
+  `codex/alaveteli-mcp-stock-profile`, the existing Rust source client and MCP
+  policy/handlers, stock-fixture execution tests and the related Conductor
+  tracks. Its private checkout assignment is in the ignored `outputs/` file.
+- Native scope: none. No live source read, account creation, message, request,
+  response or form submission is authorized. Archive cutover remains disabled.
+- Local checkpoint `841ec7a` wires the selected stock profile and passes all
+  five stock and five legacy fixture cases through the MCP handlers offline,
+  along with focused write-gate and executable startup tests. The source uses
+  its no-redirect transport and retains the existing durable write safeguards.
+- Next operation: run the official SDK against the stock profile and exercise
+  the pinned upstream application in the isolated environment; requester
+  journeys, source/receipt completeness and archive shadow parity remain open.
+  Stock state preflight is not an atomic upstream compare-and-set.
+
 ## Local handoff — Alaveteli fixture and receipt integration, 2026-11-22
 
 - The source-adapter lane owns branch `codex/alaveteli-coverage-contract` and

@@ -23,6 +23,11 @@ archive cutover gates below.
 - [x] Integrate the authority read with the existing `fetch-request-page`
   consumer and receipt path; socket-free source/receipt and CLI-preflight tests
   pass. Checkpoint: `c32e6cf`.
+- [x] Add an opt-in stock authority profile to MCP and execute its five pinned
+  read/import fixture cases and five legacy cases through the real handlers
+  without network access. Checkpoint: `841ec7a`. The stock SDK path, pinned
+  upstream application and deployment acceptance remain open in the linked
+  coverage track; this does not enable archive cutover.
 - [ ] Verify a successful CLI-to-isolated-source exchange; qualify the remaining
   profile operations and isolated account journeys.
 - [ ] Complete hosted-source, downstream parity and cutover gates separately.

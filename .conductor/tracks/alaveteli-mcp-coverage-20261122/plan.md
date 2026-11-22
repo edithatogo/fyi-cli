@@ -14,15 +14,20 @@ profile with a fixture that merely mirrors its implementation.
     attachment/state cases and synthetic, non-secret input placeholders.
   - [x] Add negative controls for route, `k`, form JSON names, status and result
     fields; fail if a case disappears or the pinned reference drifts.
-- [ ] Task: Add an explicit source-profile choice to the existing MCP policy.
-  - [ ] First demonstrate the five stock fixture cases fail through the current
-    selected handlers; then implement the matching source operations.
-  - [ ] Preserve the old profile and its SDK tests, guarded confirmation,
-    idempotency journal, authorization, size bounds and failure privacy.
-  - [ ] Re-run the real MCP handler/SDK contracts with a socket-free injected
-    source transport and prove that unrelated provider cases do not change.
-- [ ] Task: Phase verification and checkpoint; record exact focused commands,
+- [~] Task: Add an explicit source-profile choice to the existing MCP policy.
+  - [x] Compare the old fixture against the five pinned cases, then implement
+    the opt-in matching source operations and execute those five cases through
+    the actual MCP handlers with an injected source. Checkpoint: `841ec7a`.
+  - [x] Preserve the old profile, guarded confirmation, idempotency journal,
+    authorization, size bounds and failure privacy; five legacy handler cases
+    and the focused guard suites pass offline. Checkpoint: `841ec7a`.
+  - [~] The handler/source contracts run socket-free. Re-run the official SDK
+    against the new stock profile and retain the existing provider SDK evidence;
+    the new-profile SDK path was not executed in this checkpoint.
+- [~] Task: Phase verification and checkpoint; record exact focused commands,
   fixture revision, executed binary/transport and untested deployment scope.
+  See [handler evidence](mcp-stock-evidence-20261122.md); the SDK and pinned
+  upstream application are not yet qualified, so the phase remains open.
 
 ## Phase 2 — Authority read, consumer and receipt
 
