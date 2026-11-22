@@ -23,6 +23,8 @@ retain ownership of source transport and governed write implementations.
 
 Current matrix and reproducible fixture comparison:
 [`docs/api-contract-inventory.md`](../../../docs/api-contract-inventory.md).
+The granular requester and MCP fixture execution plan is owned by the new
+[Alaveteli MCP coverage track](../alaveteli-mcp-coverage-20261122/plan.md).
 Historical checked tasks and PR evidence below are retained as history.
 
 ## Phase 1: Search API Implementation

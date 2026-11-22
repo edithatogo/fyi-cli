@@ -7,6 +7,8 @@ synthetic server; it is not evidence that the wire profile matches stock
 Alaveteli. The [coverage contract](../../../docs/api-contract-inventory.md)
 compares five selected cases with pinned upstream routes and controller fields.
 Source/profile implementation remains with the source-adapter track.
+The concrete source-backed fixture and requester test sequence is recorded in
+the [Alaveteli MCP coverage plan](../alaveteli-mcp-coverage-20261122/plan.md).
 
 - [x] Reuse the existing fixture and test machinery to expose source-profile
   differences without relabeling historical synthetic evidence. `20360fc`

@@ -5,6 +5,9 @@
 Owner: the source-adapter integration lane, branch
 `codex/alaveteli-coverage-contract`; no live source or native-object scope.
 Retain the existing source, MCP read/write and harness tracks as owners.
+The [Alaveteli MCP coverage plan](../alaveteli-mcp-coverage-20261122/plan.md)
+spells out the authority-read receipt integration and route to the existing
+archive cutover gates below.
 
 - [x] Pin Alaveteli routes, API controller and account-session references;
   reconcile Rust, Python and MCP behavior with the existing synthetic fixture.
