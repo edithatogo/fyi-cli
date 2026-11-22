@@ -1,15 +1,19 @@
 Generated handovers can be written here.
 
-## Active ownership — Alaveteli fixture and receipt integration, 2026-11-22
+## Local handoff — Alaveteli fixture and receipt integration, 2026-11-22
 
 - The source-adapter lane owns branch `codex/alaveteli-coverage-contract` and
-  the new Alaveteli MCP coverage track, its linked workflow map, the selected
-  Rust source-read/receipt and CLI consumer files, and focused offline tests.
+  the new Alaveteli MCP coverage track and workflow map, its stock fixture and
+  inventory comparator, the selected Rust source-read/receipt and CLI consumer
+  files, and focused offline tests.
 - Native scope: none. No live account, authority, request, response or source
   operation is authorized by this work. The private checkout assignment is
   recorded in the ignored `outputs/` coordination file.
-- Next operation: register the new fixture and requester-journey plan, then
-  integrate the pinned authority read with the existing evidence consumer.
+- Local checkpoints: track and workflow map `6de144e`; stock reference fixture
+  and authority-read receipt integration `c32e6cf`. Focused offline tests pass.
+- Next operation: connect the actual MCP handlers to the stock fixture and
+  verify the requester and consumer journeys in the isolated upstream setup.
+  Archive cutover remains blocked on the existing source and downstream gates.
 
 ## Local ownership handoff — Alaveteli coverage contract, 2026-11-22
 

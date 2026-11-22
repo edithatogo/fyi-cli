@@ -222,7 +222,7 @@ This file tracks all major tracks for the project. Each track has its own detail
 - [~] **Track: Alaveteli MCP coverage and requester journeys**
   *Link: [./tracks/alaveteli-mcp-coverage-20261122/](./tracks/alaveteli-mcp-coverage-20261122/index.md)*
   *Description: Source-backed MCP fixtures, requester lifecycle, authority-read receipt integration and existing archive cutover gates.*
-  *Status: In progress; [executable plan](./tracks/alaveteli-mcp-coverage-20261122/plan.md) and [workflow map](./tracks/alaveteli-mcp-coverage-20261122/workflow-map.md).*
+  *Status: Stock reference fixture and authority-read receipt integration at `c32e6cf`; actual MCP/source and requester journeys remain open. [Executable plan](./tracks/alaveteli-mcp-coverage-20261122/plan.md) · [Workflow map](./tracks/alaveteli-mcp-coverage-20261122/workflow-map.md).*
 
 - [~] **Track: fyi-api-coverage-audit** (REOPENED IN CONDUCTOR 2026-11-22; historical PR #126)
   *Issue: #37 (historically closed; GitHub state unchanged)*

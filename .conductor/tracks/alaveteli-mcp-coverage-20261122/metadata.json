@@ -3,7 +3,7 @@
   "type": "feature",
   "status": "in_progress",
   "created_at": "2026-11-22T18:35:32+10:00",
-  "updated_at": "2026-11-22T18:35:32+10:00",
+  "updated_at": "2026-11-22T18:50:00+10:00",
   "description": "Qualify a pinned Alaveteli MCP fixture, requester journeys, authority-read evidence and the route to archive cutover.",
   "reference_revision": "3966415f0b2a9f445fa3bb25c06eaeb75ded6609",
   "dependencies": [
@@ -13,5 +13,6 @@
     "source-adapter-boundary-20260812"
   ],
   "github_issue": null,
+  "local_fixture_and_receipt_checkpoint": "c32e6cf",
   "archive_cutover": "blocked_pending_source_adapter_acceptance"
 }

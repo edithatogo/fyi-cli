@@ -20,8 +20,11 @@ archive cutover gates below.
   distinguish the experimental disclosure API from ordinary submission. `20360fc`.
 - [x] Add the explicit bounded Rust authority-request read and socket-free
   source-profile tests. Checkpoint: `d9a13dd`.
-- [ ] Integrate the authority read with the selected consumer and receipt path;
-  qualify the remaining profile operations and isolated account journeys.
+- [x] Integrate the authority read with the existing `fetch-request-page`
+  consumer and receipt path; socket-free source/receipt and CLI-preflight tests
+  pass. Checkpoint: `c32e6cf`.
+- [ ] Verify a successful CLI-to-isolated-source exchange; qualify the remaining
+  profile operations and isolated account journeys.
 - [ ] Complete hosted-source, downstream parity and cutover gates separately.
 
 ## Acquisition evidence integrity — 2026-11-17 (#310)

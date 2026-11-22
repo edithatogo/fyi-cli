@@ -27,9 +27,9 @@ Complete the existing source-adapter acceptance path to archive cutover.
    do not bypass CAPTCHA, MFA or provider controls.
 4. Verify end to end in an isolated local upstream environment with synthetic
    users, public bodies and intercepted mail. Assert state and delivered mail,
-   not just HTTP success. CI tests must not access the network, including a
-   public portal. A local server integration must have network isolation and
-   be invoked as a separately controlled qualification if it needs sockets.
+   not just HTTP success. Automated tests use in-process Rack or process IPC
+   and mock transports without TCP/UDP network access, including loopback.
+   A separate hosted smoke is operator-authorized and is never a CI test.
 5. Expose the existing pinned authority read through an explicit consumer and
    the existing immutable raw/result/receipt path. Never accept an authority
    key in an argument, trace, receipt, fixture, log or error. Mark raw authority
