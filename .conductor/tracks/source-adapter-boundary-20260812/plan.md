@@ -96,8 +96,8 @@ remain separate gates; `archive_cutover_allowed=false`.
 
 ## Independent workstreams
 
-- [ ] #310: define the acquisition-receipt schema and atomic writer, then add it
-  to every existing network command.
+- [~] #310: extend the existing versioned receipt schema and atomic writer to
+  every active network command.
 - [~] #311: implement resumable Internet Archive CDX discovery with parity
   fixtures derived from the current `fyi-archive` behavior.
 - [~] #312: implement bounded, allowlisted Wayback replay with byte receipts.
@@ -112,15 +112,39 @@ remain separate gates; `archive_cutover_allowed=false`.
 These workstreams may proceed in parallel because they share only the receipt
 contract. Merge #310 first or use its fixture branch as the temporary base.
 
+## Offline Wayback archive handoff
+
+- [x] Replay one synthetic fixture in process, verify its receipt with the
+  pinned Rust CLI, resume the completed checkpoint with zero requests and
+  verify the resulting `fyi-archive` package and its indexes.
+  [Source checkpoints: `c94f3ed` and `0691a9a`]
+- [x] Verify that the packaged WACZ preserves the fixture's encoded response
+  and binds its indexed WARC record to the original receipt. Retain the
+  same-length byte-change and incorrect-record-ID rejection results.
+  [Source checkpoints: `c94f3ed` and `0691a9a`]
+
+Both runs used the same fixture with network access denied.
+[Offline handoff evidence](replay-qualification-20261117.md#offline-wayback-archive-handoff)
+
 ## Integration
 
-- [ ] Publish a pinned `fyi-cli` release/commit containing the adapters.
-- [ ] Convert `fyi-archive` source-facing scripts into thin command wrappers.
-- [ ] Add a static boundary test rejecting new source HTTP clients outside
-  `fyi-cli` while allowing archive/publication provider APIs.
-- [ ] Run offline output parity and hosted bounded smoke tests.
-- [ ] Run NZ shadow parity for queues, captures, events, attachments, revisions,
-  receipts, and checkpoints before removing legacy transports.
+`archive_cutover_allowed=false`. The following gates remain open.
+
+- [ ] Complete #310 receipt coverage for all active source commands, including
+  feed and push paths and retained legacy entrypoints. Verify production
+  response, redirect and attachment evidence through WARC/WACZ capture and
+  downstream retention.
+- [ ] Qualify and pin a deployable Rust `fyi-cli` release in `fyi-archive`.
+  Convert remaining source-facing scripts to thin wrappers and enforce the
+  source HTTP boundary with static and behavioral checks that allow approved
+  archive and publication APIs.
+- [ ] Verify old and new downstream outputs across the offline parity fixtures.
+  The one synthetic snapshot provides an input for that comparison.
+- [ ] Record authorized, bounded hosted smoke for live Alaveteli discovery
+  and capture and one Internet Archive CDX/replay record.
+- [ ] Verify NZ shadow parity for queues, captures, events, attachments,
+  revisions, receipts and checkpoints. Qualify rollback before removing
+  legacy transports. [Downstream parity gate](https://github.com/edithatogo/fyi-archive/issues/378)
 
 ## 2026-11-13 Rust receipt verification tranche
 
@@ -129,7 +153,7 @@ contract. Merge #310 first or use its fixture branch as the temporary base.
 - [ ] Expand Rust verification to full JSON Schema 2020-12 equivalence, including unknown-field rejection, numeric/UTC semantics, and Unicode/float/escaping cross-runtime corpus.
 - [ ] Add fail-closed, durable Rust atomic receipt writer that never silently overwrites valid immutable evidence; add power-loss and concurrency tests.
 - [ ] Integrate receipts with all Rust source-network commands, and pin client & downstream `fyi-archive` consumers after shadow parity; existing #310 remains **open**.
-- [ ] Verify WARC/WACZ raw byte capture linkage and publish independently reproducible signed manifests.
+- [ ] Verify production WARC/WACZ raw-byte capture linkage and publish independently reproducible signed manifests.
 
 The new Rust verifier is read-only and does not claim write-path or network acquisition parity. Keep #310 active and do not alter archive cutover gate.
 
@@ -170,7 +194,7 @@ No existing #310–#314 issue is closed by this incremental Rust implementation.
 
 - [x] Rust `verify_receipt_result_bytes` independently checks stored canonical result projection length and SHA-256 after verifying the receipt's own integrity (PR #406, merge `5c5bf30d`).
 - [x] `fyi-cli verify-acquisition-receipt <receipt> --result-file <path>` supports optional offline byte verification, retaining metadata-only compatibility. Golden `conformance/acquisition/result-v1.json`, negative tests and Rust 1.99.1 CLI smoke passed on PR #406 final-head CI.
-- [ ] Add raw HTTP response/WARC/WACZ payload byte linkage and independent archival verification. Result projection bytes are **not** the raw network response and must not be described as equivalent.
+- [ ] Extend the verified fixture linkage to production raw HTTP responses and WARC/WACZ payloads, with independent archival verification.
 - [ ] Full cross-language JSON canonicalization and schema fixture corpus, Rust network writer integration and downstream shadow parity remain open; do not close #310 or enable `fyi-archive` cutover.
 
 Merged evidence: PR #403 (Rust verifier baseline and migration contracts), PR #405 (Rust immutable writer and tests). New work stays in this existing source-adapter track.

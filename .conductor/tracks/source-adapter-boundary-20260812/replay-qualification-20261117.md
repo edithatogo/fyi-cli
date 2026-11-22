@@ -86,12 +86,65 @@ receipt portability on Linux, macOS and Windows. PR #489 merged into `master`
 as `428ad00ee9e094fb09a59c9295eadf0bd33f5e2d`.
 [Final CI](https://github.com/edithatogo/fyi-cli/actions/runs/44389636962) · [Portability run](https://github.com/edithatogo/fyi-cli/actions/runs/44389636938) · [PR #489](https://github.com/edithatogo/fyi-cli/pull/489)
 
+## Offline Wayback archive handoff
+
+On 22 November 2026, one synthetic gzip fixture ran with network access
+denied. The in-process test transport supplied a single response, yielding a
+73-byte encoded HTTP entity and a 50-byte decoded payload. The unmodified
+Rust CLI verified the saved receipt, result and responses and resumed the
+completed checkpoint with zero requests. The native `fyi-archive` builder
+and verifier accepted one snapshot with one synthetic case and six replay
+artifacts in its checksummed provenance.
+[Pinned fixture](https://github.com/edithatogo/fyi-cli/tree/c94f3ed9159773b9dc77ee9207ed11fd2767b4f1/tests/fixtures/internet_archive_replay)
+
+A fixture driver passed the saved body to the Rust WARC/WACZ API. The writer
+reconstructed HTTP framing from the fixture metadata. The second snapshot's
+checksummed provenance carried the WACZ and original receipt bytes and
+linked the WACZ digest, WARC record ID and compressed range to receipt
+response index 0. The CDXJ entry selected the WARC response at compressed
+offset 0 with length 544 bytes. Reading its encoded entity returned the same
+73 bytes byte for byte. The pinned CLI verified the receipt against the
+extracted body and rejected a same-length byte change. The linkage check
+rejected an incorrect WARC record ID. The package manifest, schema and
+store indexes also verified.
+[Rust WARC/WACZ writer and verifier](https://github.com/edithatogo/fyi-cli/blob/c94f3ed9159773b9dc77ee9207ed11fd2767b4f1/crates/fyi-core/src/archive_format.rs) · [Archive package builder and verifier](https://github.com/edithatogo/fyi-archive/blob/0691a9aabddc5b83b2f656321cb9ae2a879fc1cf/src/fyi_archive/archive_package.py)
+
+### Evidence identifiers
+
+- Rust `fyi-cli` 0.1.2 was built at `c94f3ed9159773b9dc77ee9207ed11fd2767b4f1`
+  under Rust 1.100.0 on macOS arm64. Executable SHA-256
+  `8c9eafb9968c8347c0dd4c1514e654e827ba15cfd230ba1b60f1546f485d24da`.
+- `fyi-archive` 0.20.2 ran at `0691a9aabddc5b83b2f656321cb9ae2a879fc1cf`
+  under CPython 3.15.2. Warcio 1.8.1 provided the independent WARC readback.
+- Both snapshots bind replay receipt identity
+  `d80db593d865f94bfd6351c603152437c508ad8bd42c67fccd5fa3f727dd9480`
+  to the encoded body SHA-256
+  `ddf6ca0e623a8d84c8e6828c9eb3f0a9239c9dd9d25676c5a3e271817f064f20`.
+  The receipt file SHA-256 is
+  `44c825439039f7e0e95a42f3786cdb2c6191f300646f9e6c2be3a3ff52ca4282`.
+- The WACZ SHA-256 is
+  `21d607c843099c8b96eeac68494417466d30fd838a0246e8bfe06396b3e0043a`.
+  It contains WARC record `<urn:uuid:7ced2661-5068-4998-ac76-ef80d6b5aef8>`.
+- The replay snapshot package ID is
+  `907084dea815d339b6e566cc9473b7953833d81ea962173338f345565ab3a30c`.
+  Manifest SHA-256
+  `467c74a74100c98b48de01742071cf7b33ac8ed8697b236865df74ed2eac9200`.
+  Retained local verification JSON SHA-256
+  `53c98d5b51f813f43357a15f5c10849fe281f88862a60f3d3730b3cea6be406d`.
+- The linked WARC/WACZ snapshot package ID is
+  `8017b28c4eff9c4d1e50a071e6d84d4d461ad4d19c7acaa8d4306242b7bb7e1c`.
+  Manifest SHA-256
+  `13b19741d79081c8280267b4610857c982fb1d4f5047fd8fc8efedfff6a685c4`.
+  Retained local verification JSON SHA-256
+  `b3193af6a0b3a766a927776a137354478dfbf1172f592dfdaee8018112a77629`.
+
 ## Remaining programme gates and rollback
 
-Issue #312 and the parent track remain open for separately authorized bounded
-live smoke, released downstream integration and NZ shadow parity. WARC linkage
-and all-command receipt coverage retain their existing owners. The finite corpus
-does not establish arbitrary cross-runtime equivalence.
+At the observed `fyi-archive` head, seed capture still invoked
+`python -m fyi_system.cli capture`. #309, #310, #312 and the downstream NZ
+shadow-cutover issue remain open. See the plan for production receipt and
+WARC/WACZ integration, consumer release pinning, parity, authorized smoke and
+rollback gates. [Pinned seed entry point](https://github.com/edithatogo/fyi-archive/blob/0691a9aabddc5b83b2f656321cb9ae2a879fc1cf/src/fyi_archive/seed.py) · [Cutover gates](plan.md#integration)
 
 `archive_cutover_allowed=false`. Reverting this focused change requires no data
 migration. Existing approvals, payloads, checkpoints and receipts are not rewritten.
