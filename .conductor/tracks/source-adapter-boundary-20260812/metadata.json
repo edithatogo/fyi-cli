@@ -3,7 +3,7 @@
   "type": "programme",
   "status": "in-progress",
   "created_at": "2026-08-12T00:00:00Z",
-  "updated_at": "2026-11-22T03:22:40Z",
+  "updated_at": "2026-11-22T05:43:35Z",
   "github_issue": "https://github.com/edithatogo/fyi-cli/issues/309",
   "upstream_consumer": "https://github.com/edithatogo/fyi-archive/issues/370",
   "downstream_consumer": "https://github.com/edithatogo/foi-process/issues/114",
@@ -25,5 +25,13 @@
     "merged_at": "2026-11-18T20:27:36Z",
     "evidence": "replay-qualification-20261117.md",
     "receiving_gate": "https://github.com/edithatogo/fyi-cli/pull/489/checks"
+  },
+  "offline_wayback_handoff_20261122": {
+    "scope": "one_synthetic_fixture",
+    "fyi_cli_commit": "c94f3ed9159773b9dc77ee9207ed11fd2767b4f1",
+    "fyi_archive_commit": "0691a9aabddc5b83b2f656321cb9ae2a879fc1cf",
+    "receipt_sha256": "d80db593d865f94bfd6351c603152437c508ad8bd42c67fccd5fa3f727dd9480",
+    "linked_package_id": "8017b28c4eff9c4d1e50a071e6d84d4d461ad4d19c7acaa8d4306242b7bb7e1c",
+    "evidence": "replay-qualification-20261117.md"
   }
 }
