@@ -325,15 +325,24 @@ def redact_secrets(value: Any) -> Any:
         out: dict[str, Any] = {}
         for k, v in value.items():
             lower = str(k).lower()
-            if any(s in lower for s in ("api_key", "authorization", "password", "secret", "cookie", "token")):
+            if lower == "k" or any(
+                s in lower
+                for s in ("api_key", "authorization", "password", "secret", "cookie", "token")
+            ):
                 out[k] = "[redacted]"
             else:
                 out[k] = redact_secrets(v)
         return out
     if isinstance(value, list):
         return [redact_secrets(v) for v in value]
-    if isinstance(value, str) and ("api_key=" in value or "Bearer " in value):
-        return "[redacted]"
+    if isinstance(value, str):
+        lower = value.lower()
+        if (
+            "api_key=" in lower
+            or "bearer " in lower
+            or re.search(r"(?:^|[?&\s])(?:k|%6b)=", lower)
+        ):
+            return "[redacted]"
     return value
 
 

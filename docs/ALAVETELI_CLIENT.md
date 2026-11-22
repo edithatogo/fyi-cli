@@ -2,19 +2,19 @@
 
 ## Overview
 
-The `alaveteli_client` module provides a comprehensive Python client for the Alaveteli API, supporting both Read API (public data access) and Write API (programmatic operations).
-
-**Compatible with:**
-- FYI.org.nz (New Zealand)
-- WhatDoTheyKnow.com (United Kingdom)
-- FragDenStaat.de (Germany)
-- Any Alaveteli v0.39+ deployment
+The legacy Python `alaveteli_client` contains read and experimental
+disclosure-API methods. Its tests use synthetic responses; compatibility with
+FYI.org.nz or any other deployed instance has not been established by those
+tests. The documented `json` form field differs from the named fields read by
+the current pinned upstream controller. See the
+[coverage contract](api-contract-inventory.md) before treating these examples
+as supported operations. FragDenStaat has a separate provider contract.
 
 ---
 
 ## Quick Start
 
-### Read API (No Authentication Required)
+### Read methods (availability and authentication vary)
 
 ```python
 from fyi_system.alaveteli_client import create_fyi_client
@@ -40,7 +40,10 @@ results = client.search_requests(
 print(f"Found {results.get('count', 0)} results")
 ```
 
-### Write API (Authentication Required)
+### Experimental disclosure API (authority authentication required)
+
+These examples illustrate the legacy client's existing call shapes. They are
+not an ordinary requester account flow or proof of a live authority submission.
 
 ```python
 from fyi_system.alaveteli_client import create_fyi_client
@@ -83,13 +86,13 @@ client.update_request_state(
 ```python
 from fyi_system.alaveteli_client import AlaveteliClient
 
-# Basic client (Read API only)
+# Basic client (endpoint availability is instance-specific)
 client = AlaveteliClient(
     base_url='https://fyi.org.nz',
     timeout=30
 )
 
-# Client with authentication (Write API enabled)
+# Client with an authority API key (the target must support this wire profile)
 client = AlaveteliClient(
     base_url='https://fyi.org.nz',
     api_key='your-api-key',

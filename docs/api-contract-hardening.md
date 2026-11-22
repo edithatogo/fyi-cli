@@ -3,6 +3,11 @@
 This checklist records the FYI/Alaveteli contract assumptions enforced by
 `api-contract-hardening-20260630`.
 
+The historical checks below exercise client-defined fixtures. They do not prove
+upstream or deployment compatibility. The current
+[coverage contract](api-contract-inventory.md) records the pinned upstream
+comparison, requester-account gaps and remaining source qualification.
+
 ## Supported Contract Shapes
 
 - Request lists may be either a raw JSON array or an object with a `requests`

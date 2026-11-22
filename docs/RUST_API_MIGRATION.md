@@ -1,9 +1,10 @@
 # Rust API migration guide
 
-The Rust `fyi-core::SyncClient` now covers the primary Alaveteli request,
-authority, feed, health, and write surfaces. Existing JSON callers can keep
-using the original methods; the additions are opt-in methods on the same
-client.
+The Rust `fyi-core::SyncClient` implements request, authority, feed, health and
+write methods. Synthetic tests verify their current client shapes; they do not
+establish stock Alaveteli or deployed-instance compatibility. The
+[coverage contract](api-contract-inventory.md) records the pinned upstream
+differences and open account-journey work.
 
 ## Capability mapping
 
@@ -32,9 +33,9 @@ opt-in; CI is the authoritative Rust execution environment on workstations
 without the Windows SDK linker libraries.
 
 The CLI preserves human-readable sync errors in text mode and emits
-`{"error":{"kind":"sync","message":"..."}}` in JSON mode. The MCP server
-currently exposes local SQLite tools rather than remote SyncClient operations,
-so it has no remote API error presentation boundary.
+`{"error":{"kind":"sync","message":"..."}}` in JSON mode. MCP also exposes
+explicitly enabled remote read tools and separately governed write tools;
+their synthetic source contracts do not qualify a live instance.
 
 See [ALAVETELI_CLIENT.md](./ALAVETELI_CLIENT.md) for the existing Python
 client examples and [api-contract-inventory.md](./api-contract-inventory.md)

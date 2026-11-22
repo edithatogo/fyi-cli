@@ -1414,7 +1414,8 @@ pub fn redact_secrets(mut value: serde_json::Value) -> serde_json::Value {
                 let keys: Vec<String> = map.keys().cloned().collect();
                 for k in keys {
                     let lower = k.to_ascii_lowercase();
-                    if lower.contains("api_key")
+                    if lower == "k"
+                        || lower.contains("api_key")
                         || lower.contains("authorization")
                         || lower.contains("password")
                         || lower.contains("secret")
@@ -1432,8 +1433,14 @@ pub fn redact_secrets(mut value: serde_json::Value) -> serde_json::Value {
                     walk(item);
                 }
             }
-            serde_json::Value::String(s) if s.contains("api_key=") || s.contains("Bearer ") => {
-                *s = "[redacted]".into();
+            serde_json::Value::String(s) => {
+                let lower = s.to_ascii_lowercase();
+                let authority_key = lower
+                    .split(['?', '&', ' ', '\t', '\n', '\r'])
+                    .any(|part| part.starts_with("k=") || part.starts_with("%6b="));
+                if lower.contains("api_key=") || lower.contains("bearer ") || authority_key {
+                    *s = "[redacted]".into();
+                }
             }
             _ => {}
         }
@@ -1827,6 +1834,46 @@ mod tests {
         assert_eq!(r["api_key"], "[redacted]");
         assert_eq!(r["nested"]["authorization"], "[redacted]");
         assert_eq!(r["body"], "[redacted]");
+    }
+
+    #[test]
+    fn redact_secrets_hides_alaveteli_key_in_trace_metadata() {
+        let marker = "synthetic-private-value";
+        let value = serde_json::json!({
+            "nested": {"k": marker},
+            "description": format!("https://example.invalid/request?%6B={marker}"),
+            "public_url": "https://example.invalid/request?page=2",
+        });
+        let redacted = redact_secrets(value);
+        assert_eq!(redacted["nested"]["k"], "[redacted]");
+        assert!(!redacted.to_string().contains(marker));
+        assert_eq!(
+            redacted["public_url"],
+            "https://example.invalid/request?page=2"
+        );
+
+        let directory = tempfile::tempdir().unwrap();
+        let trace_path = directory.path().join("trace.jsonl");
+        let middleware = AgentNetworkMiddleware::new(
+            ClientIdentity::default_identity(None).unwrap(),
+            GuardrailConfig::default(),
+            PacingPolicy::default(),
+            Box::new(JsonlTraceSink::create(&trace_path).unwrap()),
+            "synthetic",
+        );
+        let plan = RetrievalPlan {
+            instance_id: "synthetic".into(),
+            description: format!("https://example.invalid/request?%6B={marker}"),
+            estimated_requests: 1,
+            date_from: None,
+            date_to: None,
+            max_pages: Some(1),
+            recursive_unbounded: false,
+            is_heavy: false,
+            force_schedule: false,
+        };
+        middleware.reflect_and_trace(&plan);
+        assert!(!fs::read_to_string(trace_path).unwrap().contains(marker));
     }
 
     #[test]
