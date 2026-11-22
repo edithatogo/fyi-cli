@@ -32,6 +32,40 @@ allowlist/read/write settings and protected credential names, then restart.
 MCP callers must use those exact configured IDs; ID matching is still case
 sensitive. No token value is accepted as an MCP argument.
 
+### Opt-in stock authority profile
+
+The existing provider profile remains the default. To select the pinned stock
+Alaveteli **authority import** wire profile for specific allowlisted instances,
+set `FYI_MCP_REMOTE_STOCK_ALAVETELI` to their comma-separated IDs. Configure
+each instance's authority key separately as
+`FYI_MCP_REMOTE_AUTHORITY_KEY_<INSTANCE_ID>`, using the same uppercase and
+hyphen-to-underscore transformation as the bot-token name. This is protected
+operator configuration, not an MCP argument; the bot token is not used as an
+authority key. Unknown profile IDs and missing or invalid keys fail closed.
+Selecting the profile grants no read or write capability by itself.
+
+This profile changes `remote_get_request`, `remote_create_request`,
+`remote_add_correspondence` and `remote_update_state` to the pinned authority
+API's `k`, routes and form fields. Other remote read tools keep their existing
+provider behavior and need separate qualification. Stock create rejects
+nonempty tags, and request-direction correspondence rejects attachments and
+state, which the stock controller cannot faithfully apply. Returned import URLs
+must identify the configured host and carry no credentials, query or fragment.
+The pinned controller can return HTTP URLs as data even for an HTTPS API; the
+adapter never follows them. A deployment with a different public host requires
+separate compatibility work. The existing state allowlist remains
+`waiting_response`, `rejected`, `successful` and `partially_successful`;
+other upstream states have not been qualified here.
+
+The normal allowlist, capability checks, prepare/commit confirmation, durable
+idempotency journal and attachment limits still apply. Stock state updates read
+and compare the current status first and forward any ETag as `If-Match`, but the
+pinned stock endpoint does not implement an atomic compare-and-set. A change
+between the read and update can therefore be overwritten. The authority key
+identifies a public body, not an authenticated requester account. Stock source
+operations use the built-in no-redirect, no-retry transport; opaque custom HTTP
+clients without that transport cannot perform stock writes.
+
 The MCP request counter measures admitted tool operations, including failures
 and local feed-route discovery. One operation may be active per instance. Each
 read-enabled instance now retains one source client, so its cache, pacing and

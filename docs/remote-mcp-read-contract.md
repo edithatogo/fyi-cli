@@ -1,9 +1,10 @@
 # Guarded remote MCP reads
 
-The synthetic request-read fixture does not establish stock Alaveteli
-compatibility: the pinned upstream API controller requires an authority key and
-returns `request_text`. Deployment-specific behavior remains unverified. See the
-[coverage contract](api-contract-inventory.md).
+The default synthetic provider remains unchanged. An explicitly selected stock
+authority profile now maps the pinned controller's authority key and
+`request_text` into `remote_get_request`. Its five offline MCP handler fixture
+cases do not establish compatibility with a running Alaveteli deployment. See the
+[coverage contract](api-contract-inventory.md) and [operator security guide](remote-mcp-security.md).
 
 Issue [#170](https://github.com/edithatogo/fyi-cli/issues/170) adds a complete read
 contract around the existing `SyncClient`. Reads are disabled by default. Set an
@@ -103,6 +104,10 @@ that receives HTTP 304 keeps that time, reports `cache_status: "revalidated"`
 and `source_status: 304`, and counts only newly downloaded entity bytes
 (normally zero). It is not represented as a new acquisition of the cached body.
 A 304 without a matching cached representation/validator fails closed.
+The stock authority request read does not use validator caching: it makes a
+fresh no-redirect request and reports a cache miss. MCP provenance is not an
+acquisition receipt; receipt publication remains with the documented CLI
+evidence path.
 
 Feed discovery has no downloaded representation: its timestamp is the time the
 local route plan was generated, `cache_status` is `not_applicable`, status is

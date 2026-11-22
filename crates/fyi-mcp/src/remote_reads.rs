@@ -45,6 +45,19 @@ pub(super) async fn read(
     if let Some(message) = invalid {
         return Err(RemoteReadError::validation(observed, message));
     }
+    let authority_key =
+        if observed == RemoteOperation::GetRequest && policy.is_stock_alaveteli(instance_id) {
+            policy
+                .authorize(instance_id, policy::RemoteCapability::Read)
+                .map_err(|error| RemoteReadError::from_policy(observed, &error, None))?;
+            Some(
+                policy
+                    .authority_key(instance_id)
+                    .map_err(|error| RemoteReadError::from_policy(observed, &error, None))?,
+            )
+        } else {
+            None
+        };
     let permit = policy
         .begin_request(instance_id, policy::RemoteCapability::Read)
         .map_err(|error| RemoteReadError::from_policy(observed, &error, None))?;
@@ -109,12 +122,14 @@ pub(super) async fn read(
                 }))
             }
             RemoteOperation::GetRequest => {
-                let read = client
-                    .fetch_request_read(
-                        request_id.expect("request ID validated before admission"),
-                        &limits,
-                    )
-                    .await?;
+                let id = request_id.expect("request ID validated before admission");
+                let read = if let Some(key) = &authority_key {
+                    client
+                        .fetch_upstream_authority_request_read(id, key, &limits)
+                        .await?
+                } else {
+                    client.fetch_request_read(id, &limits).await?
+                };
                 Ok(with_source(read, instance_id, |request| {
                     json!({
                         "instance_id": instance_id, "request": request

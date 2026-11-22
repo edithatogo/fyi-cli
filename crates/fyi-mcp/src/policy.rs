@@ -67,6 +67,13 @@ impl RemoteInstancePolicy {
             self.instance_id.to_ascii_uppercase().replace('-', "_")
         )
     }
+
+    pub fn authority_key_env_name(&self) -> String {
+        format!(
+            "FYI_MCP_REMOTE_AUTHORITY_KEY_{}",
+            self.instance_id.to_ascii_uppercase().replace('-', "_")
+        )
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -132,10 +139,13 @@ struct ControlState {
 pub struct RemoteMcpPolicy {
     instances: BTreeMap<String, RemoteInstancePolicy>,
     read_clients: BTreeMap<String, RemoteReadClient>,
+    stock_alaveteli: BTreeSet<String>,
     state: Arc<Mutex<ControlState>>,
     pub(crate) telemetry: super::telemetry::RemoteTelemetry,
     #[cfg(feature = "sdk-regression-fixture")]
     pub(super) sdk_regression_fixture: bool,
+    #[cfg(feature = "sdk-regression-fixture")]
+    stock_fixture: Option<(String, RemoteReadClient, std::path::PathBuf)>,
     circuit_failure_threshold: u32,
     circuit_cooldown: Duration,
 }
@@ -282,9 +292,12 @@ impl RemoteMcpPolicy {
         Ok(Self {
             instances: map,
             read_clients,
+            stock_alaveteli: BTreeSet::new(),
             telemetry: super::telemetry::RemoteTelemetry::default(),
             #[cfg(feature = "sdk-regression-fixture")]
             sdk_regression_fixture: false,
+            #[cfg(feature = "sdk-regression-fixture")]
+            stock_fixture: None,
             state: Arc::new(Mutex::new(ControlState {
                 kill_switch: false,
                 degraded: false,
@@ -306,7 +319,8 @@ impl RemoteMcpPolicy {
     pub fn from_env() -> Result<Self, PolicyError> {
         let degraded =
             degraded_startup_value(std::env::var_os("FYI_MCP_REMOTE_DEGRADED").as_deref())?;
-        let policy = Self::instances_from_env()?;
+        let policy = Self::instances_from_env()?
+            .with_stock_alaveteli(csv_env("FYI_MCP_REMOTE_STOCK_ALAVETELI")?)?;
         policy.set_degraded(degraded);
         Ok(policy)
     }
@@ -449,6 +463,72 @@ impl RemoteMcpPolicy {
 
     pub fn instance(&self, instance_id: &str) -> Option<RemoteInstancePolicy> {
         self.instances.get(instance_id).cloned()
+    }
+
+    pub fn with_stock_alaveteli(mut self, ids: BTreeSet<String>) -> Result<Self, PolicyError> {
+        if ids.iter().any(|id| !self.instances.contains_key(id)) {
+            return Err(PolicyError::InvalidConfiguration(
+                "stock profile references an instance outside the allowlist".into(),
+            ));
+        }
+        self.stock_alaveteli = ids;
+        Ok(self)
+    }
+
+    pub fn is_stock_alaveteli(&self, instance_id: &str) -> bool {
+        self.stock_alaveteli.contains(instance_id)
+    }
+
+    pub(crate) fn authority_key(&self, instance_id: &str) -> Result<String, PolicyError> {
+        #[cfg(feature = "sdk-regression-fixture")]
+        if self
+            .stock_fixture
+            .as_ref()
+            .is_some_and(|fixture| fixture.0 == instance_id)
+        {
+            return Ok("<injected-at-runtime>".into());
+        }
+        let instance = self
+            .instances
+            .get(instance_id)
+            .ok_or_else(|| PolicyError::Disabled("remote instance is not configured".into()))?;
+        let key = std::env::var(instance.authority_key_env_name()).map_err(|_| {
+            PolicyError::InvalidConfiguration("authority key is missing or invalid".into())
+        })?;
+        if key.is_empty() || key.trim() != key || key.chars().any(char::is_control) {
+            return Err(PolicyError::InvalidConfiguration(
+                "authority key is missing or invalid".into(),
+            ));
+        }
+        Ok(key)
+    }
+
+    #[cfg(all(test, feature = "sdk-regression-fixture"))]
+    pub(crate) fn use_sdk_stock_fixture(
+        &mut self,
+        id: &str,
+        client: SyncClient,
+        root: std::path::PathBuf,
+    ) {
+        self.read_clients
+            .insert(id.to_owned(), RemoteReadClient(client.clone()));
+        self.stock_fixture = Some((id.to_owned(), RemoteReadClient(client), root));
+    }
+
+    #[cfg(feature = "sdk-regression-fixture")]
+    pub(crate) fn stock_fixture_client(&self, id: &str) -> Option<SyncClient> {
+        self.stock_fixture
+            .as_ref()
+            .filter(|fixture| fixture.0 == id)
+            .map(|fixture| fixture.1 .0.clone())
+    }
+
+    #[cfg(feature = "sdk-regression-fixture")]
+    pub(crate) fn stock_fixture_root(&self, id: &str) -> Option<&std::path::Path> {
+        self.stock_fixture
+            .as_ref()
+            .filter(|fixture| fixture.0 == id)
+            .map(|fixture| fixture.2.as_path())
     }
 
     /// Return the shared read transport after the caller has reserved its permit.

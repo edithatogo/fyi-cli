@@ -136,7 +136,7 @@ fn malformed(_error: impl Into<anyhow::Error>) -> anyhow::Error {
     SourceReadError::new(SourceFailureKind::MalformedPayload).into()
 }
 
-fn safe_source_error(error: anyhow::Error) -> anyhow::Error {
+pub(super) fn safe_source_error(error: anyhow::Error) -> anyhow::Error {
     SourceReadError::new(source_failure_kind(&error).unwrap_or(SourceFailureKind::Transport)).into()
 }
 
@@ -145,18 +145,25 @@ pub(super) fn upstream_authority_request_url(
     request_id: i64,
     authority_key: &str,
 ) -> Result<Url> {
-    if request_id <= 0
-        || authority_key.is_empty()
-        || authority_key.trim() != authority_key
-        || authority_key.chars().any(char::is_control)
-    {
+    if request_id <= 0 {
         return Err(SourceReadError::new(SourceFailureKind::Validation).into());
     }
+    validate_authority_key(authority_key)?;
     let mut url = base_url
         .join(&format!("api/v2/request/{request_id}.json"))
         .map_err(|_| SourceReadError::new(SourceFailureKind::Validation))?;
     url.query_pairs_mut().append_pair("k", authority_key);
     Ok(url)
+}
+
+pub(super) fn validate_authority_key(authority_key: &str) -> Result<()> {
+    if authority_key.is_empty()
+        || authority_key.trim() != authority_key
+        || authority_key.chars().any(char::is_control)
+    {
+        return Err(SourceReadError::new(SourceFailureKind::Validation).into());
+    }
+    Ok(())
 }
 
 pub(super) fn parse_upstream_authority_request(
@@ -301,6 +308,14 @@ impl SyncClient {
         authority_key: &str,
         limits: &ReadLimits,
     ) -> Result<SourceRead<AlaveteliRequest>> {
+        #[cfg(feature = "sdk-regression-fixture")]
+        if self.sdk_fixture_transport.is_some() {
+            return self
+                .authority_request_read_using(request_id, authority_key, limits, |request| {
+                    self.execute_guarded_request(request)
+                })
+                .await;
+        }
         let http = self
             .evidence_http
             .as_ref()

@@ -3047,26 +3047,51 @@ async fn remote_commit_write(
         .get("idempotency_key")
         .and_then(Value::as_str)
         .ok_or_else(|| "idempotency_key is required for commit".to_string())?;
+    let authority_key = if policy.is_stock_alaveteli(instance_id) {
+        Some(
+            policy
+                .authority_key(instance_id)
+                .map_err(|error| error.to_string())?,
+        )
+    } else {
+        None
+    };
     let (prepared, permit) = gate
         .reserve_durable(policy, token, instance_id, operation, idempotency_key)
         .await?;
     let instance = policy
         .instance(instance_id)
         .ok_or_else(|| "remote instance is not configured".to_string())?;
-    let bot_token = std::env::var(instance.bot_token_env_name()).ok();
     let operation_future = async {
-        let client = SyncClient::new(&instance.base_url)
-            .map_err(|_| anyhow::anyhow!("remote client could not be initialized"))?
-            .with_bot_token(bot_token);
+        let client = if authority_key.is_some() {
+            let identity = fyi_core::agent_runtime::ClientIdentity::default_identity(None)
+                .map_err(|_| anyhow::anyhow!("remote client could not be initialized"))?;
+            let guards = fyi_core::agent_runtime::GuardrailConfig {
+                max_requests: u64::from(instance.budget.max_requests),
+                max_response_bytes: instance.budget.max_bytes,
+                max_concurrency: 1,
+                ..Default::default()
+            };
+            SyncClient::with_guardrails(&instance.base_url, &identity, guards)
+                .map_err(|_| anyhow::anyhow!("remote client could not be initialized"))?
+        } else {
+            SyncClient::new(&instance.base_url)
+                .map_err(|_| anyhow::anyhow!("remote client could not be initialized"))?
+                .with_bot_token(std::env::var(instance.bot_token_env_name()).ok())
+        };
+        #[cfg(feature = "sdk-regression-fixture")]
+        let client = policy.stock_fixture_client(instance_id).unwrap_or(client);
         match operation {
             "remote_create_request" => {
                 let payload: CreateRequestPayload =
                     serde_json::from_value(prepared.arguments.clone())
                         .map_err(|_| anyhow::anyhow!("remote create payload is invalid"))?;
-                client
-                    .create_request(&payload)
-                    .await
-                    .map(|response| json!({"instance_id": instance_id, "request": response}))
+                let response = if let Some(key) = &authority_key {
+                    client.stock_create_request(key, &payload).await
+                } else {
+                    client.create_request(&payload).await
+                };
+                response.map(|response| json!({"instance_id": instance_id, "request": response}))
             }
             "remote_add_correspondence" => {
                 let request_id = prepared
@@ -3102,10 +3127,19 @@ async fn remote_commit_write(
                         .and_then(Value::as_str)
                         .map(str::to_string),
                 };
-                let attachments = validated_attachment_paths(&prepared.arguments)
-                    .await
-                    .map_err(anyhow::Error::msg)?;
-                if attachments.is_empty() {
+                #[cfg(feature = "sdk-regression-fixture")]
+                let fixture_root = policy.stock_fixture_root(instance_id);
+                #[cfg(not(feature = "sdk-regression-fixture"))]
+                let fixture_root = None;
+                let attachments =
+                    validated_attachment_paths_with_root(&prepared.arguments, fixture_root)
+                        .await
+                        .map_err(anyhow::Error::msg)?;
+                if let Some(key) = &authority_key {
+                    client.stock_add_correspondence(key, request_id, &payload, &attachments).await.map(
+                        |response| json!({"instance_id": instance_id, "correspondence": response}),
+                    )
+                } else if attachments.is_empty() {
                     client.add_correspondence(request_id, &payload).await.map(
                         |response| json!({"instance_id": instance_id, "correspondence": response}),
                     )
@@ -3132,16 +3166,19 @@ async fn remote_commit_write(
                     .get("state")
                     .and_then(Value::as_str)
                     .ok_or_else(|| anyhow::anyhow!("state is required"))?;
-                client
-                    .update_request_state_if_current(
-                        request_id,
-                        expected,
-                        &UpdateRequestStatePayload {
-                            state: state.to_string(),
-                        },
-                    )
-                    .await
-                    .map(|response| json!({"instance_id": instance_id, "state": response}))
+                let payload = UpdateRequestStatePayload {
+                    state: state.to_string(),
+                };
+                let response = if let Some(key) = &authority_key {
+                    client
+                        .stock_update_state_if_current(key, request_id, expected, &payload)
+                        .await
+                } else {
+                    client
+                        .update_request_state_if_current(request_id, expected, &payload)
+                        .await
+                };
+                response.map(|response| json!({"instance_id": instance_id, "state": response}))
             }
             _ => Err(anyhow::anyhow!("unsupported remote write operation")),
         }
@@ -3151,7 +3188,15 @@ async fn remote_commit_write(
     gate.finish_durable(&prepared, result).await
 }
 
+#[cfg(test)]
 async fn validated_attachment_paths(arguments: &Value) -> Result<Vec<PathBuf>, String> {
+    validated_attachment_paths_with_root(arguments, None).await
+}
+
+async fn validated_attachment_paths_with_root(
+    arguments: &Value,
+    override_root: Option<&std::path::Path>,
+) -> Result<Vec<PathBuf>, String> {
     let Some(values) = arguments.get("attachments") else {
         return Ok(Vec::new());
     };
@@ -3161,7 +3206,9 @@ async fn validated_attachment_paths(arguments: &Value) -> Result<Vec<PathBuf>, S
     if values.len() > 8 {
         return Err("attachments exceed the 8 file limit".into());
     }
-    let root = std::env::var_os("FYI_MCP_ATTACHMENT_ROOT")
+    let root = override_root
+        .map(|path| path.as_os_str().to_owned())
+        .or_else(|| std::env::var_os("FYI_MCP_ATTACHMENT_ROOT"))
         .ok_or_else(|| "FYI_MCP_ATTACHMENT_ROOT is required for attachment writes".to_string())?;
     let root = tokio::fs::canonicalize(root)
         .await
@@ -3880,6 +3927,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(test)]
 mod remote_contract_tests;
+
+#[cfg(all(test, feature = "sdk-regression-fixture"))]
+mod stock_contract_tests;
 
 #[cfg(test)]
 mod transport_tests;
