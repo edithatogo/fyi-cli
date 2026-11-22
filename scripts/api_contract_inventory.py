@@ -223,15 +223,22 @@ def build_contract_inventory(repo_root: Path) -> dict[str, Any]:
             "surface": "Rust sync API client",
             "contract": (
                 "Local client paths for request reads, search, source writes, "
-                "feeds, retry queues and conflict preservation; "
-                "stock upstream compatibility is not established."
+                "feeds, retry queues and conflict preservation; one explicit "
+                "pinned-upstream authority read is available in the Rust library."
             ),
-            "files": ["crates/fyi-core/src/sync.rs"],
-            "tests": ["crates/fyi-core/src/sync.rs::tests"],
+            "files": [
+                "crates/fyi-core/src/sync.rs",
+                "crates/fyi-core/src/sync/read_contract.rs",
+            ],
+            "tests": [
+                "crates/fyi-core/src/sync.rs::tests",
+                "crates/fyi-core/src/sync/read_contract/tests.rs",
+            ],
             "coverage": (
                 "Mocked successful pull, feed pull, malformed JSON, missing "
                 "required fields, HTTP 401/403/404/429/5xx failures, health, "
-                "push retry, scheduler, and conflict merge behavior."
+                "push retry, scheduler, and conflict merge behavior. The "
+                "pinned authority read has socket-free injected-transport tests."
             ),
             "risk": "high",
         },
@@ -458,9 +465,10 @@ def render_markdown(inventory: dict[str, Any]) -> str:
         "| Public reads, search, authorities and feeds | Rust and Python paths and synthetic read "
         "fixtures exist. | Qualify each selected deployment, response shape, credentials and "
         "completeness. |",
-        "| Authority API request read | MCP and Rust exercise a synthetic "
-        "`/api/v2/request/{id}.json` response. | The pinned upstream controller requires `k` "
-        "and emits `request_text`; the synthetic case assumes neither. |",
+        "| Authority API request read | An explicit Rust library method sends `k` and parses "
+        "`request_text` in socket-free tests against the pinned controller profile. | "
+        "The existing CLI/MCP read still uses its synthetic profile; no deployed "
+        "instance or requester session is qualified. |",
         "| Register and confirm an account | Upstream web routes and controller tests are "
         "documented. | No FYI CLI/MCP remote-account signup and confirmation journey is "
         "verified. |",
@@ -540,8 +548,9 @@ def render_markdown(inventory: dict[str, Any]) -> str:
             "",
             "## Next actions",
             "",
-            "1. Reconcile each source profile with pinned upstream and the "
-            "target deployment before changing production transport behavior.",
+            "1. Integrate the explicit upstream authority read into the selected "
+            "consumer only with its receipt and source-profile gates; reconcile "
+            "the remaining operations against the target deployment.",
             "2. Reuse socket-free tests for selected reads, authority writes "
             "and account/session failures; cover the requester web journey "
             "separately from the experimental authority API.",

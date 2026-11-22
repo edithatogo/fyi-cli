@@ -10,6 +10,7 @@ differences and open account-journey work.
 
 | Capability | Rust method | Notes |
 | --- | --- | --- |
+| Pinned-upstream authority request read | `fetch_upstream_authority_request_read` | Explicit authority key, bounded no-redirect transport and socket-free contract tests; not yet exposed by CLI/MCP or qualified against a deployed instance. |
 | Search requests | `search_requests_with_options` | Supports query, pagination, sorting, and filtering. |
 | Search feed IDs | `search_request_ids_from_feed` | Returns deduplicated request IDs; fetch full records separately. |
 | Add correspondence | `add_correspondence` | JSON payload for requests without files. |
@@ -28,7 +29,8 @@ Supported write states are `waiting_response`, `rejected`, `successful`, and
 invent a graph-level transition policy because the current update payload does
 not include the remote request's current state.
 
-All endpoint tests use WireMock fixtures. Live-instance smoke tests remain
+Older endpoint tests use WireMock fixtures; the pinned authority read uses an
+injected socket-free transport. Live-instance smoke tests remain
 opt-in; CI is the authoritative Rust execution environment on workstations
 without the Windows SDK linker libraries.
 

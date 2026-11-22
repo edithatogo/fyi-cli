@@ -31,6 +31,127 @@ fn assert_safe_kind(error: &anyhow::Error, kind: SourceFailureKind) {
     assert!(!text.contains("https://"), "{text}");
 }
 
+fn source_response(
+    request: reqwest::Request,
+    status: u16,
+    body: serde_json::Value,
+) -> Result<(reqwest::Response, Url)> {
+    let url = request.url().clone();
+    let response = http::Response::builder()
+        .status(status)
+        .body(reqwest::Body::from(body.to_string()))?;
+    Ok((response.into(), url))
+}
+
+#[tokio::test]
+async fn upstream_authority_read_uses_the_pinned_contract_without_sockets() {
+    let identity = crate::agent_runtime::ClientIdentity::default_identity(None).unwrap();
+    let client =
+        SyncClient::with_guardrails("https://source.example", &identity, Default::default())
+            .unwrap();
+    let key = "synthetic-private+key/=";
+    let read = client
+        .authority_request_read_using(7, key, &limits(), |request| async move {
+            assert_eq!(request.method(), reqwest::Method::GET);
+            assert_eq!(request.url().path(), "/api/v2/request/7.json");
+            assert_eq!(
+                request.url().query_pairs().collect::<Vec<_>>(),
+                [("k".into(), key.into())]
+            );
+            source_response(
+                request,
+                200,
+                json!({
+                    "id": 7, "title": "Synthetic", "request_text": "Request body",
+                    "status": "waiting_response", "url": "https://source.example/request/sample",
+                    "request_email": "synthetic-private@example.invalid"
+                }),
+            )
+        })
+        .await
+        .unwrap();
+    assert_eq!(read.value.id, 7);
+    assert_eq!(read.value.body, "Request body");
+    assert_eq!(read.provenance.source_status, 200);
+    assert!(!serde_json::to_string(&read)
+        .unwrap()
+        .contains("synthetic-private"));
+}
+
+#[tokio::test]
+async fn upstream_authority_read_fails_closed_without_disclosing_source_or_key() {
+    let identity = crate::agent_runtime::ClientIdentity::default_identity(None).unwrap();
+    for (status, body, expected) in [
+        (
+            302,
+            json!({"errors": ["synthetic-private"]}),
+            SourceFailureKind::HttpStatus(302),
+        ),
+        (
+            403,
+            json!({"errors": ["synthetic-private"]}),
+            SourceFailureKind::HttpStatus(403),
+        ),
+        (
+            200,
+            json!({"errors": ["synthetic-private"]}),
+            SourceFailureKind::MalformedPayload,
+        ),
+        (
+            200,
+            json!({"id": 8, "title": "x", "request_text": "x", "url": "https://source.example/request/x"}),
+            SourceFailureKind::MalformedPayload,
+        ),
+    ] {
+        let client =
+            SyncClient::with_guardrails("https://source.example", &identity, Default::default())
+                .unwrap();
+        let error = client
+            .authority_request_read_using(
+                7,
+                "synthetic-private-key",
+                &limits(),
+                |request| async move { source_response(request, status, body) },
+            )
+            .await
+            .unwrap_err();
+        assert_safe_kind(&error, expected);
+    }
+    let client =
+        SyncClient::with_guardrails("https://source.example", &identity, Default::default())
+            .unwrap();
+    for (id, key) in [(0, "synthetic-private"), (7, ""), (7, " x "), (7, "a\nb")] {
+        let error = client
+            .authority_request_read_using(id, key, &limits(), |_request| async move {
+                panic!("invalid inputs must not reach the transport")
+            })
+            .await
+            .unwrap_err();
+        assert_safe_kind(&error, SourceFailureKind::Validation);
+    }
+    let error = client
+        .authority_request_read_using(
+            7,
+            "synthetic-private-key",
+            &limits(),
+            |_request| async move {
+                Err(anyhow!(
+                    "synthetic-private URL https://source.example/?k=synthetic-private-key"
+                ))
+            },
+        )
+        .await
+        .unwrap_err();
+    assert_safe_kind(&error, SourceFailureKind::Transport);
+
+    let opaque = SyncClient::with_http_client("https://source.example", Client::new()).unwrap();
+    let error = opaque
+        .fetch_upstream_authority_request_read(7, "synthetic-private-key", &limits())
+        .await
+        .unwrap_err();
+    assert_safe_kind(&error, SourceFailureKind::Validation);
+}
+
 #[test]
 fn configured_read_client_validates_source_identity_and_limits() {
     let identity = crate::agent_runtime::ClientIdentity::default_identity(None).unwrap();
