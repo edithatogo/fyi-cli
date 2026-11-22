@@ -182,6 +182,21 @@ describe("RequestsTable", () => {
     expect(screen.getByText("1 selected")).toBeDefined();
   });
 
+  it("clears selection when refreshed requests include the same ID", () => {
+    const { rerender } = render(<RequestsTable requests={requests} />);
+    fireEvent.click(screen.getAllByLabelText("Select Procurement records")[0]);
+    expect(screen.getByText("1 selected")).toBeDefined();
+
+    const refreshed = [{ ...requests[0], title: "Updated procurement records" }];
+    rerender(<RequestsTable requests={refreshed} />);
+
+    expectRequestMissing("Procurement records");
+    const [selection] = screen.getAllByLabelText<HTMLInputElement>(
+      "Select Updated procurement records",
+    );
+    expect(selection.checked).toBe(false);
+  });
+
   it("exports selected requests as CSV", async () => {
     const createObjectUrl = vi.fn<(blob: Blob) => string>(() => "blob:requests-export");
     const revokeObjectUrl = vi.fn();
