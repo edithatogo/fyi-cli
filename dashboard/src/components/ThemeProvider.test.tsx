@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { renderToString } from "react-dom/server";
 import { ThemeProvider, useTheme } from "./ThemeProvider";
 
 function TestConsumer() {
@@ -45,16 +46,28 @@ describe("ThemeProvider", () => {
     });
   });
 
-  it("reads stored theme from localStorage", async () => {
+  it("uses the saved theme after hydrating the default server theme", async () => {
     localStorage.setItem("fyi-theme", "dark");
-    render(
+    const app = (
       <ThemeProvider>
         <TestConsumer />
       </ThemeProvider>
     );
-    await waitFor(() => {
-      expect(screen.getByTestId("theme").textContent).toBe("dark");
+    const container = document.createElement("div");
+    container.innerHTML = renderToString(app);
+    expect(container.querySelector('[data-testid="theme"]')?.textContent).toBe("light");
+
+    const onRecoverableError = vi.fn();
+    const { getByTestId } = render(app, {
+      container,
+      hydrate: true,
+      onRecoverableError,
     });
+    await waitFor(() => {
+      expect(getByTestId("theme").textContent).toBe("dark");
+    });
+    expect(document.documentElement.classList.contains("dark")).toBe(true);
+    expect(onRecoverableError).not.toHaveBeenCalled();
   });
 
   it("throws error when useTheme is used outside provider", () => {

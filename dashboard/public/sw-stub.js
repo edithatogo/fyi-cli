@@ -15,8 +15,6 @@
  * Manifest companion (installability prep):
  *   dashboard/public/manifest.webmanifest
  */
-/* eslint-disable no-restricted-globals */
-
 const SW_VERSION = "fyi-dashboard-sw-stub-0.2.0";
 const TRUSTED_ORIGIN = self.location.origin;
 

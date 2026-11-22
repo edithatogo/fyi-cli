@@ -1,6 +1,6 @@
 "use client";
 
-import { type KeyboardEvent, useEffect, useMemo, useState } from "react";
+import { type KeyboardEvent, useMemo, useState } from "react";
 import { Download, FileText, Search } from "lucide-react";
 import {
   Badge,
@@ -105,6 +105,7 @@ function buildRequestsCsv(requests: FyiRequest[]) {
 }
 
 export function RequestsTable({ requests }: RequestsTableProps) {
+  const [previousRequests, setPreviousRequests] = useState(requests);
   const [tableRequests, setTableRequests] = useState(requests);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -117,10 +118,11 @@ export function RequestsTable({ requests }: RequestsTableProps) {
     "idle"
   );
 
-  useEffect(() => {
+  if (requests !== previousRequests) {
+    setPreviousRequests(requests);
     setTableRequests(requests);
     setSelectedIds(new Set());
-  }, [requests]);
+  }
 
   const statusOptions = useMemo(
     () => [
