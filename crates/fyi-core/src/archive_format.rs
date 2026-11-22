@@ -662,7 +662,7 @@ pub fn write_wacz_with_checkpoint<F: FnMut() -> Result<()>>(
             .finish()?
             .sync_all()
             .context("persisting WACZ output")?;
-        verify_wacz_inner(output, checkpoint.clone())
+        verify_wacz_inner(output, checkpoint.clone()).map(|(summary, _)| summary)
     })();
     match result {
         Ok(summary) => Ok(summary),
@@ -863,12 +863,24 @@ pub fn verify_wacz_with_checkpoint<F: FnMut() -> Result<()>>(
             failure: None,
         })),
     )
+    .map(|(summary, _)| summary)
+}
+
+/// Verify the complete archive and return its response records in WARC order.
+pub(crate) fn verify_wacz_records(path: &Path) -> Result<(PackageSummary, Vec<ArchivedRecord>)> {
+    verify_wacz_inner(
+        path,
+        Rc::new(RefCell::new(CheckpointState {
+            callback: || Ok(()),
+            failure: None,
+        })),
+    )
 }
 
 fn verify_wacz_inner<F: FnMut() -> Result<()>>(
     path: &Path,
     checkpoint: SharedCheckpoint<F>,
-) -> Result<PackageSummary> {
+) -> Result<(PackageSummary, Vec<ArchivedRecord>)> {
     run_checkpoint(&checkpoint)?;
     let file = File::open(path).context("opening WACZ input")?;
     let mut file = CheckpointFile {
@@ -954,6 +966,7 @@ fn verify_wacz_inner<F: FnMut() -> Result<()>>(
     let mut offset = 0u64;
     let mut record_ids = BTreeSet::new();
     let mut response_pages = Vec::with_capacity(ordered.len());
+    let mut records = Vec::with_capacity(ordered.len());
     for indexed in ordered {
         let expected_offset = decimal(&indexed.entry.offset)?;
         let length = decimal(&indexed.entry.length)?;
@@ -980,10 +993,23 @@ fn verify_wacz_inner<F: FnMut() -> Result<()>>(
             "CDXJ URL/timestamp mismatch"
         );
         ensure!(
-            record_ids.insert(parsed.warc_record_id),
+            record_ids.insert(parsed.warc_record_id.clone()),
             "duplicate WARC record identifiers"
         );
-        response_pages.push((parsed.url, parsed.captured_at));
+        response_pages.push((parsed.url.clone(), parsed.captured_at));
+        records.push(ArchivedRecord {
+            kind: parsed.kind,
+            url: parsed.url,
+            content_type: parsed.content_type,
+            size: parsed.size,
+            sha256: parsed.sha256,
+            warc_record_id: parsed.warc_record_id,
+            offset: expected_offset,
+            length,
+            status: parsed.status,
+            captured_at: parsed.captured_at,
+            http_version: parsed.http_version,
+        });
     }
     ensure!(offset == warc_size, "WARC member has unindexed bytes");
     let mut extra = [0u8; 1];
@@ -1019,11 +1045,14 @@ fn verify_wacz_inner<F: FnMut() -> Result<()>>(
     file.seek(SeekFrom::Start(0))?;
     let (bytes, sha256) = hash_reader(&mut file)?;
     run_checkpoint(&checkpoint)?;
-    Ok(PackageSummary {
-        record_count: index.len(),
-        bytes,
-        sha256,
-    })
+    Ok((
+        PackageSummary {
+            record_count: index.len(),
+            bytes,
+            sha256,
+        },
+        records,
+    ))
 }
 
 fn preflight_zip_directory(file: &mut (impl Read + Seek)) -> Result<()> {

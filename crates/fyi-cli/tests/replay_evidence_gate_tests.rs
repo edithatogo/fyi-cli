@@ -111,9 +111,41 @@ fn cli_rejects_path_aliases_and_nonfinite_budgets() {
 }
 
 #[test]
+fn cli_requires_both_archive_paths_and_rejects_overlaps_before_network() {
+    let workspace = Workspace::new();
+    fs::write(workspace.0.join("selection.json"), SELECTION).unwrap();
+    let receipt = workspace.0.join("receipt.json");
+    let wacz = workspace.0.join("capture.wacz");
+    let link = workspace.0.join("link.json");
+    let missing = workspace.run(&receipt, &["--wacz", wacz.to_str().unwrap()]);
+    assert!(!missing.status.success());
+    assert!(!workspace.0.join("responses").exists());
+    let overlap = workspace.run(
+        &receipt,
+        &[
+            "--wacz",
+            wacz.to_str().unwrap(),
+            "--archive-link",
+            workspace.0.join("selection.json").to_str().unwrap(),
+        ],
+    );
+    assert!(!overlap.status.success());
+    assert_eq!(
+        fs::read(workspace.0.join("selection.json")).unwrap(),
+        SELECTION
+    );
+    assert!(!workspace.0.join("responses").exists());
+    assert!(!wacz.exists());
+    assert!(!link.exists());
+}
+
+#[test]
 fn cli_verifies_ordered_response_bytes_and_rejects_tampering() {
+    use fyi_core::archive_format::{write_wacz, HttpResource, WarcWriter};
     use fyi_core::{acquisition_receipts::canonical_json_bytes, provenance::sha256_hex};
+    use reqwest::{Url, Version};
     use serde_json::{json, Value};
+    use time::OffsetDateTime;
 
     let workspace = Workspace::new();
     let responses = workspace.0.join("responses");
@@ -142,16 +174,64 @@ fn cli_verifies_ordered_response_bytes_and_rejects_tampering() {
     ));
     let receipt_path = workspace.0.join("receipt.json");
     fs::write(&receipt_path, canonical_json_bytes(&receipt).unwrap()).unwrap();
+    let warc_path = workspace.0.join("capture.warc.gz");
+    let wacz_path = workspace.0.join("capture.wacz");
+    let link_path = workspace.0.join("archive-link.json");
+    let url = Url::parse(receipt["responses"][0]["url"].as_str().unwrap()).unwrap();
+    let mut writer = WarcWriter::new(fs::File::create(&warc_path).unwrap());
+    let record = writer
+        .append(&HttpResource {
+            kind: "wayback-replay",
+            url: &url,
+            status: 200,
+            headers: &[],
+            payload: raw,
+            captured_at: OffsetDateTime::UNIX_EPOCH,
+            http_version: Version::HTTP_11,
+        })
+        .unwrap();
+    writer.finish().unwrap();
+    let summary = write_wacz(&wacz_path, &warc_path, std::slice::from_ref(&record), &[]).unwrap();
+    let mut link = json!({
+        "schema": "urn:fyi-cli:wayback-wacz-link:1",
+        "receipt_sha256": receipt["receipt_sha256"],
+        "wacz_sha256": summary.sha256,
+        "wacz_bytes": summary.bytes,
+        "records": [{
+            "response_index": 0,
+            "record_id": record.warc_record_id,
+            "offset": record.offset,
+            "length": record.length,
+        }],
+    });
+    link["link_sha256"] = json!(sha256_hex(&canonical_json_bytes(&link).unwrap()));
+    let link_bytes = canonical_json_bytes(&link).unwrap();
+    fs::write(&link_path, &link_bytes).unwrap();
     let verify = || {
         Command::new(env!("CARGO_BIN_EXE_fyi-cli"))
             .arg("verify-acquisition-receipt")
             .arg(&receipt_path)
             .arg("--responses-dir")
             .arg(&responses)
+            .arg("--wacz")
+            .arg(&wacz_path)
+            .arg("--archive-link")
+            .arg(&link_path)
             .output()
             .unwrap()
     };
     assert!(verify().status.success());
+    link["records"][0]["record_id"] = json!("<urn:uuid:00000000-0000-0000-0000-000000000000>");
+    let mut unsigned = link.as_object().unwrap().clone();
+    unsigned.remove("link_sha256");
+    link["link_sha256"] = json!(sha256_hex(
+        &canonical_json_bytes(&Value::Object(unsigned)).unwrap()
+    ));
+    fs::write(&link_path, canonical_json_bytes(&link).unwrap()).unwrap();
+    let output = verify();
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("archive link record mismatch"));
+    fs::write(&link_path, link_bytes).unwrap();
     fs::write(&raw_path, b"modified HTTP entity!").unwrap();
     let output = verify();
     assert!(!output.status.success());
