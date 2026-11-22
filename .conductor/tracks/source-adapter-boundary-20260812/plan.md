@@ -49,9 +49,9 @@ This #312 increment retains the existing #309/#310 contract and owners.
 - [x] Reconcile the replay guides and record source review and tests-first
   evidence in [replay qualification](./replay-qualification-20261117.md).
   Implementation PR: [#489](https://github.com/edithatogo/fyi-cli/pull/489).
-- [~] Qualify the final receiving head and coordinate integration through #489.
-  Its current-head check ledger records executable acceptance; the static
-  source review and earlier test receipts do not replace that gate.
+- [x] Verify final PR head `e1e0a6a` through hosted CI and Linux, macOS and
+  Windows receipt portability. PR #489 merged into `master`.
+  [checkpoint: `428ad00`] [Final CI](https://github.com/edithatogo/fyi-cli/actions/runs/44389636962) · [Portability run](https://github.com/edithatogo/fyi-cli/actions/runs/44389636938)
 
 Live source smoke, release pinning, downstream shadow parity and archive cutover
 remain separate gates; `archive_cutover_allowed=false`.
@@ -88,9 +88,11 @@ remain separate gates; `archive_cutover_allowed=false`.
   result and receipt files. Offline tests cover a successful pull, HTTP failure,
   redirect, incomplete response and evidence-path preflight. Feed and push
   receipts remain gated. [source checkpoint: 868a334]
-- [ ] Verify the source/CLI integration, immutable byte receipts, and existing
-  cross-platform and downstream gates before treating #312 as complete. Hosted
-  live smoke still requires separate exact operator authorization.
+- [x] Verify offline source/CLI integration and saved response receipts across
+  Linux, macOS and Windows. [checkpoint: `428ad00`, PR #489]
+- [ ] Verify the pinned downstream adapter, separately authorized hosted smoke
+  and NZ shadow parity before closing #312. See Integration below for the
+  release and cutover gates.
 
 ## Independent workstreams
 

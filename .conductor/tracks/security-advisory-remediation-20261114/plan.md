@@ -11,20 +11,31 @@
   environment, owner and evidence timestamp. No invented alert IDs.
 
 ## Phase 1: stop future suppression
-- [~] Add Python stdlib `scripts/verify_security_exceptions.py` with
+- [x] Add Python stdlib `scripts/verify_security_exceptions.py` with
   test-first negative fixtures: reject any new IDs, expired/missing exception
-  records, mismatched `deny.toml` and workflow bypass attempts.
-- [~] Time-box all current 20 historical entries in
+  records, mismatched `deny.toml` and workflow bypass attempts. [checkpoint: `30d836a`, PR #451]
+- [x] Record the seven retained historical exceptions in
   `security/advisory-exceptions.json` with owner, issue, reason and expiry.
-- [~] Run that guard inside the **required Security Audit** job using exact
-  Python 3.15.1 and expose an opt-in local `pre-commit` entry.
-- [ ] Confirm all required exact-final-head CI/coverage/security gates and
-  independent review; request coordinator merge window. No merge here.
+  [checkpoint: `30d836a`, PR #451]
+- [x] Run the guard in the required Security Audit job and add the opt-in
+  `pre-commit` entry. [checkpoint: `30d836a`, PR #451]
+- [x] Verify final PR head `adb06db` and record integration into `master`.
+  Security Audit and coverage passed on that head.
+  [checkpoint: `30d836a`] [Final CI](https://github.com/edithatogo/fyi-cli/actions/runs/43836403252) · [PR #451](https://github.com/edithatogo/fyi-cli/pull/451)
 
-### Removal of demonstrably obsolete entries (dependent PR #455)
-- [~] Remove 13 RustSec identifiers reported `advisory-not-detected` in Security Audit run 43578036426, job 132396499550; do not remove the five current CLI audit exclusions, including #0387, without separate unsuppressed audit qualification.
-- [~] Remove identical identifiers from deny.toml, time-bound policy and immutable grandfather list. Require on-head cargo audit/deny and all required checks before accepting the reduction.
-- [ ] Coordinator merges this focused PR only after predecessor #451 has passed its protected merge window; no direct merge into master from this owner.
+### Retirement of 13 stale exceptions
+
+- [x] Retire the 13 identifiers reported `advisory-not-detected` at baseline
+  `9050a664`. PR #455 merged the cleanup into the guard branch as `910dbd3`.
+  [Baseline audit](https://github.com/edithatogo/fyi-cli/actions/runs/43578036426/job/132396499550) · [PR #455](https://github.com/edithatogo/fyi-cli/pull/455)
+- [x] Verify that PR #451 carried the same 13 removals to `master` and omitted
+  those IDs from the exception policy and guard. [checkpoint: `30d836a`]
+
+At `951e008` there are eight active time-bounded exceptions in
+`deny.toml`, the policy and the CI audit flags. Seven are historical and the
+eighth covers transitive `humantime`. All eight expire on 14 December 2026.
+The active exceptions still require remediation or verified non-applicability
+and a fresh unsuppressed audit. [Exception policy](../../../security/advisory-exceptions.json) · [PR #497](https://github.com/edithatogo/fyi-cli/pull/497)
 
 ## Phase 2: patch exploitable advisories first
 - [ ] RUSTSEC-2026-0459: trace libsqlite3-sys through sqlx/rusqlite/arti

@@ -28,9 +28,9 @@ versions or production receipt schemas changed. Tests use synthetic inputs,
 in-process responses and an HTTP/2 duplex memory stream. No live source request
 or downstream operation is part of this increment.
 
-The concurrent #310 work in #488 owns request-page and sync-pull evidence. This
-slice changes the Wayback builder and replay engine. Receiving integration must
-retain both additive Conductor plan sections and their distinct source changes.
+PR #488 added request-page and sync-pull evidence under #310. PR #489 changed
+the Wayback builder and replay engine. Both increments are present on
+`master` and linked in the track plan.
 
 ## Reproduced failures before correction
 
@@ -81,10 +81,10 @@ their regressions, the corpus harness or the portability changes. Reviewed core
 blobs are `8649308660a83563ab282c7758fa9b83fa4ed379` (replay) and
 `f2c9ad6658acac35d2b3250be779d96e9a0eb208` (Wayback transport).
 
-Final executable acceptance is the exact receiving head recorded in
-[PR #489's checks](https://github.com/edithatogo/fyi-cli/pull/489/checks).
-The tests-first failures and static review are development evidence; receiving
-integration requires all protected checks and the three-platform replay gate.
+Final PR head `e1e0a6ade6f23e04115dbd890e4a936f903964aa` passed hosted CI and
+receipt portability on Linux, macOS and Windows. PR #489 merged into `master`
+as `428ad00ee9e094fb09a59c9295eadf0bd33f5e2d`.
+[Final CI](https://github.com/edithatogo/fyi-cli/actions/runs/44389636962) · [Portability run](https://github.com/edithatogo/fyi-cli/actions/runs/44389636938) · [PR #489](https://github.com/edithatogo/fyi-cli/pull/489)
 
 ## Remaining programme gates and rollback
 
