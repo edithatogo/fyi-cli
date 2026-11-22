@@ -1,9 +1,7 @@
-# TUI presentation acceptance evidence
+# TUI acceptance evidence
 
-Status: presentation merged as #435; bounded runtime #448 verified in the PR and awaiting coordinator integration, 2026-11-14. Required checks on any final refreshed head remain the merge gate.
-PR: [#435](https://github.com/edithatogo/fyi-cli/pull/435).
-Scope: the standalone read-only presentation portion of Phase 2.3 only.
-Contract: [TUI presentation contract](../../../docs/tui-presentation-contract.md).
+PR #435 merged the read-only TUI presentation and PR #448 merged the bounded
+local runtime. [PR #435](https://github.com/edithatogo/fyi-cli/pull/435) · [TUI presentation contract](../../../docs/tui-presentation-contract.md)
 
 ## Audited baseline
 
@@ -96,7 +94,7 @@ can be rendered. The caller must supply the actual terminal size through
 `Event::Resize` before navigation begins and whenever the terminal resizes; this
 is how scroll/page bounds remain aligned with the frame used for rendering.
 
-The following remain outside this evidence claim:
+The following items were open at the presentation handoff.
 
 - CLI launch and real local-data integration.
 - Terminal startup/restoration, asynchronous input and manual terminal checks.
@@ -153,11 +151,8 @@ does not certify a later master or independently refresh the branch.
 | Local non-Rust verification | Fixture Ruff, Python syntax, Conductor verifier and `git diff --check` passed. The captured PTY trace replay also passed. |
 | Optional offline AI | Queued without a runner when required checks were recorded; not counted as passed or required. |
 
-No local Rust execution is claimed: the current executor has no Rust toolchain.
-The existing hosted workflows provide native execution without CI modifications.
-This evidence-only follow-up must itself receive required checks before final
-integration; its results belong in #448's exact-head record, not a recursive
-documentation commit. No historical green result substitutes for final checks.
+The runtime tests above ran on GitHub-hosted runners. The local checks covered
+the Python fixtures and repository contracts.
 
 Executable scope includes bounded/partial/empty metadata, real authority mapping,
 unknown status/attention, explicit unavailable timelines, unchanged database
@@ -172,9 +167,9 @@ targets remain **open and unmeasured**. The reproducible
 platforms, synthetic workloads, release build, units, latency/throughput and RSS
 evidence. Linux PTY tests are not manual accessibility or performance certification.
 
-The sole **Issue fixes and PR merges** coordinator has been asked for an exclusive
-final reconciliation/verification/merge slot in #448. This implementation branch
-does not refresh or merge against concurrently changing master. Historical green
-checks do not qualify a future combined head; no required gate is waived. The
-combined track remains open, and no Python retirement or bundle integration is
-claimed.
+## Final PR verification and merge
+
+Final PR head `47c8009920b2bb12ff93e6bd5a43652612e8aee2` passed hosted CI,
+including Workspace Tests. PR #448 merged into `master` as
+`c12a0233d78e620312738a93a511417a5ac072bb`.
+[Final CI](https://github.com/edithatogo/fyi-cli/actions/runs/43576504763) · [PR #448](https://github.com/edithatogo/fyi-cli/pull/448)

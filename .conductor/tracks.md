@@ -9,14 +9,14 @@ This file tracks all major tracks for the project. Each track has its own detail
 - [~] **Track: security-advisory-remediation-20261114**
   *Link: [./tracks/security-advisory-remediation-20261114/](./tracks/security-advisory-remediation-20261114/)*
   *Issue: [#325](https://github.com/edithatogo/fyi-cli/issues/325).*
-  *Status: in progress — 20 historical RustSec exceptions (13 retired in pending PR #455; seven time-bounded remain), five CLI audit ignores, zero-suppression remediation roadmap, required Security Audit guard and optional pre-commit policy. No existing vulnerability is claimed fixed; exact-head gates remain required.*
+  *PR #455 removed 13 obsolete RustSec exceptions on the guard branch. PR #451 brought the retirement and required guard to `master` (`30d836a`). Eight time-bounded exceptions are active at `951e008`, including the `humantime` exception added in #497. Owner-verified alert inventory, remaining remediation and unsuppressed audit acceptance are open. [Retirement evidence](./tracks/security-advisory-remediation-20261114/plan.md#retirement-of-13-stale-exceptions)*
   *Integration: FYI-CLI — Issue fixes and PR merges is sole merge coordinator.*
 
-- [~] **Track: rust-mcp-tui-implementation** (TUI acceptance reconciled 2026-11-14)
+- [~] **Track: rust-mcp-tui-implementation**
   *Link: [./tracks/rust-mcp-tui-implementation/](./tracks/rust-mcp-tui-implementation/)*
   *Scope: existing combined CLI/MCP/TUI track; no replacement track.*
-  *TUI: bounded read-only Ratatui presentation implemented and locally verified in [PR #435](https://github.com/edithatogo/fyi-cli/pull/435); see [TUI evidence](./tracks/rust-mcp-tui-implementation/tui-acceptance-evidence.md).*
-  *Open: request-management adapter, CLI launch, terminal lifecycle/input and runtime budgets. Historical CLI/MCP acceptance remains with its owners; combined closure is not claimed.*
+  *The read-only local adapter, CLI launch and terminal lifecycle merged in PR #448 (`c12a023`). Hosted tests include real Linux PTY execution. [TUI evidence](./tracks/rust-mcp-tui-implementation/tui-acceptance-evidence.md#final-pr-verification-and-merge)*
+  *Manual terminal and assistive-technology checks, >30 FPS and <20 MB RAM measurements, and verification with actual timeline data remain open. [Runtime acceptance procedure](../docs/tui-runtime-acceptance.md)*
 
 - [~] **Track: frontier-rust-convergence-20261113**
   *Link: [./tracks/frontier-rust-convergence-20261113/](./tracks/frontier-rust-convergence-20261113/)*
@@ -45,7 +45,7 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Child issues: [#310](https://github.com/edithatogo/fyi-cli/issues/310) receipt contract, [#311](https://github.com/edithatogo/fyi-cli/issues/311) CDX discovery (closed), [#312](https://github.com/edithatogo/fyi-cli/issues/312) Wayback replay, [#313](https://github.com/edithatogo/fyi-cli/issues/313) source health/pacing, [#314](https://github.com/edithatogo/fyi-cli/issues/314) historical index.*
   *Description: Make fyi-cli the exclusive receipt-producing network boundary for Alaveteli, Internet Archive, Wayback replay, source health, and approved external indexes.*
   *Current receipt increment: [PR #488](https://github.com/edithatogo/fyi-cli/pull/488) (`e59b6ff`) merged with complete request-failure evidence and incremental sync checkpoint lineage; full network-entrypoint coverage and downstream cutover remain open.*
-  *Replay qualification: [PR #489](https://github.com/edithatogo/fyi-cli/pull/489) (`428ad00`) merged, bounding checkpoint publication, disabling implicit retries, and executing reference/portability contracts; [evidence](./tracks/source-adapter-boundary-20260812/replay-qualification-20261117.md). Live smoke, release and downstream cutover gates remain open.*
+  *Offline replay qualification merged in PR #489 (`428ad00`) with bounded checkpoint publication, one attempt per exchange and successful Linux, macOS and Windows checks. Authorized live smoke, release pinning and downstream NZ shadow parity remain open. [Replay evidence](./tracks/source-adapter-boundary-20260812/replay-qualification-20261117.md#verification-and-review)*
 
 ---
 

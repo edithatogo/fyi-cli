@@ -3,13 +3,16 @@
   "type": "security-remediation",
   "status": "in_progress",
   "created_at": "2026-11-14T00:00:00Z",
-  "updated_at": "2026-11-14T00:00:00Z",
+  "updated_at": "2026-11-22T03:22:40Z",
   "github_issue": "https://github.com/edithatogo/fyi-cli/issues/325",
   "sole_integration_coordinator": "FYI-CLI — Issue fixes and PR merges",
   "grandfathered_exceptions": 7,
   "baseline_audit_ignores": 5,
   "acceptance_verified": false,
   "archive_cutover_allowed": false,
-  "historical_exceptions_retired_in_pending_pr": 13,
-  "retirement_pr": "https://github.com/edithatogo/fyi-cli/pull/455"
+  "historical_exceptions_retired": 13,
+  "retirement_pr": "https://github.com/edithatogo/fyi-cli/pull/455",
+  "retirement_branch_merge_commit": "910dbd39dd27a56a895308878ebc2489f42b7d04",
+  "retirement_master_pr": "https://github.com/edithatogo/fyi-cli/pull/451",
+  "retirement_master_merge_commit": "30d836af5fd7af5644d6d3f313344124342a30f8"
 }

@@ -30,7 +30,7 @@ This directory contains the canonical Conductor project context and management f
 - **i18n-localization-framework** — Fluent, typed letters and terminology are merged (#436, #447, #450); calendars/statutory rules, human review and remaining integration/performance acceptance stay open under #39.
 - **remote-mcp-contract-harness-20260711** — Executable protocol, SDK and synthetic upstream contracts are delivered; feed/cache/transfer, broader property/mutation and platform acceptance remain open under #169/#173.
 - **remote-mcp-write-governance-20260711** — Governed writes and a bounded durable journal are implemented; immutable attachment submission, atomic upstream state changes and platform qualification remain open under #169/#171.
-- **rust-mcp-tui-implementation** — TUI presentation verified separately; request-management/CLI integration and runtime acceptance remain open (PR #435)
+- **rust-mcp-tui-implementation** — The bounded local runtime merged in PR #448. Manual terminal and accessibility checks and performance measurements remain open.
 - **frontier-rust-convergence-20261113** — Frontier capability contract, Rust convergence, 3.15/1.99 compatibility gates, CI/harness and Conductor self-repair (planning; not yet implemented)
 - **test-acceleration-20261113** — Bounded local test-acceleration profiles (slow marker, xdist, testmon, bounded gremlins trial, VCR/Freezegun/pytest-picked decisions) for issue #322 (completed via PR; CI full suite authoritative)
 - **solo-maintainer-security-20261113** — Quality frontier: security and solo-maintainer context (additive ruleset, AGENTS.md, one-command validation + drift receipt, Renovate preset inheritance, Codecov OIDC verification) for issue #281 (completed via PR #415)

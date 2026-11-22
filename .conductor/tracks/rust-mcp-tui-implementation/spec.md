@@ -26,10 +26,9 @@ This track implements the primary user-facing interfaces for the new Rust applic
 
 ## TUI acceptance reconciliation — 2026-11-14
 
-The original Phase 2.3 completion claim did not establish CLI boot or asynchronous
-input: the `tui` command is currently deliberately unsupported. This work retains
-Ratatui and the existing `AppState` / `draw_ui` entry points while completing the
-bounded read-only presentation separately from the request-management adapter.
+At the Phase 2.3 baseline, the `tui` command returned `unsupported_command`.
+PR #435 verified the bounded presentation using Ratatui and the existing
+`AppState` and `draw_ui` entry points.
 
 Presentation acceptance requires supplied requests/statuses, draft metadata,
 genuine supplied timelines, honest snapshot metrics, explicit loading/empty/error
@@ -40,10 +39,10 @@ fixtures and deterministic complete-buffer/interaction/resize tests establish
 these requirements. Unsupported prototype save/delete/autosave/keyring helpers,
 export promises and demonstration defaults are removed from this unwired module.
 
-See [the concrete input/effect contract](../../../docs/tui-presentation-contract.md)
-and [acceptance evidence](tui-acceptance-evidence.md). A later isolated adapter
-must open existing local data read-only, supply actual authority metadata, preserve
-unknown/partial data, and verify terminal lifecycle and input handling before
-changing CLI dispatch. Buffer tests do not establish the original >30 FPS or
-<20 MB RAM budgets. Those runtime requirements remain open, and the combined
-CLI/MCP/TUI track is not complete.
+PR #448 integrated the adapter and CLI launch at `c12a023`. The adapter opens
+existing local data read-only, supplies authority metadata and preserves unknown
+and partial data. The Linux PTY tests verify keyboard navigation and terminal
+cleanup. The adapter reports timelines as unavailable, so verification with
+actual timeline data remains open. Manual terminal and assistive-technology
+checks and the original >30 FPS and <20 MB RAM budgets also remain open.
+[Presentation contract](../../../docs/tui-presentation-contract.md) · [Acceptance evidence](tui-acceptance-evidence.md)
