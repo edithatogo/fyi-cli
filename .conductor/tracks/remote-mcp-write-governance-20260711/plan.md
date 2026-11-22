@@ -1,5 +1,21 @@
 # Plan: Remote MCP write governance
 
+## Upstream write compatibility — 2026-11-22
+
+The governed MCP flow and durable journal remain in place. Their synthetic
+source fixture differs from the pinned Alaveteli authority API in routes,
+credential/parameter placement and result fields; the
+[coverage contract](../../../docs/api-contract-inventory.md) records the
+specific cases. This is an open source-compatibility gap, not a reason to
+weaken confirmation, replay protection, attachment bounds or privacy controls.
+
+- [ ] Qualify an explicitly selected source profile and its authority key
+  handling; do not treat the fork-local bot header as the authority API key.
+- [ ] Verify request import, correspondence, response attachments and state
+  against that profile with independent offline cases before claiming parity.
+- [ ] Preserve the separate account-session and requester-submission gaps;
+  no live portal write or account creation is authorized by this plan.
+
 ## Phase 1: Write policy and confirmation contract
 
 - [x] Task: Define write capability, protected credential, confirmation, idempotency, and replay contracts

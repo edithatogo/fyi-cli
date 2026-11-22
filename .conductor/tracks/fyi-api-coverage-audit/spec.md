@@ -1,5 +1,32 @@
 # Specification: fyi-api-coverage-audit
 
+## Coverage amendment — 2026-11-22
+
+The historical scope below describes parity with the legacy Python client's
+synthetic behavior. That checkpoint did not establish compatibility with an
+Alaveteli deployment or cover an ordinary requester's account and submissions.
+The active coverage contract is the generated
+[`docs/api-contract-inventory.md`](../../../docs/api-contract-inventory.md),
+with routes, controller behavior and account-flow references pinned to an
+upstream revision. A deployment or fork must be qualified separately.
+
+Coverage now includes public discovery and reads; requester registration,
+confirmation, login, challenges and logout; requester submission and
+follow-up; and authority-side request import, correspondence, attachments and
+state. The authority disclosure API is a different role and workflow from the
+ordinary requester web journey. Reuse the existing source-adapter, MCP harness
+and governed-write tracks for their respective implementations.
+
+Acceptance requires source-backed offline cases and isolated end-to-end
+journeys with synthetic accounts and intercepted mail, including failure and
+credential-redaction behavior. Passing synthetic fixtures alone does not prove
+that a deployed service is compatible. Tests must not access the network. Any
+live-site smoke, account creation or external submission still needs explicit
+authorization for that exact action. Archive cutover remains subject to the
+existing downstream acceptance gates.
+
+## Historical specification — retained for context
+
 ## Overview
 This track audits the FYI/Alaveteli API surface and brings the Rust core to **full parity** with the Python client, closing web-artifact gaps. It ensures the Rust implementation has complete coverage of all Alaveteli API endpoints currently handled by Python.
 

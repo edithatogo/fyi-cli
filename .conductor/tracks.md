@@ -47,6 +47,7 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Current receipt increment: [PR #488](https://github.com/edithatogo/fyi-cli/pull/488) (`e59b6ff`) merged with complete request-failure evidence and incremental sync checkpoint lineage; full network-entrypoint coverage and downstream cutover remain open.*
   *Offline replay qualification merged in PR #489 (`428ad00`) with bounded checkpoint publication, one attempt per exchange and successful Linux, macOS and Windows checks. [Replay evidence](./tracks/source-adapter-boundary-20260812/replay-qualification-20261117.md#verification-and-review)*
   *One synthetic Wayback handoff preserved the receipt and exact encoded response through the local archive package and its indexed WARC/WACZ readback. Production coverage, release pinning, authorized smoke and downstream parity remain open. [Offline handoff evidence](./tracks/source-adapter-boundary-20260812/replay-qualification-20261117.md#offline-wayback-archive-handoff) · [Cutover gates](./tracks/source-adapter-boundary-20260812/plan.md#integration)*
+  *PR #509 (`6495285`) added receipt-linked WARC/WACZ capture to Rust Wayback replay. The [upstream API coverage reconciliation](../docs/api-contract-inventory.md) remains open; cutover is disabled.*
 
 ---
 
@@ -172,12 +173,6 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Description: Execute mutation testing on the codebase to verify test effectiveness and achieve greater than 90% mutation score.*
   *Status: TARGET ACHIEVED*
 
-- [x] **Track: fyi-api-coverage-audit** (COMPLETED 2026-07-08, PR #126)
-  *Issue: #37 (closed)*
-  *Link: [./tracks/fyi-api-coverage-audit/](./tracks/fyi-api-coverage-audit/)*
-  *Description: Audit FYI/Alaveteli API surface; bring Rust core to full parity with Python client + close web-artifact gaps.*
-  *Status: TARGET ACHIEVED*
-
 - [x] **Track: jurisdiction-abstraction-core** (COMPLETED 2026-07-08, PR #126)
   *Issue: #38 (closed)*
   *Link: [./tracks/jurisdiction-abstraction-core/](./tracks/jurisdiction-abstraction-core/)*
@@ -223,6 +218,12 @@ This file tracks all major tracks for the project. Each track has its own detail
 ---
 
 ## Active Tracks
+
+- [~] **Track: fyi-api-coverage-audit** (REOPENED IN CONDUCTOR 2026-11-22; historical PR #126)
+  *Issue: #37 (historically closed; GitHub state unchanged)*
+  *Link: [./tracks/fyi-api-coverage-audit/](./tracks/fyi-api-coverage-audit/)*
+  *Description: Reconcile Alaveteli account and API coverage against pinned upstream, Rust, Python and MCP evidence.*
+  *Status: Contract and redaction reconciled (`20360fc`); one bounded upstream authority read has socket-free Rust tests (`d9a13dd`). CLI/MCP integration, upstream writes and requester journeys remain open. [Coverage contract](../docs/api-contract-inventory.md)*
 
 - [x] **Track: registry-blocker-monitor** (COMPLETED 2026-07-11, PR #190)
   *GitHub issue: [#32](https://github.com/edithatogo/fyi-cli/issues/32)*

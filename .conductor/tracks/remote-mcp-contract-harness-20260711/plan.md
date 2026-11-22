@@ -1,5 +1,21 @@
 # Plan: Remote MCP contract harness
 
+## Upstream reference reconciliation — 2026-11-22
+
+The retained `upstream-v2.json` fixture exercises the real MCP binary against a
+synthetic server; it is not evidence that the wire profile matches stock
+Alaveteli. The [coverage contract](../../../docs/api-contract-inventory.md)
+compares five selected cases with pinned upstream routes and controller fields.
+Source/profile implementation remains with the source-adapter track.
+
+- [x] Reuse the existing fixture and test machinery to expose source-profile
+  differences without relabeling historical synthetic evidence. `20360fc`
+  adds a fixture-field comparison; it does not execute an upstream server.
+- [ ] Add passing source-backed executable cases after the selected transport
+  supports the pinned provider contract; retain per-deployment differences.
+- [ ] Cover the requester account/session journey separately from authority
+  disclosure operations and retain platform/source qualification gates.
+
 ## Reproducible harness increment — 2026-11-17
 
 Starting source: `1f0ae6d0b00663d52ccb65904152ca4e933b3486`. Issue #173

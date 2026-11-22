@@ -1,5 +1,26 @@
 # Plan
 
+## Alaveteli coverage contract — 2026-11-22
+
+Owner: the source-adapter integration lane, branch
+`codex/alaveteli-coverage-contract`; no live source or native-object scope.
+Retain the existing source, MCP read/write and harness tracks as owners.
+
+- [x] Pin Alaveteli routes, API controller and account-session references;
+  reconcile Rust, Python and MCP behavior with the existing synthetic fixture.
+  Checkpoint: `20360fc`.
+- [x] Add a socket-free reference comparison to the existing API inventory and
+  expose unqualified source behavior without weakening existing checks. `20360fc`.
+- [x] Remove authority-key exposure from the affected legacy HTTP errors and
+  Python/Rust trace-redaction paths using socket-free regressions. `20360fc`.
+- [x] Record the account lifecycle, requester and authority-write gaps, and
+  distinguish the experimental disclosure API from ordinary submission. `20360fc`.
+- [x] Add the explicit bounded Rust authority-request read and socket-free
+  source-profile tests. Checkpoint: `d9a13dd`.
+- [ ] Integrate the authority read with the selected consumer and receipt path;
+  qualify the remaining profile operations and isolated account journeys.
+- [ ] Complete hosted-source, downstream parity and cutover gates separately.
+
 ## Acquisition evidence integrity — 2026-11-17 (#310)
 
 Receiving baseline: `1f0ae6d0b00663d52ccb65904152ca4e933b3486`.
