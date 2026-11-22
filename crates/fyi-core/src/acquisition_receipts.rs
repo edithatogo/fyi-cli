@@ -57,7 +57,7 @@ fn object_field<'a>(value: &'a Value, name: &str) -> Result<&'a Value> {
         .with_context(|| format!("receipt missing object {name}"))
 }
 
-fn integer(value: &Value, name: &str) -> Result<u64> {
+pub(crate) fn integer(value: &Value, name: &str) -> Result<u64> {
     value
         .get(name)
         .and_then(|number| {

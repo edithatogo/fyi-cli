@@ -190,6 +190,12 @@ pub enum Commands {
         checkpoint: String,
         #[arg(long)]
         receipt: String,
+        /// Fresh WACZ containing each observed encoded response.
+        #[arg(long, requires = "archive_link")]
+        wacz: Option<String>,
+        /// Fresh linkage between the receipt and WACZ records.
+        #[arg(long, requires = "wacz")]
+        archive_link: Option<String>,
         #[arg(long, default_value_t = 100)]
         max_rows: usize,
         #[arg(long, default_value_t = 16 * 1024 * 1024)]
@@ -478,6 +484,14 @@ pub enum Commands {
             help = "Directory of ordered Wayback response bodies to verify"
         )]
         responses_dir: Option<String>,
+        #[arg(
+            long,
+            requires = "archive_link",
+            help = "WACZ to verify against the replay receipt"
+        )]
+        wacz: Option<String>,
+        #[arg(long, requires = "wacz", help = "Receipt-to-WACZ linkage file")]
+        archive_link: Option<String>,
     },
     #[command(about = "Run Model Context Protocol (MCP) server")]
     McpServer,
@@ -719,6 +733,8 @@ fn main() {
             result,
             checkpoint,
             receipt,
+            wacz,
+            archive_link,
             max_rows,
             max_payload_bytes,
             max_redirects,
@@ -726,7 +742,8 @@ fn main() {
             request_timeout_seconds,
         } => {
             use fyi_core::internet_archive_replay::{
-                replay_archive_with_evidence, ReplayConfig, ReplayEvidencePaths,
+                replay_archive_with_archive, replay_archive_with_evidence, ReplayArchivePaths,
+                ReplayConfig, ReplayEvidencePaths,
             };
             let operation = || -> Result<(), Box<dyn std::error::Error>> {
                 let config = ReplayConfig {
@@ -745,7 +762,20 @@ fn main() {
                     result: Path::new(result),
                     receipt: Path::new(receipt),
                 };
-                Runtime::new()?.block_on(replay_archive_with_evidence(&paths, &config))?;
+                let runtime = Runtime::new()?;
+                match (wacz, archive_link) {
+                    (Some(wacz), Some(link)) => {
+                        let archive = ReplayArchivePaths {
+                            wacz: Path::new(wacz),
+                            link: Path::new(link),
+                        };
+                        runtime.block_on(replay_archive_with_archive(&paths, &config, &archive))?;
+                    }
+                    (None, None) => {
+                        runtime.block_on(replay_archive_with_evidence(&paths, &config))?;
+                    }
+                    _ => return Err("WACZ and archive link must be supplied together".into()),
+                }
                 println!("{result}");
                 Ok(())
             };
@@ -971,6 +1001,8 @@ fn main() {
             result_file,
             raw_file,
             responses_dir,
+            wacz,
+            archive_link,
         } => {
             let result = std::fs::File::open(path)
                 .map_err(|error| format!("reading receipt failed: {error}"))
@@ -999,6 +1031,18 @@ fn main() {
                             Path::new(directory),
                         )
                         .map_err(|error| error.to_string())?;
+                    }
+                    match (wacz, archive_link) {
+                        (Some(wacz), Some(link)) => {
+                            fyi_core::internet_archive_replay::verify_replay_archive(
+                                &receipt,
+                                Path::new(wacz),
+                                Path::new(link),
+                            )
+                            .map_err(|error| error.to_string())?;
+                        }
+                        (None, None) => {}
+                        _ => return Err("WACZ and archive link must be supplied together".into()),
                     }
                     Ok(())
                 });

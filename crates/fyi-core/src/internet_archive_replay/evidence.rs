@@ -1,5 +1,6 @@
 //! Evidence-producing archive replay. All transport is limited to approved rows.
 
+use super::archive::{preflight_archive, ReplayArchive, ReplayArchivePaths};
 use super::{
     absolute_path, reject_symlink_ancestors, replay_approved_rows, validate_selection_bytes,
     ApprovedSelection, ReplayConfig, ReplayFetchError, ReplayObservation, ReplayResponse,
@@ -42,7 +43,7 @@ pub async fn replay_archive_with_evidence(
 ) -> Result<ReplayResult> {
     let selection = prepare(paths, config)?;
     let transport = WaybackTransport::new()?;
-    replay_evidenced(paths, config, &selection, |url, timeout, limit| {
+    replay_evidenced_with_archive(paths, config, &selection, None, |url, timeout, limit| {
         let transport = &transport;
         async move {
             transport
@@ -54,7 +55,35 @@ pub async fn replay_archive_with_evidence(
     .await
 }
 
-fn read_regular_bounded(path: &Path, cap: usize, label: &str) -> Result<Vec<u8>> {
+/// Replay approved rows and publish a WACZ and receipt linkage for the observed responses.
+pub async fn replay_archive_with_archive(
+    paths: &ReplayEvidencePaths<'_>,
+    config: &ReplayConfig,
+    archive: &ReplayArchivePaths<'_>,
+) -> Result<ReplayResult> {
+    config.validate()?;
+    preflight_archive(paths, archive)?;
+    let selection = prepare(paths, config)?;
+    let mut capture = ReplayArchive::new(archive)?;
+    let transport = WaybackTransport::new()?;
+    replay_evidenced_with_archive(
+        paths,
+        config,
+        &selection,
+        Some(&mut capture),
+        |url, timeout, limit| {
+            let transport = &transport;
+            async move {
+                transport.fetch(&url, timeout, limit).await.map_err(|_| {
+                    ReplayFetchError::Fatal(anyhow::anyhow!("archive transport failed"))
+                })
+            }
+        },
+    )
+    .await
+}
+
+pub(super) fn read_regular_bounded(path: &Path, cap: usize, label: &str) -> Result<Vec<u8>> {
     reject_symlink_ancestors(path)?;
     let metadata = fs::symlink_metadata(path).with_context(|| format!("{label} is missing"))?;
     ensure!(
@@ -81,7 +110,7 @@ fn checkpoint_digest(path: &Path) -> Result<Option<String>> {
     }
 }
 
-fn require_absent(path: &Path, label: &str) -> Result<()> {
+pub(super) fn require_absent(path: &Path, label: &str) -> Result<()> {
     match fs::symlink_metadata(path) {
         Ok(_) => anyhow::bail!("{label} already exists; choose a fresh evidence path"),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
@@ -184,7 +213,7 @@ fn prepare(paths: &ReplayEvidencePaths<'_>, config: &ReplayConfig) -> Result<App
     Ok(selection)
 }
 
-fn sanitized_response_url(response: &ReplayResponse) -> Result<String> {
+pub(super) fn sanitized_response_url(response: &ReplayResponse) -> Result<String> {
     let mut url = response.url.clone();
     ensure!(
         url.username().is_empty() && url.password().is_none(),
@@ -295,10 +324,25 @@ fn observe_response(
     Ok(())
 }
 
+#[cfg(test)]
 async fn replay_evidenced<F, Fut>(
     paths: &ReplayEvidencePaths<'_>,
     config: &ReplayConfig,
     selection: &ApprovedSelection,
+    fetch: F,
+) -> Result<ReplayResult>
+where
+    F: FnMut(String, Duration, usize) -> Fut,
+    Fut: Future<Output = Result<ReplayResponse, ReplayFetchError>>,
+{
+    replay_evidenced_with_archive(paths, config, selection, None, fetch).await
+}
+
+async fn replay_evidenced_with_archive<F, Fut>(
+    paths: &ReplayEvidencePaths<'_>,
+    config: &ReplayConfig,
+    selection: &ApprovedSelection,
+    mut archive: Option<&mut ReplayArchive>,
     mut fetch: F,
 ) -> Result<ReplayResult>
 where
@@ -328,7 +372,11 @@ where
                 &mut responses,
                 &mut incomplete,
                 config.max_payload_bytes,
-            )
+            )?;
+            if let (Some(capture), Some(response)) = (archive.as_mut(), observation.response) {
+                capture.append(response)?;
+            }
+            Ok(())
         },
     )
     .await;
@@ -381,8 +429,17 @@ where
     receipt["receipt_sha256"] = Value::String(sha256_hex(&canonical_json_bytes(&receipt)?));
     verify_receipt(&receipt)?;
     verify_receipt_result_bytes(&receipt, &result_bytes)?;
+    let link = archive
+        .as_mut()
+        .map(|capture| capture.finish(&receipt))
+        .transpose();
     write_evidence_bytes_atomic(paths.result, &result_bytes)?;
     write_receipt_atomic(paths.receipt, &receipt)?;
+    let link = link?;
+    if let (Some(capture), Some(link)) = (archive, link) {
+        reject_symlink_ancestors(capture.link_path())?;
+        write_evidence_bytes_atomic(capture.link_path(), &link)?;
+    }
     outcome
 }
 
@@ -478,10 +535,16 @@ mod tests {
         let h = Harness::new();
         let paths = h.paths();
         let config = Harness::config();
+        let archive_paths = ReplayArchivePaths {
+            wacz: &h.root.join("redirect.wacz"),
+            link: &h.root.join("redirect-link.json"),
+        };
+        preflight_archive(&paths, &archive_paths).unwrap();
         let selection = prepare(&paths, &config).unwrap();
+        let mut capture = ReplayArchive::new(&archive_paths).unwrap();
         let calls = Arc::new(AtomicUsize::new(0));
         let fetch_calls = calls.clone();
-        let result = replay_evidenced(&paths, &config, &selection, move |url, _, _| {
+        let result = replay_evidenced_with_archive(&paths, &config, &selection, Some(&mut capture), move |url, _, _| {
             let hop = fetch_calls.fetch_add(1, Ordering::SeqCst);
             async move {
                 if hop == 0 {
@@ -511,6 +574,8 @@ mod tests {
             fs::read(paths.result).unwrap(),
             result.canonical_bytes().unwrap()
         );
+        super::super::verify_replay_archive(&receipt, archive_paths.wacz, archive_paths.link)
+            .unwrap();
         assert_eq!(
             fs::read(
                 paths
@@ -554,10 +619,20 @@ mod tests {
         let h = Harness::new();
         let paths = h.paths();
         let config = Harness::config();
+        let archive_paths = ReplayArchivePaths {
+            wacz: &h.root.join("failed.wacz"),
+            link: &h.root.join("failed-link.json"),
+        };
+        preflight_archive(&paths, &archive_paths).unwrap();
         let selection = prepare(&paths, &config).unwrap();
-        let result = replay_evidenced(&paths, &config, &selection, |url, _, _| async move {
-            Ok(response(&url, StatusCode::OK, b"incorrect"))
-        })
+        let mut capture = ReplayArchive::new(&archive_paths).unwrap();
+        let result = replay_evidenced_with_archive(
+            &paths,
+            &config,
+            &selection,
+            Some(&mut capture),
+            |url, _, _| async move { Ok(response(&url, StatusCode::OK, b"incorrect")) },
+        )
         .await;
         assert!(result.is_err());
         let receipt = fixture_receipt(&h);
@@ -566,6 +641,8 @@ mod tests {
         assert_eq!(receipt["totals"]["requests"], 1);
         assert_eq!(receipt["responses"][0]["sha256"], sha256_hex(b"incorrect"));
         assert!(!paths.checkpoint.exists());
+        super::super::verify_replay_archive(&receipt, archive_paths.wacz, archive_paths.link)
+            .unwrap();
     }
 
     #[tokio::test]
@@ -606,6 +683,200 @@ mod tests {
         );
         let projection: Value = serde_json::from_slice(&result.canonical_bytes().unwrap()).unwrap();
         assert_eq!(projection["objects"][0]["sha256"], sha256_hex(PAYLOAD));
+    }
+
+    #[tokio::test]
+    async fn compressed_fixture_links_receipt_to_wacz_and_rejects_tampering() {
+        use crate::internet_archive_replay::verify_replay_archive;
+        use std::io::Read;
+
+        let h = Harness::new();
+        let paths = h.paths();
+        let config = Harness::config();
+        let archive_paths = ReplayArchivePaths {
+            wacz: &h.root.join("replay.wacz"),
+            link: &h.root.join("archive-link.json"),
+        };
+        preflight_archive(&paths, &archive_paths).unwrap();
+        let selection = prepare(&paths, &config).unwrap();
+        let mut capture = ReplayArchive::new(&archive_paths).unwrap();
+        // The exact gzip response from the retained offline Wayback fixture.
+        let encoded = data_encoding::BASE64
+            .decode(b"H4sIAAAAAAAA/wEyAM3/eyJyZXF1ZXN0Ijoic3ludGhldGljLTAwMSIsInN0YXR1cyI6InN1Y2Nlc3NmdWwifQpWg5kbMgAAAA==")
+            .unwrap();
+        assert_eq!(
+            sha256_hex(&encoded),
+            "ddf6ca0e623a8d84c8e6828c9eb3f0a9239c9dd9d25676c5a3e271817f064f20"
+        );
+        let supplied = encoded.clone();
+        replay_evidenced_with_archive(
+            &paths,
+            &config,
+            &selection,
+            Some(&mut capture),
+            move |url, _, _| {
+                let body = supplied.clone();
+                async move {
+                    let mut captured = response(&url, StatusCode::OK, &body);
+                    captured
+                        .headers
+                        .insert(header::CONTENT_ENCODING, "gzip".parse().unwrap());
+                    captured
+                        .headers
+                        .insert(header::SET_COOKIE, "private=secret".parse().unwrap());
+                    Ok(captured)
+                }
+            },
+        )
+        .await
+        .unwrap();
+
+        let receipt = fixture_receipt(&h);
+        verify_replay_archive(&receipt, archive_paths.wacz, archive_paths.link).unwrap();
+        let file = fs::File::open(archive_paths.wacz).unwrap();
+        let mut zip = zip::ZipArchive::new(file).unwrap();
+        let mut warc = Vec::new();
+        flate2::read::GzDecoder::new(zip.by_name("archive/data.warc.gz").unwrap())
+            .read_to_end(&mut warc)
+            .unwrap();
+        let headers_end = warc
+            .windows(4)
+            .position(|part| part == b"\r\n\r\n")
+            .unwrap()
+            + 4;
+        let http_end = warc[headers_end..]
+            .windows(4)
+            .position(|part| part == b"\r\n\r\n")
+            .unwrap()
+            + headers_end
+            + 4;
+        assert_eq!(&warc[http_end..http_end + encoded.len()], encoded);
+        assert!(String::from_utf8_lossy(&warc[..http_end]).contains("content-encoding: gzip"));
+        assert!(!warc
+            .windows(b"private=secret".len())
+            .any(|window| window == b"private=secret"));
+
+        let link_bytes = fs::read(archive_paths.link).unwrap();
+        let mut link: Value = serde_json::from_slice(&link_bytes).unwrap();
+        link["records"][0]["record_id"] = json!("<urn:uuid:00000000-0000-0000-0000-000000000000>");
+        let mut unsigned = link.as_object().unwrap().clone();
+        unsigned.remove("link_sha256");
+        link["link_sha256"] = json!(sha256_hex(
+            &canonical_json_bytes(&Value::Object(unsigned)).unwrap()
+        ));
+        fs::write(archive_paths.link, canonical_json_bytes(&link).unwrap()).unwrap();
+        assert!(
+            verify_replay_archive(&receipt, archive_paths.wacz, archive_paths.link)
+                .unwrap_err()
+                .to_string()
+                .contains("record mismatch")
+        );
+        fs::write(archive_paths.link, &link_bytes).unwrap();
+        let mut altered_receipt = receipt.clone();
+        altered_receipt["responses"][0]["sha256"] = json!("0".repeat(64));
+        let mut unsigned = altered_receipt.as_object().unwrap().clone();
+        unsigned.remove("receipt_sha256");
+        altered_receipt["receipt_sha256"] = json!(sha256_hex(
+            &canonical_json_bytes(&Value::Object(unsigned)).unwrap()
+        ));
+        assert!(
+            verify_replay_archive(&altered_receipt, archive_paths.wacz, archive_paths.link)
+                .unwrap_err()
+                .to_string()
+                .contains("receipt mismatch")
+        );
+        let mut rebound_link: Value = serde_json::from_slice(&link_bytes).unwrap();
+        rebound_link["receipt_sha256"] = altered_receipt["receipt_sha256"].clone();
+        let mut unsigned = rebound_link.as_object().unwrap().clone();
+        unsigned.remove("link_sha256");
+        rebound_link["link_sha256"] = json!(sha256_hex(
+            &canonical_json_bytes(&Value::Object(unsigned)).unwrap()
+        ));
+        fs::write(
+            archive_paths.link,
+            canonical_json_bytes(&rebound_link).unwrap(),
+        )
+        .unwrap();
+        assert!(
+            verify_replay_archive(&altered_receipt, archive_paths.wacz, archive_paths.link)
+                .unwrap_err()
+                .to_string()
+                .contains("archive response differs from receipt")
+        );
+        fs::write(archive_paths.link, &link_bytes).unwrap();
+        let mut wacz = fs::read(archive_paths.wacz).unwrap();
+        let index = wacz.len() / 2;
+        wacz[index] ^= 1;
+        fs::write(archive_paths.wacz, wacz).unwrap();
+        assert!(verify_replay_archive(&receipt, archive_paths.wacz, archive_paths.link).is_err());
+    }
+
+    #[tokio::test]
+    async fn archive_paths_reject_collisions_before_replay() {
+        let h = Harness::new();
+        let paths = h.paths();
+        let config = Harness::config();
+        let original = fs::read(&h.selection).unwrap();
+        let wacz = h.root.join("capture.wacz");
+        let archives = [
+            ReplayArchivePaths {
+                wacz: &wacz,
+                link: &h.selection,
+            },
+            ReplayArchivePaths {
+                wacz: &wacz,
+                link: &h.responses_dir.join("link.json"),
+            },
+            ReplayArchivePaths {
+                wacz: &wacz,
+                link: &wacz,
+            },
+        ];
+        for archive in &archives {
+            assert!(replay_archive_with_archive(&paths, &config, archive)
+                .await
+                .is_err());
+            assert_eq!(fs::read(&h.selection).unwrap(), original);
+            assert!(!h.responses_dir.exists());
+            assert!(!h.receipt.exists());
+            assert!(!wacz.exists());
+        }
+    }
+
+    #[tokio::test]
+    async fn concurrent_wacz_creation_preserves_existing_file_and_acquisition_receipt() {
+        let h = Harness::new();
+        let paths = h.paths();
+        let config = Harness::config();
+        let wacz = h.root.join("capture.wacz");
+        let link = h.root.join("link.json");
+        let archive_paths = ReplayArchivePaths {
+            wacz: &wacz,
+            link: &link,
+        };
+        preflight_archive(&paths, &archive_paths).unwrap();
+        let selection = prepare(&paths, &config).unwrap();
+        let mut capture = ReplayArchive::new(&archive_paths).unwrap();
+        let concurrent = wacz.clone();
+        let error = replay_evidenced_with_archive(
+            &paths,
+            &config,
+            &selection,
+            Some(&mut capture),
+            move |url, _, _| {
+                let concurrent = concurrent.clone();
+                async move {
+                    fs::write(concurrent, b"existing").unwrap();
+                    Ok(response(&url, StatusCode::OK, PAYLOAD))
+                }
+            },
+        )
+        .await
+        .unwrap_err();
+        assert!(format!("{error:#}").contains("publishing replay WACZ"));
+        assert_eq!(fs::read(wacz).unwrap(), b"existing");
+        assert!(!link.exists());
+        assert_eq!(fixture_receipt(&h)["status"], "succeeded");
     }
 
     #[tokio::test]
@@ -679,6 +950,45 @@ mod tests {
         assert_eq!(receipt["totals"]["requests"], 0);
         assert_eq!(receipt["checkpoint"]["before_sha256"], before);
         assert_eq!(receipt["checkpoint"]["after_sha256"], before);
+
+        let result3 = h.root.join("result-3.json");
+        let receipt3 = h.root.join("receipt-3.json");
+        let responses3 = h.root.join("responses-3");
+        let wacz = h.root.join("empty.wacz");
+        let link = h.root.join("empty-link.json");
+        let empty = ReplayEvidencePaths {
+            result: &result3,
+            receipt: &receipt3,
+            responses_dir: &responses3,
+            ..h.paths()
+        };
+        let archive_paths = ReplayArchivePaths {
+            wacz: &wacz,
+            link: &link,
+        };
+        preflight_archive(&empty, &archive_paths).unwrap();
+        let selection = prepare(&empty, &config).unwrap();
+        let mut capture = ReplayArchive::new(&archive_paths).unwrap();
+        let error = replay_evidenced_with_archive(
+            &empty,
+            &config,
+            &selection,
+            Some(&mut capture),
+            |_, _, _| async move {
+                panic!("completed checkpoint must not make a request");
+                #[allow(unreachable_code)]
+                Ok(response("https://web.archive.org/", StatusCode::OK, b""))
+            },
+        )
+        .await
+        .unwrap_err();
+        assert!(error.to_string().contains("requires at least one response"));
+        let zero_receipt: Value = serde_json::from_slice(&fs::read(&receipt3).unwrap()).unwrap();
+        verify_receipt_result_bytes(&zero_receipt, &fs::read(result3).unwrap()).unwrap();
+        assert_eq!(zero_receipt["totals"]["requests"], 0);
+        assert!(!wacz.exists());
+        assert!(!link.exists());
+        assert_eq!(sha256_hex(&fs::read(paths.checkpoint).unwrap()), before);
     }
 
     #[test]

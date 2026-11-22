@@ -1,8 +1,11 @@
 //! Bounded replay of self-pinned approvals through a caller-owned HTTP boundary.
 
+mod archive;
 mod evidence;
+pub use archive::{verify_replay_archive, ReplayArchivePaths};
 pub use evidence::{
-    replay_archive_with_evidence, verify_replay_response_files, ReplayEvidencePaths,
+    replay_archive_with_archive, replay_archive_with_evidence, verify_replay_response_files,
+    ReplayEvidencePaths,
 };
 
 use crate::acquisition_receipts::canonical_json_bytes;
