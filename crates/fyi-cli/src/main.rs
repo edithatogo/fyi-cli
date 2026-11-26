@@ -490,7 +490,7 @@ pub enum Commands {
         #[arg(
             long,
             requires = "archive_link",
-            help = "WACZ to verify against the replay receipt"
+            help = "WACZ to verify against the source or replay receipt"
         )]
         wacz: Option<String>,
         #[arg(long, requires = "wacz", help = "Receipt-to-WACZ linkage file")]
@@ -1067,12 +1067,13 @@ fn main() {
                     }
                     match (wacz, archive_link) {
                         (Some(wacz), Some(link)) => {
-                            fyi_core::internet_archive_replay::verify_replay_archive(
-                                &receipt,
-                                Path::new(wacz),
-                                Path::new(link),
-                            )
-                            .map_err(|error| error.to_string())?;
+                            let verify = if receipt["command"] == "internet-archive-replay" {
+                                fyi_core::internet_archive_replay::verify_replay_archive
+                            } else {
+                                fyi_core::source_archive::verify_source_archive
+                            };
+                            verify(&receipt, Path::new(wacz), Path::new(link))
+                                .map_err(|error| error.to_string())?;
                         }
                         (None, None) => {}
                         _ => return Err("WACZ and archive link must be supplied together".into()),
