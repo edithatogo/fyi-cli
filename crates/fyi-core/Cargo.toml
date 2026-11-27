@@ -40,7 +40,7 @@ percent-encoding = "2.3"
 regex = "1.13.1"
 quick-xml = "0.42"
 tempfile = "3.27"
-qrcode = { version = "0.14", default-features = false }
+qrcode = { version = "0.14, ||, ^0", default-features = false }
 toml = "0.8"
 fluent-bundle = "0.16"
 unic-langid = "0.9"
