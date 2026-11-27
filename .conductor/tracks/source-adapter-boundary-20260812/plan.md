@@ -158,6 +158,16 @@ contract. Merge #310 first or use its fixture branch as the temporary base.
 Both runs used the same fixture with network access denied.
 [Offline handoff evidence](replay-qualification-20261117.md#offline-wayback-archive-handoff)
 
+## Offline Alaveteli archive seed handoff
+
+- [x] Verify the merged fictional case handoff with pinned Rust receipt/WACZ
+  verification and event export in network-disabled archive CI. [FYI CLI
+  checkpoint `12be1689`](https://github.com/edithatogo/fyi-cli/pull/519) ·
+  [FYI Archive checkpoint `12de4fe`](https://github.com/edithatogo/fyi-archive/pull/448)
+- [x] Run the legacy seed and the Rust handoff on fictional case 701.
+  The local rollback restored the legacy snapshot and resumed without duplicate
+  events. Exact shadow parity failed. [Archive checkpoint `12de4fe` and comparison evidence](offline-archive-seed-20261127.md#offline-shadow-comparison)
+
 ## Integration
 
 `archive_cutover_allowed=false`. The following gates remain open.
@@ -171,7 +181,9 @@ Both runs used the same fixture with network access denied.
   source HTTP boundary with static and behavioral checks that allow approved
   archive and publication APIs.
 - [ ] Verify old and new downstream outputs across the offline parity fixtures.
-  The one synthetic snapshot provides an input for that comparison.
+  Reconcile event and attachment identities, legacy attachment capture and
+  seed byte accounting. Qualify checkpoint migration without emitting false
+  deletions before broadening the shadow. [Case 701 differences](offline-archive-seed-20261127.md#offline-shadow-comparison)
 - [ ] Record authorized, bounded hosted smoke for live Alaveteli discovery
   and capture and one Internet Archive CDX/replay record.
 - [ ] Verify NZ shadow parity for queues, captures, events, attachments,
