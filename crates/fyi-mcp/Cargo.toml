@@ -33,6 +33,6 @@ time = { version = "0.3", features = ["formatting", "parsing", "macros", "serde"
 sqlx = { version = "0.9.0", features = ["runtime-tokio", "tls-rustls-ring", "sqlite"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-hmac = "0.12"
+hmac = "0.12, ||, ^0"
 sha2 = "0.10"
 
