@@ -48,6 +48,7 @@ This file tracks all major tracks for the project. Each track has its own detail
   *Offline replay qualification merged in PR #489 (`428ad00`) with bounded checkpoint publication, one attempt per exchange and successful Linux, macOS and Windows checks. [Replay evidence](./tracks/source-adapter-boundary-20260812/replay-qualification-20261117.md#verification-and-review)*
   *One synthetic Wayback handoff preserved the receipt and exact encoded response through the local archive package and its indexed WARC/WACZ readback. Production coverage, release pinning, authorized smoke and downstream parity remain open. [Offline handoff evidence](./tracks/source-adapter-boundary-20260812/replay-qualification-20261117.md#offline-wayback-archive-handoff) · [Cutover gates](./tracks/source-adapter-boundary-20260812/plan.md#integration)*
   *PR #509 (`6495285`) added receipt-linked WARC/WACZ capture to Rust Wayback replay. The [upstream API coverage reconciliation](../docs/api-contract-inventory.md) remains open; cutover is disabled.*
+  *The offline Alaveteli seed handoff merged in FYI CLI #519 (`12be1689`) and FYI Archive #448 (`12de4fe`). Archive `main` CI passed with the pinned Rust commands. The one-case shadow passed local rollback and exposed attachment and checkpoint mismatches. [Evidence](./tracks/source-adapter-boundary-20260812/offline-archive-seed-20261127.md)*
 
 ---
 

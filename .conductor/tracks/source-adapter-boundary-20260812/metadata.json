@@ -3,7 +3,7 @@
   "type": "programme",
   "status": "in-progress",
   "created_at": "2026-08-12T00:00:00Z",
-  "updated_at": "2026-11-22T05:43:35Z",
+  "updated_at": "2026-11-27T03:57:32Z",
   "github_issue": "https://github.com/edithatogo/fyi-cli/issues/309",
   "upstream_consumer": "https://github.com/edithatogo/fyi-archive/issues/370",
   "downstream_consumer": "https://github.com/edithatogo/foi-process/issues/114",
@@ -33,5 +33,23 @@
     "receipt_sha256": "d80db593d865f94bfd6351c603152437c508ad8bd42c67fccd5fa3f727dd9480",
     "linked_package_id": "8017b28c4eff9c4d1e50a071e6d84d4d461ad4d19c7acaa8d4306242b7bb7e1c",
     "evidence": "replay-qualification-20261117.md"
+  },
+  "offline_archive_seed_20261127": {
+    "scope": "one_fictional_alaveteli_case",
+    "fixture": "offline-seed-v1",
+    "fyi_cli_pr": "https://github.com/edithatogo/fyi-cli/pull/519",
+    "fyi_cli_commit": "12be16891da810256908b5fbf2865dea8c3ff4fb",
+    "fyi_archive_pr": "https://github.com/edithatogo/fyi-archive/pull/448",
+    "fyi_archive_commit": "12de4fe51158ee43673d681aaafdc7bf813ffd75",
+    "archive_main_ci": "https://github.com/edithatogo/fyi-archive/actions/runs/45909710899/job/140214842238",
+    "dependency_audit": "https://github.com/edithatogo/fyi-archive/actions/runs/45908495766/job/140210903997",
+    "evidence": "offline-archive-seed-20261127.md",
+    "shadow": {
+      "case_id": 701,
+      "legacy_cli_commit": "bc789a845e8b4e8b53d007c658be8070cb17e70e",
+      "full_parity": false,
+      "local_rollback_verified": true,
+      "comparison_sha256": "02da29b6e9e00572da913142f7345e76858aa68abe72cdad21de4fec38206f12"
+    }
   }
 }
